@@ -1,0 +1,54 @@
+name: Build Zephyr Applications
+
+on:
+  push:
+    branches: [ main, ccr-* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: zephyrproject/zephyr-build:latest
+      options: -u 0
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Initialize West workspace
+        run: |
+          cd /workdir
+          west init --mr main .
+          west update
+
+      - name: Build thermo-node
+        run: |
+          cd /workdir/esp32-thermo-system
+          west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node
+
+      - name: Build thermo-gateway
+        run: |
+          cd /workdir/esp32-thermo-system
+          west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway
+
+      - name: Check build artifacts
+        run: |
+          ls -la /workdir/esp32-thermo-system/build/thermo-node/
+          ls -la /workdir/esp32-thermo-system/build/thermo-gateway/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: build-artifacts
+          path: |
+            build/thermo-node/zephyr/zephyr.elf
+            build/thermo-node/zephyr/zephyr.hex
+            build/thermo-gateway/zephyr/zephyr.elf
+            build/thermo-gateway/zephyr/zephyr.hex
+          if-no-files-found: ignore
