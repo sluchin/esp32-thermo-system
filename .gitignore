@@ -53,3 +53,25 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Zephyr build artifacts
+build/
+zephyr/
+.west/
+*.merged.hex
+
+# Python virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
