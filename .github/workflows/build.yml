@@ -42,7 +42,7 @@ jobs:
           ls -la /workdir/esp32-thermo-system/build/thermo-gateway/
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: build-artifacts
