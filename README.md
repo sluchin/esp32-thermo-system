@@ -30,16 +30,37 @@ esp32-thermo-system/
 
 ## クイックスタート
 
-### Docker を使用したビルド（推奨）
+### シミュレーション（推奨・最速）
+
+ハードウェアなしで Linux PC 上でテストしたい場合：
+
+```bash
+# ビルド
+./build.sh all --sim
+
+# 実行
+./build/thermo-node-sim/zephyr/zephyr.exe &
+./build/thermo-gateway-sim/zephyr/zephyr.exe
+```
+
+詳細は [SIMULATION.md](./SIMULATION.md) を参照してください。
+
+### Docker を使用したビルド
 
 Docker と docker-compose がインストールされている場合、最も簡単な方法です：
 
 ```bash
-# Thermo Node をビルド
+# Thermo Node をビルド（ESP32C3用）
 docker-compose run build-thermo-node
 
-# Thermo Gateway をビルド
+# Thermo Gateway をビルド（ESP32C3用）
 docker-compose run build-thermo-gateway
+
+# Thermo Node をビルド（シミュレーション）
+docker-compose run build-thermo-node-sim
+
+# Thermo Gateway をビルド（シミュレーション）
+docker-compose run build-thermo-gateway-sim
 
 # インタラクティブ開発シェル
 docker-compose run dev
@@ -53,11 +74,17 @@ Docker を使用しない場合は、[SETUP.md](./SETUP.md) を参照してく�
 # West ワークスペース初期化
 west init -l .
 
-# Thermo Node をビルド
+# Thermo Node をビルド（ESP32C3用）
 west build -b xiao_esp32c3 app/thermo-node
 
-# Thermo Gateway をビルド
+# Thermo Gateway をビルド（ESP32C3用）
 west build -b xiao_esp32c3 app/thermo-gateway
+
+# Thermo Node をビルド（シミュレーション）
+./build.sh node --sim
+
+# Thermo Gateway をビルド（シミュレーション）
+./build.sh gateway --sim
 ```
 
 ### フラッシング
