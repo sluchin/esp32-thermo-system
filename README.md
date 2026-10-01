@@ -30,14 +30,28 @@ esp32-thermo-system/
 
 ## クイックスタート
 
-### 開発環境構築
+### Docker を使用したビルド（推奨）
 
-詳細は [SETUP.md](./SETUP.md) を参照してください。
+Docker と docker-compose がインストールされている場合、最も簡単な方法です：
+
+```bash
+# Thermo Node をビルド
+docker-compose run build-thermo-node
+
+# Thermo Gateway をビルド
+docker-compose run build-thermo-gateway
+
+# インタラクティブ開発シェル
+docker-compose run dev
+```
+
+### ローカル開発環境構築
+
+Docker を使用しない場合は、[SETUP.md](./SETUP.md) を参照してください。
 
 ```bash
 # West ワークスペース初期化
-west init --mr main .
-west update
+west init -l .
 
 # Thermo Node をビルド
 west build -b xiao_esp32c3 app/thermo-node
