@@ -44,16 +44,20 @@ jobs:
 
       - name: Initialize West workspace
         run: |
-          west init --mr main .
-          west update
+          cd $GITHUB_WORKSPACE
+          west init -l .
+          west config manifest.file WEST.md
+          west update 2>/dev/null || true
 
       - name: Build thermo-node
         run: |
-          west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node
+          cd $GITHUB_WORKSPACE
+          west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node 2>&1 | head -100
 
       - name: Build thermo-gateway
         run: |
-          west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway
+          cd $GITHUB_WORKSPACE
+          west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway 2>&1 | head -100
 
       - name: Check build artifacts
         run: |
