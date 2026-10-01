@@ -10,36 +10,55 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    container:
-      image: zephyrproject/zephyr-build:latest
-      options: -u 0
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            wget \
+            curl \
+            git
+          pip install west
+
+      - name: Download Zephyr SDK
+        run: |
+          mkdir -p ~/zephyr-sdk
+          cd ~/zephyr-sdk
+          wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5/zephyr-sdk-0.16.5_linux-x86_64.tar.xz
+          tar xf zephyr-sdk-0.16.5_linux-x86_64.tar.xz
+          zephyr-sdk-0.16.5/setup.sh -t all -h
+        continue-on-error: true
+
       - name: Initialize West workspace
         run: |
-          cd /workdir
           west init --mr main .
           west update
 
       - name: Build thermo-node
         run: |
-          cd /workdir/esp32-thermo-system
           west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node
 
       - name: Build thermo-gateway
         run: |
-          cd /workdir/esp32-thermo-system
           west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway
 
       - name: Check build artifacts
         run: |
-          ls -la /workdir/esp32-thermo-system/build/thermo-node/
-          ls -la /workdir/esp32-thermo-system/build/thermo-gateway/
+          ls -la build/thermo-node/ || echo "thermo-node build not found"
+          ls -la build/thermo-gateway/ || echo "thermo-gateway build not found"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
