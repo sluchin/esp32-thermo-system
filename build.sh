@@ -17,12 +17,15 @@ usage() {
     echo "Options:"
     echo "  -p, --pristine    Perform a pristine build (clean before build)"
     echo "  -v, --verbose     Enable verbose output"
+    echo "  -s, --sim         Build for native_sim (Linux simulation) instead of ESP32C3"
     exit 1
 }
 
 PRISTINE=0
 VERBOSE=""
 COMMAND="all"
+SIM=0
+BOARD="xiao_esp32c3"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -38,6 +41,11 @@ while [[ $# -gt 0 ]]; do
             VERBOSE="-v"
             shift
             ;;
+        -s|--sim)
+            SIM=1
+            BOARD="native_sim"
+            shift
+            ;;
         *)
             usage
             ;;
@@ -46,16 +54,26 @@ done
 
 build_app() {
     local app=$1
+    local target="ESP32C3"
+    local conf_opt=""
+    local build_dir="build/$app"
+
+    if [ $SIM -eq 1 ]; then
+        target="native_sim"
+        conf_opt="-DCONF_FILE=prj-native_sim.conf"
+        build_dir="build/${app}-sim"
+    fi
+
     echo "================================"
-    echo "Building $app..."
+    echo "Building $app for $target..."
     echo "================================"
 
     if [ $PRISTINE -eq 1 ]; then
         echo "Cleaning build directory..."
-        rm -rf "build/$app"
+        rm -rf "$build_dir"
     fi
 
-    west build $VERBOSE -b xiao_esp32c3 "app/$app" -d "build/$app"
+    west build $VERBOSE -b $BOARD "app/$app" -d "$build_dir" $conf_opt
 
     echo "✓ $app build completed successfully"
     echo ""

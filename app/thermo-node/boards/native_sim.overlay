@@ -1,0 +1,6 @@
+/ {
+	zephyr_user {
+		compatible = "vnd,thermo-node";
+		status = "okay";
+	};
+};
