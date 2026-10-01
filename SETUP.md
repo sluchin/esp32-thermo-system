@@ -2,7 +2,37 @@
 
 このドキュメントは、ESP32C3上でZephyr RTOSベースのサーモシステムを開発するための環境構築手順です。
 
-## 前提条件
+## Docker を使用したセットアップ（推奨）
+
+Docker と docker-compose がインストールされている場合、以下のコマンドで開発環境をセットアップできます：
+
+```bash
+# Thermo Node をビルド
+docker-compose run build-thermo-node
+
+# Thermo Gateway をビルド
+docker-compose run build-thermo-gateway
+
+# インタラクティブ開発シェル
+docker-compose run dev
+```
+
+### Docker セットアップの利点
+
+- ✅ Zephyr SDK の自動インストール
+- ✅ 依存関係をすべて含む
+- ✅ クロスプラットフォーム対応（Linux/macOS/Windows）
+- ✅ ホストシステムを汚さない
+
+詳細は `Dockerfile` と `docker-compose.yml` を参照してください。
+
+---
+
+## ローカル開発環境セットアップ
+
+Docker を使用しない場合のセットアップ手順です。
+
+### 前提条件
 
 - Linux（Ubuntu 20.04以上推奨）、macOS、またはWindows Subsystem for Linux (WSL2)
 - Python 3.8以上
