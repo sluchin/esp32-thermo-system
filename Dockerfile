@@ -41,5 +41,22 @@ RUN mkdir -p /opt/zephyr-sdk && \
 
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+ENV PIP_ROOT_USER_ACTION=ignore
+
+# Containers run as the host user, who does not own the baked-in /workspace
+RUN git config --system --add safe.directory '*'
+
+# Bake the Zephyr workspace into the image so builds do not re-fetch it.
+# Re-run `docker compose build` after changing west.yml.
+COPY west.yml /workspace/esp32-thermo-system/west.yml
+RUN cd /workspace && \
+    west init -l esp32-thermo-system && \
+    west update --narrow -o=--depth=1 && \
+    pip install --no-cache-dir --break-system-packages \
+        -r zephyr/scripts/requirements.txt 'esptool>=5.0.2' && \
+    west blobs fetch hal_espressif
+
+# Zephyr only uses $HOME/.cache (HOME=/tmp in compose) if it already exists
+RUN mkdir -p /tmp/.cache && chmod 1777 /tmp/.cache
 
 CMD ["/bin/bash"]
