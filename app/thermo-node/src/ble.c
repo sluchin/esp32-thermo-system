@@ -1,6 +1,9 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/logging/log.h>
+#include <stdlib.h>
+
+#include "ble.h"
 
 LOG_MODULE_REGISTER(ble_thermo_node);
 
@@ -11,28 +14,28 @@ static const struct bt_data ad[] = {
 
 int ble_init(void)
 {
-	int err;
+	int err = EXIT_SUCCESS;
 
 	err = bt_enable(NULL);
-	if (err) {
+	if (err != 0) {
 		LOG_ERR("Bluetooth init failed (err %d)", err);
 		return err;
 	}
 
 	LOG_INF("Bluetooth initialized");
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 int ble_advertise(void)
 {
-	int err;
+	int err = EXIT_SUCCESS;
 
 	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), NULL, 0);
-	if (err) {
+	if (err != 0) {
 		LOG_ERR("Advertising failed to start (err %d)", err);
 		return err;
 	}
 
 	LOG_INF("Advertising started");
-	return 0;
+	return EXIT_SUCCESS;
 }

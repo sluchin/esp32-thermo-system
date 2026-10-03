@@ -1,43 +1,54 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "ble.h"
+#include "sensor.h"
 
 LOG_MODULE_REGISTER(thermo_node);
 
-extern int ble_init(void);
-extern int ble_advertise(void);
-extern int sensor_init(void);
-extern int sensor_read_temperature(uint16_t *value);
+#define SAMPLE_INTERVAL_S 5
 
 int main(void)
 {
+	int ret = EXIT_SUCCESS;
+
 #ifdef CONFIG_SIMULATOR
 	LOG_INF("Thermo Node started (SIMULATOR MODE)");
 #else
 	LOG_INF("Thermo Node started on ESP32C3");
 #endif
 
-	if (sensor_init() != 0) {
+	ret = sensor_init();
+	if (ret != EXIT_SUCCESS) {
 		LOG_ERR("Failed to initialize sensor");
-		return -1;
+		return EXIT_FAILURE;
 	}
 
-	if (ble_init() != 0) {
+	ret = ble_init();
+	if (ret != EXIT_SUCCESS) {
 		LOG_ERR("Failed to initialize BLE");
-		return -1;
+		return EXIT_FAILURE;
 	}
 
-	if (ble_advertise() != 0) {
+	ret = ble_advertise();
+	if (ret != EXIT_SUCCESS) {
 		LOG_ERR("Failed to start BLE advertising");
-		return -1;
+		return EXIT_FAILURE;
 	}
 
-	while (1) {
-		uint16_t temp_raw;
-		if (sensor_read_temperature(&temp_raw) == 0) {
+	while (true) {
+		uint16_t temp_raw = 0U;
+		int read_ret = EXIT_SUCCESS;
+
+		read_ret = sensor_read_temperature(&temp_raw);
+		if (read_ret == EXIT_SUCCESS) {
 			LOG_INF("Temperature: %u (raw ADC value)", temp_raw);
 		}
-		k_sleep(K_SECONDS(5));
+		k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
