@@ -1,0 +1,8 @@
+mainmenu "Thermo application"
+
+config SIMULATOR
+	bool "Build in simulator mode"
+	help
+	  Use simulated sensor data and log simulator mode at startup.
+
+source "Kconfig.zephyr"

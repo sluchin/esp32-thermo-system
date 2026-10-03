@@ -6,6 +6,7 @@ LOG_MODULE_REGISTER(ble_thermo_node);
 
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+	BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1),
 };
 
 int ble_init(void)
@@ -26,7 +27,7 @@ int ble_advertise(void)
 {
 	int err;
 
-	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
+	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), NULL, 0);
 	if (err) {
 		LOG_ERR("Advertising failed to start (err %d)", err);
 		return err;
