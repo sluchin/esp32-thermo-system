@@ -56,6 +56,10 @@ RUN cd /workspace && \
         -r zephyr/scripts/requirements.txt 'esptool>=5.0.2' && \
     west blobs fetch hal_espressif
 
+# btvirt provides virtual Bluetooth controllers for native_sim BLE simulation
+RUN apt-get update && apt-get install -y --no-install-recommends bluez-test-tools \
+    && rm -rf /var/lib/apt/lists/*
+
 # Zephyr only uses $HOME/.cache (HOME=/tmp in compose) if it already exists
 RUN mkdir -p /tmp/.cache && chmod 1777 /tmp/.cache
 
