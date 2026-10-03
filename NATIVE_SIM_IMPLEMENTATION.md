@@ -101,8 +101,8 @@ CONFIG_MAIN_STACK_SIZE=8192
 
 使用例：
 ```bash
-docker-compose run build-thermo-node-sim
-docker-compose run build-thermo-gateway-sim
+docker compose run build-thermo-node-sim
+docker compose run build-thermo-gateway-sim
 ```
 
 ### 8. ドキュメント

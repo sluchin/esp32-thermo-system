@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Build thermo-node
   build-thermo-node:
@@ -9,13 +7,14 @@ services:
     image: esp32-thermo-system:latest
     container_name: esp32-thermo-node-build
     volumes:
-      - .:/workspace
+      - .:/workspace/esp32-thermo-system
       - west-cache:/root/.cache
-    working_dir: /workspace
-    command: bash -c "west init -l . && west build -b xiao_esp32c3 app/thermo-node"
+    working_dir: /workspace/esp32-thermo-system
+    command: bash -c "cd /workspace && (west manifest --path >/dev/null 2>&1 || west init -l esp32-thermo-system) && west update && pip install --no-cache-dir --break-system-packages -r zephyr/scripts/requirements.txt 'esptool>=5.0.2' && west blobs fetch hal_espressif && sed -i 's/pathlib.Path(self.source_dir).relative_to(pathlib.Path.cwd(), walk_up=True)/os.path.relpath(self.source_dir, pathlib.Path.cwd())/g' zephyr/scripts/west_commands/build.py && cd esp32-thermo-system && west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node -- -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake"
     environment:
-      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.16.5
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - PIP_ROOT_USER_ACTION=ignore
 
   # Build thermo-gateway
   build-thermo-gateway:
@@ -25,13 +24,14 @@ services:
     image: esp32-thermo-system:latest
     container_name: esp32-thermo-gateway-build
     volumes:
-      - .:/workspace
+      - .:/workspace/esp32-thermo-system
       - west-cache:/root/.cache
-    working_dir: /workspace
-    command: bash -c "west init -l . && west build -b xiao_esp32c3 app/thermo-gateway"
+    working_dir: /workspace/esp32-thermo-system
+    command: bash -c "cd /workspace && (west manifest --path >/dev/null 2>&1 || west init -l esp32-thermo-system) && west update && pip install --no-cache-dir --break-system-packages -r zephyr/scripts/requirements.txt 'esptool>=5.0.2' && west blobs fetch hal_espressif && sed -i 's/pathlib.Path(self.source_dir).relative_to(pathlib.Path.cwd(), walk_up=True)/os.path.relpath(self.source_dir, pathlib.Path.cwd())/g' zephyr/scripts/west_commands/build.py && cd esp32-thermo-system && west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway -- -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake"
     environment:
-      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.16.5
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - PIP_ROOT_USER_ACTION=ignore
 
   # Build thermo-node for simulation
   build-thermo-node-sim:
@@ -41,13 +41,14 @@ services:
     image: esp32-thermo-system:latest
     container_name: esp32-thermo-node-sim-build
     volumes:
-      - .:/workspace
+      - .:/workspace/esp32-thermo-system
       - west-cache:/root/.cache
-    working_dir: /workspace
-    command: bash -c "west init -l . && west build -b native_sim -DCONF_FILE=app/thermo-node/prj-native_sim.conf app/thermo-node -d build/thermo-node-sim"
+    working_dir: /workspace/esp32-thermo-system
+    command: bash -c "cd /workspace && (west manifest --path >/dev/null 2>&1 || west init -l esp32-thermo-system) && west update && pip install --no-cache-dir --break-system-packages -r zephyr/scripts/requirements.txt && sed -i 's/pathlib.Path(self.source_dir).relative_to(pathlib.Path.cwd(), walk_up=True)/os.path.relpath(self.source_dir, pathlib.Path.cwd())/g' zephyr/scripts/west_commands/build.py && cd esp32-thermo-system && west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -DCONF_FILE=prj-native_sim.conf -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake"
     environment:
-      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.16.5
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - PIP_ROOT_USER_ACTION=ignore
 
   # Build thermo-gateway for simulation
   build-thermo-gateway-sim:
@@ -57,13 +58,14 @@ services:
     image: esp32-thermo-system:latest
     container_name: esp32-thermo-gateway-sim-build
     volumes:
-      - .:/workspace
+      - .:/workspace/esp32-thermo-system
       - west-cache:/root/.cache
-    working_dir: /workspace
-    command: bash -c "west init -l . && west build -b native_sim -DCONF_FILE=app/thermo-gateway/prj-native_sim.conf app/thermo-gateway -d build/thermo-gateway-sim"
+    working_dir: /workspace/esp32-thermo-system
+    command: bash -c "cd /workspace && (west manifest --path >/dev/null 2>&1 || west init -l esp32-thermo-system) && west update && pip install --no-cache-dir --break-system-packages -r zephyr/scripts/requirements.txt && sed -i 's/pathlib.Path(self.source_dir).relative_to(pathlib.Path.cwd(), walk_up=True)/os.path.relpath(self.source_dir, pathlib.Path.cwd())/g' zephyr/scripts/west_commands/build.py && cd esp32-thermo-system && west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-sim -- -DCONF_FILE=prj-native_sim.conf -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake"
     environment:
-      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.16.5
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - PIP_ROOT_USER_ACTION=ignore
 
   # Development shell
   dev:
@@ -73,14 +75,15 @@ services:
     image: esp32-thermo-system:latest
     container_name: esp32-thermo-dev
     volumes:
-      - .:/workspace
+      - .:/workspace/esp32-thermo-system
       - west-cache:/root/.cache
-    working_dir: /workspace
+    working_dir: /workspace/esp32-thermo-system
     stdin_open: true
     tty: true
     environment:
-      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.16.5
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - PIP_ROOT_USER_ACTION=ignore
     command: /bin/bash
 
 volumes:

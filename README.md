@@ -47,23 +47,23 @@ esp32-thermo-system/
 
 ### Docker を使用したビルド
 
-Docker と docker-compose がインストールされている場合、最も簡単な方法です：
+Docker と Docker Compose がインストールされている場合、最も簡単な方法です：
 
 ```bash
 # Thermo Node をビルド（ESP32C3用）
-docker-compose run build-thermo-node
+docker compose run build-thermo-node
 
 # Thermo Gateway をビルド（ESP32C3用）
-docker-compose run build-thermo-gateway
+docker compose run build-thermo-gateway
 
 # Thermo Node をビルド（シミュレーション）
-docker-compose run build-thermo-node-sim
+docker compose run build-thermo-node-sim
 
 # Thermo Gateway をビルド（シミュレーション）
-docker-compose run build-thermo-gateway-sim
+docker compose run build-thermo-gateway-sim
 
 # インタラクティブ開発シェル
-docker-compose run dev
+docker compose run dev
 ```
 
 ### ローカル開発環境構築
