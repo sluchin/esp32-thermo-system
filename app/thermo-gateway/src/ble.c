@@ -33,8 +33,8 @@ int ble_scan(void)
 	struct bt_le_scan_param scan_param = {
 		.type = BT_LE_SCAN_TYPE_ACTIVE,
 		.options = BT_LE_SCAN_OPT_NONE,
-		.interval = BT_GAP_SCAN_ITVL_MSEC(100),
-		.window = BT_GAP_SCAN_WIN_MSEC(50),
+		.interval = BT_GAP_MS_TO_SCAN_INTERVAL(100),
+		.window = BT_GAP_MS_TO_SCAN_WINDOW(50),
 	};
 
 	err = bt_le_scan_start(&scan_param, scan_cb);
