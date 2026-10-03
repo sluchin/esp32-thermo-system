@@ -45,6 +45,22 @@ west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-si
 ./build/thermo-gateway-sim/zephyr/zephyr.exe
 ```
 
+このままでは Bluetooth コントローラ（HCI）がないため、BLE の初期化に失敗します（`HCI driver is not ready`）。BLE を動かす場合は、次のどちらかを使ってください。
+
+### BLE を使う実行（仮想コントローラ・推奨）
+
+BlueZ の `btvirt` が作る仮想 Bluetooth コントローラに、Node と Gateway の両方を接続します。Bluetooth ハードウェアは不要で、Docker 内で完結します。
+
+```bash
+docker compose run --rm run-sim
+```
+
+Node がアドバタイズし、Gateway がそれを検出するログが出ます（停止は Ctrl+C）。`btvirt` は `Dockerfile` で `bluez-test-tools` としてインストールされるため、初回は `docker compose build` を実行してください。
+
+`btvirt` は暗号処理に AF_ALG ソケットを使いますが、Docker の既定の seccomp と AppArmor はこれを拒否します。拒否されると `btvirt` が接続を切り、Node と Gateway は BLE の初期化で止まります。そのため `run-sim` は `seccomp=unconfined` と `apparmor=unconfined` を指定しています。
+
+ホスト上で直接実行する場合は、`btvirt -s` を起動してから、各実行ファイルに `--bt-dev=/tmp/bt-server-bredrle` を付けます。
+
 ### 実行例
 
 ```
@@ -67,7 +83,7 @@ west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-si
 
 ### BLE（Bluetooth Low Energy）
 
-- **シミュレーション時**: Zephyr の BLE シミュレーションスタックを使用
+- **シミュレーション時**: BlueZ の `btvirt` が作る仮想コントローラを使用（「BLE を使う実行」を参照）
 - **実機時**: ESP32C3 のハードウェアBLEを使用
 
 ### デバイス名
