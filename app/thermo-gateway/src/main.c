@@ -1,33 +1,40 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include "ble.h"
 
 LOG_MODULE_REGISTER(thermo_gateway);
 
-extern int ble_init(void);
-extern int ble_scan(void);
+#define STATUS_INTERVAL_S 10
 
 int main(void)
 {
+	int ret = EXIT_SUCCESS;
+
 #ifdef CONFIG_SIMULATOR
 	LOG_INF("Thermo Gateway started (SIMULATOR MODE)");
 #else
 	LOG_INF("Thermo Gateway started on ESP32C3");
 #endif
 
-	if (ble_init() != 0) {
+	ret = ble_init();
+	if (ret != EXIT_SUCCESS) {
 		LOG_ERR("Failed to initialize BLE");
-		return -1;
+		return EXIT_FAILURE;
 	}
 
-	if (ble_scan() != 0) {
+	ret = ble_scan();
+	if (ret != EXIT_SUCCESS) {
 		LOG_ERR("Failed to start BLE scan");
-		return -1;
+		return EXIT_FAILURE;
 	}
 
-	while (1) {
+	while (true) {
 		LOG_INF("Gateway scanning for nodes...");
-		k_sleep(K_SECONDS(10));
+		k_sleep(K_SECONDS(STATUS_INTERVAL_S));
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
