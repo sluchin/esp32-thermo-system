@@ -1,3 +1,8 @@
+/**
+ * @file main.c
+ * @brief thermo-gateway のエントリポイント
+ */
+
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <stdbool.h>
@@ -7,9 +12,17 @@
 
 LOG_MODULE_REGISTER(thermo_gateway);
 
-/* 稼働状況をログ出力する間隔 [s] */
+/** 稼働状況をログ出力する間隔 [s] */
 #define STATUS_INTERVAL_S 10
 
+/**
+ * @brief ゲートウェイのメイン関数。
+ *
+ * BLE を初期化して周辺ノードのスキャンを開始し、その後は定期的に稼働状況を出力する。
+ *
+ * @retval EXIT_FAILURE 初期化またはスキャン開始に失敗した場合
+ *                      (正常時はループから戻らない)
+ */
 int main(void)
 {
 	int ret = EXIT_SUCCESS;

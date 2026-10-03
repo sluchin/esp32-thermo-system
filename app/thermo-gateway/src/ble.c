@@ -1,3 +1,8 @@
+/**
+ * @file ble.c
+ * @brief thermo-gateway の BLE スキャン実装
+ */
+
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/logging/log.h>
@@ -7,12 +12,21 @@
 
 LOG_MODULE_REGISTER(ble_thermo_gateway);
 
-/* スキャン間隔 [ms] */
+/** スキャン間隔 [ms] */
 #define SCAN_INTERVAL_MS 100
-/* スキャン窓 [ms] (スキャン間隔以下であること) */
+/** スキャン窓 [ms] (スキャン間隔以下であること) */
 #define SCAN_WINDOW_MS   50
 
-/* アドバタイズを受信するたびに呼ばれるコールバック。デバイスのアドレスと RSSI をログ出力する。 */
+/**
+ * @brief アドバタイズ受信時のスキャンコールバック。
+ *
+ * 検出したデバイスのアドレスと RSSI をログ出力する。
+ *
+ * @param[in] addr     送信元デバイスのアドレス
+ * @param[in] rssi     受信信号強度 [dBm]
+ * @param[in] adv_type アドバタイズの種別 (未使用)
+ * @param[in] adv_data アドバタイズデータ (未使用)
+ */
 static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 		    struct net_buf_simple *adv_data)
 {
@@ -22,7 +36,6 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 	LOG_INF("Device found: %s (RSSI %d)", addr_str, rssi);
 }
 
-/* Bluetooth スタックを初期化する。成功時は EXIT_SUCCESS、失敗時は負の errno を返す。 */
 int ble_init(void)
 {
 	int err = EXIT_SUCCESS;
@@ -37,7 +50,6 @@ int ble_init(void)
 	return EXIT_SUCCESS;
 }
 
-/* アクティブスキャンを開始する。成功時は EXIT_SUCCESS、失敗時は負の errno を返す。 */
 int ble_scan(void)
 {
 	int err = EXIT_SUCCESS;
