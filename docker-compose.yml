@@ -67,6 +67,33 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
+  # Run both simulations with BLE using virtual controllers (btvirt).
+  # No Bluetooth hardware is needed. Stop with Ctrl+C.
+  # btvirt opens an AF_ALG (kernel crypto) socket, which Docker's default
+  # seccomp and AppArmor profiles both deny; without it btvirt drops the client.
+  run-sim:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /tmp
+    user: "${UID:-0}:${GID:-0}"
+    security_opt:
+      - seccomp=unconfined
+      - apparmor=unconfined
+    command:
+      - bash
+      - -c
+      - |
+        B=/workspace/esp32-thermo-system/build
+        btvirt -s >/dev/null &
+        until [ -S /tmp/bt-server-bredrle ]; do sleep 0.1; done
+        $$B/thermo-node-sim/zephyr/zephyr.exe --bt-dev=/tmp/bt-server-bredrle &
+        sleep 1
+        $$B/thermo-gateway-sim/zephyr/zephyr.exe --bt-dev=/tmp/bt-server-bredrle &
+        trap 'kill $$(jobs -p) 2>/dev/null' EXIT INT TERM
+        wait -n
+    init: true
+
   # Development shell
   dev:
     build:
