@@ -1,3 +1,4 @@
+/* native_sim 用: ADC を持たないシミュレーション構成。io-channels を定義しないことでシミュレーション値にフォールバックする */
 / {
 	zephyr_user {
 		compatible = "vnd,thermo-node";
