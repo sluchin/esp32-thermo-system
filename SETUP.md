@@ -4,17 +4,71 @@
 
 ## Docker を使用したセットアップ（推奨）
 
-Docker と docker-compose がインストールされている場合、以下のコマンドで開発環境をセットアップできます：
+### 1. Docker のインストール
+
+まだ Docker がインストールされていない場合は、環境に合わせて以下の手順でインストールしてください。
+
+#### Linux (Ubuntu / Debian)
+
+公式リポジトリから Docker Engine および Docker Compose プラグインをインストールします：
 
 ```bash
-# Thermo Node をビルド
-docker-compose run build-thermo-node
+# 必要なパッケージをインストール
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
 
-# Thermo Gateway をビルド
-docker-compose run build-thermo-gateway
+# Docker 公式 GPG キーを追加
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# apt リポジトリを設定
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Docker Engine & Docker Compose プラグインをインストール
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# 現在のユーザーを docker グループに追加（sudo なしで実行可能にする）
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+#### macOS
+
+1. [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/) をダウンロードしてインストールします（Apple Silicon / Intel に対応）。
+2. インストール後、Docker Desktop アプリケーションを起動してください。
+
+#### Windows
+
+1. WSL2 (Windows Subsystem for Linux 2) を有効化します。
+2. [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) をダウンロードしてインストールします。
+3. 設定で「Use the WSL 2 based engine」が有効になっていることを確認してください。
+
+---
+
+### 2. Docker を使用したビルドと開発
+
+Docker と Docker Compose がインストールされている場合、以下のコマンドで開発環境のビルドやシェルを実行できます（Docker Compose V2 の `docker compose` コマンドを使用します）：
+
+```bash
+# Thermo Node をビルド（ESP32C3用）
+docker compose run build-thermo-node
+
+# Thermo Gateway をビルド（ESP32C3用）
+docker compose run build-thermo-gateway
+
+# Thermo Node をビルド（シミュレーション用）
+docker compose run build-thermo-node-sim
+
+# Thermo Gateway をビルド（シミュレーション用）
+docker compose run build-thermo-gateway-sim
 
 # インタラクティブ開発シェル
-docker-compose run dev
+docker compose run dev
 ```
 
 ### Docker セットアップの利点
@@ -184,6 +238,18 @@ minicom -D /dev/ttyUSB0 -b 115200
 - `zephyr.hex` - HEX フォーマット
 
 ## トラブルシューティング
+
+### Docker コマンド実行時に permission denied エラーが発生する
+
+Linux 環境で `docker` コマンドを実行した際に `Got permission denied while trying to connect to the Docker daemon socket` が表示される場合：
+
+```bash
+# ユーザーを docker グループに追加
+sudo usermod -aG docker $USER
+
+# グループの変更を即時反映（または一度ログアウトして再ログイン）
+newgrp docker
+```
 
 ### West コマンドが見つからない
 

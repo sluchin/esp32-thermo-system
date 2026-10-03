@@ -30,10 +30,10 @@
 
 ```bash
 # Thermo Node をシミュレーション用にビルド
-docker-compose run build-thermo-node-sim
+docker compose run build-thermo-node-sim
 
 # Thermo Gateway をシミュレーション用にビルド
-docker-compose run build-thermo-gateway-sim
+docker compose run build-thermo-gateway-sim
 ```
 
 ### 3. 直接 west コマンドを使用
