@@ -1,3 +1,8 @@
+/**
+ * @file main.c
+ * @brief thermo-node のエントリポイント
+ */
+
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <stdbool.h>
@@ -9,9 +14,17 @@
 
 LOG_MODULE_REGISTER(thermo_node);
 
-/* 温度を測定する間隔 [s] */
+/** 温度を測定する間隔 [s] */
 #define SAMPLE_INTERVAL_S 5
 
+/**
+ * @brief ノードのメイン関数。
+ *
+ * センサと BLE を初期化してアドバタイズを開始し、その後は一定間隔で温度を読み取ってログ出力する。
+ *
+ * @retval EXIT_FAILURE 初期化またはアドバタイズ開始に失敗した場合
+ *                      (正常時はループから戻らない)
+ */
 int main(void)
 {
 	int ret = EXIT_SUCCESS;

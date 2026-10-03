@@ -1,3 +1,8 @@
+/**
+ * @file ble.c
+ * @brief thermo-node の BLE アドバタイズ実装
+ */
+
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/logging/log.h>
@@ -7,13 +12,12 @@
 
 LOG_MODULE_REGISTER(ble_thermo_node);
 
-/* アドバタイズデータ: フラグ (LE 一般発見可能、BR/EDR 非対応) とデバイス名 */
+/** アドバタイズデータ: フラグ (LE 一般発見可能、BR/EDR 非対応) とデバイス名 */
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 	BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1),
 };
 
-/* Bluetooth スタックを初期化する。成功時は EXIT_SUCCESS、失敗時は負の errno を返す。 */
 int ble_init(void)
 {
 	int err = EXIT_SUCCESS;
@@ -28,7 +32,6 @@ int ble_init(void)
 	return EXIT_SUCCESS;
 }
 
-/* 接続可能なアドバタイズを開始する。成功時は EXIT_SUCCESS、失敗時は負の errno を返す。 */
 int ble_advertise(void)
 {
 	int err = EXIT_SUCCESS;

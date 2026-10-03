@@ -1,3 +1,8 @@
+/**
+ * @file sensor.c
+ * @brief thermo-node の温度センサ (ADC) 実装
+ */
+
 #include <zephyr/logging/log.h>
 #include <zephyr/random/random.h>
 #include <zephyr/kernel.h>
@@ -15,20 +20,16 @@
 
 LOG_MODULE_REGISTER(sensor_thermo_node);
 
-/* ADC の分解能 [bit] */
+/** ADC の分解能 [bit] */
 #define ADC_RESOLUTION_BITS 12U
-/* 12 bit ADC の生値の取り得る範囲 (0 .. 4095)。シミュレーション値の生成にも使用する */
+/** 12 bit ADC の生値の取り得る範囲 (0 .. 4095)。シミュレーション値の生成にも使用する */
 #define ADC_RAW_RANGE       4096U
 
 #ifdef HAVE_ADC
+/** Devicetree (zephyr,user の io-channels) から取得した ADC チャンネル仕様 */
 static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
 #endif
 
-/*
- * センサを初期化する。
- * ADC 未設定 (シミュレータ等) の場合は警告のみで成功とする。
- * 成功時は EXIT_SUCCESS、失敗時は負の errno を返す。
- */
 int sensor_init(void)
 {
 #ifdef HAVE_ADC
@@ -54,11 +55,6 @@ int sensor_init(void)
 	return EXIT_SUCCESS;
 }
 
-/*
- * 温度の生値 (ADC カウント) を読み取り、value に格納する。
- * ADC 未設定の場合は乱数によるシミュレーション値を返す。
- * 成功時は EXIT_SUCCESS、失敗時は負の errno を返す。
- */
 int sensor_read_temperature(uint16_t *value)
 {
 #ifdef HAVE_ADC
