@@ -4,7 +4,7 @@ WORKDIR /workspace
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install dependencies
+# 依存パッケージをインストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
@@ -28,10 +28,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python tools
+# Python ツールをインストール
 RUN pip install --no-cache-dir --break-system-packages west
 
-# Download and install Zephyr SDK 0.17.4
+# Zephyr SDK 0.17.4 をダウンロードしてインストール
 RUN mkdir -p /opt/zephyr-sdk && \
     cd /opt/zephyr-sdk && \
     curl -fL -O https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.17.4/zephyr-sdk-0.17.4_linux-x86_64.tar.xz && \
@@ -43,11 +43,11 @@ ENV ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 ENV PIP_ROOT_USER_ACTION=ignore
 
-# Containers run as the host user, who does not own the baked-in /workspace
+# コンテナはホストユーザーで実行されるが、イメージ内の /workspace はそのユーザーの所有ではないため
 RUN git config --system --add safe.directory '*'
 
-# Bake the Zephyr workspace into the image so builds do not re-fetch it.
-# Re-run `docker compose build` after changing west.yml.
+# ビルド時に再取得しないよう、Zephyr ワークスペースをイメージに含める。
+# west.yml を変更した場合は `docker compose build` を再実行すること。
 COPY west.yml /workspace/esp32-thermo-system/west.yml
 RUN cd /workspace && \
     west init -l esp32-thermo-system && \
@@ -56,11 +56,11 @@ RUN cd /workspace && \
         -r zephyr/scripts/requirements.txt 'esptool>=5.0.2' && \
     west blobs fetch hal_espressif
 
-# btvirt provides virtual Bluetooth controllers for native_sim BLE simulation
+# btvirt は native_sim の BLE シミュレーション用に仮想 Bluetooth コントローラを提供する
 RUN apt-get update && apt-get install -y --no-install-recommends bluez-test-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# Zephyr only uses $HOME/.cache (HOME=/tmp in compose) if it already exists
+# Zephyr は $HOME/.cache (compose では HOME=/tmp) が既に存在する場合のみ使用する
 RUN mkdir -p /tmp/.cache && chmod 1777 /tmp/.cache
 
 CMD ["/bin/bash"]

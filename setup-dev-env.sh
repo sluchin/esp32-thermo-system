@@ -7,7 +7,7 @@ echo "Zephyr Development Environment Setup"
 echo "================================"
 echo ""
 
-# Detect OS
+# OS を判定
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     OS="linux"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
@@ -20,7 +20,7 @@ fi
 echo "Detected OS: $OS"
 echo ""
 
-# Install system dependencies
+# システム依存パッケージをインストール
 echo "Installing system dependencies..."
 if [ "$OS" = "linux" ]; then
     sudo apt-get update
@@ -41,7 +41,7 @@ fi
 echo "✓ System dependencies installed"
 echo ""
 
-# Create Python virtual environment
+# Python 仮想環境を作成
 echo "Creating Python virtual environment..."
 if [ ! -d "venv" ]; then
     python3 -m venv venv
