@@ -1,5 +1,5 @@
 services:
-  # Build thermo-node
+  # thermo-node のビルド
   build-thermo-node:
     build:
       context: .
@@ -16,7 +16,7 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
-  # Build thermo-gateway
+  # thermo-gateway のビルド
   build-thermo-gateway:
     build:
       context: .
@@ -33,7 +33,7 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
-  # Build thermo-node for simulation
+  # thermo-node のシミュレーション用ビルド
   build-thermo-node-sim:
     build:
       context: .
@@ -50,7 +50,7 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
-  # Build thermo-gateway for simulation
+  # thermo-gateway のシミュレーション用ビルド
   build-thermo-gateway-sim:
     build:
       context: .
@@ -67,10 +67,11 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
-  # Run both simulations with BLE using virtual controllers (btvirt).
-  # No Bluetooth hardware is needed. Stop with Ctrl+C.
-  # btvirt opens an AF_ALG (kernel crypto) socket, which Docker's default
-  # seccomp and AppArmor profiles both deny; without it btvirt drops the client.
+  # 仮想コントローラ (btvirt) を使い、BLE 付きで両方のシミュレーションを実行する。
+  # Bluetooth ハードウェアは不要。Ctrl+C で停止する。
+  # btvirt は AF_ALG (カーネル暗号) ソケットを開くが、Docker 既定の
+  # seccomp と AppArmor のプロファイルはどちらもこれを拒否する。
+  # 許可しないと btvirt はクライアントを切断してしまう。
   run-sim:
     image: esp32-thermo-system:latest
     volumes:
@@ -94,7 +95,7 @@ services:
         wait -n
     init: true
 
-  # Development shell
+  # 開発用シェル
   dev:
     build:
       context: .
