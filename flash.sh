@@ -39,7 +39,7 @@ if [ $# -gt 1 ]; then
     PORT="$2"
 fi
 
-# Check if port exists
+# ポートの存在を確認
 if [ ! -e "$PORT" ]; then
     echo "Error: Port $PORT not found"
     echo ""
@@ -48,7 +48,7 @@ if [ ! -e "$PORT" ]; then
     exit 1
 fi
 
-# Check if esptool is available
+# esptool が利用可能か確認
 if ! command -v esptool.py &> /dev/null; then
     echo "Error: esptool.py not found"
     echo "Install it with: pip install esptool"
