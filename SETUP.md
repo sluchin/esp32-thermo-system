@@ -50,9 +50,45 @@ newgrp docker
 
 ---
 
-### 2. Docker を使用したビルドと開発
+### 2. ホストのユーザー ID を環境変数にエクスポートする
 
-Docker と Docker Compose がインストールされている場合、以下のコマンドで開発環境のビルドやシェルを実行できます（Docker Compose V2 の `docker compose` コマンドを使用します）：
+コンテナはホストのユーザーで実行されます（`docker-compose.yml` の `user: "${UID:-0}:${GID:-0}"`）。これにより、`build/` などの生成物が root 所有になりません。
+
+`UID` と `GID` は、シェルの変数であって環境変数ではないので、`docker compose` に渡すには、シェルの設定ファイルでエクスポートします。未設定の場合は root（0:0）で実行され、`build/` などの生成物が root 所有になります。
+
+zsh の場合（`~/.zshrc`）:
+
+```bash
+export UID
+export GID
+```
+
+bash の場合（`~/.bashrc`）:
+
+```bash
+export UID
+export GID=$(id -g)
+```
+
+bash の `UID` は読み取り専用のため、`export UID=$(id -u)` とは書けません（`export UID` だけで足ります）。bash には `GID` 変数がないので、`id -g` で設定します。
+
+設定後、新しいシェルを開くか、`source ~/.zshrc`（または `source ~/.bashrc`）を実行してください。確認は次のコマンドです。
+
+```bash
+docker compose run --rm dev id
+```
+
+自分のユーザー ID とグループ ID が表示されれば成功です。
+
+### 3. Docker を使用したビルドと開発
+
+Docker と Docker Compose がインストールされている場合、以下のコマンドで開発環境のビルドやシェルを実行できます（Docker Compose V2 の `docker compose` コマンドを使用します）。
+
+初回は、Zephyr のソースと依存ツールを含むイメージをビルドします（時間がかかります）。`west.yml` を変更した場合も、再実行してください。
+
+```bash
+docker compose build
+```
 
 ```bash
 # Thermo Node をビルド（ESP32C3用）
