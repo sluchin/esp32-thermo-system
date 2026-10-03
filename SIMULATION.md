@@ -13,37 +13,24 @@
 
 ## ビルド方法
 
-### 1. 通常のビルドスクリプトを使用
+### 1. Docker Compose を使用（推奨）
 
 ```bash
 # Thermo Node をシミュレーション用にビルド
-./build.sh node --sim
+docker compose run --rm build-thermo-node-sim
 
 # Thermo Gateway をシミュレーション用にビルド
-./build.sh gateway --sim
-
-# 両方をビルド
-./build.sh all --sim
+docker compose run --rm build-thermo-gateway-sim
 ```
 
-### 2. Docker Compose を使用
-
-```bash
-# Thermo Node をシミュレーション用にビルド
-docker compose run build-thermo-node-sim
-
-# Thermo Gateway をシミュレーション用にビルド
-docker compose run build-thermo-gateway-sim
-```
-
-### 3. 直接 west コマンドを使用
+### 2. 直接 west コマンドを使用
 
 ```bash
 # Thermo Node
-west build -b native_sim -DCONF_FILE=app/thermo-node/prj-native_sim.conf app/thermo-node -d build/thermo-node-sim
+west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -DCONF_FILE=prj-native_sim.conf
 
 # Thermo Gateway
-west build -b native_sim -DCONF_FILE=app/thermo-gateway/prj-native_sim.conf app/thermo-gateway -d build/thermo-gateway-sim
+west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-sim -- -DCONF_FILE=prj-native_sim.conf
 ```
 
 ## 実行方法
@@ -102,9 +89,7 @@ west build -b native_sim -DCONF_FILE=app/thermo-gateway/prj-native_sim.conf app/
 native_sim 用の Zephyr プロジェクト設定：
 
 - `CONFIG_SIMULATOR=y` - シミュレーターモードを有効化
-- `CONFIG_NATIVE_LIBRARY=y` - ネイティブライブラリサポート
-- `CONFIG_RANDOM=y` - ランダム数生成を有効化
-- `CONFIG_NATIVE_POSIX_RAND=y` - POSIX ベースのランダム生成
+- `CONFIG_TEST_RANDOM_GENERATOR=y` - ランダム数生成を有効化
 
 ### `app/thermo-node/boards/native_sim.overlay`
 
@@ -115,7 +100,8 @@ native_sim ボード用の device tree overlay。
 1. **ローカル開発**
    ```bash
    # シミュレーション用にビルド
-   ./build.sh all --sim
+   docker compose run --rm build-thermo-node-sim
+   docker compose run --rm build-thermo-gateway-sim
    
    # Node を実行してテスト
    ./build/thermo-node-sim/zephyr/zephyr.exe &
@@ -131,7 +117,8 @@ native_sim ボード用の device tree overlay。
 3. **本番環境への展開**
    ```bash
    # ESP32C3 用にビルド
-   ./build.sh all
+   docker compose run --rm build-thermo-node
+   docker compose run --rm build-thermo-gateway
    
    # フラッシング
    ./flash.sh thermo-node

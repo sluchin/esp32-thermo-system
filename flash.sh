@@ -63,7 +63,7 @@ flash_app() {
 
     if [ ! -f "$build_dir/zephyr.bin" ]; then
         echo "Error: Build artifact not found for $app"
-        echo "Run './build.sh $app' first"
+        echo "Run 'docker compose run --rm build-$app' first"
         exit 1
     fi
 

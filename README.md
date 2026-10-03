@@ -36,7 +36,8 @@ esp32-thermo-system/
 
 ```bash
 # ビルド
-./build.sh all --sim
+docker compose run --rm build-thermo-node-sim
+docker compose run --rm build-thermo-gateway-sim
 
 # 実行
 ./build/thermo-node-sim/zephyr/zephyr.exe &
@@ -81,10 +82,10 @@ west build -b xiao_esp32c3 app/thermo-node
 west build -b xiao_esp32c3 app/thermo-gateway
 
 # Thermo Node をビルド（シミュレーション）
-./build.sh node --sim
+west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -DCONF_FILE=prj-native_sim.conf
 
 # Thermo Gateway をビルド（シミュレーション）
-./build.sh gateway --sim
+west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-sim -- -DCONF_FILE=prj-native_sim.conf
 ```
 
 ### フラッシング
