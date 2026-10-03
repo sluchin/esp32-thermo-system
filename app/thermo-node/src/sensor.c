@@ -2,6 +2,10 @@
 #include <zephyr/random/random.h>
 #include <zephyr/kernel.h>
 #include <zephyr/devicetree.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include "sensor.h"
 
 #if !defined(CONFIG_SIMULATOR) && DT_NODE_HAS_PROP(DT_PATH(zephyr_user), io_channels)
 #include <zephyr/drivers/adc.h>
@@ -10,6 +14,9 @@
 
 LOG_MODULE_REGISTER(sensor_thermo_node);
 
+#define ADC_RESOLUTION_BITS 12U
+#define ADC_RAW_RANGE       4096U
+
 #ifdef HAVE_ADC
 static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
 #endif
@@ -17,9 +24,11 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 int sensor_init(void)
 {
 #ifdef HAVE_ADC
-	int err;
+	int err = EXIT_SUCCESS;
+	bool ready = false;
 
-	if (!adc_is_ready_dt(&adc_channel)) {
+	ready = adc_is_ready_dt(&adc_channel);
+	if (ready == false) {
 		LOG_ERR("ADC controller not ready");
 		return -ENODEV;
 	}
@@ -34,19 +43,19 @@ int sensor_init(void)
 #else
 	LOG_WRN("ADC not configured in device tree, using simulated values");
 #endif
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 int sensor_read_temperature(uint16_t *value)
 {
 #ifdef HAVE_ADC
-	int err;
+	int err = EXIT_SUCCESS;
 
 	struct adc_sequence sequence = {
 		.buffer = value,
 		.buffer_size = sizeof(*value),
 		.channels = BIT(adc_channel.channel_id),
-		.resolution = 12,
+		.resolution = ADC_RESOLUTION_BITS,
 	};
 
 	err = adc_read_dt(&adc_channel, &sequence);
@@ -55,8 +64,8 @@ int sensor_read_temperature(uint16_t *value)
 		return err;
 	}
 #else
-	*value = (uint16_t)(sys_rand32_get() % 4096);
+	*value = (uint16_t)(sys_rand32_get() % ADC_RAW_RANGE);
 #endif
 
-	return 0;
+	return EXIT_SUCCESS;
 }
