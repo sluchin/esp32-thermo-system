@@ -47,10 +47,8 @@ Zephyr の `native_sim` ボードを使用したシミュレーション環境�
 
 ```conf
 CONFIG_SIMULATOR=y              # シミュレーターモード有効化
-CONFIG_NATIVE_LIBRARY=y         # ネイティブライブラリサポート
 CONFIG_MAIN_STACK_SIZE=8192     # スタックサイズ設定
-CONFIG_RANDOM=y                 # ランダム数生成
-CONFIG_NATIVE_POSIX_RAND=y      # POSIX ベースのランダム生成
+CONFIG_TEST_RANDOM_GENERATOR=y  # ランダム数生成
 ```
 
 #### Thermo Gateway
@@ -59,7 +57,7 @@ CONFIG_NATIVE_POSIX_RAND=y      # POSIX ベースのランダム生成
 
 ```conf
 # ADC 不要の最小構成
-CONFIG_NATIVE_LIBRARY=y
+CONFIG_SIMULATOR=y
 CONFIG_MAIN_STACK_SIZE=8192
 ```
 
@@ -70,28 +68,7 @@ CONFIG_MAIN_STACK_SIZE=8192
 - native_sim ボード用の zephyr_user デバイスノード定義
 - ADC が不要な環境での互換性を確保
 
-### 6. ビルドスクリプト拡張
-
-**ファイル**: `build.sh`
-
-新オプション追加：
-```bash
--s, --sim    Build for native_sim instead of ESP32C3
-```
-
-動作：
-- `--sim` フラグで自動的に以下を設定：
-  - ボード: `native_sim`
-  - ビルドディレクトリ: `build/{app}-sim`
-  - 設定ファイル: `prj-native_sim.conf`
-
-使用例：
-```bash
-./build.sh node --sim        # Node をシミュレーション用にビルド
-./build.sh all --sim         # 全アプリをシミュレーション用にビルド
-```
-
-### 7. Docker Compose サポート
+### 6. Docker Compose サポート
 
 **ファイル**: `docker-compose.yml`
 
@@ -101,11 +78,11 @@ CONFIG_MAIN_STACK_SIZE=8192
 
 使用例：
 ```bash
-docker compose run build-thermo-node-sim
-docker compose run build-thermo-gateway-sim
+docker compose run --rm build-thermo-node-sim
+docker compose run --rm build-thermo-gateway-sim
 ```
 
-### 8. ドキュメント
+### 7. ドキュメント
 
 #### SIMULATION.md（新規作成）
 
@@ -127,9 +104,9 @@ docker compose run build-thermo-gateway-sim
 ### ビルドプロセス
 
 ```
-build.sh node --sim
+docker compose run --rm build-thermo-node-sim
   ↓
-west build -b native_sim app/thermo-node -d build/thermo-node-sim -DCONF_FILE=prj-native_sim.conf
+west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -DCONF_FILE=prj-native_sim.conf
   ↓
 CONFIG_SIMULATOR が定義される
   ↓
@@ -175,7 +152,7 @@ ble_advertise() → BLE アドバタイジング開始
 
 ## 後方互換性
 
-- 既存の `./build.sh node` や `./build.sh gateway` は変わらず ESP32C3 用にビルド
+- 既存の ESP32C3 用ビルド（`docker compose run --rm build-thermo-node` など）は変わらない
 - `prj.conf` は ESP32C3 用のまま（`prj-native_sim.conf` は別ファイル）
 - 完全な後方互換性を保証
 
