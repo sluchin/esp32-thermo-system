@@ -93,6 +93,27 @@ jobs:
       - name: Check that the coverage is 100%
         run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
 
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build the development image
+        uses: ./.github/actions/docker-image
+
+      - name: Generate the documentation (Doxygen, no warnings allowed)
+        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm docs-thermo
+
+      - name: Upload the documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs/
+          if-no-files-found: error
+
   analyze:
     name: Static analysis (${{ matrix.service }})
     runs-on: ubuntu-latest
