@@ -272,7 +272,7 @@ minicom -D /dev/ttyUSB0 -b 115200
 | `build` | `build-thermo-node` / `build-thermo-gateway` / `build-thermo-node-sim` / `build-thermo-gateway-sim` | ビルド。警告が出たら失敗 |
 | `test` | `test-thermo-node` / `test-thermo-gateway` | 単体テスト (Ztest + FFF, `native_sim`) |
 | `analyze` | `analyze-thermo-node` / `analyze-thermo-gateway` | 静的解析 (gcc `-fanalyzer`)。指摘があれば失敗 |
-| `lint` | `format-thermo` / `lint-thermo` | 整形の確認 (clang-format) と、Zephyr の `checkpatch.pl`。指摘があれば失敗 |
+| `lint` | `format-thermo` / `lint-thermo` / `whitespace-thermo` | 整形の確認 (clang-format)、Zephyr の `checkpatch.pl`、行末の空白の確認。指摘があれば失敗 |
 
 Docker イメージは、レイヤーを GitHub Actions のキャッシュに保存します (`.github/actions/docker-image`)。`Dockerfile` か `west.yml` を変えたときだけ、イメージが作り直されます。
 
@@ -285,6 +285,7 @@ docker compose run analyze-thermo-node
 docker compose run analyze-thermo-gateway
 docker compose run --rm format-thermo
 docker compose run --rm lint-thermo
+docker compose run --rm whitespace-thermo
 ```
 
 コーディングスタイルは Zephyr の規約に合わせています。違う点は、[CODING_STYLE.md](CODING_STYLE.md) を参照してください。

@@ -92,6 +92,8 @@ docker compose run --rm format-thermo
 docker compose run --rm format-thermo-fix
 # Zephyr の checkpatch.pl による検査
 docker compose run --rm lint-thermo
+# 行末の空白の確認 (全てのテキストファイル)
+docker compose run --rm whitespace-thermo
 ```
 
 ### ローカル開発環境構築
@@ -147,7 +149,7 @@ GitHub Actions により、以下の自動化が設定されています：
 - **ビルド** (`build` ジョブ): 実機 (ESP32C3) 用とシミュレーション (`native_sim`) 用の、両アプリのビルド。警告が出たら失敗します
 - **単体テスト** (`test` ジョブ): Thermo Node / Thermo Gateway の単体テスト
 - **静的解析** (`analyze` ジョブ): gcc `-fanalyzer`。指摘があれば失敗します
-- **整形と lint** (`lint` ジョブ): clang-format による整形の確認と、Zephyr の `checkpatch.pl`。指摘があれば失敗します
+- **整形と lint** (`lint` ジョブ): clang-format による整形の確認、Zephyr の `checkpatch.pl`、行末の空白の確認。指摘があれば失敗します
 - **アーティファクト保存**: ビルド成果物 (ELF/BIN、シミュレーションは実行ファイル) を自動保存
 
 ジョブは、ローカルと同じ Docker イメージで `docker compose` のサービスを実行します。イメージのレイヤーは、キャッシュされます。

@@ -13,6 +13,7 @@ Zephyr と同じ道具を、Zephyr のバージョン (v4.3.0) に合わせて�
 | clang-format | [.clang-format](.clang-format) | 整形。Zephyr の `.clang-format` に、3 行だけ変えたもの (例外 1) |
 | EditorConfig | [.editorconfig](.editorconfig) | エディタの設定。Zephyr の `.editorconfig` に、C / C++ / Perl のインデントだけ変えたもの (例外 1) |
 | checkpatch.pl | Zephyr の `.checkpatch.conf` | Zephyr のリンター。インデントの 3 種類だけ無視する (例外 1) |
+| 行末の空白 | `scripts/check-whitespace.sh` | 全てのテキストファイル (Markdown、YAML、CMake、シェルスクリプトなど) に、行末の空白がないことを確認する (`.editorconfig` の `trim_trailing_whitespace = true` に対応。patch ファイルと `LICENSE` は、対象外) |
 | コンパイラの警告 | [app/warnings.txt](app/warnings.txt) | 約 55 個の警告オプション。警告ゼロを維持する |
 | 静的解析 | gcc `-fanalyzer` | 指摘ゼロを維持する |
 
@@ -23,9 +24,11 @@ docker compose run --rm format-thermo
 docker compose run --rm format-thermo-fix
 # checkpatch.pl による検査 (指摘があれば失敗する)
 docker compose run --rm lint-thermo
+# 行末の空白の確認 (全てのテキストファイル)
+docker compose run --rm whitespace-thermo
 ```
 
-コードを修正したら、`format-thermo-fix` で整形してから、`lint-thermo` を実行します。CI (GitHub Actions) の `lint` ジョブも、同じ確認を行います。
+コードを修正したら、`format-thermo-fix` で整形してから、`lint-thermo` と `whitespace-thermo` を実行します。CI (GitHub Actions) の `lint` ジョブも、同じ確認を行います。
 
 Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と `.editorconfig` を取り込み直して、例外 1 の変更だけを、もう一度行います。
 
