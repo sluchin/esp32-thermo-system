@@ -32,6 +32,7 @@ FAKE_VALUE_FUNC(int, sensor_init)
 FAKE_VALUE_FUNC(int, sensor_read_temperature, uint16_t *)
 FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_advertise)
+FAKE_VALUE_FUNC(int, ble_notify_temperature, uint16_t)
 
 /** メインループのスレッドのスタックサイズ */
 #define STACK_SIZE        2048
@@ -88,6 +89,7 @@ static void before(void *fixture)
     RESET_FAKE(sensor_read_temperature);
     RESET_FAKE(ble_init);
     RESET_FAKE(ble_advertise);
+    RESET_FAKE(ble_notify_temperature);
     FFF_RESET_HISTORY();
 }
 
@@ -139,10 +141,33 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(ble_advertise_fake.call_count, 1u);
     zassert_equal(sensor_read_temperature_fake.call_count, 1u);
 
-    /* 読み取り間隔だけ待つと, 2 回目の温度を読む (初期化は, 繰り返さない) */
+    /* 読み取った温度を, 通知する */
+    zassert_equal(ble_notify_temperature_fake.call_count, 1u);
+    zassert_equal(ble_notify_temperature_fake.arg0_val, FAKE_TEMP_RAW);
+
+    /* 読み取り間隔だけ待つと, 2 回目の温度を読んで, 通知する (初期化は, 繰り返さない) */
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
     zassert_equal(sensor_read_temperature_fake.call_count, 2u);
+    zassert_equal(ble_notify_temperature_fake.call_count, 2u);
     zassert_equal(sensor_init_fake.call_count, 1u);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 通知に失敗しても, 次の周期で, 再び温度を読んで, 通知する */
+ZTEST(main_node, test_notify_failure_retries)
+{
+    sensor_read_temperature_fake.custom_fake = fake_read;
+    ble_notify_temperature_fake.return_val = -EIO;
+
+    k_thread_create(&main_thread, main_stack, K_THREAD_STACK_SIZEOF(main_stack), main_entry, NULL,
+                    NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(ble_notify_temperature_fake.call_count, 1u);
+    k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
+    zassert_equal(sensor_read_temperature_fake.call_count, 2u);
+    zassert_equal(ble_notify_temperature_fake.call_count, 2u);
 
     k_thread_abort(&main_thread);
 }
@@ -159,6 +184,9 @@ ZTEST(main_node, test_read_failure_retries)
     zassert_equal(sensor_read_temperature_fake.call_count, 1u);
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
     zassert_equal(sensor_read_temperature_fake.call_count, 2u);
+
+    /* 読み取りに失敗したときは, 通知しない */
+    zassert_equal(ble_notify_temperature_fake.call_count, 0u);
 
     k_thread_abort(&main_thread);
 }

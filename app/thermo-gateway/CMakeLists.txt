@@ -7,5 +7,8 @@ project(thermo-gateway)
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/ble.c)
 
+# thermo-node と thermo-gateway で共有する, BLE の UUID の定義 (app/common/)
+target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)
