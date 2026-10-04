@@ -29,6 +29,7 @@
 
 DEFINE_FFF_GLOBALS
 
+/* FAKE_*: FFF のモック (実物の代わりの関数。呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(struct net_if *, net_if_get_default)
 FAKE_VOID_FUNC(net_mgmt_add_event_callback, struct net_mgmt_event_callback *)
 FAKE_VALUE_FUNC(int, net_mgmt_NET_REQUEST_WIFI_CONNECT, uint64_t, struct net_if *, void *, size_t)

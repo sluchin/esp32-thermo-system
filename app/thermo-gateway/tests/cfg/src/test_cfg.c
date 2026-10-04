@@ -25,6 +25,7 @@
 
 DEFINE_FFF_GLOBALS
 
+/* FAKE_*: FFF のモック (実物の代わりの関数。呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, settings_subsys_init)
 FAKE_VALUE_FUNC(int, settings_register, struct settings_handler *)
 FAKE_VALUE_FUNC(int, settings_load_subtree, const char *)

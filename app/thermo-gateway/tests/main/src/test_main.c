@@ -32,6 +32,7 @@ DEFINE_FFF_GLOBALS
  */
 int thermo_gateway_main(void);
 
+/* FAKE_*: FFF のモック (実物の代わりの関数。呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_scan)
 FAKE_VOID_FUNC(ble_set_temperature_callback, ble_temperature_cb_t)

@@ -65,6 +65,7 @@ typedef bool (*data_cb_t)(struct bt_data *data, void *user_data);
  */
 typedef bt_le_scan_cb_t *scan_cb_ptr_t;
 
+/* FAKE_*: FFF のモック (実物の代わりの関数。呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, bt_enable, bt_ready_cb_t)
 FAKE_VALUE_FUNC(int, bt_conn_cb_register, struct bt_conn_cb *)
 FAKE_VALUE_FUNC(int, bt_le_scan_start, const struct bt_le_scan_param *, scan_cb_ptr_t)
