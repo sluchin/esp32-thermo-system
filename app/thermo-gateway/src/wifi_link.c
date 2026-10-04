@@ -100,7 +100,7 @@ int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
     params.ssid_length = (uint8_t)strlen(ssid);
     params.psk = (const uint8_t *)psk;
     params.psk_length = (uint8_t)strlen(psk);
-    params.security = (params.psk_length > 0u) ? WIFI_SECURITY_TYPE_PSK : WIFI_SECURITY_TYPE_NONE;
+    params.security = ((params.psk_length > 0u) ? WIFI_SECURITY_TYPE_PSK : WIFI_SECURITY_TYPE_NONE);
     params.band = WIFI_FREQ_BAND_UNKNOWN;
     params.channel = WIFI_CHANNEL_ANY;
     params.mfp = WIFI_MFP_OPTIONAL;

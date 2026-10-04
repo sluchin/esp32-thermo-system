@@ -100,7 +100,7 @@ static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct swi
 
     magnitude = (int16_t)(((env[1] & LOW7_MASK) * 10) + (env[0] & DECIMAL_MASK));
     out->kind = SWITCHBOT_ENV;
-    out->temp_x10 = ((env[1] & SIGN_POSITIVE_BIT) != 0u) ? magnitude : (int16_t)-magnitude;
+    out->temp_x10 = (((env[1] & SIGN_POSITIVE_BIT) != 0u) ? magnitude : (int16_t)-magnitude);
     out->humidity = humidity;
     return true;
 }

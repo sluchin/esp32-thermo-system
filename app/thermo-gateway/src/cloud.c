@@ -238,7 +238,7 @@ static int connect_broker(void)
     if ((err != 0) || !mqtt_up) {
         LOG_ERR("MQTT CONNACK not received (err %d)", err);
         (void)mqtt_abort(&client);
-        return (err != 0) ? err : -ECONNREFUSED;
+        return ((err != 0) ? err : -ECONNREFUSED);
     }
     return EXIT_SUCCESS;
 }
