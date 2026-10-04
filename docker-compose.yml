@@ -117,6 +117,17 @@ services:
     environment:
       - HOME=/tmp
 
+  # 行末の空白の確認 (全てのテキストファイル)。clang-format が見ない Markdown、YAML、CMake、シェルスクリプトなども確認する。
+  whitespace-thermo:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: scripts/check-whitespace.sh
+    environment:
+      - HOME=/tmp
+
   # Zephyr の checkpatch.pl で検査する (インデントの 3 種類だけ、無視する)。指摘があれば失敗する。
   lint-thermo:
     image: esp32-thermo-system:latest

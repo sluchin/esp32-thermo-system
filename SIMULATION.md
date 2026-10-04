@@ -118,10 +118,10 @@ native_sim ボード用の device tree overlay。
    # シミュレーション用にビルド
    docker compose run --rm build-thermo-node-sim
    docker compose run --rm build-thermo-gateway-sim
-   
+
    # Node を実行してテスト
    ./build/thermo-node-sim/zephyr/zephyr.exe &
-   
+
    # Gateway を実行してテスト
    ./build/thermo-gateway-sim/zephyr/zephyr.exe
    ```
@@ -135,7 +135,7 @@ native_sim ボード用の device tree overlay。
    # ESP32C3 用にビルド
    docker compose run --rm build-thermo-node
    docker compose run --rm build-thermo-gateway
-   
+
    # フラッシング
    ./flash.sh thermo-node
    ./flash.sh thermo-gateway
