@@ -48,9 +48,12 @@ LOG_MODULE_REGISTER(thermo_cloud);
 /** トピックのバッファのサイズ */
 #define TOPIC_SIZE         128u
 /** ペイロードのバッファのサイズ */
-#define PAYLOAD_SIZE       96u
-/* ペイロードの最大長 ({"node":"..","raw":65535,"uptime_ms":4294967295} は 63 文字) が、入ること */
-BUILD_ASSERT(PAYLOAD_SIZE >= 64u, "The payload buffer is too small");
+#define PAYLOAD_SIZE       160u
+/*
+ * ペイロードの最大長が、入ること (SwitchBot の、機器のアドレス、-3276.7 ℃、湿度 100 %、
+ * 電池 100 %、稼働時間が最大の場合は、123 文字)
+ */
+BUILD_ASSERT(PAYLOAD_SIZE >= 128u, "The payload buffer is too small");
 /** MQTT の送受信バッファのサイズ */
 #define MQTT_BUF_SIZE     512u
 /** スレッドのスタックサイズ (TLS のハンドシェイクを含む) */
@@ -58,11 +61,19 @@ BUILD_ASSERT(PAYLOAD_SIZE >= 64u, "The payload buffer is too small");
 /** スレッドの優先度 */
 #define THREAD_PRIORITY   7
 
-/** 送信を待つ温度 1 件 */
+/** 送信を待つ値の種類 */
+enum sample_kind {
+    SAMPLE_THERMO,   /**< Thermo ノードの温度 (ADC の生値) */
+    SAMPLE_SWITCHBOT /**< SwitchBot の温湿度計の値 */
+};
+
+/** 送信を待つ値 1 件 */
 struct sample {
-    bt_addr_le_t addr;  /**< 温度を送ったノードのアドレス */
-    uint16_t raw;       /**< 温度 (ADC の生値) */
-    uint32_t uptime_ms; /**< 受信したときの、ゲートウェイの稼働時間 [ms] */
+    enum sample_kind kind;             /**< 値の種類 */
+    bt_addr_le_t addr;                 /**< 送ってきた機器のアドレス */
+    uint32_t uptime_ms;                /**< 受信したときの、ゲートウェイの稼働時間 [ms] */
+    uint16_t raw;                      /**< 温度 (ADC の生値。SAMPLE_THERMO のとき) */
+    struct switchbot_sample switchbot; /**< SwitchBot の値 (SAMPLE_SWITCHBOT のとき) */
 };
 
 /** 送信を待つ温度のキュー */
@@ -241,10 +252,20 @@ static int publish_sample(const struct sample *s)
     char topic[TOPIC_SIZE] = {0};
     char payload[PAYLOAD_SIZE] = {0};
     struct mqtt_publish_param param = {0};
-    int topic_len =
-            payload_format_topic(topic, sizeof(topic), cfg_get(CFG_KEY_CLIENT_ID), &s->addr);
-    int payload_len =
-            payload_format_temperature(payload, sizeof(payload), &s->addr, s->raw, s->uptime_ms);
+    const char *client_id = cfg_get(CFG_KEY_CLIENT_ID);
+    int topic_len = 0;
+    int payload_len = 0;
+
+    /* 値の種類で、トピックとペイロードの形式が違う */
+    if (s->kind == SAMPLE_SWITCHBOT) {
+        topic_len = payload_format_switchbot_topic(topic, sizeof(topic), client_id, &s->addr);
+        payload_len = payload_format_switchbot(payload, sizeof(payload), &s->addr, &s->switchbot,
+                                               s->uptime_ms);
+    } else {
+        topic_len = payload_format_topic(topic, sizeof(topic), client_id, &s->addr);
+        payload_len = payload_format_temperature(payload, sizeof(payload), &s->addr, s->raw,
+                                                 s->uptime_ms);
+    }
 
     /* ペイロードは、必ずバッファに入る. トピックは、長いクライアント ID で、入らないことがある */
     if (topic_len < 0) {
@@ -274,7 +295,7 @@ static int publish_sample(const struct sample *s)
  */
 static int run_session(void)
 {
-    struct sample s = {0};
+    struct sample s = {.kind = SAMPLE_THERMO};
     int err = EXIT_SUCCESS;
 
     while (!reconnect_requested) {
@@ -396,16 +417,40 @@ void cloud_stop(void)
     k_thread_abort(&cloud_thread);
 }
 
-/* 温度を、送信のキューに入れる (待たない) */
-int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
+/**
+ * 値を、送信のキューに入れる (待たない)
+ *
+ * @param[in] s 値
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOMSG      キューが満杯で、値を捨てた
+ */
+static int enqueue_sample(const struct sample *s)
 {
-    struct sample s = {.addr = *addr, .raw = raw, .uptime_ms = k_uptime_get_32()};
-
-    if (k_msgq_put(&cloud_sample_q, &s, K_NO_WAIT) != 0) {
-        LOG_WRN("Send queue is full, the temperature was dropped");
+    if (k_msgq_put(&cloud_sample_q, s, K_NO_WAIT) != 0) {
+        LOG_WRN("Send queue is full, the value was dropped");
         return -ENOMSG;
     }
     return EXIT_SUCCESS;
+}
+
+/* 温度を、送信のキューに入れる (待たない) */
+int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
+{
+    struct sample s = {
+            .kind = SAMPLE_THERMO, .addr = *addr, .raw = raw, .uptime_ms = k_uptime_get_32()};
+
+    return enqueue_sample(&s);
+}
+
+/* SwitchBot の温湿度計の値を、送信のキューに入れる (待たない) */
+int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sample *sample)
+{
+    struct sample s = {.kind = SAMPLE_SWITCHBOT,
+                       .addr = *addr,
+                       .switchbot = *sample,
+                       .uptime_ms = k_uptime_get_32()};
+
+    return enqueue_sample(&s);
 }
 
 /* 接続の切断を依頼して、新しい設定で、つなぎ直させる */

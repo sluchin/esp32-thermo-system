@@ -138,6 +138,7 @@ esptool.py -p /dev/ttyUSB0 write_flash 0x0 build/zephyr/zephyr.bin
 
 ### Thermo Gateway
 - BLE スキャンで周辺ノードを検出して、GATT で接続し、温度 (ADC の生値) の通知を受信 (最大 3 台)
+- SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズ (接続しない) を受信して、温度 (℃)・湿度・電池残量を、10 秒に 1 回、AWS IoT Core に送信
 - WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md))
 - WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存
 - デバッグシェル対応
