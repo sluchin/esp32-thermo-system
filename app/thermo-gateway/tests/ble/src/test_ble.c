@@ -835,4 +835,137 @@ ZTEST(ble_gateway, test_disconnected_unknown_connection)
     zassert_equal(bt_le_scan_start_fake.call_count, 1u);
 }
 
+/** UUID (128 bit) が, Thermo サービスと違うデバイスには, 接続しない */
+ZTEST(ble_gateway, test_scan_ignores_other_uuid)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    set_adv_with_service();
+    adv_bytes[2] ^= 0xffu; /* UUID の先頭の 1 byte を変える */
+    scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_SCAN_RSP, &adv);
+    k_msleep(WORK_WAIT_MS);
+
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u);
+}
+
+/** UUID (128 bit) の項目の長さが違うデバイス (壊れたデータ) には, 接続しない */
+ZTEST(ble_gateway, test_scan_ignores_short_uuid)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    set_adv_with_service();
+    adv_bytes[0] = 5u;
+    adv.len = 6u;
+    scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_SCAN_RSP, &adv);
+    k_msleep(WORK_WAIT_MS);
+
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u);
+}
+
+/** 接続を始める依頼を処理している間 (スキャンを止められず, 待っている間) は, 次の依頼を受けない */
+ZTEST(ble_gateway, test_scan_ignores_while_pending)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    bt_le_scan_stop_fake.return_val = -EBUSY;
+    find_node(scan_cb, 0u);
+    find_node(scan_cb, 1u); /* 待っている間に, 別のノードを見つけた */
+    zassert_equal(bt_conn_lookup_addr_le_fake.call_count, 1u);
+
+    /* 待ったあとに, 止められれば, 最初のノードに接続する */
+    bt_le_scan_stop_fake.return_val = 0;
+    k_msleep(CONNECT_RETRY_MS * 2);
+    zassert_equal(bt_conn_le_create_fake.call_count, 1u);
+    zassert_true(bt_addr_le_eq(bt_conn_le_create_fake.arg0_val, &node_addr[0]));
+}
+
+/** 接続を始められず, スキャンの再開にも失敗しても, 次に見つけたときに, 接続できる */
+ZTEST(ble_gateway, test_scan_connect_failure_and_scan_failure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    bt_conn_le_create_fake.custom_fake = NULL;
+    bt_conn_le_create_fake.return_val = -ENOMEM;
+    bt_le_scan_start_fake.return_val = -EIO;
+    find_node(scan_cb, 0u);
+    zassert_equal(bt_le_scan_start_fake.call_count, 2u);
+
+    bt_conn_le_create_fake.custom_fake = fake_conn_le_create;
+    find_node(scan_cb, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 2u);
+}
+
+/** 接続できたあと, スキャンを再開できなくても, 探索は始める */
+ZTEST(ble_gateway, test_connected_scan_restart_failure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    find_node(scan_cb, 0u);
+    bt_le_scan_start_fake.return_val = -EIO;
+    conn_cb->connected(conn_of(0u), 0u);
+
+    zassert_equal(bt_gatt_discover_fake.call_count, 1u);
+    zassert_equal(bt_le_scan_start_fake.call_count, 2u);
+}
+
+/** 探索を始められず, 切断にも失敗しても, 処理を続ける (スキャンを再開する) */
+ZTEST(ble_gateway, test_connected_discovery_and_disconnect_failure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    find_node(scan_cb, 0u);
+    bt_gatt_discover_fake.return_val = -ENOMEM;
+    bt_conn_disconnect_fake.return_val = -EIO;
+    conn_cb->connected(conn_of(0u), 0u);
+
+    zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
+    zassert_equal(bt_le_scan_start_fake.call_count, 2u);
+}
+
+/** サービスが見つからず, 切断にも失敗しても, 探索を止める */
+ZTEST(ble_gateway, test_discovery_not_found_and_disconnect_failure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    struct bt_gatt_discover_params *params = NULL;
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+    params = bt_gatt_discover_fake.arg1_val;
+
+    bt_conn_disconnect_fake.return_val = -EIO;
+    zassert_equal(params->func(conn_of(0u), NULL, params), BT_GATT_ITER_STOP);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
+}
+
+/** 次の探索を始められず, 切断にも失敗しても, 探索を止める */
+ZTEST(ble_gateway, test_discovery_next_failure_and_disconnect_failure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    struct bt_gatt_discover_params *params = NULL;
+    struct bt_gatt_service_val service_val = {.end_handle = 0x0030u};
+    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val};
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+    params = bt_gatt_discover_fake.arg1_val;
+
+    bt_gatt_discover_fake.return_val = -ENOMEM;
+    bt_conn_disconnect_fake.return_val = -EIO;
+    zassert_equal(params->func(conn_of(0u), &service_attr, params), BT_GATT_ITER_STOP);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
+}
+
+/** 切断されたあと, スキャンを再開できなくても, 状態は戻す */
+ZTEST(ble_gateway, test_disconnected_scan_restart_failure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+    bt_le_scan_start_fake.return_val = -EIO;
+    conn_cb->disconnected(conn_of(0u), 0x08u);
+
+    zassert_equal(bt_conn_unref_fake.call_count, 1u);
+}
+
 ZTEST_SUITE(ble_gateway, NULL, NULL, before, after, NULL);

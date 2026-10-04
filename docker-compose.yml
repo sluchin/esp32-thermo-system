@@ -95,6 +95,32 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
+  # thermo-node の単体テストのカバレッジ (行と分岐) を計測する。100% 未満なら失敗する。
+  coverage-thermo-node:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: scripts/coverage.sh node
+    environment:
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - HOME=/tmp
+
+  # thermo-gateway の単体テストのカバレッジ (行と分岐) を計測する。100% 未満なら失敗する。
+  coverage-thermo-gateway:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: scripts/coverage.sh gateway
+    environment:
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - HOME=/tmp
+
   # 整形の確認 (clang-format。Zephyr の .clang-format を、インデントだけ空白 4 つに変えたもの)。整形が必要なファイルがあれば失敗する。
   format-thermo:
     image: esp32-thermo-system:latest

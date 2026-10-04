@@ -63,8 +63,9 @@ static ble_temperature_cb_t temperature_cb;
 
 /** 接続を始めるノードのアドレス (スキャンのコールバックが、記録する) */
 static bt_addr_le_t pending_addr;
-/** 接続を始める依頼があるか (依頼から、接続を始めるまでの間は、true) */
-static bool pending;
+/** 接続を始める依頼で、確保したノードの状態 (依頼から、接続を始めるまでの間。依頼がなければ NULL)
+ */
+static struct node *pending_node;
 /** 接続を始め直した回数 */
 static unsigned int pending_retries;
 
@@ -75,7 +76,7 @@ static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_handler);
 /**
  * 接続から、ノードの状態を探す
  *
- * @param[in] conn 接続 (NULL なら、使っていない状態を探す)
+ * @param[in] conn 接続 (NULL にしてはいけない)
  * @return ノードの状態 (見つからなければ NULL)
  */
 static struct node *find_node(const struct bt_conn *conn)
@@ -91,15 +92,30 @@ static struct node *find_node(const struct bt_conn *conn)
 }
 
 /**
+ * 使っていないノードの状態を探す
+ *
+ * @return ノードの状態 (全て使っていれば NULL)
+ */
+static struct node *find_free_node(void)
+{
+    size_t i = 0u;
+
+    for (i = 0u; i < ARRAY_SIZE(nodes); i++) {
+        if (nodes[i].conn == NULL) {
+            return &nodes[i];
+        }
+    }
+    return NULL;
+}
+
+/**
  * ノードの状態を、使っていない状態に戻す (接続の参照も、解放する)
  *
  * @param[in,out] node ノードの状態
  */
 static void release_node(struct node *node)
 {
-    if (node->conn != NULL) {
-        bt_conn_unref(node->conn);
-    }
+    bt_conn_unref(node->conn);
     (void)memset(node, 0, sizeof(*node));
 }
 
@@ -236,17 +252,15 @@ static void connected(struct bt_conn *conn, uint8_t err)
     const bt_addr_le_t *dst = NULL;
     int ret = EXIT_SUCCESS;
 
-    if ((node == NULL) && pending) {
+    if ((node == NULL) && (pending_node != NULL)) {
         /*
          * bt_conn_le_create() が戻る前に、接続が完了することがある (node->conn が、まだ NULL).
          * 接続を始めたノードのアドレスと同じなら、この接続を、使っていない状態に割り当てる.
          */
         dst = bt_conn_get_dst(conn);
-        if ((dst != NULL) && bt_addr_le_eq(dst, &pending_addr)) {
-            node = find_node(NULL);
-            if (node != NULL) {
-                node->conn = bt_conn_ref(conn);
-            }
+        if (bt_addr_le_eq(dst, &pending_addr)) {
+            node = pending_node;
+            node->conn = bt_conn_ref(conn);
         }
     }
 
@@ -321,16 +335,11 @@ static struct bt_conn_cb conn_callbacks = {
  */
 static void connect_work_handler(struct k_work *work)
 {
-    struct node *node = find_node(NULL);
+    struct node *node = pending_node;
     struct bt_conn *created = NULL;
     int err = EXIT_SUCCESS;
 
     ARG_UNUSED(work);
-
-    if (node == NULL) {
-        pending = false; /* 依頼のあとに、接続できる台数に達した */
-        return;
-    }
 
     /* 接続を始める前に, スキャンを止める */
     err = bt_le_scan_stop();
@@ -341,7 +350,7 @@ static void connect_work_handler(struct k_work *work)
     }
     if (err != 0) {
         LOG_ERR("Stopping scan failed (err %d)", err);
-        pending = false; /* 次に、ノードが見つかったときに、やり直す */
+        pending_node = NULL; /* 次に、ノードが見つかったときに、やり直す */
         return;
     }
 
@@ -360,7 +369,7 @@ static void connect_work_handler(struct k_work *work)
             LOG_ERR("Failed to restart scanning (err %d)", err);
         }
     }
-    pending = false;
+    pending_node = NULL;
 }
 
 /**
@@ -378,8 +387,8 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 {
     char addr_str[BT_ADDR_LE_STR_LEN] = {0};
     struct bt_conn *known = NULL;
+    struct node *node = NULL;
     bool found = false;
-    int err = EXIT_SUCCESS;
 
     ARG_UNUSED(adv_type);
 
@@ -388,7 +397,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
         return; /* Thermo サービスを持たないデバイス */
     }
 
-    if (pending) {
+    if (pending_node != NULL) {
         return; /* 接続を始める依頼を処理中 */
     }
 
@@ -399,7 +408,8 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
         return;
     }
 
-    if (find_node(NULL) == NULL) {
+    node = find_free_node();
+    if (node == NULL) {
         return; /* 接続できる台数に達している */
     }
 
@@ -407,13 +417,10 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
     LOG_INF("Thermo node found: %s (RSSI %d)", addr_str, rssi);
 
     bt_addr_le_copy(&pending_addr, addr);
-    pending = true;
+    pending_node = node;
     pending_retries = 0u;
-    err = k_work_schedule(&connect_work, K_NO_WAIT);
-    if (err < 0) {
-        LOG_ERR("Failed to schedule the connection (err %d)", err);
-        pending = false;
-    }
+    /* 戻り値は, 0 以上 (ワークキューが停止しているときだけ, 負). 実行中の依頼は, 重ねない */
+    (void)k_work_schedule(&connect_work, K_NO_WAIT);
 }
 
 int ble_init(void)

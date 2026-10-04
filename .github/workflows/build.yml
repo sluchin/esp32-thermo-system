@@ -73,6 +73,26 @@ jobs:
       - name: Run the unit tests
         run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
 
+  coverage:
+    name: Coverage (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - coverage-thermo-node
+          - coverage-thermo-gateway
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build the development image
+        uses: ./.github/actions/docker-image
+
+      - name: Check that the coverage is 100%
+        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
+
   analyze:
     name: Static analysis (${{ matrix.service }})
     runs-on: ubuntu-latest

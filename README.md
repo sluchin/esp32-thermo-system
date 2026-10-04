@@ -75,6 +75,9 @@ docker compose run dev
 # 単体テスト (Thermo Node / Thermo Gateway)
 docker compose run test-thermo-node
 docker compose run test-thermo-gateway
+# カバレッジ (行と分岐が 100% でなければ失敗する)
+docker compose run coverage-thermo-node
+docker compose run coverage-thermo-gateway
 
 # 静的解析 (gcc -fanalyzer。指摘があれば失敗する)
 docker compose run analyze-thermo-node

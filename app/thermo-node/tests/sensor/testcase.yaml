@@ -13,3 +13,10 @@ tests:
       - TEST_MODE=adc
     tags:
       - thermo_node
+  thermo_node.sensor.adc_setup_error:
+    platform_allow:
+      - native_sim/native/64
+    extra_args:
+      - TEST_MODE=adc_setup_error
+    tags:
+      - thermo_node
