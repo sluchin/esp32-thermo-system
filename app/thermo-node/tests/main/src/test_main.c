@@ -32,6 +32,7 @@ DEFINE_FFF_GLOBALS
  */
 int thermo_node_main(void);
 
+/* FAKE_*: FFF のモック (実物の代わりの関数。呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, sensor_init)
 FAKE_VALUE_FUNC(int, sensor_read_temperature, uint16_t *)
 FAKE_VALUE_FUNC(int, ble_init)

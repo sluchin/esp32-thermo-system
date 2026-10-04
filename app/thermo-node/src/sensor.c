@@ -21,6 +21,7 @@
 /* シミュレータでなく、Devicetree に ADC チャンネルがある場合のみ実機の ADC を使用する */
 #if !defined(CONFIG_SIMULATOR) && DT_NODE_HAS_PROP(DT_PATH(zephyr_user), io_channels)
 #include <zephyr/drivers/adc.h>
+/** 実機の ADC を使うビルドであることを示す (ADC のコードを有効にする) */
 #define HAVE_ADC 1
 #endif
 

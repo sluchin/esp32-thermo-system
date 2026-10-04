@@ -25,6 +25,7 @@
 
 DEFINE_FFF_GLOBALS
 
+/* FAKE_*: FFF のモック (実物の代わりの関数。呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, cfg_key_from_name, const char *)
 FAKE_VALUE_FUNC(const char *, cfg_key_name, enum cfg_key)
 FAKE_VALUE_FUNC(const char *, cfg_get, enum cfg_key)

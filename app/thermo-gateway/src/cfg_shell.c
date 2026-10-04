@@ -154,6 +154,7 @@ static int cmd_reset(const struct shell *sh, size_t argc, char **argv)
     return EXIT_SUCCESS;
 }
 
+/** `thermo` コマンドのサブコマンド (set, show, save-certs, apply, reset) */
 SHELL_STATIC_SUBCMD_SET_CREATE(
         thermo_cmds,
         SHELL_CMD_ARG(set, NULL, "<ssid|psk|endpoint|client_id> <value> : save a setting", cmd_set,
