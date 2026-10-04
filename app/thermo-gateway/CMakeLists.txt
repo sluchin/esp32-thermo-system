@@ -6,3 +6,6 @@ project(thermo-gateway)
 
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/ble.c)
+
+# 警告オプション (app/warnings.txt). 警告が出たら修正する
+include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)

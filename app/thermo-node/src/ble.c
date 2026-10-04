@@ -15,7 +15,7 @@ LOG_MODULE_REGISTER(ble_thermo_node);
 /** アドバタイズデータ: フラグ (LE 一般発見可能、BR/EDR 非対応) とデバイス名 */
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-	BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1),
+	BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1u),
 };
 
 int ble_init(void)

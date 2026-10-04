@@ -1,0 +1,29 @@
+# thermo-node の sensor.c の単体テスト (Ztest). 2 つの構成を, TEST_MODE で切り替える.
+#   simulator: シミュレーション値 (CONFIG_SIMULATOR=y. ADC なし)
+#   adc      : ADC エミュレータ (zephyr,adc-emul) を, io-channels に接続した実機用の経路
+cmake_minimum_required(VERSION 3.20.0)
+
+if(NOT DEFINED TEST_MODE)
+  set(TEST_MODE simulator)
+endif()
+if(NOT TEST_MODE STREQUAL "simulator" AND NOT TEST_MODE STREQUAL "adc")
+  message(FATAL_ERROR "TEST_MODE は simulator か adc: ${TEST_MODE}")
+endif()
+
+# アプリの Kconfig (CONFIG_SIMULATOR) を使う
+set(KCONFIG_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../Kconfig)
+set(CONF_FILE "${CMAKE_CURRENT_LIST_DIR}/prj.conf;${CMAKE_CURRENT_LIST_DIR}/${TEST_MODE}.conf")
+if(TEST_MODE STREQUAL "adc")
+  set(DTC_OVERLAY_FILE ${CMAKE_CURRENT_LIST_DIR}/adc.overlay)
+endif()
+
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(thermo_node_sensor_test)
+
+target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src)
+target_sources(app PRIVATE
+  src/test_sensor_${TEST_MODE}.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../src/sensor.c)
+
+# 警告オプション (app/warnings.txt). 警告が出たら修正する
+include(${CMAKE_CURRENT_LIST_DIR}/../../../warnings.cmake)

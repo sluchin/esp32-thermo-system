@@ -1,0 +1,15 @@
+tests:
+  thermo_node.sensor.simulator:
+    platform_allow:
+      - native_sim/native/64
+    extra_args:
+      - TEST_MODE=simulator
+    tags:
+      - thermo_node
+  thermo_node.sensor.adc:
+    platform_allow:
+      - native_sim/native/64
+    extra_args:
+      - TEST_MODE=adc
+    tags:
+      - thermo_node

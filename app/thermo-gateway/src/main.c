@@ -51,8 +51,6 @@ int main(void)
 	/* 受信処理はコールバック側で行うため、ここでは定期的に稼働状況を出力するだけ */
 	while (true) {
 		LOG_INF("Gateway scanning for nodes...");
-		k_sleep(K_SECONDS(STATUS_INTERVAL_S));
+		(void)k_sleep(K_SECONDS(STATUS_INTERVAL_S));
 	}
-
-	return EXIT_SUCCESS;
 }

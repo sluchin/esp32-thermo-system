@@ -67,6 +67,20 @@ docker compose run build-thermo-gateway-sim
 docker compose run dev
 ```
 
+### 単体テストと静的解析
+
+単体テストは Zephyr の Ztest と FFF (モック) で書かれていて、`native_sim` 上で実行します (`app/thermo-node/tests/` と `app/thermo-gateway/tests/`)。
+
+```bash
+# 単体テスト (Thermo Node / Thermo Gateway)
+docker compose run test-thermo-node
+docker compose run test-thermo-gateway
+
+# 静的解析 (gcc -fanalyzer。指摘があれば失敗する)
+docker compose run analyze-thermo-node
+docker compose run analyze-thermo-gateway
+```
+
 ### ローカル開発環境構築
 
 Docker を使用しない場合は、[SETUP.md](./SETUP.md) を参照してください。
@@ -117,14 +131,18 @@ esptool.py -p /dev/ttyUSB0 write_flash 0x0 build/zephyr/zephyr.bin
 
 GitHub Actions により、以下の自動化が設定されています：
 
-- **自動ビルド**: main ブランチおよび PR での自動ビルド検証
-- **アーティファクト保存**: ビルド成功時に ELF/HEX ファイルを自動保存
+- **ビルド** (`build` ジョブ): 実機 (ESP32C3) 用とシミュレーション (`native_sim`) 用の、両アプリのビルド。警告が出たら失敗します
+- **単体テスト** (`test` ジョブ): Thermo Node / Thermo Gateway の単体テスト
+- **静的解析** (`analyze` ジョブ): gcc `-fanalyzer`。指摘があれば失敗します
+- **アーティファクト保存**: ビルド成果物 (ELF/BIN、シミュレーションは実行ファイル) を自動保存
+
+ジョブは、ローカルと同じ Docker イメージで `docker compose` のサービスを実行します。イメージのレイヤーは、キャッシュされます。
 
 ## 開発フロー
 
 1. `ccr-*` ブランチで機能開発
-2. Push 時に GitHub Actions で自動ビルド
-3. PR をマージする前にビルド成功を確認
+2. Push 時に GitHub Actions で、ビルド・単体テスト・静的解析を自動実行
+3. PR をマージする前に、全ジョブの成功を確認
 4. main ブランチへのマージ
 
 ## デバッグ

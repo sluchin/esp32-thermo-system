@@ -59,7 +59,7 @@ int main(void)
 
 	/* 一定間隔で温度を読み取ってログ出力する */
 	while (true) {
-		uint16_t temp_raw = 0U;
+		uint16_t temp_raw = 0u;
 		int read_ret = EXIT_SUCCESS;
 
 		read_ret = sensor_read_temperature(&temp_raw);
@@ -67,8 +67,6 @@ int main(void)
 		if (read_ret == EXIT_SUCCESS) {
 			LOG_INF("Temperature: %u (raw ADC value)", temp_raw);
 		}
-		k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
+		(void)k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
 	}
-
-	return EXIT_SUCCESS;
 }
