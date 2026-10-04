@@ -1,3 +1,5 @@
+# thermo-gateway の単体テスト: ble.c (Bluetooth スタックは、FFF のモック).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run test-thermo-gateway).
 tests:
   thermo_gateway.ble:
     platform_allow:
