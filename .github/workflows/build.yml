@@ -114,6 +114,34 @@ jobs:
           path: docs/
           if-no-files-found: error
 
+      - name: Upload the documentation for GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+  # main への push のときだけ, 生成したドキュメントを GitHub Pages へ公開する.
+  # リポジトリの Settings > Pages > Source を "GitHub Actions" にしておくこと.
+  deploy-docs:
+    name: Deploy the documentation
+    needs: docs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   analyze:
     name: Static analysis (${{ matrix.service }})
     runs-on: ubuntu-latest
