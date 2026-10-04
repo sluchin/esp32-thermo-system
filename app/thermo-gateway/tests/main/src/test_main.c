@@ -105,6 +105,7 @@ ZTEST(main_gateway, test_ble_init_failure)
 {
     ble_init_fake.return_val = -EIO;
 
+    /* 期待: BLE の初期化に失敗したら、クラウドの初期化にもスキャンにも進まない */
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
     zassert_equal(ble_init_fake.call_count, 1u);
     zassert_equal(ble_scan_fake.call_count, 0u);
@@ -116,6 +117,7 @@ ZTEST(main_gateway, test_cloud_init_failure)
 {
     cloud_init_fake.return_val = -EIO;
 
+    /* 期待: クラウドの初期化の失敗で止まる (コールバックは、まだ設定しない) */
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
     zassert_equal(ble_init_fake.call_count, 1u);
     zassert_equal(cloud_init_fake.call_count, 1u);
@@ -128,6 +130,7 @@ ZTEST(main_gateway, test_scan_failure)
 {
     ble_scan_fake.return_val = -EALREADY;
 
+    /* 期待: スキャンの開始の失敗で、EXIT_FAILURE (コールバックは、設定済み) */
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
     zassert_equal(ble_init_fake.call_count, 1u);
     zassert_equal(ble_scan_fake.call_count, 1u);

@@ -19,6 +19,7 @@
 /** チャンネルの設定に失敗したら, そのエラーコードを返す */
 ZTEST(sensor_adc_setup_error, test_init_setup_failure)
 {
+    /* 期待: エミュレータが対応しない基準電圧なので、-ENOTSUP */
     zassert_equal(sensor_init(), -ENOTSUP);
 }
 

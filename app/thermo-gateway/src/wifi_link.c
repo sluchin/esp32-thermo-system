@@ -66,8 +66,10 @@ static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, st
     }
 }
 
+/* WiFi と IPv4 のイベントのコールバックを登録する */
 int wifi_link_init(void)
 {
+    /* WiFi のイベントと IPv4 のイベントは、層が違うので、別々のコールバックにして登録する */
     net_mgmt_init_event_callback(&wifi_cb, event_handler,
                                  NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT);
     net_mgmt_add_event_callback(&wifi_cb);
@@ -77,6 +79,7 @@ int wifi_link_init(void)
     return EXIT_SUCCESS;
 }
 
+/* アクセスポイントに接続して、IPv4 アドレスの取得まで待つ */
 int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
 {
     struct net_if *iface = net_if_get_default();
@@ -87,10 +90,12 @@ int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
         return -ENODEV;
     }
 
+    /* すでに接続していれば、つなぎ直さない */
     if (ip_ready) {
         return EXIT_SUCCESS;
     }
 
+    /* パスワードがあれば WPA/WPA2 の PSK、なければ暗号化なしで接続する (チャンネルは、自動) */
     params.ssid = (const uint8_t *)ssid;
     params.ssid_length = (uint8_t)strlen(ssid);
     params.psk = (const uint8_t *)psk;
@@ -101,6 +106,7 @@ int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
     params.mfp = WIFI_MFP_OPTIONAL;
     params.timeout = SYS_FOREVER_MS;
 
+    /* 前回の結果を捨ててから、要求する (要求の直後に、イベントが来ることもある) */
     connect_status = 0;
     k_sem_reset(&result_sem);
 
@@ -110,6 +116,7 @@ int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
         return err;
     }
 
+    /* 接続の失敗 (イベント)、または、IPv4 アドレスの取得 (イベント) まで、待つ */
     err = k_sem_take(&result_sem, timeout);
     if (err != 0) {
         LOG_ERR("WiFi connection timed out");
@@ -121,16 +128,19 @@ int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
     return EXIT_SUCCESS;
 }
 
+/* IPv4 アドレスを取得した状態か返す */
 bool wifi_link_is_up(void)
 {
     return ip_ready;
 }
 
+/* アクセスポイントから切断を要求する */
 void wifi_link_disconnect(void)
 {
     struct net_if *iface = net_if_get_default();
     int err = EXIT_SUCCESS;
 
+    /* 切断の完了を待たずに、接続していない状態にする (再接続が、すぐ始められるように) */
     ip_ready = false;
     if (iface == NULL) {
         return;

@@ -49,6 +49,7 @@ static int check_length(int written, size_t size)
     return written;
 }
 
+/* MQTT のトピックを作る */
 int payload_format_topic(char *buf, size_t size, const char *client_id, const bt_addr_le_t *addr)
 {
     char node[ADDR_STR_SIZE] = {0};
@@ -57,6 +58,7 @@ int payload_format_topic(char *buf, size_t size, const char *client_id, const bt
     return check_length(snprintf(buf, size, "thermo/%s/%s/temperature", client_id, node), size);
 }
 
+/* ペイロード (JSON) を作る */
 int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr, uint16_t raw,
                                uint32_t uptime_ms)
 {

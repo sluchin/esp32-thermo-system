@@ -355,6 +355,7 @@ static void connect_work_handler(struct k_work *work)
         return;
     }
 
+    /* 接続を始める (結果は、connected() / disconnected() で受け取る) */
     err = bt_conn_le_create(&pending_addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT,
                             &created);
     if (err == 0) {
@@ -424,10 +425,12 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
     (void)k_work_schedule(&connect_work, K_NO_WAIT);
 }
 
+/* Bluetooth を有効にして、接続のコールバックを登録する */
 int ble_init(void)
 {
     int err = EXIT_SUCCESS;
 
+    /* Bluetooth スタックを、同期で有効にする (戻ったときには、使える) */
     err = bt_enable(NULL);
     if (err != 0) {
         LOG_ERR("Bluetooth init failed (err %d)", err);
@@ -444,14 +447,17 @@ int ble_init(void)
     return EXIT_SUCCESS;
 }
 
+/* 温度を受信したときのコールバックを設定する (NULL で解除) */
 void ble_set_temperature_callback(ble_temperature_cb_t cb)
 {
     temperature_cb = cb;
 }
 
+/* Thermo のノードを探すスキャンを始める (すでに始まっていれば、成功) */
 int ble_scan(void)
 {
     int err = EXIT_SUCCESS;
+    /* アクティブスキャン: ノードの UUID は、スキャン応答に入っているので、要求を出して受け取る */
     struct bt_le_scan_param scan_param = {
             .type = BT_LE_SCAN_TYPE_ACTIVE,
             .options = BT_LE_SCAN_OPT_NONE,

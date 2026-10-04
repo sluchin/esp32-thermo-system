@@ -34,6 +34,7 @@ ZTEST(payload, test_topic)
     char buf[64] = {0};
     int len = payload_format_topic(buf, sizeof(buf), "gateway-01", &node);
 
+    /* 期待: thermo/<クライアント ID>/<アドレス>/temperature の形式で、長さは、NUL を除く */
     zassert_equal(len, (int)strlen(EXPECTED_TOPIC));
     zassert_str_equal(buf, EXPECTED_TOPIC);
 }
@@ -43,6 +44,7 @@ ZTEST(payload, test_topic_exact_size)
 {
     char buf[sizeof(EXPECTED_TOPIC)] = {0};
 
+    /* 期待: バッファが、文字列 + NUL でちょうどなら、作れる */
     zassert_equal(payload_format_topic(buf, sizeof(buf), "gateway-01", &node),
                   (int)strlen(EXPECTED_TOPIC));
     zassert_str_equal(buf, EXPECTED_TOPIC);
@@ -53,6 +55,7 @@ ZTEST(payload, test_topic_no_space)
 {
     char buf[sizeof(EXPECTED_TOPIC) - 1u] = {0};
 
+    /* 期待: 1 byte でも足りなければ、-ENOSPC */
     zassert_equal(payload_format_topic(buf, sizeof(buf), "gateway-01", &node), -ENOSPC);
 }
 
@@ -62,6 +65,7 @@ ZTEST(payload, test_payload)
     char buf[96] = {0};
     int len = payload_format_temperature(buf, sizeof(buf), &node, 2568u, 123456u);
 
+    /* 期待: アドレス、生値、稼働時間を持つ JSON になる */
     zassert_equal(len, (int)strlen(EXPECTED_PAYLOAD));
     zassert_str_equal(buf, EXPECTED_PAYLOAD);
 }
@@ -71,6 +75,7 @@ ZTEST(payload, test_payload_max_values)
 {
     char buf[96] = {0};
 
+    /* 期待: 生値と稼働時間が最大でも、桁を切らずに出力する */
     zassert_true(payload_format_temperature(buf, sizeof(buf), &node, UINT16_MAX, UINT32_MAX) > 0);
     zassert_not_null(strstr(buf, "\"raw\":65535,"));
     zassert_not_null(strstr(buf, "\"uptime_ms\":4294967295}"));
@@ -81,6 +86,7 @@ ZTEST(payload, test_payload_no_space)
 {
     char buf[sizeof(EXPECTED_PAYLOAD) - 1u] = {0};
 
+    /* 期待: 足りなければ -ENOSPC (途中で切れた JSON を返さない) */
     zassert_equal(payload_format_temperature(buf, sizeof(buf), &node, 2568u, 123456u), -ENOSPC);
 }
 

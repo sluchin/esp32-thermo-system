@@ -357,6 +357,7 @@ static void after(void *fixture)
 /** ble_init() は, bt_enable(NULL) を呼んで, 接続のコールバックを登録する */
 ZTEST(ble_gateway, test_init_success)
 {
+    /* 期待: bt_enable() を同期 (NULL) で呼んで、接続のコールバックを登録する */
     zassert_equal(ble_init(), EXIT_SUCCESS);
     conn_cb = bt_conn_cb_register_fake.arg0_val;
 
@@ -372,6 +373,7 @@ ZTEST(ble_gateway, test_init_enable_failure)
 {
     bt_enable_fake.return_val = -EIO;
 
+    /* 期待: Bluetooth を有効にできなければ、そのエラーを返して、コールバックは登録しない */
     zassert_equal(ble_init(), -EIO);
     zassert_equal(bt_conn_cb_register_fake.call_count, 0u);
 }
@@ -381,6 +383,7 @@ ZTEST(ble_gateway, test_init_callback_failure)
 {
     bt_conn_cb_register_fake.return_val = -EALREADY;
 
+    /* 期待: コールバックの登録に失敗したら、そのエラーを返す */
     zassert_equal(ble_init(), -EALREADY);
     zassert_equal(bt_conn_cb_register_fake.call_count, 1u);
 }
@@ -393,6 +396,7 @@ ZTEST(ble_gateway, test_scan_success)
     zassert_equal(ble_scan(), EXIT_SUCCESS);
     zassert_equal(bt_le_scan_start_fake.call_count, 1u);
 
+    /* アクティブスキャン (スキャン応答を受け取る)。ウィンドウは、間隔を超えない */
     zassert_equal(captured_scan_param.type, BT_LE_SCAN_TYPE_ACTIVE);
     zassert_equal(captured_scan_param.options, BT_LE_SCAN_OPT_NONE);
     zassert_equal(captured_scan_param.interval, BT_GAP_MS_TO_SCAN_INTERVAL(EXPECTED_INTERVAL_MS));
@@ -406,6 +410,7 @@ ZTEST(ble_gateway, test_scan_already_started)
 {
     bt_le_scan_start_fake.return_val = -EALREADY;
 
+    /* 期待: すでにスキャン中 (-EALREADY) は、エラーにしない */
     zassert_equal(ble_scan(), EXIT_SUCCESS);
 }
 
@@ -414,6 +419,7 @@ ZTEST(ble_gateway, test_scan_failure)
 {
     bt_le_scan_start_fake.return_val = -ENOMEM;
 
+    /* 期待: スキャンを始められなければ、そのエラーを返す */
     zassert_equal(ble_scan(), -ENOMEM);
     zassert_equal(bt_le_scan_start_fake.call_count, 1u);
 }
@@ -426,6 +432,7 @@ ZTEST(ble_gateway, test_scan_ignores_other_devices)
     set_adv_without_service();
     scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_ADV_IND, &adv);
 
+    /* 期待: Thermo の UUID がないデバイスは、既知の確認もせずに、無視する */
     zassert_equal(bt_conn_lookup_addr_le_fake.call_count, 0u);
     zassert_equal(bt_le_scan_stop_fake.call_count, 0u);
     zassert_equal(bt_conn_le_create_fake.call_count, 0u);
@@ -438,6 +445,7 @@ ZTEST(ble_gateway, test_scan_connects_to_node)
 
     find_node(scan_cb, 0u);
 
+    /* 期待: ノードを見つけたら、スキャンを止めて、そのアドレスに接続を始める */
     zassert_equal(bt_conn_lookup_addr_le_fake.call_count, 1u);
     zassert_equal(bt_le_scan_stop_fake.call_count, 1u);
     zassert_equal(bt_conn_le_create_fake.call_count, 1u);
@@ -452,6 +460,7 @@ ZTEST(ble_gateway, test_scan_ignores_known_node)
     bt_conn_lookup_addr_le_fake.return_val = conn_of(0u);
     find_node(scan_cb, 0u);
 
+    /* 期待: すでに接続済みのノードは、参照を解放して、接続し直さない */
     zassert_equal(bt_conn_unref_fake.call_count, 1u);
     zassert_equal(bt_conn_unref_fake.arg0_val, conn_of(0u));
     zassert_equal(bt_le_scan_stop_fake.call_count, 0u);
@@ -482,6 +491,7 @@ ZTEST(ble_gateway, test_scan_stop_failure)
     bt_le_scan_stop_fake.return_val = -EIO;
     find_node(scan_cb, 0u);
 
+    /* 期待: スキャンを止められなければ、接続しない (次に見つけたときに、やり直す) */
     zassert_equal(bt_le_scan_stop_fake.call_count, 1u);
     zassert_equal(bt_conn_le_create_fake.call_count, 0u);
 
@@ -605,6 +615,7 @@ ZTEST(ble_gateway, test_connected_failure)
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0x3eu);
 
+    /* 期待: 接続の失敗では、探索せずに、参照を解放して、スキャンを再開する */
     zassert_equal(bt_gatt_discover_fake.call_count, 0u);
     zassert_equal(bt_conn_unref_fake.call_count, 1u);
     zassert_equal(bt_le_scan_start_fake.call_count, 2u);
@@ -617,6 +628,7 @@ ZTEST(ble_gateway, test_connected_unknown_connection)
 
     conn_cb->connected(conn_of(3u), 0u);
 
+    /* 期待: 自分が始めた接続でなければ、何もしない */
     zassert_equal(bt_gatt_discover_fake.call_count, 0u);
     zassert_equal(bt_le_scan_start_fake.call_count, 1u);
 }
@@ -630,6 +642,7 @@ ZTEST(ble_gateway, test_connected_discovery_failure_disconnects)
     bt_gatt_discover_fake.return_val = -ENOMEM;
     conn_cb->connected(conn_of(0u), 0u);
 
+    /* 期待: 探索を始められなければ、その接続を切断する */
     zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
     zassert_equal(bt_conn_disconnect_fake.arg0_val, conn_of(0u));
 }
@@ -695,6 +708,7 @@ ZTEST(ble_gateway, test_discovery_not_found_disconnects)
     conn_cb->connected(conn_of(0u), 0u);
     params = bt_gatt_discover_fake.arg1_val;
 
+    /* 期待: サービスが見つからなければ (属性が NULL)、探索を止めて、切断する */
     zassert_equal(params->func(conn_of(0u), NULL, params), BT_GATT_ITER_STOP);
     zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
 }
@@ -765,6 +779,7 @@ ZTEST(ble_gateway, test_notification_wrong_length_ignored)
     struct bt_gatt_subscribe_params *sub = NULL;
     const uint8_t data[3] = {1u, 2u, 3u};
 
+    /* ノードに接続して、購読まで進める */
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
     params = bt_gatt_discover_fake.arg1_val;
@@ -772,6 +787,7 @@ ZTEST(ble_gateway, test_notification_wrong_length_ignored)
     (void)params->func(conn_of(0u), &ccc_attr, params);
     sub = bt_gatt_subscribe_fake.arg1_val;
 
+    /* 温度は 2 byte. 3 byte の通知は、捨てて、コールバックを呼ばない (購読は、続ける) */
     zassert_equal(sub->notify(conn_of(0u), sub, data, sizeof(data)), BT_GATT_ITER_CONTINUE);
     zassert_equal(received.count, 0u);
 }
@@ -832,6 +848,7 @@ ZTEST(ble_gateway, test_disconnected_unknown_connection)
 
     conn_cb->disconnected(conn_of(3u), 0x08u);
 
+    /* 期待: 自分が始めた接続でなければ、参照の解放も、スキャンの再開もしない */
     zassert_equal(bt_conn_unref_fake.call_count, 0u);
     zassert_equal(bt_le_scan_start_fake.call_count, 1u);
 }
@@ -860,6 +877,7 @@ ZTEST(ble_gateway, test_scan_ignores_short_uuid)
     scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_SCAN_RSP, &adv);
     k_msleep(WORK_WAIT_MS);
 
+    /* 期待: UUID の項目の長さが違う壊れたデータには、接続しない */
     zassert_equal(bt_conn_le_create_fake.call_count, 0u);
 }
 
@@ -885,12 +903,14 @@ ZTEST(ble_gateway, test_scan_connect_failure_and_scan_failure)
 {
     scan_cb_ptr_t scan_cb = start_scanning();
 
+    /* 接続を始められず、スキャンの再開にも失敗する */
     bt_conn_le_create_fake.custom_fake = NULL;
     bt_conn_le_create_fake.return_val = -ENOMEM;
     bt_le_scan_start_fake.return_val = -EIO;
     find_node(scan_cb, 0u);
     zassert_equal(bt_le_scan_start_fake.call_count, 2u);
 
+    /* 状態が戻っているので、次に見つけたときに、同じノードへ接続できる */
     bt_conn_le_create_fake.custom_fake = fake_conn_le_create;
     find_node(scan_cb, 0u);
     zassert_equal(bt_conn_le_create_fake.call_count, 2u);
@@ -905,6 +925,7 @@ ZTEST(ble_gateway, test_connected_scan_restart_failure)
     bt_le_scan_start_fake.return_val = -EIO;
     conn_cb->connected(conn_of(0u), 0u);
 
+    /* 期待: スキャンの再開に失敗しても、探索は、すでに始まっている */
     zassert_equal(bt_gatt_discover_fake.call_count, 1u);
     zassert_equal(bt_le_scan_start_fake.call_count, 2u);
 }
@@ -919,6 +940,7 @@ ZTEST(ble_gateway, test_connected_discovery_and_disconnect_failure)
     bt_conn_disconnect_fake.return_val = -EIO;
     conn_cb->connected(conn_of(0u), 0u);
 
+    /* 期待: 切断にも失敗しても、エラーにせず、スキャンを再開する */
     zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
     zassert_equal(bt_le_scan_start_fake.call_count, 2u);
 }
@@ -934,6 +956,7 @@ ZTEST(ble_gateway, test_discovery_not_found_and_disconnect_failure)
     params = bt_gatt_discover_fake.arg1_val;
 
     bt_conn_disconnect_fake.return_val = -EIO;
+    /* 期待: 切断に失敗しても、探索は止める */
     zassert_equal(params->func(conn_of(0u), NULL, params), BT_GATT_ITER_STOP);
     zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
 }
@@ -950,6 +973,7 @@ ZTEST(ble_gateway, test_discovery_next_failure_and_disconnect_failure)
     conn_cb->connected(conn_of(0u), 0u);
     params = bt_gatt_discover_fake.arg1_val;
 
+    /* サービスは見つかったが、次の探索を始められず、切断にも失敗する */
     bt_gatt_discover_fake.return_val = -ENOMEM;
     bt_conn_disconnect_fake.return_val = -EIO;
     zassert_equal(params->func(conn_of(0u), &service_attr, params), BT_GATT_ITER_STOP);
@@ -966,6 +990,7 @@ ZTEST(ble_gateway, test_disconnected_scan_restart_failure)
     bt_le_scan_start_fake.return_val = -EIO;
     conn_cb->disconnected(conn_of(0u), 0x08u);
 
+    /* 期待: スキャンの再開に失敗しても、状態 (参照) は、戻している */
     zassert_equal(bt_conn_unref_fake.call_count, 1u);
 }
 

@@ -38,16 +38,19 @@ LOG_MODULE_REGISTER(sensor_thermo_node);
 static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
 #endif
 
+/* ADC を準備する (シミュレータでは、何もしない) */
 int sensor_init(void)
 {
 #ifdef HAVE_ADC
     int err = EXIT_SUCCESS;
 
+    /* ADC のドライバが、初期化されていること */
     if (!adc_is_ready_dt(&adc_channel)) {
         LOG_ERR("ADC controller not ready");
         return -ENODEV;
     }
 
+    /* Devicetree のチャンネルの設定 (ゲイン、基準電圧、分解能など) を、ADC に反映する */
     err = adc_channel_setup_dt(&adc_channel);
     if (err < 0) {
         LOG_ERR("Could not setup ADC channel (%d)", err);
@@ -61,11 +64,13 @@ int sensor_init(void)
     return EXIT_SUCCESS;
 }
 
+/* 温度 (ADC の生値) を読む (シミュレータでは、乱数) */
 int sensor_read_temperature(uint16_t *value)
 {
 #ifdef HAVE_ADC
     int err = EXIT_SUCCESS;
 
+    /* 1 回だけ、1 チャンネルを読む (生値を、そのまま value に書き込む) */
     struct adc_sequence sequence = {
             .buffer = value,
             .buffer_size = sizeof(*value),

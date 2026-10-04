@@ -103,6 +103,7 @@ ZTEST(main_node, test_sensor_init_failure)
 {
     sensor_init_fake.return_val = -ENODEV;
 
+    /* 期待: センサの初期化に失敗したら、BLE には進まない */
     zassert_equal(thermo_node_main(), EXIT_FAILURE);
     zassert_equal(sensor_init_fake.call_count, 1u);
     zassert_equal(ble_init_fake.call_count, 0u);
@@ -114,6 +115,7 @@ ZTEST(main_node, test_ble_init_failure)
 {
     ble_init_fake.return_val = -EIO;
 
+    /* 期待: BLE の初期化に失敗したら、アドバタイズにも読み取りにも進まない */
     zassert_equal(thermo_node_main(), EXIT_FAILURE);
     zassert_equal(sensor_init_fake.call_count, 1u);
     zassert_equal(ble_init_fake.call_count, 1u);
@@ -126,6 +128,7 @@ ZTEST(main_node, test_advertise_failure)
 {
     ble_advertise_fake.return_val = -ENOMEM;
 
+    /* 期待: アドバタイズの失敗で止まる (温度は、読まない) */
     zassert_equal(thermo_node_main(), EXIT_FAILURE);
     zassert_equal(ble_advertise_fake.call_count, 1u);
     zassert_equal(sensor_read_temperature_fake.call_count, 0u);
@@ -168,8 +171,10 @@ ZTEST(main_node, test_notify_failure_retries)
     k_thread_create(&main_thread, main_stack, K_THREAD_STACK_SIZEOF(main_stack), main_entry, NULL,
                     NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
 
+    /* 1 回目: 通知に失敗する */
     k_msleep(STARTUP_WAIT_MS);
     zassert_equal(ble_notify_temperature_fake.call_count, 1u);
+    /* 失敗しても止まらず、次の周期で、再び読み取って、通知する */
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
     zassert_equal(sensor_read_temperature_fake.call_count, 2u);
     zassert_equal(ble_notify_temperature_fake.call_count, 2u);

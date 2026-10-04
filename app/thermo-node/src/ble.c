@@ -121,6 +121,7 @@ static struct bt_conn_cb conn_callbacks = {
         .disconnected = disconnected,
 };
 
+/* Bluetooth を有効にして、GATT サービスと接続のコールバックを登録する */
 int ble_init(void)
 {
     int err = EXIT_SUCCESS;
@@ -147,6 +148,7 @@ int ble_init(void)
     return EXIT_SUCCESS;
 }
 
+/* ゲートウェイから見つけられるよう、アドバタイズを始める */
 int ble_advertise(void)
 {
     int err = EXIT_SUCCESS;
@@ -161,6 +163,7 @@ int ble_advertise(void)
     return EXIT_SUCCESS;
 }
 
+/* 温度を、通知する (接続している相手がいなければ、何もしない) */
 int ble_notify_temperature(uint16_t raw)
 {
     uint16_t value = sys_cpu_to_le16(raw);

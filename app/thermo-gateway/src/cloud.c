@@ -159,9 +159,11 @@ static int poll_input(int timeout_ms)
     if (ret < 0) {
         return -errno;
     }
+    /* 時間内に、受信したデータがなかった */
     if (ret == 0) {
         return EXIT_SUCCESS;
     }
+    /* 切断、エラー: mqtt_input() を呼ぶ前に、検出する */
     if ((fds.revents & (ZSOCK_POLLERR | ZSOCK_POLLHUP | ZSOCK_POLLNVAL)) != 0) {
         return -ECONNRESET;
     }
@@ -186,6 +188,7 @@ static int connect_broker(void)
         return err;
     }
 
+    /* MQTT クライアントを、設定から作り直す (切断のたびに、初期化する) */
     mqtt_client_init(&client);
     client.broker = &broker;
     client.evt_cb = mqtt_evt_handler;
@@ -207,6 +210,7 @@ static int connect_broker(void)
     tls->sec_tag_count = ARRAY_SIZE(sec_tags);
     tls->hostname = endpoint;
 
+    /* TCP の接続と、TLS のハンドシェイクと、MQTT の CONNECT の送信まで、ここで行う */
     mqtt_up = false;
     err = mqtt_connect(&client);
     if (err != 0) {
@@ -214,6 +218,8 @@ static int connect_broker(void)
         return err;
     }
 
+    /* CONNACK を受信して、MQTT のイベント (mqtt_evt_handler) で、mqtt_up が true になるのを確認する
+     */
     err = poll_input(CONNACK_TIMEOUT_MS);
     if ((err != 0) || !mqtt_up) {
         LOG_ERR("MQTT CONNACK not received (err %d)", err);
@@ -245,6 +251,7 @@ static int publish_sample(const struct sample *s)
         return -ENOSPC;
     }
 
+    /* メッセージ ID は、1 から 65535 を、順に使う (QoS 1 では、0 は使えない) */
     message_id = (uint16_t)((message_id % UINT16_MAX) + 1u);
     param.message.topic.qos = MQTT_QOS_1_AT_LEAST_ONCE;
     param.message.topic.topic.utf8 = (const uint8_t *)topic;
@@ -271,6 +278,8 @@ static int run_session(void)
     int err = EXIT_SUCCESS;
 
     while (!reconnect_requested) {
+        /* 送るものがあれば、すぐ送る。なければ、最大 SESSION_TICK_MS 待って、受信などの確認に進む
+         */
         if (k_msgq_get(&cloud_sample_q, &s, K_MSEC(SESSION_TICK_MS)) == 0) {
             err = publish_sample(&s);
             if (err != 0) {
@@ -279,6 +288,7 @@ static int run_session(void)
             }
         }
 
+        /* 受信 (PUBACK、サーバからの切断など) を処理する。待たない */
         err = poll_input(0);
         if ((err == 0) && !mqtt_up) {
             err = -ECONNRESET;
@@ -299,6 +309,7 @@ static int run_session(void)
         }
     }
 
+    /* サーバが切断していなければ、DISCONNECT を送ってから、ソケットを閉じる */
     if (mqtt_up) {
         (void)mqtt_disconnect(&client, NULL);
     }
@@ -307,20 +318,24 @@ static int run_session(void)
     return err;
 }
 
+/* 接続と送信を 1 回分行う (スレッドが、繰り返し呼ぶ) */
 int cloud_step(void)
 {
     int err = EXIT_SUCCESS;
 
+    /* 設定 (WiFi、エンドポイント、証明書) が揃うまで、接続しないで待つ */
     if (!cfg_is_complete()) {
         (void)k_sleep(K_SECONDS(WAIT_CONFIG_S));
         return -EAGAIN;
     }
 
+    /* 接続をやり直す依頼は、これから始める接続で、反映される */
     reconnect_requested = false;
     err = wifi_link_connect(cfg_get(CFG_KEY_SSID), cfg_get(CFG_KEY_PSK), K_SECONDS(WIFI_TIMEOUT_S));
     if (err == 0) {
         err = connect_broker();
     }
+    /* 失敗したら、間隔をあけてから、やり直す (間隔は、失敗のたびに倍にして、上限で止める) */
     if (err != 0) {
         LOG_WRN("Connection failed (err %d), retrying in %u s", err, retry_s);
         (void)k_sleep(K_SECONDS(retry_s));
@@ -355,6 +370,7 @@ static void cloud_thread_entry(void *p1, void *p2, void *p3)
     }
 }
 
+/* 設定を読み込んで、送信のスレッドを開始する */
 int cloud_init(void)
 {
     int err = cfg_init();
@@ -374,11 +390,13 @@ int cloud_init(void)
     return EXIT_SUCCESS;
 }
 
+/* 送信のスレッドを止める */
 void cloud_stop(void)
 {
     k_thread_abort(&cloud_thread);
 }
 
+/* 温度を、送信のキューに入れる (待たない) */
 int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
 {
     struct sample s = {.addr = *addr, .raw = raw, .uptime_ms = k_uptime_get_32()};
@@ -390,6 +408,7 @@ int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
     return EXIT_SUCCESS;
 }
 
+/* 接続の切断を依頼して、新しい設定で、つなぎ直させる */
 void cloud_reconnect(void)
 {
     reconnect_requested = true;
