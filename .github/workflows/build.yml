@@ -4,7 +4,7 @@ name: CI
 #   build  : 実機 (xiao_esp32c3) 用と, native_sim 用のビルド. 警告が出たら失敗する
 #   test   : 単体テスト (Ztest + FFF) を native_sim で実行する (twister)
 #   analyze: 静的解析 (gcc -fanalyzer). 指摘があれば失敗する
-#   lint   : 整形の確認 (clang-format) と, Zephyr の checkpatch.pl. 指摘があれば失敗する
+#   lint   : 整形の確認 (clang-format), Zephyr の checkpatch.pl, 行末の空白の確認. 指摘があれば失敗する
 # イメージは, レイヤーを GitHub Actions のキャッシュに保存する (.github/actions/docker-image).
 
 on:
@@ -102,6 +102,7 @@ jobs:
         service:
           - format-thermo
           - lint-thermo
+          - whitespace-thermo
 
     steps:
       - name: Checkout code
