@@ -1,4 +1,10 @@
-name: Build Zephyr Applications
+name: CI
+
+# 開発環境 (Dockerfile) と同じイメージで, docker compose のサービスを実行する.
+#   build  : 実機 (xiao_esp32c3) 用と, native_sim 用のビルド. 警告が出たら失敗する
+#   test   : 単体テスト (Ztest + FFF) を native_sim で実行する (twister)
+#   analyze: 静的解析 (gcc -fanalyzer). 指摘があれば失敗する
+# イメージは, レイヤーを GitHub Actions のキャッシュに保存する (.github/actions/docker-image).
 
 on:
   push:
@@ -8,70 +14,80 @@ on:
 
 jobs:
   build:
+    name: Build (${{ matrix.service }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - build-thermo-node
+          - build-thermo-gateway
+          - build-thermo-node-sim
+          - build-thermo-gateway-sim
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+      - name: Build the development image
+        uses: ./.github/actions/docker-image
 
-      - name: Install dependencies
+      - name: Build
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            cmake \
-            ninja-build \
-            wget \
-            curl \
-            git
-          pip install west
-
-      - name: Download Zephyr SDK
-        run: |
-          mkdir -p ~/zephyr-sdk
-          cd ~/zephyr-sdk
-          wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5/zephyr-sdk-0.16.5_linux-x86_64.tar.xz
-          tar xf zephyr-sdk-0.16.5_linux-x86_64.tar.xz
-          zephyr-sdk-0.16.5/setup.sh -t all -h
-        continue-on-error: true
-
-      - name: Initialize West workspace
-        run: |
-          cd $GITHUB_WORKSPACE
-          west init -l .
-          west config manifest.file WEST.md
-          west update 2>/dev/null || true
-
-      - name: Build thermo-node
-        run: |
-          cd $GITHUB_WORKSPACE
-          west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node 2>&1 | head -100
-
-      - name: Build thermo-gateway
-        run: |
-          cd $GITHUB_WORKSPACE
-          west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway 2>&1 | head -100
-
-      - name: Check build artifacts
-        run: |
-          ls -la build/thermo-node/ || echo "thermo-node build not found"
-          ls -la build/thermo-gateway/ || echo "thermo-gateway build not found"
+          set -o pipefail
+          env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee build.log
+          if grep -q "warning:" build.log; then
+            echo "::error::ビルドに警告があります (警告ゼロを維持する)"
+            exit 1
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: build-artifacts
+          name: ${{ matrix.service }}
           path: |
-            build/thermo-node/zephyr/zephyr.elf
-            build/thermo-node/zephyr/zephyr.hex
-            build/thermo-gateway/zephyr/zephyr.elf
-            build/thermo-gateway/zephyr/zephyr.hex
-          if-no-files-found: ignore
+            build/*/zephyr/zephyr.elf
+            build/*/zephyr/zephyr.bin
+            build/*/zephyr/zephyr.exe
+          if-no-files-found: warn
+
+  test:
+    name: Unit tests (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - test-thermo-node
+          - test-thermo-gateway
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build the development image
+        uses: ./.github/actions/docker-image
+
+      - name: Run the unit tests
+        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
+
+  analyze:
+    name: Static analysis (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - analyze-thermo-node
+          - analyze-thermo-gateway
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build the development image
+        uses: ./.github/actions/docker-image
+
+      - name: Run the static analysis
+        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
