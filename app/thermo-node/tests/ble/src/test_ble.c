@@ -42,6 +42,7 @@ DEFINE_FFF_GLOBALS
 /** テストで使う温度の生値 */
 #define TEST_RAW      0x04d2u
 
+/* FAKE_*: FFF のモック (実物の代わりの関数。呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, bt_enable, bt_ready_cb_t)
 FAKE_VALUE_FUNC(int, bt_le_adv_start, const struct bt_le_adv_param *, const struct bt_data *,
                 size_t, const struct bt_data *, size_t)

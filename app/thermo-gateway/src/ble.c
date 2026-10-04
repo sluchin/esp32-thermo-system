@@ -69,6 +69,7 @@ static struct node *pending_node;
 /** 接続を始め直した回数 */
 static unsigned int pending_retries;
 
+/* 接続を始める処理 (ワークの定義で使うため、先に宣言する。説明は、定義にある) */
 static void connect_work_handler(struct k_work *work);
 /** 接続を始める処理 (システムのワークキューで実行する) */
 static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_handler);
