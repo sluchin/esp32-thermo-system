@@ -17,6 +17,7 @@
 #include <zephyr/fff.h>
 #include <zephyr/kernel.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "ble.h"
@@ -28,6 +29,7 @@ int thermo_gateway_main(void);
 
 FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_scan)
+FAKE_VOID_FUNC(ble_set_temperature_callback, ble_temperature_cb_t)
 
 /** メインループのスレッドのスタックサイズ */
 #define STACK_SIZE        2048
@@ -39,6 +41,20 @@ FAKE_VALUE_FUNC(int, ble_scan)
 #define STARTUP_WAIT_MS   100
 /** 何周期ぶん待つか */
 #define WAIT_CYCLES       3
+
+/**
+ * 関数のアドレス (fff.call_history の要素と, 比べる)
+ * (関数ポインタを, オブジェクトポインタへ, 直接キャストすることは, ISO C では許されない)
+ */
+#define FUNCTION_ADDRESS(f) ((void *)(uintptr_t)(f))
+
+/** 温度のコールバックに渡す, ノードのアドレス */
+static const bt_addr_le_t test_addr = {
+        .type = BT_ADDR_LE_RANDOM,
+        .a = {.val = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}},
+};
+/** 温度のコールバックに渡す, 温度の生値 */
+#define TEST_RAW 0x0abcu
 
 /** main を動かすスレッド */
 static struct k_thread main_thread;
@@ -70,6 +86,7 @@ static void before(void *fixture)
     ARG_UNUSED(fixture);
     RESET_FAKE(ble_init);
     RESET_FAKE(ble_scan);
+    RESET_FAKE(ble_set_temperature_callback);
     FFF_RESET_HISTORY();
 }
 
@@ -81,6 +98,7 @@ ZTEST(main_gateway, test_ble_init_failure)
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
     zassert_equal(ble_init_fake.call_count, 1u);
     zassert_equal(ble_scan_fake.call_count, 0u);
+    zassert_equal(ble_set_temperature_callback_fake.call_count, 0u);
 }
 
 /** スキャンの開始に失敗したら, EXIT_FAILURE を返す */
@@ -91,6 +109,7 @@ ZTEST(main_gateway, test_scan_failure)
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
     zassert_equal(ble_init_fake.call_count, 1u);
     zassert_equal(ble_scan_fake.call_count, 1u);
+    zassert_equal(ble_set_temperature_callback_fake.call_count, 1u);
 }
 
 /** 初期化に成功したら, 初期化とスキャン開始を 1 回ずつ行い, 終了せずに動き続ける */
@@ -102,6 +121,16 @@ ZTEST(main_gateway, test_main_loop)
     k_msleep(STARTUP_WAIT_MS);
     zassert_equal(ble_init_fake.call_count, 1u);
     zassert_equal(ble_scan_fake.call_count, 1u);
+
+    /* 温度のコールバックは, スキャンを始める前に設定する (呼び出しの順序: init, set, scan) */
+    zassert_equal(ble_set_temperature_callback_fake.call_count, 1u);
+    zassert_not_null(ble_set_temperature_callback_fake.arg0_val);
+    zassert_equal(fff.call_history[0], FUNCTION_ADDRESS(ble_init));
+    zassert_equal(fff.call_history[1], FUNCTION_ADDRESS(ble_set_temperature_callback));
+    zassert_equal(fff.call_history[2], FUNCTION_ADDRESS(ble_scan));
+
+    /* 温度のコールバックは, ノードのアドレスと温度を受け取っても, 問題なく戻る (ログに出力する) */
+    ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_RAW);
 
     /* 何周期か待っても, 終了せず (k_thread_join() が, EBUSY を返す), 初期化を繰り返さない */
     k_sleep(K_SECONDS(STATUS_INTERVAL_S * WAIT_CYCLES));
