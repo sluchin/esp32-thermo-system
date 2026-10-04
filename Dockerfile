@@ -60,6 +60,10 @@ RUN cd /workspace && \
 RUN apt-get update && apt-get install -y --no-install-recommends bluez-test-tools \
     && rm -rf /var/lib/apt/lists/*
 
+# ドキュメントの生成 (Doxygen。呼び出しグラフなどの図は Graphviz)
+RUN apt-get update && apt-get install -y --no-install-recommends doxygen graphviz \
+    && rm -rf /var/lib/apt/lists/*
+
 # Zephyr は $HOME/.cache (compose では HOME=/tmp) が既に存在する場合のみ使用する
 RUN mkdir -p /tmp/.cache && chmod 1777 /tmp/.cache
 

@@ -5,4 +5,13 @@ config SIMULATOR
 	help
 	  Use simulated sensor data and log simulator mode at startup.
 
+config THERMO_CLOUD
+	bool "Send temperatures to AWS IoT Core over WiFi and MQTT"
+	default y
+	help
+	  Connect to WiFi and publish the temperatures received from the nodes
+	  to AWS IoT Core with MQTT over TLS. The settings (WiFi, endpoint,
+	  certificates) are entered with the "thermo" shell command.
+	  Disable it for builds without a network (native_sim).
+
 source "Kconfig.zephyr"

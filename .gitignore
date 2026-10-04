@@ -76,3 +76,6 @@ ENV/
 
 # macOS
 .DS_Store
+
+# Doxygen の出力 (docker compose run docs-thermo)
+/docs/

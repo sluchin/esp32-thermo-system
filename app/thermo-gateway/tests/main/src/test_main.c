@@ -21,15 +21,22 @@
 #include <stdlib.h>
 
 #include "ble.h"
+#include "cloud.h"
 
 DEFINE_FFF_GLOBALS
 
-/** main.c の main() (CMakeLists.txt で名前を変えている) */
+/**
+ * main.c の main() (CMakeLists.txt で名前を変えている)
+ *
+ * @return main.c の main() の戻り値
+ */
 int thermo_gateway_main(void);
 
 FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_scan)
 FAKE_VOID_FUNC(ble_set_temperature_callback, ble_temperature_cb_t)
+FAKE_VALUE_FUNC(int, cloud_init)
+FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, uint16_t)
 
 /** メインループのスレッドのスタックサイズ */
 #define STACK_SIZE        2048
@@ -87,6 +94,8 @@ static void before(void *fixture)
     RESET_FAKE(ble_init);
     RESET_FAKE(ble_scan);
     RESET_FAKE(ble_set_temperature_callback);
+    RESET_FAKE(cloud_init);
+    RESET_FAKE(cloud_publish_temperature);
     FFF_RESET_HISTORY();
 }
 
@@ -99,6 +108,18 @@ ZTEST(main_gateway, test_ble_init_failure)
     zassert_equal(ble_init_fake.call_count, 1u);
     zassert_equal(ble_scan_fake.call_count, 0u);
     zassert_equal(ble_set_temperature_callback_fake.call_count, 0u);
+}
+
+/** クラウドの初期化に失敗したら, コールバックの設定とスキャンには進まず, EXIT_FAILURE を返す */
+ZTEST(main_gateway, test_cloud_init_failure)
+{
+    cloud_init_fake.return_val = -EIO;
+
+    zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
+    zassert_equal(ble_init_fake.call_count, 1u);
+    zassert_equal(cloud_init_fake.call_count, 1u);
+    zassert_equal(ble_set_temperature_callback_fake.call_count, 0u);
+    zassert_equal(ble_scan_fake.call_count, 0u);
 }
 
 /** スキャンの開始に失敗したら, EXIT_FAILURE を返す */
@@ -122,15 +143,29 @@ ZTEST(main_gateway, test_main_loop)
     zassert_equal(ble_init_fake.call_count, 1u);
     zassert_equal(ble_scan_fake.call_count, 1u);
 
-    /* 温度のコールバックは, スキャンを始める前に設定する (呼び出しの順序: init, set, scan) */
+    /*
+     * 温度のコールバックは, スキャンを始める前に設定する.
+     * 呼び出しの順序: ble_init, cloud_init (コールバックが呼ばれる前に, 送信の準備をする),
+     * set, scan
+     */
     zassert_equal(ble_set_temperature_callback_fake.call_count, 1u);
     zassert_not_null(ble_set_temperature_callback_fake.arg0_val);
+    zassert_equal(cloud_init_fake.call_count, 1u);
     zassert_equal(fff.call_history[0], FUNCTION_ADDRESS(ble_init));
-    zassert_equal(fff.call_history[1], FUNCTION_ADDRESS(ble_set_temperature_callback));
-    zassert_equal(fff.call_history[2], FUNCTION_ADDRESS(ble_scan));
+    zassert_equal(fff.call_history[1], FUNCTION_ADDRESS(cloud_init));
+    zassert_equal(fff.call_history[2], FUNCTION_ADDRESS(ble_set_temperature_callback));
+    zassert_equal(fff.call_history[3], FUNCTION_ADDRESS(ble_scan));
 
-    /* 温度のコールバックは, ノードのアドレスと温度を受け取っても, 問題なく戻る (ログに出力する) */
+    /* 温度のコールバックは, ノードのアドレスと温度を, クラウドの送信のキューに渡す */
     ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_RAW);
+    zassert_equal(cloud_publish_temperature_fake.call_count, 1u);
+    zassert_equal(cloud_publish_temperature_fake.arg0_val, &test_addr);
+    zassert_equal(cloud_publish_temperature_fake.arg1_val, TEST_RAW);
+
+    /* キューに入れられなくても (満杯など), ログに出すだけで, 問題なく戻る */
+    cloud_publish_temperature_fake.return_val = -ENOMSG;
+    ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_RAW);
+    zassert_equal(cloud_publish_temperature_fake.call_count, 2u);
 
     /* 何周期か待っても, 終了せず (k_thread_join() が, EBUSY を返す), 初期化を繰り返さない */
     k_sleep(K_SECONDS(STATUS_INTERVAL_S * WAIT_CYCLES));

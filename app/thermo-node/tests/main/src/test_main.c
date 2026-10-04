@@ -25,7 +25,11 @@
 
 DEFINE_FFF_GLOBALS
 
-/** main.c の main() (CMakeLists.txt で名前を変えている) */
+/**
+ * main.c の main() (CMakeLists.txt で名前を変えている)
+ *
+ * @return main.c の main() の戻り値
+ */
 int thermo_node_main(void);
 
 FAKE_VALUE_FUNC(int, sensor_init)
