@@ -4,6 +4,7 @@ name: CI
 #   build  : 実機 (xiao_esp32c3) 用と, native_sim 用のビルド. 警告が出たら失敗する
 #   test   : 単体テスト (Ztest + FFF) を native_sim で実行する (twister)
 #   analyze: 静的解析 (gcc -fanalyzer). 指摘があれば失敗する
+#   lint   : 整形の確認 (clang-format) と, Zephyr の checkpatch.pl. 指摘があれば失敗する
 # イメージは, レイヤーを GitHub Actions のキャッシュに保存する (.github/actions/docker-image).
 
 on:
@@ -90,4 +91,24 @@ jobs:
         uses: ./.github/actions/docker-image
 
       - name: Run the static analysis
+        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
+
+  lint:
+    name: Format and lint (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - format-thermo
+          - lint-thermo
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build the development image
+        uses: ./.github/actions/docker-image
+
+      - name: Check
         run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}

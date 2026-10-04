@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 Tetsuya Higashi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 /**
- * @file sensor.c
+ * @file
  * @brief thermo-node の温度センサ (ADC) 実装
  */
 
@@ -22,7 +28,7 @@ LOG_MODULE_REGISTER(sensor_thermo_node);
 
 #ifndef HAVE_ADC
 /** 12 bit ADC の生値の取り得る範囲 (0 .. 4095)。シミュレーション値の生成に使用する */
-#define ADC_RAW_RANGE       4096u
+#define ADC_RAW_RANGE 4096u
 #else
 /** ADC の分解能 [bit] */
 #define ADC_RESOLUTION_BITS 12u
@@ -34,46 +40,46 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 int sensor_init(void)
 {
 #ifdef HAVE_ADC
-	int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS;
 
-	if (!adc_is_ready_dt(&adc_channel)) {
-		LOG_ERR("ADC controller not ready");
-		return -ENODEV;
-	}
+    if (!adc_is_ready_dt(&adc_channel)) {
+        LOG_ERR("ADC controller not ready");
+        return -ENODEV;
+    }
 
-	err = adc_channel_setup_dt(&adc_channel);
-	if (err < 0) {
-		LOG_ERR("Could not setup ADC channel (%d)", err);
-		return err;
-	}
+    err = adc_channel_setup_dt(&adc_channel);
+    if (err < 0) {
+        LOG_ERR("Could not setup ADC channel (%d)", err);
+        return err;
+    }
 
-	LOG_INF("ADC sensor initialized");
+    LOG_INF("ADC sensor initialized");
 #else
-	LOG_WRN("ADC not configured in device tree, using simulated values");
+    LOG_WRN("ADC not configured in device tree, using simulated values");
 #endif
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 int sensor_read_temperature(uint16_t *value)
 {
 #ifdef HAVE_ADC
-	int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS;
 
-	struct adc_sequence sequence = {
-		.buffer = value,
-		.buffer_size = sizeof(*value),
-		.channels = (uint32_t)BIT(adc_channel.channel_id),
-		.resolution = ADC_RESOLUTION_BITS,
-	};
+    struct adc_sequence sequence = {
+            .buffer = value,
+            .buffer_size = sizeof(*value),
+            .channels = (uint32_t)BIT(adc_channel.channel_id),
+            .resolution = ADC_RESOLUTION_BITS,
+    };
 
-	err = adc_read_dt(&adc_channel, &sequence);
-	if (err < 0) {
-		LOG_ERR("Could not read ADC (%d)", err);
-		return err;
-	}
+    err = adc_read_dt(&adc_channel, &sequence);
+    if (err < 0) {
+        LOG_ERR("Could not read ADC (%d)", err);
+        return err;
+    }
 #else
-	*value = (uint16_t)(sys_rand32_get() % ADC_RAW_RANGE);
+    *value = (uint16_t)(sys_rand32_get() % ADC_RAW_RANGE);
 #endif
 
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }

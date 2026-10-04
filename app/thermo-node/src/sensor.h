@@ -1,8 +1,14 @@
+/*
+ * Copyright (c) 2026 Tetsuya Higashi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #ifndef THERMO_NODE_SENSOR_H
 #define THERMO_NODE_SENSOR_H
 
 /**
- * @file sensor.h
+ * @file
  * @brief thermo-node の温度センサ (ADC) 制御
  */
 

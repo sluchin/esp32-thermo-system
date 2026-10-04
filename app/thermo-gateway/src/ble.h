@@ -1,8 +1,14 @@
+/*
+ * Copyright (c) 2026 Tetsuya Higashi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #ifndef THERMO_GATEWAY_BLE_H
 #define THERMO_GATEWAY_BLE_H
 
 /**
- * @file ble.h
+ * @file
  * @brief thermo-gateway の BLE 制御 (スキャン)
  */
 

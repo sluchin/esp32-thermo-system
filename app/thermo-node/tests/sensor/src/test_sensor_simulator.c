@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 Tetsuya Higashi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 /**
- * @file test_sensor_simulator.c
+ * @file
  * @brief sensor.c の単体テスト (シミュレーション値)
  *
  * CONFIG_SIMULATOR=y のとき, ADC は使わず, 乱数で温度の生値を作る.
@@ -19,37 +25,37 @@
 /** sensor_init() は, ADC がなくても成功する */
 ZTEST(sensor_simulator, test_init)
 {
-	zassert_equal(sensor_init(), EXIT_SUCCESS);
+    zassert_equal(sensor_init(), EXIT_SUCCESS);
 }
 
 /** sensor_read_temperature() は, 12 bit の範囲 (0 .. 4095) の値を返す */
 ZTEST(sensor_simulator, test_read_range)
 {
-	uint16_t value = 0u;
-	int i = 0;
+    uint16_t value = 0u;
+    int i = 0;
 
-	for (i = 0; i < REPEAT; i++) {
-		zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
-		zassert_true(value < RAW_LIMIT, "value=%u", value);
-	}
+    for (i = 0; i < REPEAT; i++) {
+        zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
+        zassert_true(value < RAW_LIMIT, "value=%u", value);
+    }
 }
 
 /** 値は, 毎回同じにならない (乱数で作る) */
 ZTEST(sensor_simulator, test_read_varies)
 {
-	uint16_t first = 0u;
-	uint16_t value = 0u;
-	bool changed = false;
-	int i = 0;
+    uint16_t first = 0u;
+    uint16_t value = 0u;
+    bool changed = false;
+    int i = 0;
 
-	zassert_equal(sensor_read_temperature(&first), EXIT_SUCCESS);
-	for (i = 0; i < REPEAT; i++) {
-		zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
-		if (value != first) {
-			changed = true;
-		}
-	}
-	zassert_true(changed, "value is always %u", first);
+    zassert_equal(sensor_read_temperature(&first), EXIT_SUCCESS);
+    for (i = 0; i < REPEAT; i++) {
+        zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
+        if (value != first) {
+            changed = true;
+        }
+    }
+    zassert_true(changed, "value is always %u", first);
 }
 
 ZTEST_SUITE(sensor_simulator, NULL, NULL, NULL, NULL, NULL);
