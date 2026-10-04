@@ -74,16 +74,16 @@ static int cmd_show(const struct shell *sh, size_t argc, char **argv)
     for (i = 0u; i < (size_t)CFG_KEY_COUNT; i++) {
         if ((enum cfg_key)i == CFG_KEY_PSK) {
             shell_print(sh, "%s: %s", cfg_key_name(CFG_KEY_PSK),
-                        (cfg_get(CFG_KEY_PSK)[0] == '\0') ? "(empty)" : "********");
+                        ((cfg_get(CFG_KEY_PSK)[0] == '\0') ? "(empty)" : "********"));
         } else {
             shell_print(sh, "%s: %s", cfg_key_name((enum cfg_key)i), cfg_get((enum cfg_key)i));
         }
     }
     for (i = 0u; i < (size_t)CFG_CRED_COUNT; i++) {
         shell_print(sh, "%s: %s", cfg_cred_name((enum cfg_cred)i),
-                    cfg_has_cred((enum cfg_cred)i) ? "registered" : "missing");
+                    (cfg_has_cred((enum cfg_cred)i) ? "registered" : "missing"));
     }
-    shell_print(sh, "ready to connect: %s", cfg_is_complete() ? "yes" : "no");
+    shell_print(sh, "ready to connect: %s", (cfg_is_complete() ? "yes" : "no"));
     return EXIT_SUCCESS;
 }
 
