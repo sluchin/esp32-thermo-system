@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 Tetsuya Higashi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 /**
- * @file main.c
+ * @file
  * @brief thermo-node のエントリポイント
  */
 
@@ -27,46 +33,46 @@ LOG_MODULE_REGISTER(thermo_node);
  */
 int main(void)
 {
-	int ret = EXIT_SUCCESS;
+    int ret = EXIT_SUCCESS;
 
 /* ビルド構成に応じて起動ログを切り替える */
 #ifdef CONFIG_SIMULATOR
-	LOG_INF("Thermo Node started (SIMULATOR MODE)");
+    LOG_INF("Thermo Node started (SIMULATOR MODE)");
 #else
-	LOG_INF("Thermo Node started on ESP32C3");
+    LOG_INF("Thermo Node started on ESP32C3");
 #endif
 
-	/* センサ (ADC) を初期化する */
-	ret = sensor_init();
-	if (ret != EXIT_SUCCESS) {
-		LOG_ERR("Failed to initialize sensor");
-		return EXIT_FAILURE;
-	}
+    /* センサ (ADC) を初期化する */
+    ret = sensor_init();
+    if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Failed to initialize sensor");
+        return EXIT_FAILURE;
+    }
 
-	/* BLE を初期化する */
-	ret = ble_init();
-	if (ret != EXIT_SUCCESS) {
-		LOG_ERR("Failed to initialize BLE");
-		return EXIT_FAILURE;
-	}
+    /* BLE を初期化する */
+    ret = ble_init();
+    if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Failed to initialize BLE");
+        return EXIT_FAILURE;
+    }
 
-	/* ゲートウェイから検出されるようアドバタイズを開始する */
-	ret = ble_advertise();
-	if (ret != EXIT_SUCCESS) {
-		LOG_ERR("Failed to start BLE advertising");
-		return EXIT_FAILURE;
-	}
+    /* ゲートウェイから検出されるようアドバタイズを開始する */
+    ret = ble_advertise();
+    if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Failed to start BLE advertising");
+        return EXIT_FAILURE;
+    }
 
-	/* 一定間隔で温度を読み取ってログ出力する */
-	while (true) {
-		uint16_t temp_raw = 0u;
-		int read_ret = EXIT_SUCCESS;
+    /* 一定間隔で温度を読み取ってログ出力する */
+    while (true) {
+        uint16_t temp_raw = 0u;
+        int read_ret = EXIT_SUCCESS;
 
-		read_ret = sensor_read_temperature(&temp_raw);
-		/* 読み取りに失敗した場合は今回の値を捨てて次回に再試行する */
-		if (read_ret == EXIT_SUCCESS) {
-			LOG_INF("Temperature: %u (raw ADC value)", temp_raw);
-		}
-		(void)k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
-	}
+        read_ret = sensor_read_temperature(&temp_raw);
+        /* 読み取りに失敗した場合は今回の値を捨てて次回に再試行する */
+        if (read_ret == EXIT_SUCCESS) {
+            LOG_INF("Temperature: %u (raw ADC value)", temp_raw);
+        }
+        (void)k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
+    }
 }

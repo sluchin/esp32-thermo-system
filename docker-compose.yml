@@ -95,6 +95,39 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
+  # 整形の確認 (clang-format。Zephyr の .clang-format を、インデントだけ空白 4 つに変えたもの)。整形が必要なファイルがあれば失敗する。
+  format-thermo:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: scripts/format.sh
+    environment:
+      - HOME=/tmp
+
+  # 整形して、ファイルを書き換える (format-thermo が失敗したときに実行する)。
+  format-thermo-fix:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: scripts/format.sh --fix
+    environment:
+      - HOME=/tmp
+
+  # Zephyr の checkpatch.pl で検査する (インデントの 3 種類だけ、無視する)。指摘があれば失敗する。
+  lint-thermo:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: scripts/lint.sh
+    environment:
+      - HOME=/tmp
+
   # 静的解析 (gcc -fanalyzer) を、thermo-node の app のソースに対して実行する。
   # 通常のビルドとは分けてある。指摘 (警告) があれば失敗する。
   analyze-thermo-node:
