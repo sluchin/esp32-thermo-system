@@ -1,3 +1,5 @@
+# thermo-gateway の単体テスト: payload.c (MQTT のトピックと JSON の形式).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run test-thermo-gateway).
 tests:
   thermo_gateway.payload:
     platform_allow:

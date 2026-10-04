@@ -179,6 +179,7 @@ ZTEST(thermo_shell, test_set)
     int ret = 0;
     const char *out = run("thermo set ssid home-ap", &ret);
 
+    /* 期待: 値を保存して、"<項目> saved" と表示する */
     zassert_equal(ret, 0);
     zassert_equal(cfg_set_fake.call_count, 1u);
     zassert_equal(cfg_set_fake.arg0_val, CFG_KEY_SSID);
@@ -192,6 +193,7 @@ ZTEST(thermo_shell, test_set_unknown_item)
     int ret = 0;
     const char *out = run("thermo set nothing value", &ret);
 
+    /* 期待: 知らない項目は -EINVAL で、保存しない (使える項目を表示する) */
     zassert_equal(ret, -EINVAL);
     zassert_equal(cfg_set_fake.call_count, 0u);
     zassert_not_null(strstr(out, "Unknown item 'nothing'"));
@@ -206,6 +208,7 @@ ZTEST(thermo_shell, test_set_failure)
     cfg_set_fake.return_val = -EINVAL;
     out = run("thermo set psk toolong", &ret);
 
+    /* 期待: 保存の失敗を、戻り値と表示で伝える */
     zassert_equal(ret, -EINVAL);
     zassert_not_null(strstr(out, "Failed to set 'psk' (err -22)"));
 }
@@ -217,6 +220,7 @@ ZTEST(thermo_shell, test_set_missing_argument)
 
     (void)run("thermo set ssid", &ret);
 
+    /* 期待: 値がなければ、シェルが拒否して、保存しない */
     zassert_not_equal(ret, 0);
     zassert_equal(cfg_set_fake.call_count, 0u);
 }
@@ -227,6 +231,7 @@ ZTEST(thermo_shell, test_show)
     int ret = 0;
     const char *out = NULL;
 
+    /* 準備: パスワードまで設定して、証明書は、CA とクライアント証明書だけを登録した状態 */
     values[CFG_KEY_SSID] = "home-ap";
     values[CFG_KEY_PSK] = "secret-pass";
     values[CFG_KEY_ENDPOINT] = "example.amazonaws.com";
@@ -238,10 +243,12 @@ ZTEST(thermo_shell, test_show)
 
     zassert_equal(ret, 0);
     zassert_not_null(strstr(out, "ssid: home-ap"));
+    /* パスワードは、表示しない */
     zassert_not_null(strstr(out, "psk: ********"));
     zassert_is_null(strstr(out, "secret-pass"));
     zassert_not_null(strstr(out, "endpoint: example.amazonaws.com"));
     zassert_not_null(strstr(out, "client_id: gateway-01"));
+    /* 証明書の登録の状態と、接続できるか (秘密鍵が、ない) */
     zassert_not_null(strstr(out, "ca: registered"));
     zassert_not_null(strstr(out, "cert: registered"));
     zassert_not_null(strstr(out, "key: missing"));
@@ -257,6 +264,7 @@ ZTEST(thermo_shell, test_show_empty_psk_and_ready)
     cfg_is_complete_fake.return_val = true;
     out = run("thermo show", &ret);
 
+    /* 期待: 空のパスワードは "(empty)"。揃っていれば、接続できると表示する */
     zassert_equal(ret, 0);
     zassert_not_null(strstr(out, "psk: (empty)"));
     zassert_not_null(strstr(out, "ready to connect: yes"));
@@ -268,6 +276,7 @@ ZTEST(thermo_shell, test_save_certs)
     int ret = 0;
     const char *out = run("thermo save-certs", &ret);
 
+    /* 期待: 証明書を保存して、"certificates saved" と表示する */
     zassert_equal(ret, 0);
     zassert_equal(cfg_save_credentials_fake.call_count, 1u);
     zassert_not_null(strstr(out, "certificates saved"));
@@ -282,6 +291,7 @@ ZTEST(thermo_shell, test_save_certs_failure)
     cfg_save_credentials_fake.return_val = -ENOENT;
     out = run("thermo save-certs", &ret);
 
+    /* 期待: 失敗の戻り値と、登録の手順 (cred add) を表示する */
     zassert_equal(ret, -ENOENT);
     zassert_not_null(strstr(out, "Failed to save the certificates (err -2)"));
     zassert_not_null(strstr(out, "cred add"));
@@ -293,6 +303,7 @@ ZTEST(thermo_shell, test_apply)
     int ret = 0;
     const char *out = run("thermo apply", &ret);
 
+    /* 期待: 接続のやり直しを依頼して、"reconnecting" と表示する */
     zassert_equal(ret, 0);
     zassert_equal(cloud_reconnect_fake.call_count, 1u);
     zassert_not_null(strstr(out, "reconnecting"));
@@ -304,6 +315,7 @@ ZTEST(thermo_shell, test_reset)
     int ret = 0;
     const char *out = run("thermo reset", &ret);
 
+    /* 期待: 全て消して、"settings erased" と表示する */
     zassert_equal(ret, 0);
     zassert_equal(cfg_reset_fake.call_count, 1u);
     zassert_not_null(strstr(out, "settings erased"));
@@ -318,6 +330,7 @@ ZTEST(thermo_shell, test_reset_failure)
     cfg_reset_fake.return_val = -EIO;
     out = run("thermo reset", &ret);
 
+    /* 期待: 消すのに失敗したら、そのエラーを返して表示する */
     zassert_equal(ret, -EIO);
     zassert_not_null(strstr(out, "Failed to erase the settings (err -5)"));
 }

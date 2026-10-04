@@ -1,3 +1,5 @@
+# thermo-gateway の単体テスト: cfg.c (settings と TLS の認証情報は、FFF のモック).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run test-thermo-gateway).
 tests:
   thermo_gateway.cfg:
     platform_allow:
