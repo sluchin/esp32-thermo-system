@@ -20,12 +20,13 @@
 
 LOG_MODULE_REGISTER(sensor_thermo_node);
 
+#ifndef HAVE_ADC
+/** 12 bit ADC の生値の取り得る範囲 (0 .. 4095)。シミュレーション値の生成に使用する */
+#define ADC_RAW_RANGE       4096u
+#else
 /** ADC の分解能 [bit] */
-#define ADC_RESOLUTION_BITS 12U
-/** 12 bit ADC の生値の取り得る範囲 (0 .. 4095)。シミュレーション値の生成にも使用する */
-#define ADC_RAW_RANGE       4096U
+#define ADC_RESOLUTION_BITS 12u
 
-#ifdef HAVE_ADC
 /** Devicetree (zephyr,user の io-channels) から取得した ADC チャンネル仕様 */
 static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
 #endif
@@ -34,10 +35,8 @@ int sensor_init(void)
 {
 #ifdef HAVE_ADC
 	int err = EXIT_SUCCESS;
-	bool ready = false;
 
-	ready = adc_is_ready_dt(&adc_channel);
-	if (ready == false) {
+	if (!adc_is_ready_dt(&adc_channel)) {
 		LOG_ERR("ADC controller not ready");
 		return -ENODEV;
 	}
@@ -63,7 +62,7 @@ int sensor_read_temperature(uint16_t *value)
 	struct adc_sequence sequence = {
 		.buffer = value,
 		.buffer_size = sizeof(*value),
-		.channels = BIT(adc_channel.channel_id),
+		.channels = (uint32_t)BIT(adc_channel.channel_id),
 		.resolution = ADC_RESOLUTION_BITS,
 	};
 

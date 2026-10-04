@@ -67,6 +67,62 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
+  # thermo-node の単体テスト (Ztest + FFF) を、native_sim で実行する (twister)。
+  # 結果の出力先は、コンテナの /tmp (ソースツリーには、書き込まない)。
+  test-thermo-node:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: west twister -T app/thermo-node/tests -p native_sim/native/64 -O /tmp/twister-out --inline-logs -x=Zephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    environment:
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - HOME=/tmp
+
+  # thermo-gateway の単体テスト (Ztest + FFF) を、native_sim で実行する (twister)。
+  # 結果の出力先は、コンテナの /tmp (ソースツリーには、書き込まない)。
+  test-thermo-gateway:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: west twister -T app/thermo-gateway/tests -p native_sim/native/64 -O /tmp/twister-out --inline-logs -x=Zephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    environment:
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - HOME=/tmp
+
+  # 静的解析 (gcc -fanalyzer) を、thermo-node の app のソースに対して実行する。
+  # 通常のビルドとは分けてある。指摘 (警告) があれば失敗する。
+  analyze-thermo-node:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: west build -p always -b xiao_esp32c3 app/thermo-node -d build/analyze-thermo-node -- -DANALYZE=ON -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    environment:
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - HOME=/tmp
+
+  # 静的解析 (gcc -fanalyzer) を、thermo-gateway の app のソースに対して実行する。
+  # 通常のビルドとは分けてある。指摘 (警告) があれば失敗する。
+  analyze-thermo-gateway:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: west build -p always -b xiao_esp32c3 app/thermo-gateway -d build/analyze-thermo-gateway -- -DANALYZE=ON -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    environment:
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - HOME=/tmp
+
   # 仮想コントローラ (btvirt) を使い、BLE 付きで両方のシミュレーションを実行する。
   # Bluetooth ハードウェアは不要。Ctrl+C で停止する。
   # btvirt は AF_ALG (カーネル暗号) ソケットを開くが、Docker 既定の

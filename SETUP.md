@@ -158,14 +158,14 @@ source venv/bin/activate
 
 ```bash
 # Zephyr SDK をダウンロード（Linux x86_64 の場合）
-wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.1/zephyr-sdk-0.16.1_linux-x86_64.tar.xz
+wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.17.4/zephyr-sdk-0.17.4_linux-x86_64.tar.xz
 
 # インストール
-tar xf zephyr-sdk-0.16.1_linux-x86_64.tar.xz -C ~/
-~/zephyr-sdk-0.16.1/setup.sh
+tar xf zephyr-sdk-0.17.4_linux-x86_64.tar.xz -C ~/
+~/zephyr-sdk-0.17.4/setup.sh
 
 # インストール後、ホストツールをセットアップ
-cd ~/zephyr-sdk-0.16.1 && ./setup.sh
+cd ~/zephyr-sdk-0.17.4 && ./setup.sh
 ```
 
 ### 3. West のインストール
@@ -192,7 +192,7 @@ west update
 # ~/.bashrc または ~/.zshrc に以下を追加
 export ZEPHYR_BASE=~/esp32-thermo-system/zephyr
 export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-export ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.16.1
+export ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.17.4
 ```
 
 ## ビルド方法
@@ -261,17 +261,35 @@ minicom -D /dev/ttyUSB0 -b 115200
 
 ## CI/CD（GitHub Actions）
 
-このリポジトリは GitHub Actions で自動ビルドが設定されています。
+このリポジトリは GitHub Actions で、ビルド・単体テスト・静的解析が自動実行されます。
 
 ### ワークフロー
 
-- **build.yml**: main ブランチおよび PR で自動的にビルドが実行されます
+`.github/workflows/build.yml` は、main ブランチ、`ccr-*` ブランチへの Push と、main への PR で実行されます。ローカルと同じ Docker イメージ (Zephyr SDK 0.17.4) で、`docker compose` のサービスを実行します。
+
+| ジョブ | 実行するサービス | 内容 |
+|:---|:---|:---|
+| `build` | `build-thermo-node` / `build-thermo-gateway` / `build-thermo-node-sim` / `build-thermo-gateway-sim` | ビルド。警告が出たら失敗 |
+| `test` | `test-thermo-node` / `test-thermo-gateway` | 単体テスト (Ztest + FFF, `native_sim`) |
+| `analyze` | `analyze-thermo-node` / `analyze-thermo-gateway` | 静的解析 (gcc `-fanalyzer`)。指摘があれば失敗 |
+
+Docker イメージは、レイヤーを GitHub Actions のキャッシュに保存します (`.github/actions/docker-image`)。`Dockerfile` か `west.yml` を変えたときだけ、イメージが作り直されます。
+
+CI と同じ確認は、ローカルでも実行できます:
+
+```bash
+docker compose run test-thermo-node
+docker compose run test-thermo-gateway
+docker compose run analyze-thermo-node
+docker compose run analyze-thermo-gateway
+```
 
 ### ビルドアーティファクト
 
-ビルド成功時、以下のファイルがアップロードされます：
+`build` ジョブの成功・失敗にかかわらず、以下のファイルがアップロードされます：
 - `zephyr.elf` - デバッグ情報付き実行ファイル
-- `zephyr.hex` - HEX フォーマット
+- `zephyr.bin` - バイナリ (実機用)
+- `zephyr.exe` - シミュレーション用の実行ファイル (`native_sim`)
 
 ## トラブルシューティング
 
@@ -297,7 +315,7 @@ pip install west
 ### Zephyr SDK が見つからない
 
 ```bash
-export ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.16.1
+export ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.17.4
 ```
 
 ### USB デバイスがない

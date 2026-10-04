@@ -7,3 +7,6 @@ project(thermo-node)
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/ble.c)
 target_sources(app PRIVATE src/sensor.c)
+
+# 警告オプション (app/warnings.txt). 警告が出たら修正する
+include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)
