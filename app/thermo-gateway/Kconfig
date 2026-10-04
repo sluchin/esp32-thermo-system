@@ -14,4 +14,12 @@ config THERMO_CLOUD
 	  certificates) are entered with the "thermo" shell command.
 	  Disable it for builds without a network (native_sim).
 
+config THERMO_SWITCHBOT_INTERVAL_MS
+	int "Minimum interval between two reports of one SwitchBot device [ms]"
+	default 1000
+	help
+	  The SwitchBot Outdoor Meter broadcasts its temperature in every
+	  advertisement. A reading of one device is reported at most once
+	  in this interval.
+
 source "Kconfig.zephyr"

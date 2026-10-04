@@ -6,6 +6,7 @@ project(thermo-gateway)
 
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/ble.c)
+target_sources(app PRIVATE src/switchbot.c)
 
 # AWS IoT Core への送信 (WiFi + MQTT)。ネットワークのないビルド (native_sim) では、含めない
 target_sources_ifdef(CONFIG_THERMO_CLOUD app PRIVATE

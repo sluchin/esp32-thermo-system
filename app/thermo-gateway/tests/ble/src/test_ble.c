@@ -262,6 +262,42 @@ static void set_adv_with_service(void)
     adv.len = (uint16_t)(2u + sizeof(service_uuid));
 }
 
+/** SwitchBot のコールバックに渡された値の記録 */
+static struct {
+    unsigned int count;     /**< 呼ばれた回数 */
+    bt_addr_le_t addr;      /**< 機器のアドレス */
+    struct switchbot_ad ad; /**< 解析した結果 */
+} switchbot_received;
+
+/**
+ * SwitchBot のコールバック (受け取った値を、残す)
+ *
+ * @param[in] addr 機器のアドレス
+ * @param[in] ad 解析した結果
+ */
+static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad)
+{
+    switchbot_received.count++;
+    switchbot_received.addr = *addr;
+    switchbot_received.ad = *ad;
+}
+
+/**
+ * アドバタイズデータを、1 要素 (長さ、種類、中身) のデータにする
+ *
+ * @param[in] type AD の種類
+ * @param[in] payload AD の中身
+ * @param[in] len payload の長さ
+ */
+static void set_adv_element(uint8_t type, const uint8_t *payload, size_t len)
+{
+    adv_bytes[0] = (uint8_t)(1u + len);
+    adv_bytes[1] = type;
+    (void)memcpy(&adv_bytes[2], payload, len);
+    adv.data = adv_bytes;
+    adv.len = (uint16_t)(2u + len);
+}
+
 /**
  * Thermo サービスの UUID を持たない (名前だけの), アドバタイズデータにする
  */
@@ -330,7 +366,9 @@ static void before(void *fixture)
     bt_conn_ref_fake.custom_fake = fake_conn_ref;
     next_conn = 0u;
     (void)memset(&received, 0, sizeof(received));
+    (void)memset(&switchbot_received, 0, sizeof(switchbot_received));
     ble_set_temperature_callback(NULL);
+    ble_set_switchbot_callback(NULL);
 }
 
 /**
@@ -992,6 +1030,72 @@ ZTEST(ble_gateway, test_disconnected_scan_restart_failure)
 
     /* 期待: スキャンの再開に失敗しても、状態 (参照) は、戻している */
     zassert_equal(bt_conn_unref_fake.call_count, 1u);
+}
+
+/** SwitchBot のサービスデータ (機種、電池残量) は、接続せずに、コールバックに渡す */
+ZTEST(ble_gateway, test_scan_switchbot_service_data)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    const uint8_t service[] = {0x3D, 0xFD, 0x77, 0x00, 0x64};
+
+    ble_set_switchbot_callback(on_switchbot);
+    set_adv_element(BT_DATA_SVC_DATA16, service, sizeof(service));
+    scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_ADV_IND, &adv);
+    k_msleep(WORK_WAIT_MS);
+
+    /* 期待: コールバックに、アドレスと、機種 'w' と電池残量 100 % を渡す。接続は、しない */
+    zassert_equal(switchbot_received.count, 1u);
+    zassert_true(bt_addr_le_eq(&switchbot_received.addr, &node_addr[0]));
+    zassert_equal(switchbot_received.ad.kind, SWITCHBOT_INFO);
+    zassert_equal(switchbot_received.ad.model, SWITCHBOT_MODEL_OUTDOOR);
+    zassert_equal(switchbot_received.ad.battery, 100u);
+    zassert_equal(bt_conn_lookup_addr_le_fake.call_count, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u);
+}
+
+/** SwitchBot の製造者データ (温度、湿度) も、接続せずに、コールバックに渡す */
+ZTEST(ble_gateway, test_scan_switchbot_manufacturer_data)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    const uint8_t mfr[] = {0x69, 0x09, 0xB0, 0xE9, 0xFE, 0x12, 0x34,
+                           0x56, 0x00, 0x00, 0x05, 0x97, 0x37};
+
+    ble_set_switchbot_callback(on_switchbot);
+    set_adv_element(BT_DATA_MANUFACTURER_DATA, mfr, sizeof(mfr));
+    scan_cb(&node_addr[1], TEST_RSSI, BT_GAP_ADV_TYPE_ADV_IND, &adv);
+
+    /* 期待: 23.5 ℃、湿度 55 % */
+    zassert_equal(switchbot_received.count, 1u);
+    zassert_equal(switchbot_received.ad.kind, SWITCHBOT_ENV);
+    zassert_equal(switchbot_received.ad.temp_x10, 235);
+    zassert_equal(switchbot_received.ad.humidity, 55u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u);
+}
+
+/** SwitchBot のコールバックを設定していなければ、SwitchBot のデータは、捨てる (接続もしない) */
+ZTEST(ble_gateway, test_scan_switchbot_without_callback)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    const uint8_t service[] = {0x3D, 0xFD, 0x77, 0x00, 0x64};
+
+    set_adv_element(BT_DATA_SVC_DATA16, service, sizeof(service));
+    scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_ADV_IND, &adv);
+    k_msleep(WORK_WAIT_MS);
+
+    zassert_equal(switchbot_received.count, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u);
+}
+
+/** Thermo のノードを見つけても、SwitchBot のコールバックは呼ばない (従来どおり、接続する) */
+ZTEST(ble_gateway, test_scan_thermo_node_is_not_switchbot)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    ble_set_switchbot_callback(on_switchbot);
+    find_node(scan_cb, 0u);
+
+    zassert_equal(switchbot_received.count, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 1u);
 }
 
 ZTEST_SUITE(ble_gateway, NULL, NULL, before, after, NULL);

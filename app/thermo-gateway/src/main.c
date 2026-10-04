@@ -51,10 +51,47 @@ static void on_temperature(const bt_addr_le_t *addr, uint16_t raw)
 }
 
 /**
+ * SwitchBot の温湿度計のアドバタイズを受信したときのコールバック
+ * (間引いて、ログに出力して、AWS IoT Core への送信のキューに入れる)
+ *
+ * Bluetooth のスレッドから呼ばれる.
+ *
+ * @param[in] addr 機器のアドレス
+ * @param[in] ad 解析した結果 (機種と電池残量、または、温度と湿度)
+ */
+static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad)
+{
+    char addr_str[BT_ADDR_LE_STR_LEN] = {0};
+    struct switchbot_sample sample = {0};
+#ifdef CONFIG_THERMO_CLOUD
+    int ret = EXIT_SUCCESS;
+#endif
+
+    /* 送信の間隔 (CONFIG_THERMO_SWITCHBOT_INTERVAL_MS) より短い間の値は、捨てる */
+    if (!switchbot_accept(addr, ad, k_uptime_get_32(), &sample)) {
+        return;
+    }
+
+    (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
+    LOG_INF("SwitchBot %s: %d.%u C, %u %%, battery %d %%", addr_str, sample.temp_x10 / 10,
+            (unsigned int)((sample.temp_x10 < 0) ? -(sample.temp_x10 % 10)
+                                                 : (sample.temp_x10 % 10)),
+            sample.humidity, sample.battery);
+
+#ifdef CONFIG_THERMO_CLOUD
+    ret = cloud_publish_switchbot(addr, &sample);
+    if (ret != EXIT_SUCCESS) {
+        LOG_WRN("The SwitchBot value was not queued for AWS IoT Core (err %d)", ret);
+    }
+#endif
+}
+
+/**
  * @brief ゲートウェイのメイン関数。
  *
  * BLE を初期化して、(CONFIG_THERMO_CLOUD が有効なら) AWS IoT Core への送信を開始して、
- * 周辺ノードのスキャンを開始し (見つけたノードには、接続して、温度の通知を購読する)、
+ * 周辺ノードのスキャンを開始し (見つけたノードには、接続して、温度の通知を購読する。
+ * SwitchBot の温湿度計は、接続せずに、アドバタイズの値を受け取る)、
  * その後は定期的に稼働状況を出力する。
  *
  * @retval EXIT_FAILURE 初期化またはスキャン開始に失敗した場合
@@ -89,6 +126,9 @@ int main(void)
 
     /* 温度を受信したら、ログに出力する (クラウドが有効なら、送信のキューにも入れる) */
     ble_set_temperature_callback(on_temperature);
+
+    /* SwitchBot の温湿度計 (接続しない) の値も、同じ流れで扱う */
+    ble_set_switchbot_callback(on_switchbot);
 
     /* 周辺ノードのスキャンを開始する */
     ret = ble_scan();

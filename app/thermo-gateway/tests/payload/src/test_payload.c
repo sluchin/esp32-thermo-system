@@ -24,7 +24,11 @@ static const bt_addr_le_t node = {
 };
 
 /** 期待するトピック */
-#define EXPECTED_TOPIC   "thermo/gateway-01/00:AA:01:00:00:42/temperature"
+#define EXPECTED_TOPIC    "thermo/gateway-01/00:AA:01:00:00:42/temperature"
+/** 期待する SwitchBot のトピック */
+#define EXPECTED_SB_TOPIC "thermo/gateway-01/switchbot/00:AA:01:00:00:42"
+/** 期待する SwitchBot のペイロードの前半 (温度の前まで) */
+#define SB_PAYLOAD_HEAD  "{\"node\":\"00:AA:01:00:00:42\",\"type\":\"switchbot\",\"temperature_c\":"
 /** 期待するペイロード */
 #define EXPECTED_PAYLOAD "{\"node\":\"00:AA:01:00:00:42\",\"raw\":2568,\"uptime_ms\":123456}"
 
@@ -88,6 +92,99 @@ ZTEST(payload, test_payload_no_space)
 
     /* 期待: 足りなければ -ENOSPC (途中で切れた JSON を返さない) */
     zassert_equal(payload_format_temperature(buf, sizeof(buf), &node, 2568u, 123456u), -ENOSPC);
+}
+
+/** SwitchBot のトピックは、クライアント ID と、機器のアドレスから作る (switchbot の階層を挟む) */
+ZTEST(payload, test_switchbot_topic)
+{
+    char buf[64] = {0};
+    int len = payload_format_switchbot_topic(buf, sizeof(buf), "gateway-01", &node);
+
+    /* 期待: thermo/<クライアント ID>/switchbot/<アドレス> */
+    zassert_equal(len, (int)strlen(EXPECTED_SB_TOPIC));
+    zassert_str_equal(buf, EXPECTED_SB_TOPIC);
+}
+
+/** SwitchBot のトピック: ちょうどの大きさなら作れて、1 byte 足りなければ -ENOSPC */
+ZTEST(payload, test_switchbot_topic_size_limit)
+{
+    char exact[sizeof(EXPECTED_SB_TOPIC)] = {0};
+    char small[sizeof(EXPECTED_SB_TOPIC) - 1u] = {0};
+
+    zassert_equal(payload_format_switchbot_topic(exact, sizeof(exact), "gateway-01", &node),
+                  (int)strlen(EXPECTED_SB_TOPIC));
+    zassert_equal(payload_format_switchbot_topic(small, sizeof(small), "gateway-01", &node),
+                  -ENOSPC);
+}
+
+/** SwitchBot のペイロードは、温度 (℃)、湿度、電池残量、稼働時間を持つ JSON */
+ZTEST(payload, test_switchbot_payload)
+{
+    char buf[160] = {0};
+    const struct switchbot_sample sample = {.temp_x10 = 235, .humidity = 55u, .battery = 87};
+
+    zassert_true(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 123456u) > 0);
+
+    /* 期待: 温度は小数点以下 1 桁 (23.5)。電池残量が、湿度のあとに続く */
+    zassert_str_equal(buf, SB_PAYLOAD_HEAD "23.5,\"humidity\":55,\"battery\":87,"
+                                           "\"uptime_ms\":123456}");
+}
+
+/** 0 ℃ 未満の温度は、符号を付ける (整数部が 0 の -0.5 でも、符号を落とさない) */
+ZTEST(payload, test_switchbot_payload_negative_temperature)
+{
+    char buf[160] = {0};
+    struct switchbot_sample sample = {.temp_x10 = -53, .humidity = 55u, .battery = 87};
+
+    zassert_true(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 1u) > 0);
+    zassert_not_null(strstr(buf, "\"temperature_c\":-5.3,"));
+
+    sample.temp_x10 = -5;
+    zassert_true(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 1u) > 0);
+    zassert_not_null(strstr(buf, "\"temperature_c\":-0.5,"));
+}
+
+/** 0.0 ℃ は、符号なし */
+ZTEST(payload, test_switchbot_payload_zero_temperature)
+{
+    char buf[160] = {0};
+    const struct switchbot_sample sample = {.temp_x10 = 0, .humidity = 0u, .battery = 0};
+
+    zassert_true(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 1u) > 0);
+    zassert_not_null(strstr(buf, "\"temperature_c\":0.0,\"humidity\":0,\"battery\":0,"));
+}
+
+/** 電池残量がわからないときは、battery の項目を出力しない */
+ZTEST(payload, test_switchbot_payload_unknown_battery)
+{
+    char buf[160] = {0};
+    const struct switchbot_sample sample = {
+            .temp_x10 = 235, .humidity = 55u, .battery = SWITCHBOT_BATTERY_UNKNOWN};
+
+    zassert_true(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 1u) > 0);
+
+    zassert_is_null(strstr(buf, "battery"));
+    zassert_not_null(strstr(buf, "\"humidity\":55,\"uptime_ms\":1}"));
+}
+
+/** 最大の値 (-3276.7 ℃、湿度 100 %、電池 100 %、稼働時間が最大) でも、123 文字で、160 byte に収まる
+ */
+ZTEST(payload, test_switchbot_payload_longest)
+{
+    char buf[160] = {0};
+    const struct switchbot_sample sample = {
+            .temp_x10 = INT16_MIN + 1, .humidity = 100u, .battery = 100};
+
+    zassert_equal(payload_format_switchbot(buf, sizeof(buf), &node, &sample, UINT32_MAX), 123);
+}
+
+/** バッファが足りなければ、SwitchBot のペイロードは -ENOSPC (途中で切れた JSON を返さない) */
+ZTEST(payload, test_switchbot_payload_no_space)
+{
+    char buf[100] = {0};
+    const struct switchbot_sample sample = {.temp_x10 = 235, .humidity = 55u, .battery = 87};
+
+    zassert_equal(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 123456u), -ENOSPC);
 }
 
 ZTEST_SUITE(payload, NULL, NULL, NULL, NULL, NULL);

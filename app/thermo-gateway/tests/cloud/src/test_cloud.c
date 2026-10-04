@@ -784,4 +784,70 @@ ZTEST(cloud, test_init_starts_thread)
     zassert_true(cfg_is_complete_fake.call_count >= 1u);
 }
 
+/** SwitchBot の値は、switchbot の階層のトピックに、温度 (℃)、湿度、電池残量の JSON で、publish する
+ */
+ZTEST(cloud, test_session_publishes_switchbot)
+{
+    const struct switchbot_sample sample = {.temp_x10 = -53, .humidity = 55u, .battery = 87};
+
+    zassert_equal(cloud_publish_switchbot(&node, &sample), EXIT_SUCCESS);
+
+    zassert_equal(cloud_step(), EXIT_SUCCESS);
+
+    /* 期待: Thermo ノードの温度とは別のトピックと形式 (QoS 1) */
+    zassert_equal(mqtt_publish_fake.call_count, 1u);
+    zassert_str_equal(published[0].topic, "thermo/gateway-01/switchbot/00:AA:01:00:00:42");
+    zassert_not_null(strstr(published[0].payload, "\"type\":\"switchbot\""));
+    zassert_not_null(strstr(published[0].payload, "\"temperature_c\":-5.3,"));
+    zassert_not_null(strstr(published[0].payload, "\"humidity\":55,\"battery\":87,"));
+    zassert_equal(published[0].qos, MQTT_QOS_1_AT_LEAST_ONCE);
+}
+
+/** Thermo ノードの温度と、SwitchBot の値は、同じキューで、受け取った順に送る */
+ZTEST(cloud, test_session_publishes_mixed_in_order)
+{
+    const struct switchbot_sample sample = {.temp_x10 = 235, .humidity = 55u, .battery = 87};
+
+    zassert_equal(cloud_publish_temperature(&node, 100u), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_switchbot(&node, &sample), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 300u), EXIT_SUCCESS);
+    connect_and_run_for(3u);
+
+    zassert_equal(cloud_step(), EXIT_SUCCESS);
+
+    /* 期待: 種類ごとのトピックで、順番どおり */
+    zassert_equal(mqtt_publish_fake.call_count, 3u);
+    zassert_not_null(strstr(published[0].topic, "/temperature"));
+    zassert_not_null(strstr(published[1].topic, "/switchbot/"));
+    zassert_not_null(strstr(published[2].topic, "/temperature"));
+}
+
+/** SwitchBot のキューが満杯のときも、新しい値を捨てて -ENOMSG */
+ZTEST(cloud, test_publish_switchbot_queue_full)
+{
+    const struct switchbot_sample sample = {.temp_x10 = 235, .humidity = 55u, .battery = 87};
+    unsigned int i = 0u;
+
+    for (i = 0u; i < QUEUE_LEN; i++) {
+        zassert_equal(cloud_publish_switchbot(&node, &sample), EXIT_SUCCESS);
+    }
+    zassert_equal(cloud_publish_switchbot(&node, &sample), -ENOMSG);
+
+    drain_queue();
+}
+
+/** SwitchBot のトピックが、バッファに入らなければ -ENOSPC で、publish しない */
+ZTEST(cloud, test_session_switchbot_format_failure)
+{
+    static char long_id[161];
+    const struct switchbot_sample sample = {.temp_x10 = 235, .humidity = 55u, .battery = 87};
+
+    (void)memset(long_id, 'x', sizeof(long_id) - 1u);
+    client_id = long_id;
+    zassert_equal(cloud_publish_switchbot(&node, &sample), EXIT_SUCCESS);
+
+    zassert_equal(cloud_step(), -ENOSPC);
+    zassert_equal(mqtt_publish_fake.call_count, 0u);
+}
+
 ZTEST_SUITE(cloud, NULL, NULL, before, NULL, NULL);

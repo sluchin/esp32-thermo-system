@@ -19,9 +19,11 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ble.h"
 #include "cloud.h"
+#include "switchbot.h"
 
 DEFINE_FFF_GLOBALS
 
@@ -36,6 +38,10 @@ int thermo_gateway_main(void);
 FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_scan)
 FAKE_VOID_FUNC(ble_set_temperature_callback, ble_temperature_cb_t)
+FAKE_VOID_FUNC(ble_set_switchbot_callback, ble_switchbot_cb_t)
+FAKE_VALUE_FUNC(bool, switchbot_accept, const bt_addr_le_t *, const struct switchbot_ad *, uint32_t,
+                struct switchbot_sample *)
+FAKE_VALUE_FUNC(int, cloud_publish_switchbot, const bt_addr_le_t *, const struct switchbot_sample *)
 FAKE_VALUE_FUNC(int, cloud_init)
 FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, uint16_t)
 
@@ -84,6 +90,46 @@ static K_THREAD_STACK_DEFINE(main_stack, STACK_SIZE)
     (void)thermo_gateway_main();
 }
 
+/** switchbot_accept() が、送信する値として返す温度 [℃ の 10 倍] (テストが、変える) */
+static int16_t accepted_temp_x10 = 235;
+/** cloud_publish_switchbot() に渡された値の写し (引数は、呼び出しの後は、無効になる) */
+static struct switchbot_sample published_sample;
+
+/**
+ * switchbot_accept() のモック動作 (送信する値を返す。戻り値は、return_val で決める)
+ *
+ * @param[in] addr 使用しない
+ * @param[in] ad 使用しない
+ * @param[in] now_ms 使用しない
+ * @param[out] out 送信する値
+ * @return switchbot_accept_fake.return_val
+ */
+static bool fake_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad, uint32_t now_ms,
+                        struct switchbot_sample *out)
+{
+    ARG_UNUSED(addr);
+    ARG_UNUSED(ad);
+    ARG_UNUSED(now_ms);
+    out->temp_x10 = accepted_temp_x10;
+    out->humidity = 55u;
+    out->battery = 87;
+    return switchbot_accept_fake.return_val;
+}
+
+/**
+ * cloud_publish_switchbot() のモック動作 (渡された値を写す)
+ *
+ * @param[in] addr 使用しない
+ * @param[in] sample 送信する値
+ * @return cloud_publish_switchbot_fake.return_val
+ */
+static int capture_switchbot(const bt_addr_le_t *addr, const struct switchbot_sample *sample)
+{
+    ARG_UNUSED(addr);
+    published_sample = *sample;
+    return cloud_publish_switchbot_fake.return_val;
+}
+
 /**
  * 各テストの前に, モックを初期状態に戻す
  *
@@ -95,7 +141,13 @@ static void before(void *fixture)
     RESET_FAKE(ble_init);
     RESET_FAKE(ble_scan);
     RESET_FAKE(ble_set_temperature_callback);
+    RESET_FAKE(ble_set_switchbot_callback);
+    RESET_FAKE(switchbot_accept);
+    RESET_FAKE(cloud_publish_switchbot);
     RESET_FAKE(cloud_init);
+    switchbot_accept_fake.custom_fake = fake_accept;
+    cloud_publish_switchbot_fake.custom_fake = capture_switchbot;
+    (void)memset(&published_sample, 0, sizeof(published_sample));
     RESET_FAKE(cloud_publish_temperature);
     FFF_RESET_HISTORY();
 }
@@ -158,7 +210,9 @@ ZTEST(main_gateway, test_main_loop)
     zassert_equal(fff.call_history[0], FUNCTION_ADDRESS(ble_init));
     zassert_equal(fff.call_history[1], FUNCTION_ADDRESS(cloud_init));
     zassert_equal(fff.call_history[2], FUNCTION_ADDRESS(ble_set_temperature_callback));
-    zassert_equal(fff.call_history[3], FUNCTION_ADDRESS(ble_scan));
+    zassert_equal(fff.call_history[3], FUNCTION_ADDRESS(ble_set_switchbot_callback));
+    zassert_equal(fff.call_history[4], FUNCTION_ADDRESS(ble_scan));
+    zassert_equal(ble_set_switchbot_callback_fake.call_count, 1u);
 
     /* 温度のコールバックは, ノードのアドレスと温度を, クラウドの送信のキューに渡す */
     ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_RAW);
@@ -178,6 +232,60 @@ ZTEST(main_gateway, test_main_loop)
     zassert_equal(ble_scan_fake.call_count, 1u);
 
     k_thread_abort(&main_thread);
+}
+
+/** SwitchBot のコールバックは、間引きを通った値を、クラウドの送信のキューに渡す */
+ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
+{
+    const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV, .temp_x10 = 235, .humidity = 55u};
+
+    /* コールバックを取り出すため、スキャンの失敗で、main() を終わらせる */
+    ble_scan_fake.return_val = -EIO;
+    zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
+
+    switchbot_accept_fake.return_val = true;
+    accepted_temp_x10 = 235;
+    ble_set_switchbot_callback_fake.arg0_val(&test_addr, &ad);
+
+    /* 期待: 間引きの結果の値 (23.5 ℃、55 %、電池 87 %) を、クラウドに渡す */
+    zassert_equal(switchbot_accept_fake.call_count, 1u);
+    zassert_equal(cloud_publish_switchbot_fake.call_count, 1u);
+    zassert_equal(published_sample.temp_x10, 235);
+    zassert_equal(published_sample.humidity, 55u);
+    zassert_equal(published_sample.battery, 87);
+}
+
+/** 間引きで捨てられた値 (または、機種と電池残量だけのデータ) は、クラウドに渡さない */
+ZTEST(main_gateway, test_switchbot_dropped_by_interval)
+{
+    const struct switchbot_ad ad = {.kind = SWITCHBOT_INFO};
+
+    ble_scan_fake.return_val = -EIO;
+    zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
+
+    switchbot_accept_fake.return_val = false;
+    ble_set_switchbot_callback_fake.arg0_val(&test_addr, &ad);
+
+    zassert_equal(switchbot_accept_fake.call_count, 1u);
+    zassert_equal(cloud_publish_switchbot_fake.call_count, 0u);
+}
+
+/** 0 ℃ 未満の値と、クラウドに渡せなかった (キューが満杯) 場合も、ログに出すだけで、問題なく戻る */
+ZTEST(main_gateway, test_switchbot_negative_and_queue_full)
+{
+    const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV};
+
+    ble_scan_fake.return_val = -EIO;
+    zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
+
+    switchbot_accept_fake.return_val = true;
+    accepted_temp_x10 = -53;
+    cloud_publish_switchbot_fake.return_val = -ENOMSG;
+    ble_set_switchbot_callback_fake.arg0_val(&test_addr, &ad);
+
+    zassert_equal(published_sample.temp_x10, -53);
+    zassert_equal(cloud_publish_switchbot_fake.call_count, 1u);
+    accepted_temp_x10 = 235;
 }
 
 ZTEST_SUITE(main_gateway, NULL, NULL, before, NULL, NULL);

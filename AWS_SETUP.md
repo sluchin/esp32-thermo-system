@@ -6,16 +6,31 @@ Thermo Gateway は、BLE で受信した温度 (ADC の生値) を、WiFi と MQ
 
 ## 1. 送信されるデータ
 
+共通: ポート 8883 (MQTT over TLS)、QoS 1。クライアント ID は、`thermo set client_id` で設定した値 (例: `gateway-01`)。
+
+### 1.1 Thermo ノードの温度
+
 | 項目 | 内容 |
 |:---|:---|
-| ポート | 8883 (MQTT over TLS) |
-| クライアント ID | `thermo set client_id` で設定した値 (例: `gateway-01`) |
 | トピック | `thermo/CLIENT_ID/NODE_ADDRESS/temperature` (例: `thermo/gateway-01/00:AA:01:00:00:42/temperature`) |
-| QoS | 1 |
 | ペイロード | `{"node":"00:AA:01:00:00:42","raw":2568,"uptime_ms":123456}` |
 
 - `raw` は、ノードの ADC の生値 (0〜4095) です。温度 (℃) への変換は、していません。
 - `uptime_ms` は、ゲートウェイが温度を受信したときの、ゲートウェイの稼働時間です (時刻は、まだ入っていません)。
+
+### 1.2 SwitchBot 屋外用温湿度計 (Outdoor Meter)
+
+接続せずに、アドバタイズから受信した値を、10 秒に 1 回 (1 台あたり。`prj.conf` の `CONFIG_THERMO_SWITCHBOT_INTERVAL_MS=10000`) 送ります。
+
+| 項目 | 内容 |
+|:---|:---|
+| トピック | `thermo/CLIENT_ID/switchbot/DEVICE_ADDRESS` (例: `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56`) |
+| ペイロード | `{"node":"B0:E9:FE:12:34:56","type":"switchbot","temperature_c":23.5,"humidity":55,"battery":87,"uptime_ms":123456}` |
+
+- 温度は、機器が変換した ℃ です (Thermo ノードの `raw` とは違います)。電池残量がわからないときは、`battery` を出力しません。
+- ポリシーの `topic/thermo/gateway-01/*` に、このトピックも含まれます (変更は、不要です)。
+- 10 秒に 1 回だと、1 台で 1 日に 8,640 件、1 か月に約 26 万件です。AWS IoT Core は、メッセージの件数で課金されます (料金は、リージョンごとの料金表で確認してください)。間隔は、`prj.conf` の `CONFIG_THERMO_SWITCHBOT_INTERVAL_MS` (ミリ秒) で変えられます (Kconfig の既定値は 1000)。
+- アドバタイズの並びは、SwitchBot の公開仕様に基づいていて、**実機では未確認**です。屋外用温湿度計の機種コードと、温度の位置が違うと、値が出ません。
 
 ## 2. AWS 側の準備
 
@@ -145,6 +160,6 @@ thermo apply
 ## 6. 制限事項
 
 - **サーバ証明書の有効期限は、確認していません** (署名とホスト名は、確認します)。時刻を持っていないためです。SNTP で時刻を合わせる予定です ([TODO.md](TODO.md))。
-- 送信できなかった温度は、キュー (16 件) があふれると、捨てます。再送はしません (最新の値を優先)。
+- 送信できなかった値は、キュー (16 件) があふれると、捨てます。再送はしません (最新の値を優先)。
 - ゲートウェイの RAM は、ほぼ使い切っています (`dram0_0_seg` が 約 98%)。機能を足すときは、`CONFIG_MBEDTLS_HEAP_SIZE` など、ほかを減らす必要があります。
 - `native_sim` のビルドは、ネットワークがないので、クラウドへの送信を含みません (`CONFIG_THERMO_CLOUD=n`)。
