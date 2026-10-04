@@ -13,6 +13,7 @@ target_sources_ifdef(CONFIG_THERMO_CLOUD app PRIVATE
   src/cfg.c
   src/cfg_shell.c
   src/cloud.c
+  src/ntp.c
   src/payload.c
   src/wifi_link.c)
 

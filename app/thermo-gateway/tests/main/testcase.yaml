@@ -1,5 +1,5 @@
 # thermo-gateway の単体テスト: main.c (sensor / ble / cloud は、FFF のモック。メインループは、別スレッドで動かす).
-# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run test-thermo-gateway).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-thermo-gateway).
 tests:
   thermo_gateway.main:
     platform_allow:

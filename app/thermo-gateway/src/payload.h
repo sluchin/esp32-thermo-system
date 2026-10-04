@@ -35,18 +35,20 @@ int payload_format_topic(char *buf, size_t size, const char *client_id, const bt
 /**
  * @brief ペイロード (JSON) を生成する。
  *
- * 形式は `{"node":"<アドレス>","raw":<ADC の生値>,"uptime_ms":<稼働時間 [ms]>}`。
- * 温度 (℃) への変換は、していない (TODO.md を参照)。
+ * 形式は `{"node":"<アドレス>","raw":<ADC の生値>,"uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX
+ * 時刻 [s]>}`。 UNIX 時刻がわからないとき (unix_s が負) は、"timestamp" を出力しない。 温度 (℃)
+ * への変換は、していない (TODO.md を参照)。
  *
  * @param[out] buf       出力先 (NUL で終わる)
  * @param[in]  size      buf のサイズ
  * @param[in]  addr      ノードのアドレス
  * @param[in]  raw       温度 (ADC の生値)
  * @param[in]  uptime_ms 温度を受信したときの、ゲートウェイの稼働時間 [ms]
+ * @param[in]  unix_s    温度を受信したときの、UNIX 時刻 [s] (負なら、わからない)
  * @return 文字列の長さ (NUL を除く)。buf が小さければ -ENOSPC
  */
 int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr, uint16_t raw,
-                               uint32_t uptime_ms);
+                               uint32_t uptime_ms, int64_t unix_s);
 
 /**
  * @brief SwitchBot のトピックを生成する。
@@ -67,7 +69,8 @@ int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id
  * @brief SwitchBot のペイロード (JSON) を生成する。
  *
  * 形式は `{"node":"<アドレス>","type":"switchbot","temperature_c":<℃>,"humidity":<%>,
- * "battery":<%>,"uptime_ms":<稼働時間 [ms]>}`。電池残量がわからないときは、"battery" を
+ * "battery":<%>,"uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX 時刻 [s]>}`。電池残量が
+ * わからないときは "battery" を、UNIX 時刻がわからないとき (unix_s が負) は "timestamp" を、
  * 出力しない。温度は、10 分の 1 ℃ の桁まで (例: -3.5、23.4)。
  *
  * @param[out] buf       出力先 (NUL で終わる)
@@ -75,9 +78,11 @@ int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id
  * @param[in]  addr      機器のアドレス
  * @param[in]  sample    温度、湿度、電池残量
  * @param[in]  uptime_ms 受信したときの、ゲートウェイの稼働時間 [ms]
+ * @param[in]  unix_s    受信したときの、UNIX 時刻 [s] (負なら、わからない)
  * @return 文字列の長さ (NUL を除く)。buf が小さければ -ENOSPC
  */
 int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
-                             const struct switchbot_sample *sample, uint32_t uptime_ms);
+                             const struct switchbot_sample *sample, uint32_t uptime_ms,
+                             int64_t unix_s);
 
 #endif /* THERMO_GATEWAY_PAYLOAD_H */

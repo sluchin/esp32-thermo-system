@@ -10,7 +10,7 @@
 #   - *.patch, *.diff (patch の空行の文脈は, 空白 1 つの行なので, 削ると壊れる)
 #   - LICENSE (ライセンスの全文)
 #
-# docker compose run whitespace-thermo から呼ぶ.
+# docker compose run --rm whitespace-thermo から呼ぶ.
 set -eu
 
 cd "$(dirname "$0")/.."

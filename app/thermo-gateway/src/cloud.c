@@ -22,6 +22,7 @@
 
 #include "cfg.h"
 #include "cloud.h"
+#include "ntp.h"
 #include "payload.h"
 #include "wifi_link.h"
 
@@ -35,6 +36,8 @@ LOG_MODULE_REGISTER(thermo_cloud);
 #define WAIT_CONFIG_S      5
 /** WiFi の接続を待つ時間 [s] */
 #define WIFI_TIMEOUT_S     30
+/** NTP の応答を待つ時間 [ms] */
+#define NTP_TIMEOUT_MS     5000
 /** MQTT の CONNACK を待つ時間 [ms] */
 #define CONNACK_TIMEOUT_MS 10000
 /** 送信するものがないときに、受信と keep alive を確認する間隔 [ms] */
@@ -51,9 +54,9 @@ LOG_MODULE_REGISTER(thermo_cloud);
 #define PAYLOAD_SIZE       160u
 /*
  * ペイロードの最大長が、入ること (SwitchBot の、機器のアドレス、-3276.7 ℃、湿度 100 %、
- * 電池 100 %、稼働時間が最大の場合は、123 文字)
+ * 電池 100 %、稼働時間が最大で、UNIX 時刻が 19 桁の場合は、155 文字 + NUL)
  */
-BUILD_ASSERT(PAYLOAD_SIZE >= 128u, "The payload buffer is too small");
+BUILD_ASSERT(PAYLOAD_SIZE >= 156u, "The payload buffer is too small");
 /** MQTT の送受信バッファのサイズ */
 #define MQTT_BUF_SIZE     512u
 /** スレッドのスタックサイズ (TLS のハンドシェイクを含む) */
@@ -241,6 +244,27 @@ static int connect_broker(void)
 }
 
 /**
+ * 値を受信したときの UNIX 時刻を求める (今の UNIX 時刻から、受信してからの経過を引く)
+ *
+ * 受信した時点では、時計が合っていないことがあるので、publish するときに求める
+ * (接続の前に、必ず同期している)。
+ *
+ * @param[in] uptime_ms 受信したときの、ゲートウェイの稼働時間 [ms]
+ * @return UNIX 時刻 [s]。時計が合っていなければ、-1
+ */
+static int64_t received_unix_time(uint32_t uptime_ms)
+{
+    int64_t now = 0;
+    /* 32 bit の稼働時間は、約 49 日で戻るので、符号なしの引き算で、経過を求める */
+    uint32_t elapsed_ms = k_uptime_get_32() - uptime_ms;
+
+    if (ntp_unix_time(&now) != EXIT_SUCCESS) {
+        return -1;
+    }
+    return now - (int64_t)(elapsed_ms / 1000u);
+}
+
+/**
  * 温度 1 件を、MQTT で publish する (QoS 1)
  *
  * @param[in] s 温度
@@ -253,6 +277,7 @@ static int publish_sample(const struct sample *s)
     char payload[PAYLOAD_SIZE] = {0};
     struct mqtt_publish_param param = {0};
     const char *client_id = cfg_get(CFG_KEY_CLIENT_ID);
+    int64_t unix_s = received_unix_time(s->uptime_ms);
     int topic_len = 0;
     int payload_len = 0;
 
@@ -260,11 +285,11 @@ static int publish_sample(const struct sample *s)
     if (s->kind == SAMPLE_SWITCHBOT) {
         topic_len = payload_format_switchbot_topic(topic, sizeof(topic), client_id, &s->addr);
         payload_len = payload_format_switchbot(payload, sizeof(payload), &s->addr, &s->switchbot,
-                                               s->uptime_ms);
+                                               s->uptime_ms, unix_s);
     } else {
         topic_len = payload_format_topic(topic, sizeof(topic), client_id, &s->addr);
         payload_len = payload_format_temperature(payload, sizeof(payload), &s->addr, s->raw,
-                                                 s->uptime_ms);
+                                                 s->uptime_ms, unix_s);
     }
 
     /* ペイロードは、必ずバッファに入る. トピックは、長いクライアント ID で、入らないことがある */
@@ -354,7 +379,19 @@ int cloud_step(void)
     reconnect_requested = false;
     err = wifi_link_connect(cfg_get(CFG_KEY_SSID), cfg_get(CFG_KEY_PSK), K_SECONDS(WIFI_TIMEOUT_S));
     if (err == 0) {
-        err = connect_broker();
+        /*
+         * サーバ証明書の有効期限を確認する (mbedTLS が、システム時計を使う) ので、時計が合って
+         * いないと、TLS の接続は、必ず失敗する。1 度も同期していなければ、接続しないで、やり直す。
+         * 同期したことがあれば、今回の同期に失敗しても、時計は進んでいるので、接続を続ける。
+         */
+        if (ntp_sync(CONFIG_THERMO_NTP_SERVER, K_MSEC(NTP_TIMEOUT_MS)) != 0) {
+            LOG_WRN("Time synchronization failed");
+        }
+        if (ntp_is_synced()) {
+            err = connect_broker();
+        } else {
+            err = -ETIME;
+        }
     }
     /* 失敗したら、間隔をあけてから、やり直す (間隔は、失敗のたびに倍にして、上限で止める) */
     if (err != 0) {

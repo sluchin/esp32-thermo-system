@@ -52,19 +52,19 @@ Docker と Docker Compose がインストールされている場合、最も簡
 
 ```bash
 # Thermo Node をビルド（ESP32C3用）
-docker compose run build-thermo-node
+docker compose run --rm build-thermo-node
 
 # Thermo Gateway をビルド（ESP32C3用）
-docker compose run build-thermo-gateway
+docker compose run --rm build-thermo-gateway
 
 # Thermo Node をビルド（シミュレーション）
-docker compose run build-thermo-node-sim
+docker compose run --rm build-thermo-node-sim
 
 # Thermo Gateway をビルド（シミュレーション）
-docker compose run build-thermo-gateway-sim
+docker compose run --rm build-thermo-gateway-sim
 
 # インタラクティブ開発シェル
-docker compose run dev
+docker compose run --rm dev
 ```
 
 ### 単体テストと静的解析
@@ -73,17 +73,17 @@ docker compose run dev
 
 ```bash
 # 単体テスト (Thermo Node / Thermo Gateway)
-docker compose run test-thermo-node
-docker compose run test-thermo-gateway
+docker compose run --rm test-thermo-node
+docker compose run --rm test-thermo-gateway
 # カバレッジ (行と分岐が 100% でなければ失敗する)
-docker compose run coverage-thermo-node
-docker compose run coverage-thermo-gateway
+docker compose run --rm coverage-thermo-node
+docker compose run --rm coverage-thermo-gateway
 # ドキュメント (Doxygen。docs/index.html を開く。警告があれば失敗する)
-docker compose run docs-thermo
+docker compose run --rm docs-thermo
 
 # 静的解析 (gcc -fanalyzer。指摘があれば失敗する)
-docker compose run analyze-thermo-node
-docker compose run analyze-thermo-gateway
+docker compose run --rm analyze-thermo-node
+docker compose run --rm analyze-thermo-gateway
 ```
 
 ### 整形と lint
@@ -167,6 +167,17 @@ GitHub Actions により、以下の自動化が設定されています：
 2. Push 時に GitHub Actions で、ビルド・単体テスト・静的解析・lint を自動実行
 3. PR をマージする前に、全ジョブの成功を確認
 4. main ブランチへのマージ
+
+### rebase したあとの push
+
+`git rebase` でコミットの履歴を書き換えたあとは、通常の `git push` は拒否されるので、次のコマンドで push します。
+
+```bash
+git push --force-with-lease --force-if-includes origin <ブランチ名>
+```
+
+- `--force` は使わない。リモートに、手元に取り込んでいないコミット (他の人や別の環境の push) があれば、push は失敗する。失敗したら、`git fetch` で取り込んでから、やり直す。
+- push は、ユーザーに依頼されたときだけ行う (AI エージェントも同じ)。
 
 ## デバッグ
 

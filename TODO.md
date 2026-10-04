@@ -4,8 +4,6 @@
 
 - [ ] **SwitchBot 屋外用温湿度計の、実機での確認**: アドバタイズの並び (サービスデータ 0xFD3D の機種コード 'w' と電池残量、製造者データ 0x0969 の温度と湿度の位置) は、公開仕様の記憶に基づく。実機で、温度と湿度が、アプリの SwitchBot アプリの値と、合うか確認する。他の SwitchBot の機種 (Meter、Meter Plus など) は、機種コードごとに並びが違うので、未対応。
 - [ ] **AWS IoT Core への送信の、実機での確認**: WiFi と MQTT (TLS) は、実装して、単体テスト (モック) とビルドまでは確認したが、実機と AWS IoT Core には、つないでいない。手順は [AWS_SETUP.md](AWS_SETUP.md)。確認すること: (1) TLS のハンドシェイクが、`CONFIG_MBEDTLS_HEAP_SIZE` と `CONFIG_MBEDTLS_SSL_MAX_CONTENT_LEN` で通るか (足りなければ増やす。ただし、RAM は、約 98%使っている)、(2) `cred buf` / `cred add` で PEM を登録できるか、(3) WiFi と BLE を同時に動かして、温度が欠けないか。
-- [ ] **証明書の有効期限の確認 (時刻の同期)**: mbedTLS の `MBEDTLS_HAVE_TIME_DATE` が無効なので、サーバ証明書の有効期限は、確認していない (署名とホスト名は、確認している)。SNTP で時刻を合わせて、有効にする。
-- [ ] **温度のタイムスタンプ**: いまは、ゲートウェイの稼働時間 (`uptime_ms`) だけを送る。SNTP で時刻を合わせたら、UNIX 時刻に変える。
 - [ ] `native_sim` で、クラウドへの送信 (ローカルの Mosquitto など) を確認する。いまの `native_sim` は、`CONFIG_THERMO_CLOUD=n`。
 - [ ] **アドバタイズ方式** (BLE): ノードが、温度 (ADC の生値) を、アドバタイズデータ (製造者固有データ) に載せて送り、ゲートウェイは、接続せずに、スキャンだけで受信する。(2026-10-04)
   - 目的: 台数の制限をなくす。GATT 接続は、同時に接続できる台数に、上限がある (`ESP32_BT_CTLR_LE_MAX_CONN` は、既定で 3、設定できる範囲は 1〜9。WiFi と TLS を同時に動かすと、実際は 3〜5 台が目安)。
@@ -18,6 +16,9 @@
 
 ## 対応済み
 
+- [x] ペイロードの UNIX 時刻 (`timestamp` [s]): 受信したときの時刻を、publish するときに、(今の UNIX 時刻) - (受信してからの経過) で求める。`uptime_ms` も、残す。
+- [x] サーバ証明書の有効期限の確認: `CONFIG_MBEDTLS_HAVE_TIME_DATE=y` で、mbedTLS がシステム時計 (SNTP で同期) を使う。1 度も同期していないときは、TLS が必ず失敗するので、MQTT に接続せず、間隔をあけて、やり直す。(ビルドと実機での確認は、未対応。実機では、RAM の増加と、期限切れの証明書で接続が拒否されることを確認する)
+- [x] SNTP による時刻の同期 (ゲートウェイ): WiFi の接続のたびに、`CONFIG_THERMO_NTP_SERVER` (既定 `pool.ntp.org`) に問い合わせて、システム時計を合わせる (`CONFIG_THERMO_NTP_RESYNC_S` の間は、再同期しない。失敗しても、MQTT の接続は続ける)。単体テストは `tests/ntp`。(ビルドと実機での確認は、未対応)
 - [x] AWS IoT Core への MQTT 送信 (ゲートウェイ): WiFi の接続、MQTT over TLS (相互認証)、JSON (生値) の publish、再接続 (間隔を倍々に増やす)、シェル (`thermo` コマンド) による設定と、フラッシュへの保存。(実機での確認は、未対応の項目を参照)
 - [x] BLE の GATT 接続 + 通知: ノードが温度 (ADC の生値) を通知し、ゲートウェイが接続・購読して受信する (UUID は `app/common/thermo_ble_uuid.h`。`native_sim` + `btvirt` の `run-sim` で、接続から温度の受信まで確認済み)。
 - [x] Ztest + FFF の単体テストを、両アプリに追加した (`app/*/tests/`。sensor は ADC エミュレータを使う)。

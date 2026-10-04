@@ -27,6 +27,7 @@
 
 #include "cfg.h"
 #include "cloud.h"
+#include "ntp.h"
 #include "wifi_link.h"
 
 DEFINE_FFF_GLOBALS
@@ -38,6 +39,9 @@ FAKE_VALUE_FUNC(bool, cfg_is_complete)
 FAKE_VALUE_FUNC(int, wifi_link_init)
 FAKE_VALUE_FUNC(int, wifi_link_connect, const char *, const char *, k_timeout_t)
 FAKE_VOID_FUNC(wifi_link_disconnect)
+FAKE_VALUE_FUNC(int, ntp_sync, const char *, k_timeout_t)
+FAKE_VALUE_FUNC(bool, ntp_is_synced)
+FAKE_VALUE_FUNC(int, ntp_unix_time, int64_t *)
 FAKE_VOID_FUNC(mqtt_client_init, struct mqtt_client *)
 FAKE_VALUE_FUNC(int, mqtt_connect, struct mqtt_client *)
 FAKE_VALUE_FUNC(int, mqtt_publish, struct mqtt_client *, const struct mqtt_publish_param *)
@@ -67,7 +71,7 @@ FAKE_VALUE_FUNC(int, z_impl_zvfs_poll, struct zvfs_pollfd *, int, int)
 /** mqtt_publish() に渡された内容の記録 */
 static struct {
     char topic[160];     /**< トピック */
-    char payload[128];   /**< ペイロード */
+    char payload[160];   /**< ペイロード */
     uint8_t qos;         /**< QoS */
     uint16_t message_id; /**< メッセージ ID */
 } published[MAX_PUBLISHED];
@@ -302,6 +306,9 @@ static void setup_defaults(void)
     RESET_FAKE(wifi_link_init);
     RESET_FAKE(wifi_link_connect);
     RESET_FAKE(wifi_link_disconnect);
+    RESET_FAKE(ntp_sync);
+    RESET_FAKE(ntp_is_synced);
+    RESET_FAKE(ntp_unix_time);
     RESET_FAKE(mqtt_client_init);
     RESET_FAKE(mqtt_connect);
     RESET_FAKE(mqtt_publish);
@@ -316,6 +323,8 @@ static void setup_defaults(void)
 
     cfg_get_fake.custom_fake = fake_cfg_get;
     cfg_is_complete_fake.return_val = true;
+    ntp_is_synced_fake.return_val = true;
+    ntp_unix_time_fake.return_val = -EAGAIN;
     zsock_getaddrinfo_fake.custom_fake = fake_getaddrinfo;
     mqtt_connect_fake.custom_fake = fake_mqtt_connect;
     z_impl_zvfs_poll_fake.custom_fake = fake_poll;
@@ -466,6 +475,48 @@ ZTEST(cloud, test_session_publishes_sample)
     zassert_not_null(strstr(published[0].payload, "\"uptime_ms\":"));
     zassert_equal(published[0].qos, MQTT_QOS_1_AT_LEAST_ONCE);
     zassert_not_equal(published[0].message_id, 0u);
+}
+
+/**
+ * ntp_unix_time() のモック動作 (固定の UNIX 時刻を返す)
+ *
+ * @param[out] sec UNIX 時刻 [s]
+ * @return 0
+ */
+static int fake_unix_time(int64_t *sec)
+{
+    *sec = 1790000000;
+    return 0;
+}
+
+/** 時計が合っていれば、受信した時刻 (今の UNIX 時刻から、経過を引いた値) を、payload に入れる */
+ZTEST(cloud, test_session_publishes_timestamp)
+{
+    const char *p = NULL;
+    long long ts = 0;
+
+    ntp_unix_time_fake.custom_fake = fake_unix_time;
+    zassert_equal(cloud_publish_temperature(&node, 2568u), EXIT_SUCCESS);
+
+    zassert_equal(cloud_step(), EXIT_SUCCESS);
+
+    zassert_equal(mqtt_publish_fake.call_count, 1u);
+    p = strstr(published[0].payload, "\"timestamp\":");
+    zassert_not_null(p);
+    ts = strtoll(p + strlen("\"timestamp\":"), NULL, 10);
+    /* 受信から publish までの経過は、テストの中では、数秒以内 */
+    zassert_true((ts <= 1790000000LL) && (ts > 1789999990LL), "timestamp %lld", ts);
+}
+
+/** 時計が合っていなければ、"timestamp" を、payload に入れない */
+ZTEST(cloud, test_session_omits_timestamp_without_clock)
+{
+    zassert_equal(cloud_publish_temperature(&node, 2568u), EXIT_SUCCESS);
+
+    zassert_equal(cloud_step(), EXIT_SUCCESS);
+
+    zassert_equal(mqtt_publish_fake.call_count, 1u);
+    zassert_is_null(strstr(published[0].payload, "timestamp"));
 }
 
 /** 複数の温度は、順に publish して、メッセージ ID は、1 ずつ増える */
@@ -632,6 +683,28 @@ ZTEST(cloud, test_step_wifi_failure)
     /* 期待: WiFi に接続できなければ、名前の解決には進まない */
     zassert_equal(cloud_step(), -ETIMEDOUT);
     zassert_equal(zsock_getaddrinfo_fake.call_count, 0u);
+}
+
+/** 1 度も時刻を同期できていなければ、接続しない (証明書の有効期限を確認できない) */
+ZTEST(cloud, test_step_ntp_failure_never_synced)
+{
+    /* 1 度も同期していなければ、TLS (証明書の有効期限の確認) は、必ず失敗するので、接続しない */
+    ntp_sync_fake.return_val = -ETIMEDOUT;
+    ntp_is_synced_fake.return_val = false;
+
+    zassert_equal(cloud_step(), -ETIME);
+    zassert_equal(ntp_sync_fake.call_count, 1u);
+    zassert_equal(mqtt_connect_fake.call_count, 0u);
+}
+
+/** 同期したことがあれば、今回の時刻の同期に失敗しても、接続する */
+ZTEST(cloud, test_step_ntp_failure_already_synced)
+{
+    /* 同期したことがあれば、今回の同期に失敗しても、接続する */
+    ntp_sync_fake.return_val = -ETIMEDOUT;
+
+    zassert_equal(cloud_step(), 0);
+    zassert_equal(mqtt_connect_fake.call_count, 1u);
 }
 
 /** エンドポイントの名前を解決できなければ、-EHOSTUNREACH (MQTT の接続には、進まない) */

@@ -5,7 +5,7 @@
 # Zephyr (タブ 8) と違うので, インデントに関する 3 種類だけ無視する (CODING_STYLE.md を参照).
 # インデントは, clang-format (scripts/format.sh) が確認する.
 #
-# docker compose run lint-thermo から呼ぶ (checkpatch.pl は, Docker イメージの Zephyr にある).
+# docker compose run --rm lint-thermo から呼ぶ (checkpatch.pl は, Docker イメージの Zephyr にある).
 set -eu
 
 project=$(cd "$(dirname "$0")/.." && pwd)
