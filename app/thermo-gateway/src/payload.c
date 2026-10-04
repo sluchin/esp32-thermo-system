@@ -112,7 +112,7 @@ int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
     char timestamp[TIMESTAMP_FIELD_SIZE] = {0};
     int temp = sample->temp_x10;
     /* 0 ℃ 未満は、整数部が 0 でも (-0.5 など) 符号を出すため、符号を別に出力する */
-    const char *sign = (temp < 0) ? "-" : "";
+    const char *sign = ((temp < 0) ? "-" : "");
     unsigned int magnitude = (unsigned int)((temp < 0) ? -temp : temp);
 
     format_addr(node, addr);

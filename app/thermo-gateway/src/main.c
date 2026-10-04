@@ -63,6 +63,9 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
 {
     char addr_str[BT_ADDR_LE_STR_LEN] = {0};
     struct switchbot_sample sample = {0};
+    int temp = 0;                /* 温度 [℃ の 10 倍] */
+    const char *sign = "";       /* 温度の符号 ("-" か "") */
+    unsigned int magnitude = 0u; /* 温度の絶対値 [℃ の 10 倍] */
 #ifdef CONFIG_THERMO_CLOUD
     int ret = EXIT_SUCCESS;
 #endif
@@ -72,11 +75,14 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
         return;
     }
 
+    /* 0 ℃ 未満は、整数部が 0 でも (-0.5 など) 符号を出すため、符号と絶対値に分けて表示する */
+    temp = sample.temp_x10;
+    sign = ((temp < 0) ? "-" : "");
+    magnitude = (unsigned int)((temp < 0) ? -temp : temp);
+
     (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
-    LOG_INF("SwitchBot %s: %d.%u C, %u %%, battery %d %%", addr_str, sample.temp_x10 / 10,
-            (unsigned int)((sample.temp_x10 < 0) ? -(sample.temp_x10 % 10)
-                                                 : (sample.temp_x10 % 10)),
-            sample.humidity, sample.battery);
+    LOG_INF("SwitchBot %s: %s%u.%u C, %u %%, battery %d %%", addr_str, sign, magnitude / 10u,
+            magnitude % 10u, sample.humidity, sample.battery);
 
 #ifdef CONFIG_THERMO_CLOUD
     ret = cloud_publish_switchbot(addr, &sample);

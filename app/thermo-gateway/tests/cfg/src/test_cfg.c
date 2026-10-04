@@ -147,10 +147,11 @@ static int fake_cred_delete(sec_tag_t tag, enum tls_credential_type type)
 {
     size_t i = (size_t)type - (size_t)TLS_CREDENTIAL_CA_CERTIFICATE;
     bool present = store[i].present;
+    int ret = (present ? 0 : -ENOENT); /* 戻り値 */
 
     ARG_UNUSED(tag);
     store[i].present = false;
-    return present ? 0 : -ENOENT;
+    return ret;
 }
 
 /**
