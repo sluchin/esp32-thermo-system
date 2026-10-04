@@ -67,6 +67,16 @@ ZTEST(sensor_adc, test_init)
     zassert_equal(sensor_init(), EXIT_SUCCESS);
 }
 
+/** ADC が準備できていなければ (初期化されていない), -ENODEV を返す */
+ZTEST(sensor_adc, test_init_not_ready)
+{
+    struct device_state *state = adc_dev->state;
+
+    state->initialized = false;
+    zassert_equal(sensor_init(), -ENODEV);
+    state->initialized = true;
+}
+
 /** 入力が 0 mV のとき, 生値は 0 */
 ZTEST(sensor_adc, test_read_zero)
 {
