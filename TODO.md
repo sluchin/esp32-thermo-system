@@ -2,6 +2,7 @@
 
 ## 未対応
 
+- [ ] **SwitchBot 屋外用温湿度計の、実機での確認**: アドバタイズの並び (サービスデータ 0xFD3D の機種コード 'w' と電池残量、製造者データ 0x0969 の温度と湿度の位置) は、公開仕様の記憶に基づく。実機で、温度と湿度が、アプリの SwitchBot アプリの値と、合うか確認する。他の SwitchBot の機種 (Meter、Meter Plus など) は、機種コードごとに並びが違うので、未対応。
 - [ ] **AWS IoT Core への送信の、実機での確認**: WiFi と MQTT (TLS) は、実装して、単体テスト (モック) とビルドまでは確認したが、実機と AWS IoT Core には、つないでいない。手順は [AWS_SETUP.md](AWS_SETUP.md)。確認すること: (1) TLS のハンドシェイクが、`CONFIG_MBEDTLS_HEAP_SIZE` と `CONFIG_MBEDTLS_SSL_MAX_CONTENT_LEN` で通るか (足りなければ増やす。ただし、RAM は、約 98%使っている)、(2) `cred buf` / `cred add` で PEM を登録できるか、(3) WiFi と BLE を同時に動かして、温度が欠けないか。
 - [ ] **証明書の有効期限の確認 (時刻の同期)**: mbedTLS の `MBEDTLS_HAVE_TIME_DATE` が無効なので、サーバ証明書の有効期限は、確認していない (署名とホスト名は、確認している)。SNTP で時刻を合わせて、有効にする。
 - [ ] **温度のタイムスタンプ**: いまは、ゲートウェイの稼働時間 (`uptime_ms`) だけを送る。SNTP で時刻を合わせたら、UNIX 時刻に変える。

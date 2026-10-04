@@ -18,6 +18,8 @@
 #include <zephyr/bluetooth/addr.h>
 #include <stdint.h>
 
+#include "switchbot.h"
+
 /**
  * @brief 設定を読み込んで、WiFi と MQTT のスレッドを開始する。
  *
@@ -37,6 +39,19 @@ int cloud_init(void);
  * @retval -ENOMSG      キューが満杯で、温度を捨てた
  */
 int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw);
+
+/**
+ * @brief SwitchBot の温湿度計の値を、送信のキューに入れる (待たずに、すぐ戻る)。
+ *
+ * トピックは `thermo/<クライアント ID>/switchbot/<機器のアドレス>`。Bluetooth のスレッドから
+ * 呼べる。キューが満杯のときは、新しい値を捨てる。
+ *
+ * @param[in] addr   機器のアドレス
+ * @param[in] sample 温度、湿度、電池残量
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOMSG      キューが満杯で、値を捨てた
+ */
+int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sample *sample);
 
 /**
  * @brief 設定を変えたあとに、接続をやり直させる。

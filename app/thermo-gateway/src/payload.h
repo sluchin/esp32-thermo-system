@@ -16,6 +16,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "switchbot.h"
+
 /**
  * @brief トピックを生成する。
  *
@@ -45,5 +47,37 @@ int payload_format_topic(char *buf, size_t size, const char *client_id, const bt
  */
 int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr, uint16_t raw,
                                uint32_t uptime_ms);
+
+/**
+ * @brief SwitchBot のトピックを生成する。
+ *
+ * 形式は `thermo/<クライアント ID>/switchbot/<機器のアドレス>`
+ * (例: `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56`)。
+ *
+ * @param[out] buf       出力先 (NUL で終わる)
+ * @param[in]  size      buf のサイズ
+ * @param[in]  client_id ゲートウェイのクライアント ID
+ * @param[in]  addr      機器のアドレス
+ * @return 文字列の長さ (NUL を除く)。buf が小さければ -ENOSPC
+ */
+int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id,
+                                   const bt_addr_le_t *addr);
+
+/**
+ * @brief SwitchBot のペイロード (JSON) を生成する。
+ *
+ * 形式は `{"node":"<アドレス>","type":"switchbot","temperature_c":<℃>,"humidity":<%>,
+ * "battery":<%>,"uptime_ms":<稼働時間 [ms]>}`。電池残量がわからないときは、"battery" を
+ * 出力しない。温度は、10 分の 1 ℃ の桁まで (例: -3.5、23.4)。
+ *
+ * @param[out] buf       出力先 (NUL で終わる)
+ * @param[in]  size      buf のサイズ
+ * @param[in]  addr      機器のアドレス
+ * @param[in]  sample    温度、湿度、電池残量
+ * @param[in]  uptime_ms 受信したときの、ゲートウェイの稼働時間 [ms]
+ * @return 文字列の長さ (NUL を除く)。buf が小さければ -ENOSPC
+ */
+int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
+                             const struct switchbot_sample *sample, uint32_t uptime_ms);
 
 #endif /* THERMO_GATEWAY_PAYLOAD_H */

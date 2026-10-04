@@ -60,6 +60,8 @@ static const uint8_t service_uuid_val[] = {THERMO_UUID_SERVICE_VAL};
 
 /** 温度を受信したときのコールバック */
 static ble_temperature_cb_t temperature_cb;
+/** SwitchBot のアドバタイズを受信したときのコールバック */
+static ble_switchbot_cb_t switchbot_cb;
 
 /** 接続を始めるノードのアドレス (スキャンのコールバックが、記録する) */
 static bt_addr_le_t pending_addr;
@@ -120,20 +122,32 @@ static void release_node(struct node *node)
     (void)memset(node, 0, sizeof(*node));
 }
 
+/** アドバタイズデータ (スキャン応答を含む) を、解析した結果 */
+struct scan_result {
+    bool thermo;                   /**< Thermo サービスの UUID があった */
+    bool has_switchbot;            /**< SwitchBot の温湿度計のデータがあった */
+    struct switchbot_ad switchbot; /**< SwitchBot の温湿度計のデータ (has_switchbot のとき) */
+};
+
 /**
- * スキャン応答 (アドバタイズデータ) の中から、Thermo サービスの UUID を探す
+ * アドバタイズデータの中から、Thermo サービスの UUID か、SwitchBot の温湿度計のデータを探す
  *
  * @param[in] data アドバタイズデータの 1 要素
- * @param[in,out] user_data 見つかったら true を書き込む (bool *)
+ * @param[in,out] user_data 見つかったものを書き込む (struct scan_result *)
  * @return 探索を続けるなら true (見つかったら false)
  */
-static bool find_service_uuid(struct bt_data *data, void *user_data)
+static bool parse_ad(struct bt_data *data, void *user_data)
 {
-    bool *found = (bool *)user_data;
+    struct scan_result *result = (struct scan_result *)user_data;
 
     if ((data->type == BT_DATA_UUID128_ALL) && (data->data_len == sizeof(service_uuid_val)) &&
         (memcmp(data->data, service_uuid_val, sizeof(service_uuid_val)) == 0)) {
-        *found = true;
+        result->thermo = true;
+        return false;
+    }
+
+    if (switchbot_parse(data->type, data->data, data->data_len, &result->switchbot)) {
+        result->has_switchbot = true;
         return false;
     }
     return true;
@@ -377,6 +391,8 @@ static void connect_work_handler(struct k_work *work)
 /**
  * スキャンのコールバック (ノードを見つけたら、接続を始める依頼を記録する)
  *
+ * SwitchBot の温湿度計のアドバタイズは、接続せずに、設定されたコールバックに渡す.
+ *
  * Bluetooth のスレッドから呼ばれるので、接続は、connect_work_handler() が始める.
  *
  * @param[in] addr 見つかったデバイスのアドレス
@@ -390,12 +406,21 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
     char addr_str[BT_ADDR_LE_STR_LEN] = {0};
     struct bt_conn *known = NULL;
     struct node *node = NULL;
-    bool found = false;
+    struct scan_result result = {0};
 
     ARG_UNUSED(adv_type);
 
-    bt_data_parse(adv_data, find_service_uuid, &found);
-    if (!found) {
+    bt_data_parse(adv_data, parse_ad, &result);
+
+    /* SwitchBot の温湿度計: 接続せずに、アドバタイズの値を渡す */
+    if (result.has_switchbot) {
+        if (switchbot_cb != NULL) {
+            switchbot_cb(addr, &result.switchbot);
+        }
+        return;
+    }
+
+    if (!result.thermo) {
         return; /* Thermo サービスを持たないデバイス */
     }
 
@@ -451,6 +476,12 @@ int ble_init(void)
 void ble_set_temperature_callback(ble_temperature_cb_t cb)
 {
     temperature_cb = cb;
+}
+
+/* SwitchBot のアドバタイズを受信したときのコールバックを設定する (NULL で解除) */
+void ble_set_switchbot_callback(ble_switchbot_cb_t cb)
+{
+    switchbot_cb = cb;
 }
 
 /* Thermo のノードを探すスキャンを始める (すでに始まっていれば、成功) */
