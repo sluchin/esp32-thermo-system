@@ -10,7 +10,7 @@ Zephyr と同じ道具を、Zephyr のバージョン (v4.3.0) に合わせて�
 
 | 道具 | 設定 | 内容 |
 |:---|:---|:---|
-| clang-format | [.clang-format](.clang-format) | 整形。Zephyr の `.clang-format` に、3 行だけ変えたもの (例外 1) |
+| clang-format | [.clang-format](.clang-format) | 整形。Zephyr の `.clang-format` に、4 行だけ変えたもの (例外 1、例外 5) |
 | EditorConfig | [.editorconfig](.editorconfig) | エディタの設定。Zephyr の `.editorconfig` に、C / C++ / Perl のインデントだけ変えたもの (例外 1) |
 | checkpatch.pl | Zephyr の `.checkpatch.conf` | Zephyr のリンター。インデントの 3 種類だけ無視する (例外 1) |
 | 行末の空白 | `scripts/check-whitespace.sh` | 全てのテキストファイル (Markdown、YAML、CMake、シェルスクリプトなど) に、行末の空白がないことを確認する (`.editorconfig` の `trim_trailing_whitespace = true` に対応。patch ファイルと `LICENSE` は、対象外) |
@@ -30,13 +30,12 @@ docker compose run --rm whitespace-thermo
 
 コードを修正したら、`format-thermo-fix` で整形してから、`lint-thermo` と `whitespace-thermo` を実行します。CI (GitHub Actions) の `lint` ジョブも、同じ確認を行います。
 
-Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と `.editorconfig` を取り込み直して、例外 1 の変更だけを、もう一度行います。
+Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と `.editorconfig` を取り込み直して、例外 1 と例外 5 の変更だけを、もう一度行います。
 
 ## 2. Zephyr と同じにしているもの (例外ではない)
 
 次は、Zephyr の規約のとおりです。
 
-- **`if` / `else` / `for` / `while` の本体は、1 文でも `{}` を付ける**: `.clang-format` の `InsertBraces: true` で、整形のときに、自動で付きます。
 - **中括弧の位置**: 関数の定義は、次の行。制御構文は、同じ行 (Linux スタイル)。
 - **1 行の長さ**: 100 桁まで。
 - **ポインタの `*`**: 変数名に付ける (`char *p`)。
@@ -85,6 +84,13 @@ Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と 
 - **Zephyr**: 成功は `0`、失敗は負の `errno` 値 (`return 0;`、`return -EIO;`)。
 - **このプロジェクト**: 成功は `EXIT_SUCCESS` (値は 0)、失敗は負の `errno` 値 (`-ENODEV` など)。`main()` の失敗は `EXIT_FAILURE`。
 - **理由**: MISRA-C の方針で、戻り値にリテラルを直書きしないためです (`MISRA.md` を参照)。値の意味は、Zephyr と同じです。
+
+### 例外 5: 1 文の本体には、`{}` を付けない
+
+- **Zephyr**: `if` / `else` / `for` / `while` の本体は、1 文でも `{}` を付ける (`.clang-format` の `InsertBraces: true`)。
+- **このプロジェクト**: 本体が 1 文のときは、`{}` を付けなくてよい (付けてもよい)。2 文以上のときは、付ける。
+- **設定**: `.clang-format` の `InsertBraces: false` (整形のときに、`{}` を自動で付けない。すでにある `{}` も、自動では消さない)。
+- **注意**: MISRA C:2012 Rule 15.6 の例外でもある (`MISRA.md` の例外 7)。
 
 ## 4. Zephyr より厳しくしているもの (参考)
 

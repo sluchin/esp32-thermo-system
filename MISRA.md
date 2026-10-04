@@ -38,7 +38,7 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 - **再帰、`goto`、シグナル、`exit()` / `atexit()`、可変長引数、浮動小数点を使わない**: アプリのコードは、これらの Rule 15.1, 17.2, 21.5, 21.8, 17.1, 14.1 の対象となる機能を使いません。
 - **到達しないコードの排除 (Rule 2.1)**: 無限ループの後ろに、到達しない `return` を書かない。
 - **コンパイル警告ゼロ**: `app/warnings.txt` の警告オプション (`-Wall` `-Wextra` `-Wpedantic` `-Wconversion` `-Wsign-conversion` など約 55 個) で警告が出ない状態を維持。
-- **静的解析**: `docker compose run analyze-thermo-node` / `analyze-thermo-gateway` (gcc `-fanalyzer`) で、指摘が出ない状態を維持。
+- **静的解析**: `docker compose run --rm analyze-thermo-node` / `analyze-thermo-gateway` (gcc `-fanalyzer`) で、指摘が出ない状態を維持。
 
 ---
 
@@ -52,6 +52,7 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 | 4 | Rule 11.3 | Required | オブジェクトポインタの型のキャスト | `BT_DATA` が文字列を `uint8_t *` として扱う (`app/thermo-node/src/ble.c`) |
 | 5 | Rule 15.5 | Advisory | 早期リターン (単一終了点規則の例外) | エラー時の `return err;` (`ble.c`, `sensor.c`, `main.c`) |
 | 6 | Rule 14.3 | Required | 不変な制御式 (`while (true)`) | ファームウェアの無限ループ (`main.c`) |
+| 7 | Rule 15.6 | Required | 制御構文の本体を `{}` で囲まない (本体が 1 文のとき) | 1 文の `if` / `else` / `for` / `while` (`CODING_STYLE.md` の例外 5) |
 
 ---
 
@@ -129,3 +130,13 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 | 浮動小数点数 | Rule 14.1 | 温度は、ADC の生値 (整数) で扱う |
 | ポインタ演算 | Rule 18.4 | |
 | `errno` の参照 | Rule 22.8 - 22.10 | エラーは、戻り値 (負の `errno` 値) で返す |
+
+### 例外 7: 1 文の本体に `{}` を付けない
+- **該当ルール**: MISRA C:2012 Rule 15.6 (Required)
+  - 「`if` / `else` / `for` / `while` / `do` の本体は、複合文でなければならない」
+- **理由 (Rationale)**:
+  - 本体が 1 文のとき、`{}` を付けない書き方を許す (`CODING_STYLE.md` の例外 5)。短い条件の処理が、読みやすくなる。
+- **安全対策 (Mitigation)**:
+  - 本体が 2 文以上のときは、必ず `{}` を付ける。
+  - 本体は、次の行に、インデントして書く (1 行に続けない。`AllowShortIfStatementsOnASingleLine: false` と `AllowShortLoopsOnASingleLine: false` で、整形が確認する)。
+  - `-Wall` に含まれる `-Wmisleading-indentation` で、インデントと本体の範囲の食い違い (`goto fail` の誤りなど) を検出する。

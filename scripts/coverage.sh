@@ -7,7 +7,7 @@
 # twister の --coverage は, Zephyr 本体も含めた集計になるので, gcovr を直接実行している.
 # 分岐は, LOG_* マクロの内部 (ログレベルで変わる) を除く.
 #
-# docker compose run coverage-thermo-node / coverage-thermo-gateway から呼ぶ.
+# docker compose run --rm coverage-thermo-node / coverage-thermo-gateway から呼ぶ.
 set -eu
 
 app=${1:?usage: coverage.sh node|gateway}

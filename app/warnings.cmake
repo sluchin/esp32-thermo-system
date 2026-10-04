@@ -33,7 +33,7 @@ foreach(dirs ZEPHYR_INCLUDES ZEPHYR_SYSTEM_INCLUDES)
 endforeach()
 
 # 静的解析 (gcc -fanalyzer). 通常のビルドとは分けてあり, 解析に時間がかかる.
-# cmake -DANALYZE=ON (docker compose run analyze-thermo-node など) で, app のソースだけを解析する.
+# cmake -DANALYZE=ON (docker compose run --rm analyze-thermo-node など) で, app のソースだけを解析する.
 # 指摘 (警告) があれば, 失敗する. 最適化をすると, 不要なコードが消えて, 指摘できなくなることが
 # あるので, -O0 で解析する.
 option(ANALYZE "gcc -fanalyzer で, app のソースを静的解析する (指摘があれば失敗)" OFF)

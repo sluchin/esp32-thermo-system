@@ -92,19 +92,19 @@ docker compose build
 
 ```bash
 # Thermo Node をビルド（ESP32C3用）
-docker compose run build-thermo-node
+docker compose run --rm build-thermo-node
 
 # Thermo Gateway をビルド（ESP32C3用）
-docker compose run build-thermo-gateway
+docker compose run --rm build-thermo-gateway
 
 # Thermo Node をビルド（シミュレーション用）
-docker compose run build-thermo-node-sim
+docker compose run --rm build-thermo-node-sim
 
 # Thermo Gateway をビルド（シミュレーション用）
-docker compose run build-thermo-gateway-sim
+docker compose run --rm build-thermo-gateway-sim
 
 # インタラクティブ開発シェル
-docker compose run dev
+docker compose run --rm dev
 ```
 
 ### Docker セットアップの利点
@@ -281,15 +281,15 @@ Docker イメージは、レイヤーを GitHub Actions のキャッシュに保
 CI と同じ確認は、ローカルでも実行できます:
 
 ```bash
-docker compose run test-thermo-node
-docker compose run test-thermo-gateway
+docker compose run --rm test-thermo-node
+docker compose run --rm test-thermo-gateway
 # カバレッジ (行と分岐が 100% でなければ失敗する)
-docker compose run coverage-thermo-node
-docker compose run coverage-thermo-gateway
+docker compose run --rm coverage-thermo-node
+docker compose run --rm coverage-thermo-gateway
 # ドキュメント (Doxygen。docs/index.html を開く。警告があれば失敗する)
-docker compose run docs-thermo
-docker compose run analyze-thermo-node
-docker compose run analyze-thermo-gateway
+docker compose run --rm docs-thermo
+docker compose run --rm analyze-thermo-node
+docker compose run --rm analyze-thermo-gateway
 docker compose run --rm format-thermo
 docker compose run --rm lint-thermo
 docker compose run --rm whitespace-thermo
