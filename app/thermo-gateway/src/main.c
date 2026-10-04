@@ -22,9 +22,26 @@ LOG_MODULE_REGISTER(thermo_gateway);
 #define STATUS_INTERVAL_S 10
 
 /**
+ * 温度を受信したときのコールバック (ログに出力する)
+ *
+ * Bluetooth のスレッドから呼ばれる.
+ *
+ * @param[in] addr 温度を送ったノードのアドレス
+ * @param[in] raw 温度 (ADC の生値)
+ */
+static void on_temperature(const bt_addr_le_t *addr, uint16_t raw)
+{
+    char addr_str[BT_ADDR_LE_STR_LEN] = {0};
+
+    (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
+    LOG_INF("Temperature from %s: %u (raw ADC value)", addr_str, raw);
+}
+
+/**
  * @brief ゲートウェイのメイン関数。
  *
- * BLE を初期化して周辺ノードのスキャンを開始し、その後は定期的に稼働状況を出力する。
+ * BLE を初期化して周辺ノードのスキャンを開始し (見つけたノードには、接続して、温度の通知を
+ * 購読する)、その後は定期的に稼働状況を出力する。
  *
  * @retval EXIT_FAILURE 初期化またはスキャン開始に失敗した場合
  *                      (正常時はループから戻らない)
@@ -46,6 +63,9 @@ int main(void)
         LOG_ERR("Failed to initialize BLE");
         return EXIT_FAILURE;
     }
+
+    /* 温度を受信したら、ログに出力する */
+    ble_set_temperature_callback(on_temperature);
 
     /* 周辺ノードのスキャンを開始する */
     ret = ble_scan();

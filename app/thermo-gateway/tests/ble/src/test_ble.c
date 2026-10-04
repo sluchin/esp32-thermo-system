@@ -8,19 +8,28 @@
  * @file
  * @brief ble.c の単体テスト
  *
- * Bluetooth スタックの関数 (bt_enable, bt_le_scan_start) を, FFF のモックに置き換えて,
- * ble_init() と ble_scan() が, 正しい引数で呼び出し, エラーを返すことを確認する.
- * スキャンのコールバックは, bt_le_scan_start() に渡された関数を取り出して, 呼び出す.
+ * Bluetooth スタックの関数 (bt_le_scan_start, bt_conn_le_create, bt_gatt_discover など) を,
+ * FFF のモックに置き換えて, 次を確認する.
+ *  - ble_init() が, 接続のコールバックを登録すること
+ *  - ble_scan() が, 正しいパラメータで, スキャンを始めること
+ *  - スキャンで, Thermo サービスを持つノードだけに接続すること (台数の上限, 重複の無視を含む)
+ *  - 接続したあと, サービス, 温度の特性, CCC を順に探索して, 通知を購読すること
+ *  - 通知された温度 (リトルエンディアン) を, コールバックに渡すこと
+ *  - 切断や失敗のときに, 状態を戻して, スキャンを再開すること
  */
 
 #include <zephyr/ztest.h>
 #include <zephyr/fff.h>
 #include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/gatt.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "ble.h"
+#include "thermo_ble_uuid.h"
 
 DEFINE_FFF_GLOBALS
 
@@ -30,6 +39,24 @@ DEFINE_FFF_GLOBALS
 #define EXPECTED_WINDOW_MS   50
 /** テストで使う受信信号強度 [dBm] */
 #define TEST_RSSI            (-60)
+/** 接続できるノードの数 (CMakeLists.txt の CONFIG_BT_MAX_CONN) */
+#define MAX_NODES            CONFIG_BT_MAX_CONN
+/** 使うダミーの接続の数 */
+#define CONN_COUNT           4u
+/** ワークキューが、接続を始める処理を終えるまでの待ち時間 [ms] */
+#define WORK_WAIT_MS         10
+/** ble.c の CONNECT_RETRY_MS (接続を始め直すまでの間隔 [ms]) */
+#define CONNECT_RETRY_MS     100
+/** ble.c の CONNECT_RETRY_MAX (接続を始め直す最大の回数) */
+#define CONNECT_RETRY_MAX    10u
+/** テストで使う温度の生値 */
+#define TEST_RAW             0x0abcu
+
+/**
+ * アドバタイズデータの要素を解析する関数の型
+ * (bt_data_parse() の引数。FFF の引数には、関数ポインタの型が必要)
+ */
+typedef bool (*data_cb_t)(struct bt_data *data, void *user_data);
 
 /**
  * スキャンのコールバックの関数ポインタ型
@@ -39,30 +66,242 @@ DEFINE_FFF_GLOBALS
 typedef bt_le_scan_cb_t *scan_cb_ptr_t;
 
 FAKE_VALUE_FUNC(int, bt_enable, bt_ready_cb_t)
+FAKE_VALUE_FUNC(int, bt_conn_cb_register, struct bt_conn_cb *)
 FAKE_VALUE_FUNC(int, bt_le_scan_start, const struct bt_le_scan_param *, scan_cb_ptr_t)
+FAKE_VALUE_FUNC(int, bt_le_scan_stop)
+FAKE_VALUE_FUNC(int, bt_conn_le_create, const bt_addr_le_t *,
+                const struct bt_conn_le_create_param *, const struct bt_le_conn_param *,
+                struct bt_conn **)
+FAKE_VALUE_FUNC(struct bt_conn *, bt_conn_lookup_addr_le, uint8_t, const bt_addr_le_t *)
+FAKE_VALUE_FUNC(struct bt_conn *, bt_conn_ref, struct bt_conn *)
+FAKE_VOID_FUNC(bt_conn_unref, struct bt_conn *)
+FAKE_VALUE_FUNC(int, bt_conn_disconnect, struct bt_conn *, uint8_t)
+FAKE_VALUE_FUNC(const bt_addr_le_t *, bt_conn_get_dst, const struct bt_conn *)
+FAKE_VALUE_FUNC(int, bt_gatt_discover, struct bt_conn *, struct bt_gatt_discover_params *)
+FAKE_VALUE_FUNC(int, bt_gatt_subscribe, struct bt_conn *, struct bt_gatt_subscribe_params *)
+FAKE_VALUE_FUNC(uint16_t, bt_gatt_attr_value_handle, const struct bt_gatt_attr *)
+FAKE_VOID_FUNC(bt_data_parse, struct net_buf_simple *, data_cb_t, void *)
 
-/** bt_le_scan_start() の引数 (呼び出しの後は, 引数の指す先が無効になるので, 写しを残す) */
+/** Thermo サービスの UUID (128 bit) */
+static const uint8_t service_uuid[] = {THERMO_UUID_SERVICE_VAL};
+/** 温度の特性の UUID (128 bit) */
+static const uint8_t temperature_uuid[] = {THERMO_UUID_TEMPERATURE_VAL};
+
+/** ノードのアドレス (A, B, C) */
+static const bt_addr_le_t node_addr[] = {
+        {.type = BT_ADDR_LE_RANDOM, .a = {.val = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}}},
+        {.type = BT_ADDR_LE_RANDOM, .a = {.val = {0x11, 0x12, 0x13, 0x14, 0x15, 0x16}}},
+        {.type = BT_ADDR_LE_RANDOM, .a = {.val = {0x21, 0x22, 0x23, 0x24, 0x25, 0x26}}},
+};
+
+/** ダミーの接続 (struct bt_conn の中身は、ここでは使わない。アドレスで見分ける) */
+static char conn_storage[CONN_COUNT];
+
+/** 次に bt_conn_le_create() が返す, ダミーの接続の番号 */
+static unsigned int next_conn;
+
+/** 接続のコールバック (ble_init() が登録したもの) */
+static struct bt_conn_cb *conn_cb;
+
+/** 温度のコールバックに渡された値 */
 static struct {
-    struct bt_le_scan_param param; /**< スキャンパラメータ */
-    scan_cb_ptr_t cb;              /**< スキャンのコールバック */
-} captured;
+    unsigned int count; /**< 呼ばれた回数 */
+    bt_addr_le_t addr;  /**< アドレス */
+    uint16_t raw;       /**< 温度 */
+} received;
+
+/** bt_le_scan_start() に渡されたスキャンパラメータの写し (引数は, 呼び出しの後は, 無効になる) */
+static struct bt_le_scan_param captured_scan_param;
+
+/** スキャンのコールバックに渡す, アドバタイズデータ (スキャン応答) */
+static uint8_t adv_bytes[40];
+/** adv_bytes を指す, アドバタイズデータ */
+static struct net_buf_simple adv;
 
 /**
- * bt_le_scan_start() のモック動作 (引数の写しを残す)
+ * ダミーの接続を返す
  *
- * @param[in] param スキャンパラメータ
- * @param[in] cb スキャンのコールバック
+ * @param[in] index 番号 (0 .. CONN_COUNT - 1)
+ * @return ダミーの接続
+ */
+static struct bt_conn *conn_of(unsigned int index)
+{
+    return (struct bt_conn *)(void *)&conn_storage[index];
+}
+
+/**
+ * bt_data_parse() のモック動作 (本物と同じに, 要素ごとに, コールバックを呼ぶ)
+ *
+ * @param[in] ad アドバタイズデータ (長さ, 種別, データ の繰り返し)
+ * @param[in] func 要素ごとに呼ぶコールバック (false を返したら, 終了する)
+ * @param[in,out] user_data コールバックに渡す
+ */
+static void fake_data_parse(struct net_buf_simple *ad, data_cb_t func, void *user_data)
+{
+    size_t pos = 0u;
+
+    while (pos < ad->len) {
+        struct bt_data data;
+        uint8_t len = ad->data[pos];
+
+        if ((len == 0u) || ((pos + len + 1u) > ad->len)) {
+            return;
+        }
+        data.type = ad->data[pos + 1u];
+        data.data_len = (uint8_t)(len - 1u);
+        data.data = &ad->data[pos + 2u];
+        if (!func(&data, user_data)) {
+            return;
+        }
+        pos += (size_t)len + 1u;
+    }
+}
+
+/**
+ * bt_conn_le_create() のモック動作 (ダミーの接続を, 順に返す)
+ *
+ * @param[in] peer 使用しない
+ * @param[in] create_param 使用しない
+ * @param[in] conn_param 使用しない
+ * @param[out] conn 接続
  * @return 0
  */
-static int capture_scan_start(const struct bt_le_scan_param *param, scan_cb_ptr_t cb)
+static int fake_conn_le_create(const bt_addr_le_t *peer,
+                               const struct bt_conn_le_create_param *create_param,
+                               const struct bt_le_conn_param *conn_param, struct bt_conn **conn)
 {
-    captured.param = *param;
-    captured.cb = cb;
+    ARG_UNUSED(peer);
+    ARG_UNUSED(create_param);
+    ARG_UNUSED(conn_param);
+
+    *conn = conn_of(next_conn);
+    next_conn++;
     return 0;
 }
 
 /**
- * 各テストの前に, モックを初期状態に戻す
+ * bt_conn_ref() のモック動作 (引数の接続を、そのまま返す)
+ *
+ * @param[in] conn ダミーの接続
+ * @return conn
+ */
+static struct bt_conn *fake_conn_ref(struct bt_conn *conn)
+{
+    return conn;
+}
+
+/**
+ * bt_conn_le_create() のモック動作 (bt_conn_le_create() が戻る前に、接続が完了する場合)
+ *
+ * @param[in] peer 使用しない
+ * @param[in] create_param 使用しない
+ * @param[in] conn_param 使用しない
+ * @param[out] conn 接続
+ * @return 0
+ */
+static int fake_conn_le_create_connected_early(const bt_addr_le_t *peer,
+                                               const struct bt_conn_le_create_param *create_param,
+                                               const struct bt_le_conn_param *conn_param,
+                                               struct bt_conn **conn)
+{
+    struct bt_conn *created = conn_of(next_conn);
+
+    conn_cb->connected(created, 0u);
+    return fake_conn_le_create(peer, create_param, conn_param, conn);
+}
+
+/**
+ * bt_le_scan_start() のモック動作 (スキャンパラメータの写しを残す)
+ *
+ * @param[in] param スキャンパラメータ
+ * @param[in] cb 使用しない
+ * @return 0
+ */
+static int capture_scan_start(const struct bt_le_scan_param *param, scan_cb_ptr_t cb)
+{
+    ARG_UNUSED(cb);
+
+    captured_scan_param = *param;
+    return 0;
+}
+
+/**
+ * bt_conn_get_dst() のモック動作 (接続の番号に対応する, ノードのアドレスを返す)
+ *
+ * @param[in] conn ダミーの接続
+ * @return ノードのアドレス
+ */
+static const bt_addr_le_t *fake_get_dst(const struct bt_conn *conn)
+{
+    return &node_addr[(const char *)conn - conn_storage];
+}
+
+/**
+ * 温度のコールバック (受け取った値を、残す)
+ *
+ * @param[in] addr ノードのアドレス
+ * @param[in] raw 温度
+ */
+static void on_temperature(const bt_addr_le_t *addr, uint16_t raw)
+{
+    received.count++;
+    received.addr = *addr;
+    received.raw = raw;
+}
+
+/**
+ * Thermo サービスの UUID を持つ, アドバタイズデータにする
+ */
+static void set_adv_with_service(void)
+{
+    adv_bytes[0] = (uint8_t)(1u + sizeof(service_uuid));
+    adv_bytes[1] = BT_DATA_UUID128_ALL;
+    (void)memcpy(&adv_bytes[2], service_uuid, sizeof(service_uuid));
+    adv.data = adv_bytes;
+    adv.len = (uint16_t)(2u + sizeof(service_uuid));
+}
+
+/**
+ * Thermo サービスの UUID を持たない (名前だけの), アドバタイズデータにする
+ */
+static void set_adv_without_service(void)
+{
+    adv_bytes[0] = 5u;
+    adv_bytes[1] = BT_DATA_NAME_COMPLETE;
+    (void)memcpy(&adv_bytes[2], "Abcd", 4u);
+    adv.data = adv_bytes;
+    adv.len = 6u;
+}
+
+/**
+ * ble_init() と ble_scan() を呼んで, スキャンを始めた状態にする
+ *
+ * @return スキャンのコールバック
+ */
+static scan_cb_ptr_t start_scanning(void)
+{
+    zassert_equal(ble_init(), EXIT_SUCCESS);
+    conn_cb = bt_conn_cb_register_fake.arg0_val;
+    ble_set_temperature_callback(on_temperature);
+    zassert_equal(ble_scan(), EXIT_SUCCESS);
+    return bt_le_scan_start_fake.arg1_val;
+}
+
+/**
+ * ノード (アドレス index) を見つけて, 接続を始めさせる
+ *
+ * @param[in] scan_cb スキャンのコールバック
+ * @param[in] index ノードのアドレスの番号
+ */
+static void find_node(scan_cb_ptr_t scan_cb, unsigned int index)
+{
+    set_adv_with_service();
+    scan_cb(&node_addr[index], TEST_RSSI, BT_GAP_ADV_TYPE_SCAN_RSP, &adv);
+    k_msleep(WORK_WAIT_MS); /* 接続は、ワークキューで始まる */
+}
+
+/**
+ * 各テストの前に, モックと状態を, 初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -70,28 +309,79 @@ static void before(void *fixture)
 {
     ARG_UNUSED(fixture);
     RESET_FAKE(bt_enable);
+    RESET_FAKE(bt_conn_cb_register);
     RESET_FAKE(bt_le_scan_start);
+    RESET_FAKE(bt_le_scan_stop);
+    RESET_FAKE(bt_conn_le_create);
+    RESET_FAKE(bt_conn_lookup_addr_le);
+    RESET_FAKE(bt_conn_ref);
+    RESET_FAKE(bt_conn_unref);
+    RESET_FAKE(bt_conn_disconnect);
+    RESET_FAKE(bt_conn_get_dst);
+    RESET_FAKE(bt_gatt_discover);
+    RESET_FAKE(bt_gatt_subscribe);
+    RESET_FAKE(bt_gatt_attr_value_handle);
+    RESET_FAKE(bt_data_parse);
     FFF_RESET_HISTORY();
-    (void)memset(&captured, 0, sizeof(captured));
+    bt_data_parse_fake.custom_fake = fake_data_parse;
+    bt_conn_le_create_fake.custom_fake = fake_conn_le_create;
+    bt_conn_get_dst_fake.custom_fake = fake_get_dst;
+    bt_conn_ref_fake.custom_fake = fake_conn_ref;
+    next_conn = 0u;
+    (void)memset(&received, 0, sizeof(received));
+    ble_set_temperature_callback(NULL);
 }
 
-/** ble_init() は, bt_enable(NULL) を 1 回呼んで, 成功する */
+/**
+ * 各テストの後に, ble.c の static な状態 (接続しているノード) を, 空に戻す
+ *
+ * ble.c は, ノードの状態を static 変数に持つので, 全てのダミーの接続を切断して, 解放する.
+ *
+ * @param[in] fixture 使用しない
+ */
+static void after(void *fixture)
+{
+    unsigned int i = 0u;
+
+    ARG_UNUSED(fixture);
+
+    if (conn_cb != NULL) {
+        for (i = 0u; i < CONN_COUNT; i++) {
+            conn_cb->disconnected(conn_of(i), 0u);
+        }
+    }
+    conn_cb = NULL;
+}
+
+/** ble_init() は, bt_enable(NULL) を呼んで, 接続のコールバックを登録する */
 ZTEST(ble_gateway, test_init_success)
 {
-    bt_enable_fake.return_val = 0;
-
     zassert_equal(ble_init(), EXIT_SUCCESS);
+    conn_cb = bt_conn_cb_register_fake.arg0_val;
+
     zassert_equal(bt_enable_fake.call_count, 1u);
     zassert_is_null(bt_enable_fake.arg0_val);
+    zassert_equal(bt_conn_cb_register_fake.call_count, 1u);
+    zassert_not_null(conn_cb->connected);
+    zassert_not_null(conn_cb->disconnected);
 }
 
-/** ble_init() は, bt_enable() のエラーを, そのまま返す */
-ZTEST(ble_gateway, test_init_failure)
+/** ble_init() は, bt_enable() のエラーを返して, コールバックは登録しない */
+ZTEST(ble_gateway, test_init_enable_failure)
 {
     bt_enable_fake.return_val = -EIO;
 
     zassert_equal(ble_init(), -EIO);
-    zassert_equal(bt_enable_fake.call_count, 1u);
+    zassert_equal(bt_conn_cb_register_fake.call_count, 0u);
+}
+
+/** ble_init() は, 接続のコールバックの登録のエラーを返す */
+ZTEST(ble_gateway, test_init_callback_failure)
+{
+    bt_conn_cb_register_fake.return_val = -EALREADY;
+
+    zassert_equal(ble_init(), -EALREADY);
+    zassert_equal(bt_conn_cb_register_fake.call_count, 1u);
 }
 
 /** ble_scan() は, アクティブスキャンを, 決められた間隔とウィンドウで始める */
@@ -102,39 +392,447 @@ ZTEST(ble_gateway, test_scan_success)
     zassert_equal(ble_scan(), EXIT_SUCCESS);
     zassert_equal(bt_le_scan_start_fake.call_count, 1u);
 
-    zassert_equal(captured.param.type, BT_LE_SCAN_TYPE_ACTIVE);
-    zassert_equal(captured.param.options, BT_LE_SCAN_OPT_NONE);
-    zassert_equal(captured.param.interval, BT_GAP_MS_TO_SCAN_INTERVAL(EXPECTED_INTERVAL_MS));
-    zassert_equal(captured.param.window, BT_GAP_MS_TO_SCAN_WINDOW(EXPECTED_WINDOW_MS));
-    /* ウィンドウは, 間隔を超えない (超えると, スキャンを始められない) */
-    zassert_true(captured.param.window <= captured.param.interval);
-    zassert_not_null(captured.cb);
+    zassert_equal(captured_scan_param.type, BT_LE_SCAN_TYPE_ACTIVE);
+    zassert_equal(captured_scan_param.options, BT_LE_SCAN_OPT_NONE);
+    zassert_equal(captured_scan_param.interval, BT_GAP_MS_TO_SCAN_INTERVAL(EXPECTED_INTERVAL_MS));
+    zassert_equal(captured_scan_param.window, BT_GAP_MS_TO_SCAN_WINDOW(EXPECTED_WINDOW_MS));
+    zassert_true(captured_scan_param.window <= captured_scan_param.interval);
+    zassert_not_null(bt_le_scan_start_fake.arg1_val);
 }
 
-/** ble_scan() は, bt_le_scan_start() のエラーを, そのまま返す */
-ZTEST(ble_gateway, test_scan_failure)
+/** ble_scan() は, すでにスキャンしていれば (EALREADY), 成功を返す */
+ZTEST(ble_gateway, test_scan_already_started)
 {
     bt_le_scan_start_fake.return_val = -EALREADY;
 
-    zassert_equal(ble_scan(), -EALREADY);
+    zassert_equal(ble_scan(), EXIT_SUCCESS);
+}
+
+/** ble_scan() は, bt_le_scan_start() のそのほかのエラーを, そのまま返す */
+ZTEST(ble_gateway, test_scan_failure)
+{
+    bt_le_scan_start_fake.return_val = -ENOMEM;
+
+    zassert_equal(ble_scan(), -ENOMEM);
     zassert_equal(bt_le_scan_start_fake.call_count, 1u);
 }
 
-/** スキャンのコールバックは, アドレスと, 付加データなし (NULL) で呼んでも, 問題なく戻る */
-ZTEST(ble_gateway, test_scan_callback)
+/** Thermo サービスを持たないデバイスには, 接続しない */
+ZTEST(ble_gateway, test_scan_ignores_other_devices)
 {
-    const bt_addr_le_t addr = {
-            .type = BT_ADDR_LE_PUBLIC,
-            .a = {.val = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}},
-    };
+    scan_cb_ptr_t scan_cb = start_scanning();
 
-    bt_le_scan_start_fake.custom_fake = capture_scan_start;
-    zassert_equal(ble_scan(), EXIT_SUCCESS);
-    zassert_not_null(captured.cb);
+    set_adv_without_service();
+    scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_ADV_IND, &adv);
 
-    /* 検出されたデバイスの通知. アドバタイズの種別と, データは, 使わない */
-    captured.cb(&addr, TEST_RSSI, BT_GAP_ADV_TYPE_ADV_IND, NULL);
-    captured.cb(&addr, 0, BT_GAP_ADV_TYPE_ADV_NONCONN_IND, NULL);
+    zassert_equal(bt_conn_lookup_addr_le_fake.call_count, 0u);
+    zassert_equal(bt_le_scan_stop_fake.call_count, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u);
 }
 
-ZTEST_SUITE(ble_gateway, NULL, NULL, before, NULL, NULL);
+/** Thermo サービスを持つノードを見つけたら, スキャンを止めて, そのアドレスへ接続する */
+ZTEST(ble_gateway, test_scan_connects_to_node)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    find_node(scan_cb, 0u);
+
+    zassert_equal(bt_conn_lookup_addr_le_fake.call_count, 1u);
+    zassert_equal(bt_le_scan_stop_fake.call_count, 1u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 1u);
+    zassert_true(bt_addr_le_eq(bt_conn_le_create_fake.arg0_val, &node_addr[0]));
+}
+
+/** すでに接続している (または、接続中の) ノードは、無視する (参照は、解放する) */
+ZTEST(ble_gateway, test_scan_ignores_known_node)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    bt_conn_lookup_addr_le_fake.return_val = conn_of(0u);
+    find_node(scan_cb, 0u);
+
+    zassert_equal(bt_conn_unref_fake.call_count, 1u);
+    zassert_equal(bt_conn_unref_fake.arg0_val, conn_of(0u));
+    zassert_equal(bt_le_scan_stop_fake.call_count, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u);
+}
+
+/** 接続できる台数 (CONFIG_BT_MAX_CONN) に達したら, それ以上は接続しない */
+ZTEST(ble_gateway, test_scan_respects_max_nodes)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    unsigned int i = 0u;
+
+    for (i = 0u; i < MAX_NODES; i++) {
+        find_node(scan_cb, i);
+    }
+    zassert_equal(bt_conn_le_create_fake.call_count, (unsigned int)MAX_NODES);
+
+    /* 次のノードには, 接続しない */
+    find_node(scan_cb, MAX_NODES);
+    zassert_equal(bt_conn_le_create_fake.call_count, (unsigned int)MAX_NODES);
+}
+
+/** スキャンを止められなかったら (EBUSY 以外), 接続しない。次に見つけたときに, やり直す */
+ZTEST(ble_gateway, test_scan_stop_failure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    bt_le_scan_stop_fake.return_val = -EIO;
+    find_node(scan_cb, 0u);
+
+    zassert_equal(bt_le_scan_stop_fake.call_count, 1u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u);
+
+    bt_le_scan_stop_fake.return_val = 0;
+    find_node(scan_cb, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 1u);
+}
+
+/** スキャンを止められなくても (EBUSY), 少し待ってやり直して, 止められたら接続する */
+ZTEST(ble_gateway, test_scan_stop_busy_retries)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    int results[] = {-EBUSY, -EBUSY, 0};
+
+    SET_RETURN_SEQ(bt_le_scan_stop, results, ARRAY_SIZE(results));
+    find_node(scan_cb, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u); /* まだ, 待っている */
+
+    k_msleep(CONNECT_RETRY_MS * 3);
+    zassert_equal(bt_le_scan_stop_fake.call_count, 3u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 1u);
+    zassert_true(bt_addr_le_eq(bt_conn_le_create_fake.arg0_val, &node_addr[0]));
+}
+
+/** スキャンを止められない (EBUSY) まま, やり直しの回数を超えたら, あきらめる */
+ZTEST(ble_gateway, test_scan_stop_busy_gives_up)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    bt_le_scan_stop_fake.return_val = -EBUSY;
+    find_node(scan_cb, 0u);
+
+    k_msleep(CONNECT_RETRY_MS * (CONNECT_RETRY_MAX + 2u));
+    zassert_equal(bt_le_scan_stop_fake.call_count, CONNECT_RETRY_MAX + 1u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 0u);
+
+    /* あきらめたあとも, 次に見つけたときに, 接続できる */
+    bt_le_scan_stop_fake.return_val = 0;
+    find_node(scan_cb, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 1u);
+}
+
+/** bt_conn_le_create() が戻る前に接続が完了しても, その接続を使って, 探索を始める */
+ZTEST(ble_gateway, test_connected_before_create_returns)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    bt_conn_le_create_fake.custom_fake = fake_conn_le_create_connected_early;
+    find_node(scan_cb, 0u);
+
+    zassert_equal(bt_conn_ref_fake.call_count, 1u);
+    zassert_equal(bt_gatt_discover_fake.call_count, 1u);
+    zassert_equal(bt_gatt_discover_fake.arg0_val, conn_of(0u));
+
+    /* 参照は, 接続のコールバックと, bt_conn_le_create() の 2 つ. 1 つは, すぐに解放する */
+    zassert_equal(bt_conn_unref_fake.call_count, 1u);
+
+    /* 切断すると, 残りの参照を解放する */
+    conn_cb->disconnected(conn_of(0u), 0x08u);
+    zassert_equal(bt_conn_unref_fake.call_count, 2u);
+}
+
+/** bt_conn_le_create() が戻る前の接続でも, 接続を始めたノードと違うアドレスなら, 無視する */
+ZTEST(ble_gateway, test_connected_other_address_before_create_returns)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    next_conn = 1u; /* ノード 0 に接続する間に, ノード 1 の接続が完了する */
+    bt_conn_le_create_fake.custom_fake = fake_conn_le_create_connected_early;
+    find_node(scan_cb, 0u);
+
+    zassert_equal(bt_conn_ref_fake.call_count, 0u);
+    zassert_equal(bt_gatt_discover_fake.call_count, 0u);
+}
+
+/** 接続を始められなかったら, 状態を戻して, スキャンを再開する */
+ZTEST(ble_gateway, test_scan_connect_failure_restarts_scan)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    bt_conn_le_create_fake.custom_fake = NULL;
+    bt_conn_le_create_fake.return_val = -ENOMEM;
+    find_node(scan_cb, 0u);
+
+    zassert_equal(bt_conn_le_create_fake.call_count, 1u);
+    zassert_equal(bt_le_scan_start_fake.call_count, 2u); /* 最初と, 再開 */
+
+    /* 状態が戻っているので, 同じノードに, もう一度接続できる */
+    bt_conn_le_create_fake.custom_fake = fake_conn_le_create;
+    find_node(scan_cb, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 2u);
+}
+
+/** 接続できたら, Thermo サービスの探索を始めて, スキャンを再開する */
+ZTEST(ble_gateway, test_connected_starts_discovery)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    struct bt_gatt_discover_params *params = NULL;
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+
+    zassert_equal(bt_gatt_discover_fake.call_count, 1u);
+    zassert_equal(bt_gatt_discover_fake.arg0_val, conn_of(0u));
+    params = bt_gatt_discover_fake.arg1_val;
+    zassert_equal(params->type, BT_GATT_DISCOVER_PRIMARY);
+    zassert_true(memcmp(BT_UUID_128(params->uuid)->val, service_uuid, sizeof(service_uuid)) == 0);
+    zassert_equal(params->start_handle, BT_ATT_FIRST_ATTRIBUTE_HANDLE);
+    zassert_equal(params->end_handle, BT_ATT_LAST_ATTRIBUTE_HANDLE);
+    zassert_not_null(params->func);
+
+    /* ほかのノードを探すために, スキャンを再開する */
+    zassert_equal(bt_le_scan_start_fake.call_count, 2u);
+}
+
+/** 接続に失敗したら, 状態を戻して (参照を解放して), スキャンを再開する */
+ZTEST(ble_gateway, test_connected_failure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0x3eu);
+
+    zassert_equal(bt_gatt_discover_fake.call_count, 0u);
+    zassert_equal(bt_conn_unref_fake.call_count, 1u);
+    zassert_equal(bt_le_scan_start_fake.call_count, 2u);
+}
+
+/** このゲートウェイが始めたものではない接続は、無視する */
+ZTEST(ble_gateway, test_connected_unknown_connection)
+{
+    (void)start_scanning();
+
+    conn_cb->connected(conn_of(3u), 0u);
+
+    zassert_equal(bt_gatt_discover_fake.call_count, 0u);
+    zassert_equal(bt_le_scan_start_fake.call_count, 1u);
+}
+
+/** 探索を始められなかったら, 切断する */
+ZTEST(ble_gateway, test_connected_discovery_failure_disconnects)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+
+    find_node(scan_cb, 0u);
+    bt_gatt_discover_fake.return_val = -ENOMEM;
+    conn_cb->connected(conn_of(0u), 0u);
+
+    zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
+    zassert_equal(bt_conn_disconnect_fake.arg0_val, conn_of(0u));
+}
+
+/**
+ * サービス, 温度の特性, CCC を順に探索して, 最後に, 通知を購読する
+ * (探索のコールバックを, 見つかった属性を渡して, 呼ぶ)
+ */
+ZTEST(ble_gateway, test_discovery_flow_subscribes)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    struct bt_gatt_discover_params *params = NULL;
+    struct bt_gatt_service_val service_val = {.end_handle = 0x0030u};
+    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val};
+    struct bt_gatt_attr chrc_attr = {.handle = 0x0012u};
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
+    struct bt_gatt_subscribe_params *sub = NULL;
+    uint8_t ret = 0u;
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+    params = bt_gatt_discover_fake.arg1_val;
+
+    /* サービスが見つかった: 次は, その中から, 温度の特性を探す */
+    ret = params->func(conn_of(0u), &service_attr, params);
+    zassert_equal(ret, BT_GATT_ITER_STOP);
+    zassert_equal(bt_gatt_discover_fake.call_count, 2u);
+    zassert_equal(params->type, BT_GATT_DISCOVER_CHARACTERISTIC);
+    zassert_true(memcmp(BT_UUID_128(params->uuid)->val, temperature_uuid,
+                        sizeof(temperature_uuid)) == 0);
+    zassert_equal(params->start_handle, 0x0011u);
+    zassert_equal(params->end_handle, 0x0030u);
+
+    /* 温度の特性が見つかった: 次は, その CCC (通知の設定) を探す */
+    bt_gatt_attr_value_handle_fake.return_val = 0x0013u;
+    ret = params->func(conn_of(0u), &chrc_attr, params);
+    zassert_equal(ret, BT_GATT_ITER_STOP);
+    zassert_equal(bt_gatt_discover_fake.call_count, 3u);
+    zassert_equal(params->type, BT_GATT_DISCOVER_DESCRIPTOR);
+    zassert_equal(BT_UUID_16(params->uuid)->val, BT_UUID_GATT_CCC_VAL);
+    zassert_equal(params->start_handle, 0x0014u);
+
+    /* CCC が見つかった: 通知を購読する */
+    ret = params->func(conn_of(0u), &ccc_attr, params);
+    zassert_equal(ret, BT_GATT_ITER_STOP);
+    zassert_equal(bt_gatt_subscribe_fake.call_count, 1u);
+    zassert_equal(bt_gatt_subscribe_fake.arg0_val, conn_of(0u));
+    sub = bt_gatt_subscribe_fake.arg1_val;
+    zassert_equal(sub->value_handle, 0x0013u);
+    zassert_equal(sub->ccc_handle, 0x0014u);
+    zassert_equal(sub->value, BT_GATT_CCC_NOTIFY);
+    zassert_not_null(sub->notify);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 0u);
+}
+
+/** サービスが見つからなかったら (属性が NULL), 切断する */
+ZTEST(ble_gateway, test_discovery_not_found_disconnects)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    struct bt_gatt_discover_params *params = NULL;
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+    params = bt_gatt_discover_fake.arg1_val;
+
+    zassert_equal(params->func(conn_of(0u), NULL, params), BT_GATT_ITER_STOP);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
+}
+
+/** 探索や購読のいずれかが失敗したら, 切断する (購読が, すでに済んでいる EALREADY は, 成功) */
+ZTEST(ble_gateway, test_discovery_failure_disconnects)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    struct bt_gatt_discover_params *params = NULL;
+    struct bt_gatt_service_val service_val = {.end_handle = 0x0030u};
+    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val};
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+    params = bt_gatt_discover_fake.arg1_val;
+
+    /* 次の探索を始められない */
+    bt_gatt_discover_fake.return_val = -ENOMEM;
+    (void)params->func(conn_of(0u), &service_attr, params);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 1u);
+
+    /* 購読できない */
+    params->type = BT_GATT_DISCOVER_DESCRIPTOR;
+    bt_gatt_subscribe_fake.return_val = -EIO;
+    (void)params->func(conn_of(0u), &ccc_attr, params);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 2u);
+
+    /* すでに購読している (EALREADY) のは, 成功として扱う */
+    params->type = BT_GATT_DISCOVER_DESCRIPTOR;
+    bt_gatt_subscribe_fake.return_val = -EALREADY;
+    (void)params->func(conn_of(0u), &ccc_attr, params);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 2u);
+}
+
+/** 通知された温度 (リトルエンディアン) を, ノードのアドレスとともに, コールバックへ渡す */
+ZTEST(ble_gateway, test_notification_delivers_temperature)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    struct bt_gatt_discover_params *params = NULL;
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
+    struct bt_gatt_subscribe_params *sub = NULL;
+    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {(uint8_t)(TEST_RAW & 0xffu),
+                                                   (uint8_t)(TEST_RAW >> 8)};
+    uint8_t ret = 0u;
+
+    find_node(scan_cb, 1u); /* 2 台目 (アドレス B) のノード */
+    next_conn = 0u;
+    conn_cb->connected(conn_of(0u), 0u);
+    params = bt_gatt_discover_fake.arg1_val;
+    params->type = BT_GATT_DISCOVER_DESCRIPTOR;
+    (void)params->func(conn_of(0u), &ccc_attr, params);
+    sub = bt_gatt_subscribe_fake.arg1_val;
+
+    ret = sub->notify(conn_of(0u), sub, data, sizeof(data));
+    zassert_equal(ret, BT_GATT_ITER_CONTINUE);
+    zassert_equal(received.count, 1u);
+    zassert_equal(received.raw, TEST_RAW);
+    zassert_mem_equal(received.addr.a.val, node_addr[0].a.val, sizeof(received.addr.a.val));
+}
+
+/** 大きさが違う通知は、無視する (購読は、続ける) */
+ZTEST(ble_gateway, test_notification_wrong_length_ignored)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    struct bt_gatt_discover_params *params = NULL;
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
+    struct bt_gatt_subscribe_params *sub = NULL;
+    const uint8_t data[3] = {1u, 2u, 3u};
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+    params = bt_gatt_discover_fake.arg1_val;
+    params->type = BT_GATT_DISCOVER_DESCRIPTOR;
+    (void)params->func(conn_of(0u), &ccc_attr, params);
+    sub = bt_gatt_subscribe_fake.arg1_val;
+
+    zassert_equal(sub->notify(conn_of(0u), sub, data, sizeof(data)), BT_GATT_ITER_CONTINUE);
+    zassert_equal(received.count, 0u);
+}
+
+/** 購読が解除された通知 (データが NULL) は、購読を終える。コールバックが未設定でも、落ちない */
+ZTEST(ble_gateway, test_notification_unsubscribed_and_no_callback)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    struct bt_gatt_discover_params *params = NULL;
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
+    struct bt_gatt_subscribe_params *sub = NULL;
+    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {1u, 0u};
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+    params = bt_gatt_discover_fake.arg1_val;
+    params->type = BT_GATT_DISCOVER_DESCRIPTOR;
+    (void)params->func(conn_of(0u), &ccc_attr, params);
+    sub = bt_gatt_subscribe_fake.arg1_val;
+
+    /* コールバックを解除しても (NULL), 通知を受け取って、落ちない */
+    ble_set_temperature_callback(NULL);
+    zassert_equal(sub->notify(conn_of(0u), sub, data, sizeof(data)), BT_GATT_ITER_CONTINUE);
+    zassert_equal(received.count, 0u);
+
+    /* 購読の解除 */
+    sub->value_handle = 0x0013u;
+    zassert_equal(sub->notify(conn_of(0u), sub, NULL, 0u), BT_GATT_ITER_STOP);
+    zassert_equal(sub->value_handle, 0u);
+}
+
+/** 切断されたら, 状態を戻して (参照を解放して), スキャンを再開する。同じノードへ, 再び接続できる */
+ZTEST(ble_gateway, test_disconnected_releases_and_restarts_scan)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();
+    unsigned int scan_starts = 0u;
+
+    find_node(scan_cb, 0u);
+    conn_cb->connected(conn_of(0u), 0u);
+    scan_starts = bt_le_scan_start_fake.call_count;
+    zassert_equal(bt_conn_unref_fake.call_count, 0u);
+
+    conn_cb->disconnected(conn_of(0u), 0x08u);
+    zassert_equal(bt_conn_unref_fake.call_count, 1u);
+    zassert_equal(bt_conn_unref_fake.arg0_val, conn_of(0u));
+    zassert_equal(bt_le_scan_start_fake.call_count, scan_starts + 1u);
+
+    /* 空いたので, もう一度, 接続できる */
+    next_conn = 0u;
+    find_node(scan_cb, 0u);
+    zassert_equal(bt_conn_le_create_fake.call_count, 2u);
+}
+
+/** このゲートウェイが始めたものではない接続の切断は、無視する */
+ZTEST(ble_gateway, test_disconnected_unknown_connection)
+{
+    (void)start_scanning();
+
+    conn_cb->disconnected(conn_of(3u), 0x08u);
+
+    zassert_equal(bt_conn_unref_fake.call_count, 0u);
+    zassert_equal(bt_le_scan_start_fake.call_count, 1u);
+}
+
+ZTEST_SUITE(ble_gateway, NULL, NULL, before, after, NULL);

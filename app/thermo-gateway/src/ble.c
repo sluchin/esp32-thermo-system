@@ -6,43 +6,414 @@
 
 /**
  * @file
- * @brief thermo-gateway の BLE スキャン実装
+ * @brief thermo-gateway の BLE 実装 (ノードのスキャンと接続、GATT での温度の受信)
  */
 
 #include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
+#include <zephyr/bluetooth/uuid.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/sys/byteorder.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ble.h"
+#include "thermo_ble_uuid.h"
 
 LOG_MODULE_REGISTER(ble_thermo_gateway);
 
 /** スキャン間隔 [ms] */
-#define SCAN_INTERVAL_MS 100
-/** スキャン窓 [ms] (スキャン間隔以下であること) */
-#define SCAN_WINDOW_MS   50
+#define SCAN_INTERVAL_MS  100
+/** スキャンウィンドウ [ms] */
+#define SCAN_WINDOW_MS    50
+/** 接続できるノードの数 (接続の数と同じ) */
+#define MAX_NODES         CONFIG_BT_MAX_CONN
+/** スキャンを止められなかったとき (EBUSY) に、接続を始め直すまでの間隔 [ms] */
+#define CONNECT_RETRY_MS  100
+/** スキャンを止められなかったときに、接続を始め直す最大の回数 */
+#define CONNECT_RETRY_MAX 10u
+
+/** 接続しているノード 1 台ぶんの状態 */
+struct node {
+    struct bt_conn *conn;                      /**< 接続 (使っていなければ NULL) */
+    struct bt_gatt_discover_params discover;   /**< サービスの探索のパラメータ */
+    struct bt_gatt_subscribe_params subscribe; /**< 通知の購読のパラメータ */
+};
+
+/** 接続しているノード */
+static struct node nodes[MAX_NODES];
+
+/** Thermo サービスの UUID */
+static const struct bt_uuid_128 service_uuid = BT_UUID_INIT_128(THERMO_UUID_SERVICE_VAL);
+/** 温度の特性の UUID */
+static const struct bt_uuid_128 temperature_uuid = BT_UUID_INIT_128(THERMO_UUID_TEMPERATURE_VAL);
+/** CCC (通知の設定) の UUID */
+static const struct bt_uuid_16 ccc_uuid = BT_UUID_INIT_16(BT_UUID_GATT_CCC_VAL);
+
+/** スキャン応答の UUID (128 bit) と比べるための、Thermo サービスの UUID の値 */
+static const uint8_t service_uuid_val[] = {THERMO_UUID_SERVICE_VAL};
+
+/** 温度を受信したときのコールバック */
+static ble_temperature_cb_t temperature_cb;
+
+/** 接続を始めるノードのアドレス (スキャンのコールバックが、記録する) */
+static bt_addr_le_t pending_addr;
+/** 接続を始める依頼があるか (依頼から、接続を始めるまでの間は、true) */
+static bool pending;
+/** 接続を始め直した回数 */
+static unsigned int pending_retries;
+
+static void connect_work_handler(struct k_work *work);
+/** 接続を始める処理 (システムのワークキューで実行する) */
+static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_handler);
 
 /**
- * @brief アドバタイズ受信時のスキャンコールバック。
+ * 接続から、ノードの状態を探す
  *
- * 検出したデバイスのアドレスと RSSI をログ出力する。
+ * @param[in] conn 接続 (NULL なら、使っていない状態を探す)
+ * @return ノードの状態 (見つからなければ NULL)
+ */
+static struct node *find_node(const struct bt_conn *conn)
+{
+    size_t i = 0u;
+
+    for (i = 0u; i < ARRAY_SIZE(nodes); i++) {
+        if (nodes[i].conn == conn) {
+            return &nodes[i];
+        }
+    }
+    return NULL;
+}
+
+/**
+ * ノードの状態を、使っていない状態に戻す (接続の参照も、解放する)
  *
- * @param[in] addr     送信元デバイスのアドレス
- * @param[in] rssi     受信信号強度 [dBm]
- * @param[in] adv_type アドバタイズの種別 (未使用)
- * @param[in] adv_data アドバタイズデータ (未使用)
+ * @param[in,out] node ノードの状態
+ */
+static void release_node(struct node *node)
+{
+    if (node->conn != NULL) {
+        bt_conn_unref(node->conn);
+    }
+    (void)memset(node, 0, sizeof(*node));
+}
+
+/**
+ * スキャン応答 (アドバタイズデータ) の中から、Thermo サービスの UUID を探す
+ *
+ * @param[in] data アドバタイズデータの 1 要素
+ * @param[in,out] user_data 見つかったら true を書き込む (bool *)
+ * @return 探索を続けるなら true (見つかったら false)
+ */
+static bool find_service_uuid(struct bt_data *data, void *user_data)
+{
+    bool *found = (bool *)user_data;
+
+    if ((data->type == BT_DATA_UUID128_ALL) && (data->data_len == sizeof(service_uuid_val)) &&
+        (memcmp(data->data, service_uuid_val, sizeof(service_uuid_val)) == 0)) {
+        *found = true;
+        return false;
+    }
+    return true;
+}
+
+/**
+ * 通知のコールバック (ノードが送った温度を受信する)
+ *
+ * @param[in] conn 接続
+ * @param[in,out] params 購読のパラメータ
+ * @param[in] data 通知されたデータ (NULL なら、購読が解除された)
+ * @param[in] length データの大きさ
+ * @return BT_GATT_ITER_CONTINUE (購読を続ける)、または BT_GATT_ITER_STOP (購読を解除する)
+ */
+static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
+                         const void *data, uint16_t length)
+{
+    uint16_t raw = 0u;
+
+    if (data == NULL) {
+        LOG_INF("Unsubscribed");
+        params->value_handle = 0u;
+        return BT_GATT_ITER_STOP;
+    }
+
+    if (length != THERMO_TEMPERATURE_SIZE) {
+        LOG_WRN("Unexpected notification length: %u", length);
+        return BT_GATT_ITER_CONTINUE;
+    }
+
+    raw = sys_get_le16((const uint8_t *)data);
+    if (temperature_cb != NULL) {
+        temperature_cb(bt_conn_get_dst(conn), raw);
+    }
+
+    return BT_GATT_ITER_CONTINUE;
+}
+
+/**
+ * サービスの探索のコールバック
+ *
+ * Thermo サービス、温度の特性、CCC の順に探索して、最後に、通知を購読する。
+ *
+ * @param[in] conn 接続
+ * @param[in] attr 見つかった属性 (NULL なら、探索が終わった)
+ * @param[in,out] params 探索のパラメータ
+ * @return BT_GATT_ITER_STOP (探索を、続けない)
+ */
+static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                           struct bt_gatt_discover_params *params)
+{
+    struct node *node = CONTAINER_OF(params, struct node, discover);
+    const struct bt_gatt_service_val *service = NULL;
+    int err = EXIT_SUCCESS;
+
+    if (attr == NULL) {
+        LOG_ERR("Thermo service not found");
+        err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+        if (err != 0) {
+            LOG_ERR("Disconnect failed (err %d)", err);
+        }
+        return BT_GATT_ITER_STOP;
+    }
+
+    if (params->type == BT_GATT_DISCOVER_PRIMARY) {
+        /* 次は, サービスの中から, 温度の特性を探す */
+        service = (const struct bt_gatt_service_val *)attr->user_data;
+        params->uuid = &temperature_uuid.uuid;
+        params->start_handle = (uint16_t)(attr->handle + 1u);
+        params->end_handle = service->end_handle;
+        params->type = BT_GATT_DISCOVER_CHARACTERISTIC;
+        err = bt_gatt_discover(conn, params);
+    } else if (params->type == BT_GATT_DISCOVER_CHARACTERISTIC) {
+        /* 次は, 特性の CCC (通知の設定) を探す */
+        node->subscribe.value_handle = bt_gatt_attr_value_handle(attr);
+        params->uuid = &ccc_uuid.uuid;
+        params->start_handle = (uint16_t)(attr->handle + 2u);
+        params->type = BT_GATT_DISCOVER_DESCRIPTOR;
+        err = bt_gatt_discover(conn, params);
+    } else {
+        /* CCC が見つかったので, 通知を購読する */
+        node->subscribe.ccc_handle = attr->handle;
+        node->subscribe.value = BT_GATT_CCC_NOTIFY;
+        node->subscribe.notify = notify_cb;
+        err = bt_gatt_subscribe(conn, &node->subscribe);
+        if (err == -EALREADY) {
+            err = EXIT_SUCCESS;
+        }
+        if (err == EXIT_SUCCESS) {
+            LOG_INF("Subscribed to the temperature");
+        }
+    }
+
+    if (err != 0) {
+        LOG_ERR("GATT discovery or subscription failed (err %d)", err);
+        err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+        if (err != 0) {
+            LOG_ERR("Disconnect failed (err %d)", err);
+        }
+    }
+
+    return BT_GATT_ITER_STOP;
+}
+
+/**
+ * 接続のコールバック
+ *
+ * 接続できたら、Thermo サービスの探索を始める。接続できなかったら、状態を戻す。
+ * どちらの場合も、ほかのノードを探すために、スキャンを再開する。
+ *
+ * @param[in] conn 接続
+ * @param[in] err 接続の結果 (0 なら成功)
+ */
+static void connected(struct bt_conn *conn, uint8_t err)
+{
+    struct node *node = find_node(conn);
+    const bt_addr_le_t *dst = NULL;
+    int ret = EXIT_SUCCESS;
+
+    if ((node == NULL) && pending) {
+        /*
+         * bt_conn_le_create() が戻る前に、接続が完了することがある (node->conn が、まだ NULL).
+         * 接続を始めたノードのアドレスと同じなら、この接続を、使っていない状態に割り当てる.
+         */
+        dst = bt_conn_get_dst(conn);
+        if ((dst != NULL) && bt_addr_le_eq(dst, &pending_addr)) {
+            node = find_node(NULL);
+            if (node != NULL) {
+                node->conn = bt_conn_ref(conn);
+            }
+        }
+    }
+
+    if (node == NULL) {
+        return; /* このゲートウェイが、接続を始めたものではない */
+    }
+
+    if (err != 0u) {
+        LOG_ERR("Connection failed (err 0x%02x)", err);
+        release_node(node);
+    } else {
+        LOG_INF("Connected");
+        node->discover.uuid = &service_uuid.uuid;
+        node->discover.func = discover_cb;
+        node->discover.start_handle = BT_ATT_FIRST_ATTRIBUTE_HANDLE;
+        node->discover.end_handle = BT_ATT_LAST_ATTRIBUTE_HANDLE;
+        node->discover.type = BT_GATT_DISCOVER_PRIMARY;
+        ret = bt_gatt_discover(conn, &node->discover);
+        if (ret != 0) {
+            LOG_ERR("Discovery failed to start (err %d)", ret);
+            ret = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+            if (ret != 0) {
+                LOG_ERR("Disconnect failed (err %d)", ret);
+            }
+        }
+    }
+
+    ret = ble_scan();
+    if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Failed to restart scanning (err %d)", ret);
+    }
+}
+
+/**
+ * 切断のコールバック (状態を戻して、スキャンを再開する)
+ *
+ * @param[in] conn 接続
+ * @param[in] reason 切断の理由
+ */
+static void disconnected(struct bt_conn *conn, uint8_t reason)
+{
+    struct node *node = find_node(conn);
+    int err = EXIT_SUCCESS;
+
+    if (node == NULL) {
+        return;
+    }
+
+    LOG_INF("Disconnected (reason 0x%02x)", reason);
+    release_node(node);
+
+    err = ble_scan();
+    if (err != EXIT_SUCCESS) {
+        LOG_ERR("Failed to restart scanning (err %d)", err);
+    }
+}
+
+/** 接続のコールバック */
+static struct bt_conn_cb conn_callbacks = {
+        .connected = connected,
+        .disconnected = disconnected,
+};
+
+/**
+ * 接続を始める処理 (システムのワークキューで実行する)
+ *
+ * スキャンのコールバックの中で、スキャンを止めたり、接続を始めたりすると、スキャンの開始と
+ * 重なって、スキャンを止められない (EBUSY) ことがある. そのため、コールバックでは、依頼を
+ * 記録するだけにして、スキャンの停止と、接続は、ここで行う. EBUSY のときは、少し待って、やり直す.
+ *
+ * @param[in] work 使用しない
+ */
+static void connect_work_handler(struct k_work *work)
+{
+    struct node *node = find_node(NULL);
+    struct bt_conn *created = NULL;
+    int err = EXIT_SUCCESS;
+
+    ARG_UNUSED(work);
+
+    if (node == NULL) {
+        pending = false; /* 依頼のあとに、接続できる台数に達した */
+        return;
+    }
+
+    /* 接続を始める前に, スキャンを止める */
+    err = bt_le_scan_stop();
+    if ((err == -EBUSY) && (pending_retries < CONNECT_RETRY_MAX)) {
+        pending_retries++;
+        (void)k_work_reschedule(&connect_work, K_MSEC(CONNECT_RETRY_MS));
+        return;
+    }
+    if (err != 0) {
+        LOG_ERR("Stopping scan failed (err %d)", err);
+        pending = false; /* 次に、ノードが見つかったときに、やり直す */
+        return;
+    }
+
+    err = bt_conn_le_create(&pending_addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT,
+                            &created);
+    if (err == 0) {
+        if (node->conn == NULL) {
+            node->conn = created;
+        } else {
+            bt_conn_unref(created); /* 接続のコールバックが、先に参照を取っている */
+        }
+    } else {
+        LOG_ERR("Connection failed to start (err %d)", err);
+        err = ble_scan();
+        if (err != EXIT_SUCCESS) {
+            LOG_ERR("Failed to restart scanning (err %d)", err);
+        }
+    }
+    pending = false;
+}
+
+/**
+ * スキャンのコールバック (ノードを見つけたら、接続を始める依頼を記録する)
+ *
+ * Bluetooth のスレッドから呼ばれるので、接続は、connect_work_handler() が始める.
+ *
+ * @param[in] addr 見つかったデバイスのアドレス
+ * @param[in] rssi 受信信号強度 [dBm]
+ * @param[in] adv_type アドバタイズの種別 (使用しない)
+ * @param[in] adv_data アドバタイズデータ (スキャン応答を含む)
  */
 static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
                     struct net_buf_simple *adv_data)
 {
     char addr_str[BT_ADDR_LE_STR_LEN] = {0};
+    struct bt_conn *known = NULL;
+    bool found = false;
+    int err = EXIT_SUCCESS;
 
     ARG_UNUSED(adv_type);
-    ARG_UNUSED(adv_data);
+
+    bt_data_parse(adv_data, find_service_uuid, &found);
+    if (!found) {
+        return; /* Thermo サービスを持たないデバイス */
+    }
+
+    if (pending) {
+        return; /* 接続を始める依頼を処理中 */
+    }
+
+    /* すでに接続している (または、接続中の) ノードは、無視する */
+    known = bt_conn_lookup_addr_le(BT_ID_DEFAULT, addr);
+    if (known != NULL) {
+        bt_conn_unref(known);
+        return;
+    }
+
+    if (find_node(NULL) == NULL) {
+        return; /* 接続できる台数に達している */
+    }
 
     (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
-    LOG_INF("Device found: %s (RSSI %d)", addr_str, rssi);
+    LOG_INF("Thermo node found: %s (RSSI %d)", addr_str, rssi);
+
+    bt_addr_le_copy(&pending_addr, addr);
+    pending = true;
+    pending_retries = 0u;
+    err = k_work_schedule(&connect_work, K_NO_WAIT);
+    if (err < 0) {
+        LOG_ERR("Failed to schedule the connection (err %d)", err);
+        pending = false;
+    }
 }
 
 int ble_init(void)
@@ -55,8 +426,19 @@ int ble_init(void)
         return err;
     }
 
+    err = bt_conn_cb_register(&conn_callbacks);
+    if (err != 0) {
+        LOG_ERR("Connection callback register failed (err %d)", err);
+        return err;
+    }
+
     LOG_INF("Bluetooth initialized");
     return EXIT_SUCCESS;
+}
+
+void ble_set_temperature_callback(ble_temperature_cb_t cb)
+{
+    temperature_cb = cb;
 }
 
 int ble_scan(void)
@@ -70,6 +452,9 @@ int ble_scan(void)
     };
 
     err = bt_le_scan_start(&scan_param, scan_cb);
+    if (err == -EALREADY) {
+        return EXIT_SUCCESS; /* すでに、スキャンしている */
+    }
     if (err != 0) {
         LOG_ERR("Starting scan failed (err %d)", err);
         return err;
