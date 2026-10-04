@@ -272,6 +272,7 @@ minicom -D /dev/ttyUSB0 -b 115200
 | `build` | `build-thermo-node` / `build-thermo-gateway` / `build-thermo-node-sim` / `build-thermo-gateway-sim` | ビルド。警告が出たら失敗 |
 | `test` | `test-thermo-node` / `test-thermo-gateway` | 単体テスト (Ztest + FFF, `native_sim`) |
 | `coverage` | `coverage-thermo-node` / `coverage-thermo-gateway` | 単体テストのカバレッジ (行と分岐。100% 未満なら失敗) |
+| `docs` | `docs-thermo` | ドキュメント (Doxygen)。警告があれば失敗。生成物 (`docs/`) は、アーティファクトに保存 |
 | `analyze` | `analyze-thermo-node` / `analyze-thermo-gateway` | 静的解析 (gcc `-fanalyzer`)。指摘があれば失敗 |
 | `lint` | `format-thermo` / `lint-thermo` / `whitespace-thermo` | 整形の確認 (clang-format)、Zephyr の `checkpatch.pl`、行末の空白の確認。指摘があれば失敗 |
 
@@ -285,6 +286,8 @@ docker compose run test-thermo-gateway
 # カバレッジ (行と分岐が 100% でなければ失敗する)
 docker compose run coverage-thermo-node
 docker compose run coverage-thermo-gateway
+# ドキュメント (Doxygen。docs/index.html を開く。警告があれば失敗する)
+docker compose run docs-thermo
 docker compose run analyze-thermo-node
 docker compose run analyze-thermo-gateway
 docker compose run --rm format-thermo

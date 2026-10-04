@@ -78,6 +78,8 @@ docker compose run test-thermo-gateway
 # カバレッジ (行と分岐が 100% でなければ失敗する)
 docker compose run coverage-thermo-node
 docker compose run coverage-thermo-gateway
+# ドキュメント (Doxygen。docs/index.html を開く。警告があれば失敗する)
+docker compose run docs-thermo
 
 # 静的解析 (gcc -fanalyzer。指摘があれば失敗する)
 docker compose run analyze-thermo-node
@@ -135,8 +137,9 @@ esptool.py -p /dev/ttyUSB0 write_flash 0x0 build/zephyr/zephyr.bin
 - ログ出力（UART シリアルコンソール）
 
 ### Thermo Gateway
-- BLE スキャンで周辺ノード検出
-- 複数ノードからのデータ集約
+- BLE スキャンで周辺ノードを検出して、GATT で接続し、温度 (ADC の生値) の通知を受信 (最大 3 台)
+- WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md))
+- WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存
 - デバッグシェル対応
 
 ## 対応ハードウェア

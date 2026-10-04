@@ -121,6 +121,17 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
+  # ドキュメント (Doxygen。HTML) を docs/ に生成する。警告が 1 つでもあれば失敗する。
+  docs-thermo:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: scripts/docs.sh
+    environment:
+      - HOME=/tmp
+
   # 整形の確認 (clang-format。Zephyr の .clang-format を、インデントだけ空白 4 つに変えたもの)。整形が必要なファイルがあれば失敗する。
   format-thermo:
     image: esp32-thermo-system:latest

@@ -1,0 +1,397 @@
+/*
+ * Copyright (c) 2026 Tetsuya Higashi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/**
+ * @file
+ * @brief AWS IoT Core への、MQTT (TLS) による温度の送信
+ */
+
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/net/mqtt.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/net/tls_credentials.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "cfg.h"
+#include "cloud.h"
+#include "payload.h"
+#include "wifi_link.h"
+
+LOG_MODULE_REGISTER(thermo_cloud);
+
+/** AWS IoT Core の MQTT (TLS、クライアント証明書による相互認証) のポート */
+#define BROKER_PORT        "8883"
+/** MQTT の keep alive の間隔 [s] (AWS IoT Core は 30 .. 1200) */
+#define KEEPALIVE_S        60u
+/** 設定が揃うのを待つ間隔 [s] */
+#define WAIT_CONFIG_S      5
+/** WiFi の接続を待つ時間 [s] */
+#define WIFI_TIMEOUT_S     30
+/** MQTT の CONNACK を待つ時間 [ms] */
+#define CONNACK_TIMEOUT_MS 10000
+/** 送信するものがないときに、受信と keep alive を確認する間隔 [ms] */
+#define SESSION_TICK_MS    1000
+/** 接続の再試行の間隔の、最小値 [s] */
+#define RETRY_MIN_S        5u
+/** 接続の再試行の間隔の、最大値 [s] */
+#define RETRY_MAX_S        60u
+/** 送信を待つ温度の最大数 */
+#define QUEUE_LEN          16
+/** トピックのバッファのサイズ */
+#define TOPIC_SIZE         128u
+/** ペイロードのバッファのサイズ */
+#define PAYLOAD_SIZE       96u
+/* ペイロードの最大長 ({"node":"..","raw":65535,"uptime_ms":4294967295} は 63 文字) が、入ること */
+BUILD_ASSERT(PAYLOAD_SIZE >= 64u, "The payload buffer is too small");
+/** MQTT の送受信バッファのサイズ */
+#define MQTT_BUF_SIZE     512u
+/** スレッドのスタックサイズ (TLS のハンドシェイクを含む) */
+#define THREAD_STACK_SIZE 6144
+/** スレッドの優先度 */
+#define THREAD_PRIORITY   7
+
+/** 送信を待つ温度 1 件 */
+struct sample {
+    bt_addr_le_t addr;  /**< 温度を送ったノードのアドレス */
+    uint16_t raw;       /**< 温度 (ADC の生値) */
+    uint32_t uptime_ms; /**< 受信したときの、ゲートウェイの稼働時間 [ms] */
+};
+
+/** 送信を待つ温度のキュー */
+K_MSGQ_DEFINE(cloud_sample_q, sizeof(struct sample), QUEUE_LEN, 4);
+
+/** MQTT クライアント */
+static struct mqtt_client client;
+/** ブローカーのアドレス (DNS で解決した結果) */
+static struct sockaddr_storage broker;
+/** MQTT の受信バッファ */
+static uint8_t rx_buf[MQTT_BUF_SIZE];
+/** MQTT の送信バッファ */
+static uint8_t tx_buf[MQTT_BUF_SIZE];
+/** TLS の証明書のセキュリティタグ */
+static const sec_tag_t sec_tags[] = {CFG_TLS_SEC_TAG};
+
+/** MQTT で接続している状態か (CONNACK を受け取ってから、DISCONNECT を受け取るまで) */
+static volatile bool mqtt_up;
+/** 設定が変わったので、接続をやり直す依頼があるか */
+static volatile bool reconnect_requested;
+/** 次に失敗したときの、再試行までの間隔 [s] */
+static unsigned int retry_s = RETRY_MIN_S;
+/** 次に publish するメッセージの ID (1 .. 65535) */
+static uint16_t message_id;
+
+/** 送信のスレッド */
+static struct k_thread cloud_thread;
+/** 送信のスレッドのスタック */
+static K_THREAD_STACK_DEFINE(cloud_stack, THREAD_STACK_SIZE)
+
+        /**
+         * MQTT のイベントのコールバック
+         *
+         * @param[in] c   MQTT クライアント (使用しない)
+         * @param[in] evt イベント
+         */
+        static void mqtt_evt_handler(struct mqtt_client *c, const struct mqtt_evt *evt)
+{
+    ARG_UNUSED(c);
+
+    /* 使うのは、この 3 つだけ (購読は、しない) */
+    if (evt->type == MQTT_EVT_CONNACK) {
+        if (evt->result == 0) {
+            mqtt_up = true;
+        } else {
+            LOG_ERR("MQTT connection refused (result %d)", evt->result);
+        }
+    } else if (evt->type == MQTT_EVT_DISCONNECT) {
+        LOG_WRN("MQTT disconnected");
+        mqtt_up = false;
+    } else if (evt->type == MQTT_EVT_PUBACK) {
+        LOG_DBG("Publish acknowledged (id %u)", evt->param.puback.message_id);
+    } else {
+        LOG_DBG("Ignoring the MQTT event %d", (int)evt->type);
+    }
+}
+
+/**
+ * ブローカー (AWS IoT Core のエンドポイント) の名前を解決する
+ *
+ * @param[in] host エンドポイント
+ * @retval EXIT_SUCCESS 成功 (broker に、アドレスを保存する)
+ * @retval -EHOSTUNREACH 名前を解決できなかった
+ */
+static int resolve_broker(const char *host)
+{
+    struct zsock_addrinfo hints = {.ai_family = AF_INET, .ai_socktype = SOCK_STREAM};
+    struct zsock_addrinfo *res = NULL;
+    int err = zsock_getaddrinfo(host, BROKER_PORT, &hints, &res);
+
+    if (err != 0) {
+        LOG_ERR("Resolving '%s' failed (err %d)", host, err);
+        return -EHOSTUNREACH;
+    }
+
+    (void)memcpy(&broker, res->ai_addr, res->ai_addrlen);
+    zsock_freeaddrinfo(res);
+    return EXIT_SUCCESS;
+}
+
+/**
+ * ソケットを待って、受信したデータがあれば、MQTT の処理をする
+ *
+ * @param[in] timeout_ms 待つ時間 [ms] (0 なら、待たない)
+ * @retval EXIT_SUCCESS データがなかった、または、処理した
+ * @retval -ECONNRESET  ソケットにエラーがある
+ * @retval negative     poll() または mqtt_input() の失敗 (負の errno)
+ */
+static int poll_input(int timeout_ms)
+{
+    struct zsock_pollfd fds = {.fd = client.transport.tls.sock, .events = ZSOCK_POLLIN};
+    int ret = zsock_poll(&fds, 1, timeout_ms);
+
+    if (ret < 0) {
+        return -errno;
+    }
+    if (ret == 0) {
+        return EXIT_SUCCESS;
+    }
+    if ((fds.revents & (ZSOCK_POLLERR | ZSOCK_POLLHUP | ZSOCK_POLLNVAL)) != 0) {
+        return -ECONNRESET;
+    }
+    return mqtt_input(&client);
+}
+
+/**
+ * MQTT のブローカーに接続して、CONNACK を待つ
+ *
+ * @retval EXIT_SUCCESS 接続した
+ * @retval -ECONNREFUSED CONNACK が、拒否、または、時間内に来なかった
+ * @retval negative     名前の解決、接続、受信の失敗 (負の errno)
+ */
+static int connect_broker(void)
+{
+    const char *endpoint = cfg_get(CFG_KEY_ENDPOINT);
+    const char *client_id = cfg_get(CFG_KEY_CLIENT_ID);
+    struct mqtt_sec_config *tls = &client.transport.tls.config;
+    int err = resolve_broker(endpoint);
+
+    if (err != 0) {
+        return err;
+    }
+
+    mqtt_client_init(&client);
+    client.broker = &broker;
+    client.evt_cb = mqtt_evt_handler;
+    client.client_id.utf8 = (const uint8_t *)client_id;
+    client.client_id.size = (uint32_t)strlen(client_id);
+    client.protocol_version = MQTT_VERSION_3_1_1;
+    client.rx_buf = rx_buf;
+    client.rx_buf_size = sizeof(rx_buf);
+    client.tx_buf = tx_buf;
+    client.tx_buf_size = sizeof(tx_buf);
+    client.keepalive = KEEPALIVE_S;
+    client.clean_session = 1u;
+
+    /* サーバの証明書を確認して、クライアント証明書で、認証される (相互認証) */
+    client.transport.type = MQTT_TRANSPORT_SECURE;
+    tls->peer_verify = TLS_PEER_VERIFY_REQUIRED;
+    tls->cipher_list = NULL;
+    tls->sec_tag_list = sec_tags;
+    tls->sec_tag_count = ARRAY_SIZE(sec_tags);
+    tls->hostname = endpoint;
+
+    mqtt_up = false;
+    err = mqtt_connect(&client);
+    if (err != 0) {
+        LOG_ERR("MQTT connect failed (err %d)", err);
+        return err;
+    }
+
+    err = poll_input(CONNACK_TIMEOUT_MS);
+    if ((err != 0) || !mqtt_up) {
+        LOG_ERR("MQTT CONNACK not received (err %d)", err);
+        (void)mqtt_abort(&client);
+        return (err != 0) ? err : -ECONNREFUSED;
+    }
+    return EXIT_SUCCESS;
+}
+
+/**
+ * 温度 1 件を、MQTT で publish する (QoS 1)
+ *
+ * @param[in] s 温度
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno)
+ */
+static int publish_sample(const struct sample *s)
+{
+    char topic[TOPIC_SIZE] = {0};
+    char payload[PAYLOAD_SIZE] = {0};
+    struct mqtt_publish_param param = {0};
+    int topic_len =
+            payload_format_topic(topic, sizeof(topic), cfg_get(CFG_KEY_CLIENT_ID), &s->addr);
+    int payload_len =
+            payload_format_temperature(payload, sizeof(payload), &s->addr, s->raw, s->uptime_ms);
+
+    /* ペイロードは、必ずバッファに入る. トピックは、長いクライアント ID で、入らないことがある */
+    if (topic_len < 0) {
+        return -ENOSPC;
+    }
+
+    message_id = (uint16_t)((message_id % UINT16_MAX) + 1u);
+    param.message.topic.qos = MQTT_QOS_1_AT_LEAST_ONCE;
+    param.message.topic.topic.utf8 = (const uint8_t *)topic;
+    param.message.topic.topic.size = (uint32_t)topic_len;
+    param.message.payload.data = (uint8_t *)payload;
+    param.message.payload.len = (uint32_t)payload_len;
+    param.message_id = message_id;
+    param.dup_flag = 0u;
+    param.retain_flag = 0u;
+    return mqtt_publish(&client, &param);
+}
+
+/**
+ * 接続している間、キューの温度を publish して、受信と keep alive を処理する
+ *
+ * 接続が切れるか、エラーになるか、cloud_reconnect() が呼ばれたら、MQTT を閉じて戻る.
+ *
+ * @retval EXIT_SUCCESS cloud_reconnect() が呼ばれた
+ * @retval negative     接続が切れた、または、エラー (負の errno)
+ */
+static int run_session(void)
+{
+    struct sample s = {0};
+    int err = EXIT_SUCCESS;
+
+    while (!reconnect_requested) {
+        if (k_msgq_get(&cloud_sample_q, &s, K_MSEC(SESSION_TICK_MS)) == 0) {
+            err = publish_sample(&s);
+            if (err != 0) {
+                LOG_ERR("Publish failed (err %d)", err);
+                break;
+            }
+        }
+
+        err = poll_input(0);
+        if ((err == 0) && !mqtt_up) {
+            err = -ECONNRESET;
+        }
+        if (err != 0) {
+            LOG_ERR("MQTT connection lost (err %d)", err);
+            break;
+        }
+
+        /* keep alive の時間が来ていなければ、-EAGAIN */
+        err = mqtt_live(&client);
+        if (err == -EAGAIN) {
+            err = EXIT_SUCCESS;
+        }
+        if (err != 0) {
+            LOG_ERR("MQTT keep alive failed (err %d)", err);
+            break;
+        }
+    }
+
+    if (mqtt_up) {
+        (void)mqtt_disconnect(&client, NULL);
+    }
+    (void)mqtt_abort(&client);
+    mqtt_up = false;
+    return err;
+}
+
+int cloud_step(void)
+{
+    int err = EXIT_SUCCESS;
+
+    if (!cfg_is_complete()) {
+        (void)k_sleep(K_SECONDS(WAIT_CONFIG_S));
+        return -EAGAIN;
+    }
+
+    reconnect_requested = false;
+    err = wifi_link_connect(cfg_get(CFG_KEY_SSID), cfg_get(CFG_KEY_PSK), K_SECONDS(WIFI_TIMEOUT_S));
+    if (err == 0) {
+        err = connect_broker();
+    }
+    if (err != 0) {
+        LOG_WRN("Connection failed (err %d), retrying in %u s", err, retry_s);
+        (void)k_sleep(K_SECONDS(retry_s));
+        retry_s = MIN(retry_s * 2u, RETRY_MAX_S);
+        return err;
+    }
+
+    retry_s = RETRY_MIN_S;
+    LOG_INF("Connected to AWS IoT Core");
+    err = run_session();
+    if (err != 0) {
+        (void)k_sleep(K_SECONDS(RETRY_MIN_S)); /* すぐに失敗を繰り返さない */
+    }
+    return err;
+}
+
+/**
+ * 送信のスレッドの入口 (cloud_step() を繰り返す)
+ *
+ * @param[in] p1 使用しない
+ * @param[in] p2 使用しない
+ * @param[in] p3 使用しない
+ */
+static void cloud_thread_entry(void *p1, void *p2, void *p3)
+{
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+    ARG_UNUSED(p3);
+
+    while (true) {
+        (void)cloud_step();
+    }
+}
+
+int cloud_init(void)
+{
+    int err = cfg_init();
+
+    if (err != 0) {
+        return err;
+    }
+
+    err = wifi_link_init();
+    if (err != 0) {
+        return err;
+    }
+
+    (void)k_thread_create(&cloud_thread, cloud_stack, K_THREAD_STACK_SIZEOF(cloud_stack),
+                          cloud_thread_entry, NULL, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
+    (void)k_thread_name_set(&cloud_thread, "cloud");
+    return EXIT_SUCCESS;
+}
+
+void cloud_stop(void)
+{
+    k_thread_abort(&cloud_thread);
+}
+
+int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
+{
+    struct sample s = {.addr = *addr, .raw = raw, .uptime_ms = k_uptime_get_32()};
+
+    if (k_msgq_put(&cloud_sample_q, &s, K_NO_WAIT) != 0) {
+        LOG_WRN("Send queue is full, the temperature was dropped");
+        return -ENOMSG;
+    }
+    return EXIT_SUCCESS;
+}
+
+void cloud_reconnect(void)
+{
+    reconnect_requested = true;
+    wifi_link_disconnect();
+}
