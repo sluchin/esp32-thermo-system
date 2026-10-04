@@ -1,7 +1,7 @@
-# thermo-gateway の単体テスト: cloud.c (cfg、wifi_link、MQTT、ソケットは、FFF のモック).
+# thermo-gateway の単体テスト: ntp.c (SNTP とソケットと時計は、FFF のモック).
 # twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-thermo-gateway).
 tests:
-  thermo_gateway.cloud:
+  thermo_gateway.ntp:
     platform_allow:
       - native_sim/native/64
     tags:

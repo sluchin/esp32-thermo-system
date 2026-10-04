@@ -6,7 +6,7 @@
 # Doxygen の日本語の出力には、"The selected output language "japanese" has not been updated
 # since release ..." という、内容と関係のない警告が、必ず出るので、それだけは除く.
 #
-# docker compose run docs-thermo から呼ぶ (Doxygen と Graphviz は、Docker イメージにある).
+# docker compose run --rm docs-thermo から呼ぶ (Doxygen と Graphviz は、Docker イメージにある).
 set -eu
 
 project=$(cd "$(dirname "$0")/.." && pwd)

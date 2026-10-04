@@ -4,7 +4,7 @@
 #   scripts/format.sh        整形が必要なファイルがあれば, 失敗する (確認だけ. ファイルは変えない)
 #   scripts/format.sh --fix  整形して, ファイルを書き換える
 #
-# docker compose run format-thermo / format-thermo-fix から呼ぶ (clang-format は, Docker イメージにある).
+# docker compose run --rm format-thermo / format-thermo-fix から呼ぶ (clang-format は, Docker イメージにある).
 set -eu
 
 cd "$(dirname "$0")/.."

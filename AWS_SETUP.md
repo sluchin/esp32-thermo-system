@@ -13,10 +13,11 @@ Thermo Gateway は、BLE で受信した温度 (ADC の生値) を、WiFi と MQ
 | 項目 | 内容 |
 |:---|:---|
 | トピック | `thermo/CLIENT_ID/NODE_ADDRESS/temperature` (例: `thermo/gateway-01/00:AA:01:00:00:42/temperature`) |
-| ペイロード | `{"node":"00:AA:01:00:00:42","raw":2568,"uptime_ms":123456}` |
+| ペイロード | `{"node":"00:AA:01:00:00:42","raw":2568,"uptime_ms":123456,"timestamp":1790000000}` |
 
 - `raw` は、ノードの ADC の生値 (0〜4095) です。温度 (℃) への変換は、していません。
-- `uptime_ms` は、ゲートウェイが温度を受信したときの、ゲートウェイの稼働時間です (時刻は、まだ入っていません)。
+- `uptime_ms` は、ゲートウェイが温度を受信したときの、ゲートウェイの稼働時間です。
+- `timestamp` は、受信したときの UNIX 時刻 [s] です (SwitchBot も同じ)。SNTP で時計が合っているときだけ入ります (MQTT に接続する前に、必ず合わせるので、通常は入ります)。
 
 ### 1.2 SwitchBot 屋外用温湿度計 (Outdoor Meter)
 
@@ -25,7 +26,7 @@ Thermo Gateway は、BLE で受信した温度 (ADC の生値) を、WiFi と MQ
 | 項目 | 内容 |
 |:---|:---|
 | トピック | `thermo/CLIENT_ID/switchbot/DEVICE_ADDRESS` (例: `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56`) |
-| ペイロード | `{"node":"B0:E9:FE:12:34:56","type":"switchbot","temperature_c":23.5,"humidity":55,"battery":87,"uptime_ms":123456}` |
+| ペイロード | `{"node":"B0:E9:FE:12:34:56","type":"switchbot","temperature_c":23.5,"humidity":55,"battery":87,"uptime_ms":123456,"timestamp":1790000000}` |
 
 - 温度は、機器が変換した ℃ です (Thermo ノードの `raw` とは違います)。電池残量がわからないときは、`battery` を出力しません。
 - ポリシーの `topic/thermo/gateway-01/*` に、このトピックも含まれます (変更は、不要です)。
@@ -159,7 +160,7 @@ thermo apply
 
 ## 6. 制限事項
 
-- **サーバ証明書の有効期限は、確認していません** (署名とホスト名は、確認します)。時刻を持っていないためです。SNTP で時刻を合わせる予定です ([TODO.md](TODO.md))。
+- サーバ証明書の有効期限は、確認します (署名とホスト名も、確認します)。そのため、WiFi に接続したあと、SNTP で時刻を合わせてから、MQTT に接続します。時刻を合わせられない間 (NTP サーバに届かないときなど) は、MQTT に接続しないで、つなぎ直します (ログの `Connection failed (err -62)`)。NTP サーバは、`CONFIG_THERMO_NTP_SERVER` で変えられます。
 - 送信できなかった値は、キュー (16 件) があふれると、捨てます。再送はしません (最新の値を優先)。
 - ゲートウェイの RAM は、ほぼ使い切っています (`dram0_0_seg` が 約 98%)。機能を足すときは、`CONFIG_MBEDTLS_HEAP_SIZE` など、ほかを減らす必要があります。
 - `native_sim` のビルドは、ネットワークがないので、クラウドへの送信を含みません (`CONFIG_THERMO_CLOUD=n`)。

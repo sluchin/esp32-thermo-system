@@ -1,5 +1,5 @@
 # thermo-gateway の単体テスト: switchbot.c (SwitchBot 屋外用温湿度計の解析と、送信の間引き).
-# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run test-thermo-gateway).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-thermo-gateway).
 tests:
   thermo_gateway.switchbot:
     platform_allow:

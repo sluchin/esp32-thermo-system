@@ -1,5 +1,5 @@
 # thermo-gateway の単体テスト: wifi_link.c (net_if と net_mgmt は、FFF のモック).
-# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run test-thermo-gateway).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-thermo-gateway).
 tests:
   thermo_gateway.wifi:
     platform_allow:
