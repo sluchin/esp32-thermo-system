@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 Tetsuya Higashi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 /**
- * @file ble.c
+ * @file
  * @brief thermo-node の BLE アドバタイズ実装
  */
 
@@ -14,34 +20,34 @@ LOG_MODULE_REGISTER(ble_thermo_node);
 
 /** アドバタイズデータ: フラグ (LE 一般発見可能、BR/EDR 非対応) とデバイス名 */
 static const struct bt_data ad[] = {
-	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-	BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1u),
+        BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+        BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1u),
 };
 
 int ble_init(void)
 {
-	int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS;
 
-	err = bt_enable(NULL);
-	if (err != 0) {
-		LOG_ERR("Bluetooth init failed (err %d)", err);
-		return err;
-	}
+    err = bt_enable(NULL);
+    if (err != 0) {
+        LOG_ERR("Bluetooth init failed (err %d)", err);
+        return err;
+    }
 
-	LOG_INF("Bluetooth initialized");
-	return EXIT_SUCCESS;
+    LOG_INF("Bluetooth initialized");
+    return EXIT_SUCCESS;
 }
 
 int ble_advertise(void)
 {
-	int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS;
 
-	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), NULL, 0);
-	if (err != 0) {
-		LOG_ERR("Advertising failed to start (err %d)", err);
-		return err;
-	}
+    err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), NULL, 0);
+    if (err != 0) {
+        LOG_ERR("Advertising failed to start (err %d)", err);
+        return err;
+    }
 
-	LOG_INF("Advertising started");
-	return EXIT_SUCCESS;
+    LOG_INF("Advertising started");
+    return EXIT_SUCCESS;
 }

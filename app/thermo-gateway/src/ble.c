@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 Tetsuya Higashi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 /**
- * @file ble.c
+ * @file
  * @brief thermo-gateway の BLE スキャン実装
  */
 
@@ -28,47 +34,47 @@ LOG_MODULE_REGISTER(ble_thermo_gateway);
  * @param[in] adv_data アドバタイズデータ (未使用)
  */
 static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
-		    struct net_buf_simple *adv_data)
+                    struct net_buf_simple *adv_data)
 {
-	char addr_str[BT_ADDR_LE_STR_LEN] = {0};
+    char addr_str[BT_ADDR_LE_STR_LEN] = {0};
 
-	ARG_UNUSED(adv_type);
-	ARG_UNUSED(adv_data);
+    ARG_UNUSED(adv_type);
+    ARG_UNUSED(adv_data);
 
-	(void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
-	LOG_INF("Device found: %s (RSSI %d)", addr_str, rssi);
+    (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
+    LOG_INF("Device found: %s (RSSI %d)", addr_str, rssi);
 }
 
 int ble_init(void)
 {
-	int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS;
 
-	err = bt_enable(NULL);
-	if (err != 0) {
-		LOG_ERR("Bluetooth init failed (err %d)", err);
-		return err;
-	}
+    err = bt_enable(NULL);
+    if (err != 0) {
+        LOG_ERR("Bluetooth init failed (err %d)", err);
+        return err;
+    }
 
-	LOG_INF("Bluetooth initialized");
-	return EXIT_SUCCESS;
+    LOG_INF("Bluetooth initialized");
+    return EXIT_SUCCESS;
 }
 
 int ble_scan(void)
 {
-	int err = EXIT_SUCCESS;
-	struct bt_le_scan_param scan_param = {
-		.type = BT_LE_SCAN_TYPE_ACTIVE,
-		.options = BT_LE_SCAN_OPT_NONE,
-		.interval = BT_GAP_MS_TO_SCAN_INTERVAL(SCAN_INTERVAL_MS),
-		.window = BT_GAP_MS_TO_SCAN_WINDOW(SCAN_WINDOW_MS),
-	};
+    int err = EXIT_SUCCESS;
+    struct bt_le_scan_param scan_param = {
+            .type = BT_LE_SCAN_TYPE_ACTIVE,
+            .options = BT_LE_SCAN_OPT_NONE,
+            .interval = BT_GAP_MS_TO_SCAN_INTERVAL(SCAN_INTERVAL_MS),
+            .window = BT_GAP_MS_TO_SCAN_WINDOW(SCAN_WINDOW_MS),
+    };
 
-	err = bt_le_scan_start(&scan_param, scan_cb);
-	if (err != 0) {
-		LOG_ERR("Starting scan failed (err %d)", err);
-		return err;
-	}
+    err = bt_le_scan_start(&scan_param, scan_cb);
+    if (err != 0) {
+        LOG_ERR("Starting scan failed (err %d)", err);
+        return err;
+    }
 
-	LOG_INF("BLE scan started");
-	return EXIT_SUCCESS;
+    LOG_INF("BLE scan started");
+    return EXIT_SUCCESS;
 }

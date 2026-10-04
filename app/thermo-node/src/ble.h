@@ -1,8 +1,14 @@
+/*
+ * Copyright (c) 2026 Tetsuya Higashi
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #ifndef THERMO_NODE_BLE_H
 #define THERMO_NODE_BLE_H
 
 /**
- * @file ble.h
+ * @file
  * @brief thermo-node の BLE 制御 (アドバタイズ)
  */
 
