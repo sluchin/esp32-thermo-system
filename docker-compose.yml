@@ -10,7 +10,7 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node -- -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    command: west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
     environment:
       - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
@@ -27,7 +27,7 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway -- -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    command: west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
     environment:
       - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
@@ -44,7 +44,7 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -DCONF_FILE=prj-native_sim.conf -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    command: west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DCONF_FILE=prj-native_sim.conf -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
     environment:
       - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
@@ -61,7 +61,7 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-sim -- -DCONF_FILE=prj-native_sim.conf -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    command: west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-sim -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DCONF_FILE=prj-native_sim.conf -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
     environment:
       - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
