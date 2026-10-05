@@ -10,16 +10,16 @@ usage() {
     echo ""
     echo "Arguments:"
     echo "  TARGET     Target to flash: node, gateway, or all (default: all)"
-    echo "  PORT       Serial port (default: /dev/ttyUSB0)"
+    echo "  PORT       Serial port (default: /dev/ttyACM0)"
     echo ""
     echo "Examples:"
-    echo "  ./flash.sh node              # Flash node to /dev/ttyUSB0"
-    echo "  ./flash.sh gateway /dev/ttyUSB1  # Flash gateway to /dev/ttyUSB1"
+    echo "  ./flash.sh node              # Flash node to /dev/ttyACM0"
+    echo "  ./flash.sh gateway /dev/ttyACM1  # Flash gateway to /dev/ttyACM1"
     exit 1
 }
 
 TARGET="all"
-PORT="/dev/ttyUSB0"
+PORT="/dev/ttyACM0"
 
 if [ $# -gt 0 ]; then
     case $1 in
@@ -44,14 +44,14 @@ if [ ! -e "$PORT" ]; then
     echo "Error: Port $PORT not found"
     echo ""
     echo "Available ports:"
-    ls /dev/ttyUSB* /dev/tty.usbserial* 2>/dev/null || echo "No serial ports found"
+    ls /dev/ttyACM* /dev/ttyUSB* /dev/tty.usbmodem* /dev/tty.usbserial* 2>/dev/null || echo "No serial ports found"
     exit 1
 fi
 
 # esptool が利用可能か確認
-if ! command -v esptool.py &> /dev/null; then
-    echo "Error: esptool.py not found"
-    echo "Install it with: pip install esptool"
+if ! command -v esptool &> /dev/null; then
+    echo "Error: esptool not found"
+    echo "Install it with: pipx install esptool"
     exit 1
 fi
 
@@ -71,7 +71,7 @@ flash_app() {
     echo "Flashing $app to $port"
     echo "================================"
 
-    esptool.py -p "$port" write_flash 0x0 "$build_dir/zephyr.bin"
+    esptool -p "$port" write-flash 0x0 "$build_dir/zephyr.bin"
 
     echo "✓ $app flashed successfully"
     echo ""
