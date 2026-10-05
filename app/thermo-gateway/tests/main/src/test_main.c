@@ -64,8 +64,8 @@ FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, uint16_t)
 
 /** 温度のコールバックに渡す, ノードのアドレス */
 static const bt_addr_le_t test_addr = {
-        .type = BT_ADDR_LE_RANDOM,
-        .a = {.val = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}},
+    .type = BT_ADDR_LE_RANDOM,
+    .a = {.val = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}},
 };
 /** 温度のコールバックに渡す, 温度の生値 */
 #define TEST_RAW 0x0abcu

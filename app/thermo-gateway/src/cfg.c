@@ -31,10 +31,10 @@ static const struct {
     const char *name; /**< 項目の名前 (settings の名前と, シェルの引数に使う) */
     size_t max;       /**< 値の最大長 (NUL を除く) */
 } key_infos[CFG_KEY_COUNT] = {
-        [CFG_KEY_SSID] = {"ssid", CFG_SSID_MAX},
-        [CFG_KEY_PSK] = {"psk", CFG_PSK_MAX},
-        [CFG_KEY_ENDPOINT] = {"endpoint", CFG_ENDPOINT_MAX},
-        [CFG_KEY_CLIENT_ID] = {"client_id", CFG_CLIENT_ID_MAX},
+    [CFG_KEY_SSID] = {"ssid", CFG_SSID_MAX},
+    [CFG_KEY_PSK] = {"psk", CFG_PSK_MAX},
+    [CFG_KEY_ENDPOINT] = {"endpoint", CFG_ENDPOINT_MAX},
+    [CFG_KEY_CLIENT_ID] = {"client_id", CFG_CLIENT_ID_MAX},
 };
 
 /**
@@ -56,9 +56,9 @@ static const struct {
     uint8_t *buf;                  /**< フラッシュから読み込んだ証明書の保存先 */
     size_t max;                    /**< 証明書の最大サイズ */
 } cred_infos[CFG_CRED_COUNT] = {
-        [CFG_CRED_CA] = {"ca", TLS_CREDENTIAL_CA_CERTIFICATE, ca_buf, sizeof(ca_buf)},
-        [CFG_CRED_CERT] = {"cert", TLS_CREDENTIAL_PUBLIC_CERTIFICATE, cert_buf, sizeof(cert_buf)},
-        [CFG_CRED_KEY] = {"key", TLS_CREDENTIAL_PRIVATE_KEY, key_buf, sizeof(key_buf)},
+    [CFG_CRED_CA] = {"ca", TLS_CREDENTIAL_CA_CERTIFICATE, ca_buf, sizeof(ca_buf)},
+    [CFG_CRED_CERT] = {"cert", TLS_CREDENTIAL_PUBLIC_CERTIFICATE, cert_buf, sizeof(cert_buf)},
+    [CFG_CRED_KEY] = {"key", TLS_CREDENTIAL_PRIVATE_KEY, key_buf, sizeof(key_buf)},
 };
 
 /** 設定の値 (NUL で終わる) */
