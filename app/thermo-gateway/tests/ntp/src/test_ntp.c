@@ -20,7 +20,7 @@
 #include <zephyr/net/sntp.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/sys/clock.h>
-#include <errno.h>
+#include <errno.h> /* EHOSTUNREACH EAGAIN ETIMEDOUT ENOMEM */
 #include <string.h>
 
 #include "ntp.h"
@@ -110,7 +110,7 @@ ZTEST_SUITE(ntp, NULL, NULL, before, NULL, NULL);
 /** 名前を解決できなければ -EHOSTUNREACH で、SNTP には進まず、同期済みにならない */
 ZTEST(ntp, test_a_resolve_failure)
 {
-    int64_t sec = 0;
+    int64_t sec = 0; /* UNIX 時刻 [s] */
 
     zsock_getaddrinfo_fake.custom_fake = NULL;
     zsock_getaddrinfo_fake.return_val = -1;
@@ -142,7 +142,7 @@ ZTEST(ntp, test_c_init_failure)
 /** 同期に成功すると時計を設定して、同期済みになる。間隔内の再呼び出しは、問い合わせない */
 ZTEST(ntp, test_e_success_then_skip)
 {
-    int64_t sec = 0;
+    int64_t sec = 0; /* UNIX 時刻 [s] */
 
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), 0);
     zassert_true(ntp_is_synced());

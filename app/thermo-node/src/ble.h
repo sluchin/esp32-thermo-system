@@ -12,7 +12,7 @@
  * @brief thermo-node の BLE 制御 (アドバタイズと、GATT での温度の配信)
  */
 
-#include <stdint.h>
+#include <stdint.h> /* uint16_t */
 
 /**
  * @brief Bluetooth スタックを初期化して、Thermo サービス (GATT) を登録する。

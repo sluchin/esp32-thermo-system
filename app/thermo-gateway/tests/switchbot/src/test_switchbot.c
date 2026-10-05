@@ -15,7 +15,7 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/ztest.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string.h> /* memcpy */
 
 #include "switchbot.h"
 
@@ -71,7 +71,7 @@ static void before(void *fixture)
 /** サービスデータ: 機種と、電池残量を取り出す */
 ZTEST(switchbot, test_parse_service_data)
 {
-    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};
+    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     zassert_true(
             switchbot_parse(BT_DATA_SVC_DATA16, service_outdoor, sizeof(service_outdoor), &ad));
@@ -85,8 +85,8 @@ ZTEST(switchbot, test_parse_service_data)
 /** サービスデータ: 各 byte の最上位の bit は、別の意味なので、取り除く */
 ZTEST(switchbot, test_parse_service_data_masks_high_bit)
 {
-    const uint8_t data[] = {0x3D, 0xFD, 0xF7, 0x00, 0xE4};
-    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};
+    const uint8_t data[] = {0x3D, 0xFD, 0xF7, 0x00, 0xE4}; /* 入力データ */
+    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};     /* 広告データ */
 
     zassert_true(switchbot_parse(BT_DATA_SVC_DATA16, data, sizeof(data), &ad));
 
@@ -98,7 +98,7 @@ ZTEST(switchbot, test_parse_service_data_masks_high_bit)
 /** 製造者データ: 0 ℃ 以上の温度 (整数部の最上位の bit が 1) と、湿度 */
 ZTEST(switchbot, test_parse_manufacturer_positive)
 {
-    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};
+    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     zassert_true(switchbot_parse(BT_DATA_MANUFACTURER_DATA, mfr_plus, sizeof(mfr_plus), &ad));
 
@@ -111,8 +111,8 @@ ZTEST(switchbot, test_parse_manufacturer_positive)
 /** 製造者データ: 0 ℃ 未満の温度 (整数部の最上位の bit が 0) */
 ZTEST(switchbot, test_parse_manufacturer_negative)
 {
-    uint8_t data[sizeof(mfr_plus)];
-    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};
+    uint8_t data[sizeof(mfr_plus)];                    /* 入力データ */
+    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     make_mfr(data, 0x03u, 0x05u, 0x37u);
 
@@ -125,8 +125,8 @@ ZTEST(switchbot, test_parse_manufacturer_negative)
 /** 製造者データ: 小数部の上位 4 bit は、別の意味なので、取り除く。0.0 ℃ は、符号なしで 0 */
 ZTEST(switchbot, test_parse_manufacturer_decimal_mask_and_zero)
 {
-    uint8_t data[sizeof(mfr_plus)];
-    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};
+    uint8_t data[sizeof(mfr_plus)];                    /* 入力データ */
+    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     make_mfr(data, 0xA7u, 0x80u, 0x37u);
 
@@ -143,8 +143,8 @@ ZTEST(switchbot, test_parse_manufacturer_decimal_mask_and_zero)
 /** 製造者データ: 湿度は、下位 7 bit で、100 % まで。それを超えたら、壊れたデータとして捨てる */
 ZTEST(switchbot, test_parse_manufacturer_humidity_limit)
 {
-    uint8_t data[sizeof(mfr_plus)];
-    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};
+    uint8_t data[sizeof(mfr_plus)];                    /* 入力データ */
+    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     make_mfr(data, 0x05u, 0x97u, 0x64u);
     zassert_true(switchbot_parse(BT_DATA_MANUFACTURER_DATA, data, sizeof(data), &ad));
@@ -165,7 +165,7 @@ ZTEST(switchbot, test_parse_manufacturer_humidity_limit)
 /** 長さが足りなければ、どちらのデータも、拒否する (ちょうどの長さは、受け付ける) */
 ZTEST(switchbot, test_parse_short_data)
 {
-    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};
+    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     zassert_false(switchbot_parse(BT_DATA_SVC_DATA16, service_outdoor, 4u, &ad));
     zassert_true(switchbot_parse(BT_DATA_SVC_DATA16, service_outdoor, 5u, &ad));
@@ -176,7 +176,7 @@ ZTEST(switchbot, test_parse_short_data)
 /** UUID や会社 ID の 2 byte すら、ない短いデータは、拒否する */
 ZTEST(switchbot, test_parse_too_short_for_id)
 {
-    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};
+    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     zassert_false(switchbot_parse(BT_DATA_SVC_DATA16, service_outdoor, 1u, &ad));
     zassert_false(switchbot_parse(BT_DATA_MANUFACTURER_DATA, mfr_plus, 1u, &ad));
@@ -185,8 +185,8 @@ ZTEST(switchbot, test_parse_too_short_for_id)
 /** UUID、会社 ID、AD の種類が違うデータは、SwitchBot のものではないので、拒否する */
 ZTEST(switchbot, test_parse_other_data)
 {
-    uint8_t data[sizeof(mfr_plus)];
-    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE};
+    uint8_t data[sizeof(mfr_plus)];                    /* 入力データ */
+    struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     /* サービスデータ: UUID の下位、上位の byte が、それぞれ違う */
     (void)memcpy(data, service_outdoor, sizeof(service_outdoor));
@@ -234,9 +234,10 @@ static struct switchbot_ad make_ad(enum switchbot_kind kind, uint8_t model, uint
 /** 機種と電池残量を受け取ったあとの、最初の温湿度は、すぐ送る (電池残量を添える) */
 ZTEST(switchbot, test_accept_first_report)
 {
-    struct switchbot_sample sample = {0};
+    struct switchbot_sample sample = {0}; /* サンプル */
+    /* 機器の情報の広告データ */
     struct switchbot_ad info = make_ad(SWITCHBOT_INFO, SWITCHBOT_MODEL_OUTDOOR, 87u, 0, 0u);
-    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, -53, 55u);
+    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, -53, 55u); /* 環境データ */
 
     /* 期待: 機種と電池残量だけでは、送らない */
     zassert_false(switchbot_accept(&addr_a, &info, 0u, &sample));
@@ -250,9 +251,10 @@ ZTEST(switchbot, test_accept_first_report)
 /** 機種がわからない機器の温湿度は、送らない (サービスデータを受け取ってから、送る) */
 ZTEST(switchbot, test_accept_requires_model)
 {
-    struct switchbot_sample sample = {0};
+    struct switchbot_sample sample = {0}; /* サンプル */
+    /* 機器の情報の広告データ */
     struct switchbot_ad info = make_ad(SWITCHBOT_INFO, SWITCHBOT_MODEL_OUTDOOR, 50u, 0, 0u);
-    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u);
+    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u); /* 環境データ */
 
     zassert_false(switchbot_accept(&addr_a, &env, 0u, &sample));
 
@@ -263,9 +265,9 @@ ZTEST(switchbot, test_accept_requires_model)
 /** 屋外用温湿度計ではない機種 (別のレイアウトの製造者データ) の値は、送らない */
 ZTEST(switchbot, test_accept_ignores_other_model)
 {
-    struct switchbot_sample sample = {0};
-    struct switchbot_ad info = {.kind = SWITCHBOT_NONE};
-    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u);
+    struct switchbot_sample sample = {0};                               /* サンプル */
+    struct switchbot_ad info = {.kind = SWITCHBOT_NONE};                /* 機器の情報の広告データ */
+    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u); /* 環境データ */
 
     /* 機種 'T' のサービスデータを、解析して、記録する */
     zassert_true(switchbot_parse(BT_DATA_SVC_DATA16, service_other, sizeof(service_other), &info));
@@ -277,8 +279,8 @@ ZTEST(switchbot, test_accept_ignores_other_model)
 /** 解析の結果が、どちらでもなければ (NONE)、送らない */
 ZTEST(switchbot, test_accept_ignores_none)
 {
-    struct switchbot_sample sample = {0};
-    struct switchbot_ad none = make_ad(SWITCHBOT_NONE, 0u, 0u, 0, 0u);
+    struct switchbot_sample sample = {0};                              /* サンプル */
+    struct switchbot_ad none = make_ad(SWITCHBOT_NONE, 0u, 0u, 0, 0u); /* 種別のない広告データ */
 
     zassert_false(switchbot_accept(&addr_a, &none, 0u, &sample));
 }
@@ -286,9 +288,10 @@ ZTEST(switchbot, test_accept_ignores_none)
 /** 間隔 (1000 ms) 未満の値は捨てて、間隔がたてば、送る (ちょうど間隔でも、送る) */
 ZTEST(switchbot, test_accept_interval)
 {
-    struct switchbot_sample sample = {0};
+    struct switchbot_sample sample = {0}; /* サンプル */
+    /* 機器の情報の広告データ */
     struct switchbot_ad info = make_ad(SWITCHBOT_INFO, SWITCHBOT_MODEL_OUTDOOR, 50u, 0, 0u);
-    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u);
+    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u); /* 環境データ */
 
     (void)switchbot_accept(&addr_a, &info, 0u, &sample);
 
@@ -304,9 +307,10 @@ ZTEST(switchbot, test_accept_interval)
 /** 稼働時間のカウンタが、一周 (UINT32_MAX を超える) しても、間隔を正しく測る */
 ZTEST(switchbot, test_accept_interval_wraps)
 {
-    struct switchbot_sample sample = {0};
+    struct switchbot_sample sample = {0}; /* サンプル */
+    /* 機器の情報の広告データ */
     struct switchbot_ad info = make_ad(SWITCHBOT_INFO, SWITCHBOT_MODEL_OUTDOOR, 50u, 0, 0u);
-    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u);
+    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u); /* 環境データ */
 
     (void)switchbot_accept(&addr_a, &info, 0u, &sample);
 
@@ -320,10 +324,12 @@ ZTEST(switchbot, test_accept_interval_wraps)
 /** 機器ごとに、別々に記録して、間引く (電池残量も、機器ごと) */
 ZTEST(switchbot, test_accept_devices_are_independent)
 {
-    struct switchbot_sample sample = {0};
+    struct switchbot_sample sample = {0}; /* サンプル */
+    /* 機器の情報の広告データ (A) */
     struct switchbot_ad info_a = make_ad(SWITCHBOT_INFO, SWITCHBOT_MODEL_OUTDOOR, 90u, 0, 0u);
+    /* 機器の情報の広告データ (B) */
     struct switchbot_ad info_b = make_ad(SWITCHBOT_INFO, SWITCHBOT_MODEL_OUTDOOR, 40u, 0, 0u);
-    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u);
+    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u); /* 環境データ */
 
     (void)switchbot_accept(&addr_a, &info_a, 0u, &sample);
     (void)switchbot_accept(&addr_b, &info_b, 0u, &sample);
@@ -340,11 +346,12 @@ ZTEST(switchbot, test_accept_devices_are_independent)
 /** 扱える機器の数 (4 台) を超えた機器は、無視する。すでにある機器は、扱える */
 ZTEST(switchbot, test_accept_device_table_full)
 {
-    struct switchbot_sample sample = {0};
+    struct switchbot_sample sample = {0}; /* サンプル */
+    /* 機器の情報の広告データ */
     struct switchbot_ad info = make_ad(SWITCHBOT_INFO, SWITCHBOT_MODEL_OUTDOOR, 50u, 0, 0u);
-    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u);
-    bt_addr_le_t addr = addr_a;
-    unsigned int i = 0u;
+    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u); /* 環境データ */
+    bt_addr_le_t addr = addr_a;                                         /* アドレス */
+    unsigned int i = 0u;                                                /* ループ用の添字 */
 
     for (i = 0u; i < SWITCHBOT_MAX_DEVICES; i++) {
         addr.a.val[0] = (uint8_t)i;
@@ -364,9 +371,10 @@ ZTEST(switchbot, test_accept_device_table_full)
 /** 記録を消すと、機種が、わからない状態に戻って、枠も空く */
 ZTEST(switchbot, test_reset)
 {
-    struct switchbot_sample sample = {0};
+    struct switchbot_sample sample = {0}; /* サンプル */
+    /* 機器の情報の広告データ */
     struct switchbot_ad info = make_ad(SWITCHBOT_INFO, SWITCHBOT_MODEL_OUTDOOR, 50u, 0, 0u);
-    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u);
+    struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0u, 0u, 235, 55u); /* 環境データ */
 
     (void)switchbot_accept(&addr_a, &info, 0u, &sample);
     zassert_true(switchbot_accept(&addr_a, &env, 5000u, &sample));

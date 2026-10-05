@@ -11,11 +11,11 @@
 
 #include <zephyr/logging/log.h>
 #include <zephyr/settings/settings.h>
-#include <errno.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>  /* ENOENT EINVAL */
+#include <stdint.h> /* uint8_t */
+#include <stdio.h>  /* snprintf */
+#include <stdlib.h> /* EXIT_SUCCESS */
+#include <string.h> /* strcmp strlen memcpy */
 
 #include "cfg.h"
 
@@ -81,7 +81,7 @@ static void settings_name(char *out, const char *name)
 /* 項目の名前から、項目を探す */
 int cfg_key_from_name(const char *name)
 {
-    size_t i = 0u;
+    size_t i = 0u; /* ループ用の添字 */
 
     for (i = 0u; i < ARRAY_SIZE(key_infos); i++) {
         if (strcmp(name, key_infos[i].name) == 0) {
@@ -106,9 +106,9 @@ const char *cfg_get(enum cfg_key key)
 /* 項目の値を、フラッシュに保存して、設定する */
 int cfg_set(enum cfg_key key, const char *value)
 {
-    char name[SETTINGS_NAME_SIZE] = {0};
-    size_t len = strlen(value);
-    int err = EXIT_SUCCESS;
+    char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
+    size_t len = strlen(value);          /* 値の長さ [バイト] */
+    int err = EXIT_SUCCESS;              /* エラーコード */
 
     if (len > key_infos[key].max) {
         return -EINVAL;
@@ -128,7 +128,7 @@ int cfg_set(enum cfg_key key, const char *value)
 /* 証明書の種類の名前から、種類を探す */
 int cfg_cred_from_name(const char *name)
 {
-    size_t i = 0u;
+    size_t i = 0u; /* ループ用の添字 */
 
     for (i = 0u; i < ARRAY_SIZE(cred_infos); i++) {
         if (strcmp(name, cred_infos[i].name) == 0) {
@@ -147,8 +147,8 @@ const char *cfg_cred_name(enum cfg_cred cred)
 /* 証明書が、TLS の認証情報に登録されているか調べる */
 bool cfg_has_cred(enum cfg_cred cred)
 {
-    uint8_t probe = 0u;
-    size_t len = sizeof(probe);
+    uint8_t probe = 0u;         /* 存在確認用の 1 バイト */
+    size_t len = sizeof(probe); /* 値の長さ [バイト] */
 
     /* 登録されていれば、1 byte の領域には入らないので、-EFBIG になる */
     return tls_credential_get(CFG_TLS_SEC_TAG, cred_infos[cred].type, &probe, &len) != -ENOENT;
@@ -157,10 +157,10 @@ bool cfg_has_cred(enum cfg_cred cred)
 /* 登録されている証明書を、フラッシュに保存する */
 int cfg_save_credentials(void)
 {
-    char name[SETTINGS_NAME_SIZE] = {0};
-    size_t len = 0u;
-    size_t i = 0u;
-    int err = EXIT_SUCCESS;
+    char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
+    size_t len = 0u;                     /* 値の長さ [バイト] */
+    size_t i = 0u;                       /* ループ用の添字 */
+    int err = EXIT_SUCCESS;              /* エラーコード */
 
     for (i = 0u; i < ARRAY_SIZE(cred_infos); i++) {
         /* 登録されている証明書を、一時的な領域に取り出して、フラッシュに保存する */
@@ -184,7 +184,7 @@ int cfg_save_credentials(void)
 /* 接続に必要な設定と証明書が、全て揃っているか調べる */
 bool cfg_is_complete(void)
 {
-    size_t i = 0u;
+    size_t i = 0u; /* ループ用の添字 */
 
     /* PSK は、オープンネットワークでは、空 */
     if ((values[CFG_KEY_SSID][0] == '\0') || (values[CFG_KEY_ENDPOINT][0] == '\0') ||
@@ -203,10 +203,10 @@ bool cfg_is_complete(void)
 /* 設定と証明書を、フラッシュからも消す */
 int cfg_reset(void)
 {
-    char name[SETTINGS_NAME_SIZE] = {0};
-    size_t i = 0u;
-    int first_err = EXIT_SUCCESS;
-    int err = EXIT_SUCCESS;
+    char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
+    size_t i = 0u;                       /* ループ用の添字 */
+    int first_err = EXIT_SUCCESS;        /* 最初のエラー */
+    int err = EXIT_SUCCESS;              /* エラーコード */
 
     /* 失敗しても、残りの項目の削除を続けて、最初のエラーを返す */
     for (i = 0u; i < ARRAY_SIZE(key_infos); i++) {
@@ -240,7 +240,7 @@ int cfg_reset(void)
  */
 static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, void *cb_arg)
 {
-    ssize_t read_len = 0;
+    ssize_t read_len = 0; /* 読み込んだ長さ [バイト] */
 
     if ((len == 0u) || (len > (key_infos[key].max + 1u))) {
         LOG_WRN("Ignoring '%s' with an invalid length %zu", key_infos[key].name, len);
@@ -266,8 +266,8 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
  */
 static void load_credential(enum cfg_cred cred, size_t len, settings_read_cb read_cb, void *cb_arg)
 {
-    ssize_t read_len = 0;
-    int err = EXIT_SUCCESS;
+    ssize_t read_len = 0;   /* 読み込んだ長さ [バイト] */
+    int err = EXIT_SUCCESS; /* エラーコード */
 
     if ((len == 0u) || (len > cred_infos[cred].max)) {
         LOG_WRN("Ignoring credential '%s' with an invalid length %zu", cred_infos[cred].name, len);
@@ -301,8 +301,8 @@ static void load_credential(enum cfg_cred cred, size_t len, settings_read_cb rea
  */
 static int settings_set_cb(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg)
 {
-    int key = cfg_key_from_name(name);
-    int cred = cfg_cred_from_name(name);
+    int key = cfg_key_from_name(name);   /* 設定項目の番号 */
+    int cred = cfg_cred_from_name(name); /* 証明書の番号 */
 
     if (key >= 0) {
         load_value((enum cfg_key)key, len, read_cb, cb_arg);
@@ -320,7 +320,7 @@ static struct settings_handler handler = {.name = SETTINGS_ROOT, .h_set = settin
 /* settings を初期化して、保存された設定と証明書を読み込む */
 int cfg_init(void)
 {
-    int err = settings_subsys_init();
+    int err = settings_subsys_init(); /* エラーコード */
 
     if (err != 0) {
         LOG_ERR("Settings init failed (err %d)", err);

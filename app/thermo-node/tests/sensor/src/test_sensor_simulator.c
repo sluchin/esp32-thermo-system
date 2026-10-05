@@ -12,8 +12,8 @@
  */
 
 #include <zephyr/ztest.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <stdint.h> /* uint16_t */
+#include <stdlib.h> /* EXIT_SUCCESS */
 
 #include "sensor.h"
 
@@ -32,8 +32,8 @@ ZTEST(sensor_simulator, test_init)
 /** sensor_read_temperature() は, 12 bit の範囲 (0 .. 4095) の値を返す */
 ZTEST(sensor_simulator, test_read_range)
 {
-    uint16_t value = 0u;
-    int i = 0;
+    uint16_t value = 0u; /* 値 */
+    int i = 0;           /* ループ用の添字 */
 
     for (i = 0; i < REPEAT; i++) {
         /* 期待: 生値は、常に 12 bit の範囲 (0 .. 4095) に収まる */
@@ -45,10 +45,10 @@ ZTEST(sensor_simulator, test_read_range)
 /** 値は, 毎回同じにならない (乱数で作る) */
 ZTEST(sensor_simulator, test_read_varies)
 {
-    uint16_t first = 0u;
-    uint16_t value = 0u;
-    bool changed = false;
-    int i = 0;
+    uint16_t first = 0u;  /* 最初の値 */
+    uint16_t value = 0u;  /* 値 */
+    bool changed = false; /* 値が変わったか */
+    int i = 0;            /* ループ用の添字 */
 
     /* 繰り返しの間に、最初と違う値が 1 回でも出れば、値は変化している */
     zassert_equal(sensor_read_temperature(&first), EXIT_SUCCESS);

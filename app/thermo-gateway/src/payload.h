@@ -13,8 +13,8 @@
  */
 
 #include <zephyr/bluetooth/addr.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <stddef.h> /* size_t */
+#include <stdint.h> /* uint16_t uint32_t int64_t */
 
 #include "switchbot.h"
 

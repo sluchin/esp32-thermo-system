@@ -16,8 +16,8 @@
  */
 
 #include <zephyr/kernel.h>
-#include <stdbool.h>
-#include <stdint.h>
+#include <stdbool.h> /* bool */
+#include <stdint.h>  /* int64_t */
 
 /**
  * @brief NTP サーバに問い合わせて、システム時計を合わせる。
