@@ -221,10 +221,10 @@ west build -p always -b xiao_esp32c3 app/thermo-node
 
 ### 前提条件
 
-- esptool.py のインストール
+- esptool のインストール (コマンド名は `esptool`。`esptool.py` は古い名前)
 
 ```bash
-pip install esptool
+pipx install esptool
 ```
 
 ### フラッシング手順
@@ -233,30 +233,38 @@ pip install esptool
 
 2. デバイスポート確認
    ```bash
-   ls /dev/ttyUSB*  # Linux
-   ls /dev/tty.usbserial*  # macOS
+   ls /dev/ttyACM*  # Linux (XIAO ESP32C3 は、USB 内蔵なので ttyACM)
+   ls /dev/tty.usbmodem*  # macOS
+   ```
+
+   シリアルポートを使うには、`dialout` グループに入る (入れたあとは、ログインし直す)。
+   ```bash
+   sudo usermod -aG dialout $USER
    ```
 
 3. ファームウェアをフラッシング
    ```bash
    # Thermo Node
-   esptool.py -p /dev/ttyUSB0 write_flash 0x0 build/zephyr/zephyr.bin
+   esptool -p /dev/ttyACM0 write-flash 0x0 build/thermo-node/zephyr/zephyr.bin
 
    # Thermo Gateway
-   esptool.py -p /dev/ttyUSB0 write_flash 0x0 build/zephyr/zephyr.bin
+   esptool -p /dev/ttyACM0 write-flash 0x0 build/thermo-gateway/zephyr/zephyr.bin
+
+   # スクリプト (TARGET は node / gateway / all)
+   ./flash.sh gateway /dev/ttyACM0
    ```
 
 ## シリアルモニター
 
 ```bash
 # picocom (推奨)
-picocom -b 115200 /dev/ttyUSB0
+picocom -b 115200 /dev/ttyACM0
 
 # screen
-screen /dev/ttyUSB0 115200
+screen /dev/ttyACM0 115200
 
 # minicom
-minicom -D /dev/ttyUSB0 -b 115200
+minicom -D /dev/ttyACM0 -b 115200
 ```
 
 ## CI/CD（GitHub Actions）
