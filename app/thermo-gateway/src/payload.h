@@ -9,7 +9,7 @@
 
 /**
  * @file
- * @brief MQTT のトピックと、ペイロード (JSON) の生成
+ * @brief MQTT のトピックと, ペイロード (JSON) の生成
  */
 
 #include <zephyr/bluetooth/addr.h>
@@ -18,69 +18,14 @@
 
 #include "switchbot.h"
 
-/**
- * @brief トピックを生成する。
- *
- * 形式は `thermo/<クライアント ID>/<ノードのアドレス>/temperature`
- * (例: `thermo/gateway-01/00:AA:01:00:00:42/temperature`)。
- *
- * @param[out] buf       出力先 (NUL で終わる)
- * @param[in]  size      buf のサイズ
- * @param[in]  client_id ゲートウェイのクライアント ID
- * @param[in]  addr      ノードのアドレス
- * @return 文字列の長さ (NUL を除く)。buf が小さければ -ENOSPC
- */
 int payload_format_topic(char *buf, size_t size, const char *client_id, const bt_addr_le_t *addr);
 
-/**
- * @brief ペイロード (JSON) を生成する。
- *
- * 形式は `{"node":"<アドレス>","raw":<ADC の生値>,"uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX
- * 時刻 [s]>}`。 UNIX 時刻がわからないとき (unix_s が負) は、"timestamp" を出力しない。 温度 (℃)
- * への変換は、していない (TODO.md を参照)。
- *
- * @param[out] buf       出力先 (NUL で終わる)
- * @param[in]  size      buf のサイズ
- * @param[in]  addr      ノードのアドレス
- * @param[in]  raw       温度 (ADC の生値)
- * @param[in]  uptime_ms 温度を受信したときの、ゲートウェイの稼働時間 [ms]
- * @param[in]  unix_s    温度を受信したときの、UNIX 時刻 [s] (負なら、わからない)
- * @return 文字列の長さ (NUL を除く)。buf が小さければ -ENOSPC
- */
 int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr, uint16_t raw,
                                uint32_t uptime_ms, int64_t unix_s);
 
-/**
- * @brief SwitchBot のトピックを生成する。
- *
- * 形式は `thermo/<クライアント ID>/switchbot/<機器のアドレス>`
- * (例: `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56`)。
- *
- * @param[out] buf       出力先 (NUL で終わる)
- * @param[in]  size      buf のサイズ
- * @param[in]  client_id ゲートウェイのクライアント ID
- * @param[in]  addr      機器のアドレス
- * @return 文字列の長さ (NUL を除く)。buf が小さければ -ENOSPC
- */
 int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id,
                                    const bt_addr_le_t *addr);
 
-/**
- * @brief SwitchBot のペイロード (JSON) を生成する。
- *
- * 形式は `{"node":"<アドレス>","type":"switchbot","temperature_c":<℃>,"humidity":<%>,
- * "battery":<%>,"uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX 時刻 [s]>}`。電池残量が
- * わからないときは "battery" を、UNIX 時刻がわからないとき (unix_s が負) は "timestamp" を、
- * 出力しない。温度は、10 分の 1 ℃ の桁まで (例: -3.5、23.4)。
- *
- * @param[out] buf       出力先 (NUL で終わる)
- * @param[in]  size      buf のサイズ
- * @param[in]  addr      機器のアドレス
- * @param[in]  sample    温度、湿度、電池残量
- * @param[in]  uptime_ms 受信したときの、ゲートウェイの稼働時間 [ms]
- * @param[in]  unix_s    受信したときの、UNIX 時刻 [s] (負なら、わからない)
- * @return 文字列の長さ (NUL を除く)。buf が小さければ -ENOSPC
- */
 int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
                              const struct switchbot_sample *sample, uint32_t uptime_ms,
                              int64_t unix_s);

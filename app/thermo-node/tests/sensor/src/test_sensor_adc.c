@@ -64,7 +64,7 @@ static void before(void *fixture)
 /** sensor_init() は, ADC が準備できていれば, 成功する */
 ZTEST(sensor_adc, test_init)
 {
-    /* 期待: 準備できていれば、成功する */
+    /* 期待: 準備できていれば, 成功する */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
 }
 
@@ -74,7 +74,7 @@ ZTEST(sensor_adc, test_init_not_ready)
     struct device_state *state = adc_dev->state; /* ADC デバイスの状態 */
 
     state->initialized = false;
-    /* 期待: ADC が初期化されていなければ -ENODEV (終わったら、元に戻す) */
+    /* 期待: ADC が初期化されていなければ -ENODEV (終わったら, 元に戻す) */
     zassert_equal(sensor_init(), -ENODEV);
     state->initialized = true;
 }
@@ -84,7 +84,7 @@ ZTEST(sensor_adc, test_read_zero)
 {
     uint16_t value = 1u; /* 値 */
 
-    /* 期待: 入力 0 mV の生値は 0 (初期値の 1 が、上書きされる) */
+    /* 期待: 入力 0 mV の生値は 0 (初期値の 1 が, 上書きされる) */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
     zassert_equal(value, 0u);
@@ -95,7 +95,7 @@ ZTEST(sensor_adc, test_read_full_scale)
 {
     uint16_t value = 0u; /* 値 */
 
-    /* 期待: 基準電圧と同じ入力で、12 bit の最大値 */
+    /* 期待: 基準電圧と同じ入力で, 12 bit の最大値 */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, REF_MV), 0);
     zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
@@ -107,7 +107,7 @@ ZTEST(sensor_adc, test_read_half_scale)
 {
     uint16_t value = 0u; /* 値 */
 
-    /* 期待: 基準電圧の半分の入力で、最大値のほぼ半分 (誤差は 2 まで) */
+    /* 期待: 基準電圧の半分の入力で, 最大値のほぼ半分 (誤差は 2 まで) */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, REF_MV / 2u), 0);
     zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
@@ -121,7 +121,7 @@ ZTEST(sensor_adc, test_read_monotonic)
     uint16_t high = 0u; /* 高い側の値 */
 
     zassert_equal(sensor_init(), EXIT_SUCCESS);
-    /* 低い電圧 (500 mV) と、高い電圧 (2500 mV) を、順に読む */
+    /* 低い電圧 (500 mV) と, 高い電圧 (2500 mV) を, 順に読む */
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, 500u), 0);
     zassert_equal(sensor_read_temperature(&low), EXIT_SUCCESS);
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, 2500u), 0);
@@ -134,7 +134,7 @@ ZTEST(sensor_adc, test_read_failure)
 {
     uint16_t value = 0u; /* 値 */
 
-    /* 期待: ADC の読み取りの失敗 (-EIO) を、そのまま返す */
+    /* 期待: ADC の読み取りの失敗 (-EIO) を, そのまま返す */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     zassert_equal(adc_emul_value_func_set(adc_dev, CHANNEL, failing_input, NULL), 0);
     zassert_equal(sensor_read_temperature(&value), -EIO);

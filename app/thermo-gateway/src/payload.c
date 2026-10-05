@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief MQTT のトピックと、ペイロード (JSON) の生成
+ * @brief MQTT のトピックと, ペイロード (JSON) の生成
  */
 
 #include <errno.h>    /* ENOSPC */
@@ -23,12 +23,12 @@
 #define BATTERY_FIELD_SIZE   16u
 
 /**
- * アドレスを、"00:AA:01:00:00:42" の形式の文字列にする
+ * アドレスを, "00:AA:01:00:00:42" の形式の文字列にする
  *
- * bt_addr_le_to_str() は、末尾に " (public)" などが付くので、使わない.
+ * bt_addr_le_to_str() は, 末尾に " (public)" などが付くので, 使わない.
  *
  * @param[out] out  出力先 (ADDR_STR_SIZE 以上)
- * @param[in]  addr アドレス (val[0] が、下位の byte)
+ * @param[in]  addr アドレス (val[0] が, 下位の byte)
  */
 static void format_addr(char *out, const bt_addr_le_t *addr)
 {
@@ -39,11 +39,11 @@ static void format_addr(char *out, const bt_addr_le_t *addr)
 }
 
 /**
- * snprintf() の戻り値を、このモジュールの戻り値にする
+ * snprintf() の戻り値を, このモジュールの戻り値にする
  *
  * @param[in] written snprintf() の戻り値
  * @param[in] size    出力先のサイズ
- * @return written。出力が切り捨てられたら -ENOSPC (snprintf() の失敗 (負の値) も、同じ扱い)
+ * @return written. 出力が切り捨てられたら -ENOSPC (snprintf() の失敗 (負の値) も, 同じ扱い)
  */
 static int check_length(int written, size_t size)
 {
@@ -53,7 +53,18 @@ static int check_length(int written, size_t size)
     return written;
 }
 
-/* MQTT のトピックを作る */
+/**
+ * @brief トピックを生成する
+ *
+ * 形式は `thermo/<クライアント ID>/<ノードのアドレス>/temperature`
+ * (例: `thermo/gateway-01/00:AA:01:00:00:42/temperature`).
+ *
+ * @param[out] buf       出力先 (NUL で終わる)
+ * @param[in]  size      buf のサイズ
+ * @param[in]  client_id ゲートウェイのクライアント ID
+ * @param[in]  addr      ノードのアドレス
+ * @return 文字列の長さ (NUL を除く). buf が小さければ -ENOSPC
+ */
 int payload_format_topic(char *buf, size_t size, const char *client_id, const bt_addr_le_t *addr)
 {
     char node[ADDR_STR_SIZE] = {0}; /* ノードのアドレスの文字列 */
@@ -65,9 +76,9 @@ int payload_format_topic(char *buf, size_t size, const char *client_id, const bt
 /**
  * UNIX 時刻の項目 (",\"timestamp\":<秒>") を作る
  *
- * @param[out] field  出力先 (NUL で終わる。unix_s が負なら、空の文字列)
+ * @param[out] field  出力先 (NUL で終わる. unix_s が負なら, 空の文字列)
  * @param[in]  size   field のサイズ
- * @param[in]  unix_s UNIX 時刻 [s] (負なら、わからない)
+ * @param[in]  unix_s UNIX 時刻 [s] (負なら, わからない)
  */
 static void format_timestamp(char *field, size_t size, int64_t unix_s)
 {
@@ -77,7 +88,21 @@ static void format_timestamp(char *field, size_t size, int64_t unix_s)
     }
 }
 
-/* ペイロード (JSON) を作る */
+/**
+ * @brief ペイロード (JSON) を生成する
+ *
+ * 形式は `{"node":"<アドレス>","raw":<ADC の生値>,"uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX
+ * 時刻 [s]>}`. UNIX 時刻がわからないとき (unix_s が負) は, "timestamp" を出力しない. 温度 (℃)
+ * への変換は, していない (TODO.md を参照).
+ *
+ * @param[out] buf       出力先 (NUL で終わる)
+ * @param[in]  size      buf のサイズ
+ * @param[in]  addr      ノードのアドレス
+ * @param[in]  raw       温度 (ADC の生値)
+ * @param[in]  uptime_ms 温度を受信したときの, ゲートウェイの稼働時間 [ms]
+ * @param[in]  unix_s    温度を受信したときの, UNIX 時刻 [s] (負なら, わからない)
+ * @return 文字列の長さ (NUL を除く). buf が小さければ -ENOSPC
+ */
 int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr, uint16_t raw,
                                uint32_t uptime_ms, int64_t unix_s)
 {
@@ -92,7 +117,18 @@ int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr,
                         size);
 }
 
-/* SwitchBot のトピックを作る */
+/**
+ * @brief SwitchBot のトピックを生成する
+ *
+ * 形式は `thermo/<クライアント ID>/switchbot/<機器のアドレス>`
+ * (例: `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56`).
+ *
+ * @param[out] buf       出力先 (NUL で終わる)
+ * @param[in]  size      buf のサイズ
+ * @param[in]  client_id ゲートウェイのクライアント ID
+ * @param[in]  addr      機器のアドレス
+ * @return 文字列の長さ (NUL を除く). buf が小さければ -ENOSPC
+ */
 int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id,
                                    const bt_addr_le_t *addr)
 {
@@ -102,7 +138,22 @@ int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id
     return check_length(snprintf(buf, size, "thermo/%s/switchbot/%s", client_id, node), size);
 }
 
-/* SwitchBot のペイロード (JSON) を作る */
+/**
+ * @brief SwitchBot のペイロード (JSON) を生成する
+ *
+ * 形式は `{"node":"<アドレス>","type":"switchbot","temperature_c":<℃>,"humidity":<%>,
+ * "battery":<%>,"uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX 時刻 [s]>}`. 電池残量が
+ * わからないときは "battery" を, UNIX 時刻がわからないとき (unix_s が負) は "timestamp" を,
+ * 出力しない. 温度は, 10 分の 1 ℃ の桁まで (例: -3.5, 23.4).
+ *
+ * @param[out] buf       出力先 (NUL で終わる)
+ * @param[in]  size      buf のサイズ
+ * @param[in]  addr      機器のアドレス
+ * @param[in]  sample    温度, 湿度, 電池残量
+ * @param[in]  uptime_ms 受信したときの, ゲートウェイの稼働時間 [ms]
+ * @param[in]  unix_s    受信したときの, UNIX 時刻 [s] (負なら, わからない)
+ * @return 文字列の長さ (NUL を除く). buf が小さければ -ENOSPC
+ */
 int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
                              const struct switchbot_sample *sample, uint32_t uptime_ms,
                              int64_t unix_s)
@@ -111,7 +162,7 @@ int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
     char battery[BATTERY_FIELD_SIZE] = {0};     /* 電池残量の項目 */
     char timestamp[TIMESTAMP_FIELD_SIZE] = {0}; /* 時刻の項目 */
     int temp = sample->temp_x10;                /* 温度 [℃ の 10 倍] */
-    /* 0 ℃ 未満は、整数部が 0 でも (-0.5 など) 符号を出すため、符号を別に出力する */
+    /* 0 ℃ 未満は, 整数部が 0 でも (-0.5 など) 符号を出すため, 符号を別に出力する */
     const char *sign = ((temp < 0) ? "-" : "");                         /* 符号 */
     unsigned int magnitude = (unsigned int)((temp < 0) ? -temp : temp); /* 絶対値 */
 

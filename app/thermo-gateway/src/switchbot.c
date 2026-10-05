@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズの解析と、送信の間引き
+ * @brief SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズの解析と, 送信の間引き
  */
 
 #include <zephyr/bluetooth/bluetooth.h>
@@ -15,27 +15,27 @@
 
 #include "switchbot.h"
 
-/** サービスデータの UUID (16 bit) の、下位の byte (UUID 0xFD3D) */
+/** サービスデータの UUID (16 bit) の, 下位の byte (UUID 0xFD3D) */
 #define SERVICE_UUID_LO     0x3Du
-/** サービスデータの UUID (16 bit) の、上位の byte */
+/** サービスデータの UUID (16 bit) の, 上位の byte */
 #define SERVICE_UUID_HI     0xFDu
-/** 製造者データの会社 ID (SwitchBot: 0x0969) の、下位の byte */
+/** 製造者データの会社 ID (SwitchBot: 0x0969) の, 下位の byte */
 #define COMPANY_ID_LO       0x69u
-/** 製造者データの会社 ID の、上位の byte */
+/** 製造者データの会社 ID の, 上位の byte */
 #define COMPANY_ID_HI       0x09u
-/** サービスデータの、UUID のあとの長さ (機種、状態、電池残量) */
+/** サービスデータの, UUID のあとの長さ (機種, 状態, 電池残量) */
 #define SERVICE_PAYLOAD_LEN 3u
-/** 製造者データの、会社 ID のあとの長さ (MAC 6 byte、不明 2 byte、温度 3 byte) */
+/** 製造者データの, 会社 ID のあとの長さ (MAC 6 byte, 不明 2 byte, 温度 3 byte) */
 #define MFR_PAYLOAD_LEN     11u
-/** 製造者データの、温度の位置 (会社 ID のあとから。MAC と不明な 2 byte の次) */
+/** 製造者データの, 温度の位置 (会社 ID のあとから. MAC と不明な 2 byte の次) */
 #define MFR_ENV_OFFSET      8u
-/** 下位 7 bit を取り出すマスク (最上位の bit は、符号などの別の意味) */
+/** 下位 7 bit を取り出すマスク (最上位の bit は, 符号などの別の意味) */
 #define LOW7_MASK           0x7Fu
-/** 小数部 (10 分の 1) の、下位 4 bit のマスク */
+/** 小数部 (10 分の 1) の, 下位 4 bit のマスク */
 #define DECIMAL_MASK        0x0Fu
-/** 温度の整数部の最上位の bit: 1 なら 0 ℃ 以上、0 なら 0 ℃ 未満 */
+/** 温度の整数部の最上位の bit: 1 なら 0 ℃ 以上, 0 なら 0 ℃ 未満 */
 #define SIGN_POSITIVE_BIT   0x80u
-/** 湿度の最大値 [%] (これを超えたら、壊れたデータ) */
+/** 湿度の最大値 [%] (これを超えたら, 壊れたデータ) */
 #define HUMIDITY_MAX        100u
 /** 送信の間隔 [ms] */
 #define INTERVAL_MS         CONFIG_THERMO_SWITCHBOT_INTERVAL_MS
@@ -45,9 +45,9 @@ struct sb_device {
     bt_addr_le_t addr; /**< アドレス */
     bool used;         /**< 使っているか */
     uint8_t model;     /**< 機種コード (サービスデータを受け取るまでは 0) */
-    int8_t battery;    /**< 電池残量 [%]。わからなければ SWITCHBOT_BATTERY_UNKNOWN */
-    bool reported;     /**< 1 回でも、送信する値を返したか */
-    uint32_t last_ms;  /**< 最後に、送信する値を返した時刻 [ms] */
+    int8_t battery;    /**< 電池残量 [%]. わからなければ SWITCHBOT_BATTERY_UNKNOWN */
+    bool reported;     /**< 1 回でも, 送信する値を返したか */
+    uint32_t last_ms;  /**< 最後に, 送信する値を返した時刻 [ms] */
 };
 
 /** 機器ごとの記録 */
@@ -75,13 +75,13 @@ static bool parse_service_data(const uint8_t *data, uint8_t len, struct switchbo
 /**
  * 製造者データ (温度と湿度) を解析する
  *
- * 温度は、整数部 (下位 7 bit。最上位が 1 なら 0 ℃ 以上) と、小数部 (別の byte の下位 4 bit) から
- * 作る. 湿度は、下位 7 bit.
+ * 温度は, 整数部 (下位 7 bit. 最上位が 1 なら 0 ℃ 以上) と, 小数部 (別の byte の下位 4 bit) から
+ * 作る. 湿度は, 下位 7 bit.
  *
  * @param[in]  data 会社 ID のあとから
  * @param[in]  len  data の長さ
  * @param[out] out  解析の結果
- * @return 長さが足りていて、湿度が範囲内なら true
+ * @return 長さが足りていて, 湿度が範囲内なら true
  */
 static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct switchbot_ad *out)
 {
@@ -105,10 +105,18 @@ static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct swi
     return true;
 }
 
-/* アドバタイズデータの 1 要素を解析する */
+/**
+ * @brief アドバタイズデータの 1 要素を解析する
+ *
+ * @param[in]  type AD の種類 (BT_DATA_SVC_DATA16 か BT_DATA_MANUFACTURER_DATA)
+ * @param[in]  data AD の中身 (UUID または会社 ID から)
+ * @param[in]  len  data の長さ
+ * @param[out] out  解析の結果
+ * @return SwitchBot の温湿度計のデータなら true. そうでなければ false (out は, 変えない)
+ */
 bool switchbot_parse(uint8_t type, const uint8_t *data, uint8_t len, struct switchbot_ad *out)
 {
-    /* UUID または会社 ID の 2 byte を確認して、そのあとの中身を解析する */
+    /* UUID または会社 ID の 2 byte を確認して, そのあとの中身を解析する */
     if ((type == BT_DATA_SVC_DATA16) && (len >= 2u) && (data[0] == SERVICE_UUID_LO) &&
         (data[1] == SERVICE_UUID_HI)) {
         return parse_service_data(&data[2], (uint8_t)(len - 2u), out);
@@ -121,10 +129,10 @@ bool switchbot_parse(uint8_t type, const uint8_t *data, uint8_t len, struct swit
 }
 
 /**
- * アドレスの機器の記録を探す (なければ、使っていない記録を割り当てる)
+ * アドレスの機器の記録を探す (なければ, 使っていない記録を割り当てる)
  *
  * @param[in] addr 機器のアドレス
- * @return 記録。全て使っていて、見つからなければ NULL
+ * @return 記録. 全て使っていて, 見つからなければ NULL
  */
 static struct sb_device *find_device(const bt_addr_le_t *addr)
 {
@@ -149,7 +157,19 @@ static struct sb_device *find_device(const bt_addr_le_t *addr)
     return free_slot;
 }
 
-/* 解析した結果を、機器ごとに記録して、送信する値を取り出す */
+/**
+ * @brief 解析した結果を, 機器ごとに記録して, 送信する値を取り出す
+ *
+ * SWITCHBOT_INFO は, 機種と電池残量を記録するだけ. SWITCHBOT_ENV は, 機種が屋外用温湿度計と
+ * わかっている機器で, 前回の送信から CONFIG_THERMO_SWITCHBOT_INTERVAL_MS 以上たっていれば,
+ * 送信する値を返す (最初の 1 回は, すぐ返す).
+ *
+ * @param[in]  addr   機器のアドレス
+ * @param[in]  ad     switchbot_parse() の結果
+ * @param[in]  now_ms 現在の稼働時間 [ms]
+ * @param[out] out    送信する値
+ * @return 送信する値があれば true
+ */
 bool switchbot_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad, uint32_t now_ms,
                       struct switchbot_sample *out)
 {
@@ -165,13 +185,13 @@ bool switchbot_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad, u
         return false;
     }
 
-    /* 温度と湿度は、屋外用温湿度計と確認できた機器のものだけ使う (他の機種の製造者データと区別する)
+    /* 温度と湿度は, 屋外用温湿度計と確認できた機器のものだけ使う (他の機種の製造者データと区別する)
      */
     if ((ad->kind != SWITCHBOT_ENV) || (dev->model != SWITCHBOT_MODEL_OUTDOOR)) {
         return false;
     }
 
-    /* 前回の送信から、間隔がたっていなければ、送らない (最初の 1 回は、すぐ送る) */
+    /* 前回の送信から, 間隔がたっていなければ, 送らない (最初の 1 回は, すぐ送る) */
     if (dev->reported && ((now_ms - dev->last_ms) < (uint32_t)INTERVAL_MS)) {
         return false;
     }
@@ -184,7 +204,11 @@ bool switchbot_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad, u
     return true;
 }
 
-/* 機器ごとの記録を、全て消す */
+/**
+ * @brief 機器ごとの記録を, 全て消す
+ *
+ * 通常は呼ばない. 単体テストが, 前のテストの記録を, 残さないために使う.
+ */
 void switchbot_reset(void)
 {
     (void)memset(devices, 0, sizeof(devices));

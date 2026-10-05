@@ -8,11 +8,11 @@
  * @file
  * @brief ntp.c の単体テスト
  *
- * SNTP とソケットの関数を FFF のモックに置き換えて、ntp_sync() の流れを確認する (時計は、
- * Zephyr の本物を使う. sys_clock_settime() は、システムコールで、モックにできない).
- *  - 同期の成功 (時計の設定、同期済みの状態、UNIX 時刻の取得)
- *  - 名前の解決、SNTP の初期化、問い合わせの、各段階の失敗
- *  - 同期済みのときの、再同期の間隔
+ * SNTP とソケットの関数を FFF のモックに置き換えて, ntp_sync() の流れを確認する (時計は,
+ * Zephyr の本物を使う. sys_clock_settime() は, システムコールで, モックにできない).
+ *  - 同期の成功 (時計の設定, 同期済みの状態, UNIX 時刻の取得)
+ *  - 名前の解決, SNTP の初期化, 問い合わせの, 各段階の失敗
+ *  - 同期済みのときの, 再同期の間隔
  */
 
 #include <zephyr/ztest.h>
@@ -86,7 +86,7 @@ static int sntp_query_ok(struct sntp_ctx *ctx, uint32_t timeout, struct sntp_tim
 }
 
 /**
- * 各テストの前に、モックを初期状態に戻す
+ * 各テストの前に, モックを初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -105,9 +105,9 @@ static void before(void *fixture)
 
 ZTEST_SUITE(ntp, NULL, NULL, before, NULL, NULL);
 
-/* 同期できなかったテストを先に実行する (同期済みの状態は、リセットできないため、名前順) */
+/* 同期できなかったテストを先に実行する (同期済みの状態は, リセットできないため, 名前順) */
 
-/** 名前を解決できなければ -EHOSTUNREACH で、SNTP には進まず、同期済みにならない */
+/** 名前を解決できなければ -EHOSTUNREACH で, SNTP には進まず, 同期済みにならない */
 ZTEST(ntp, test_a_resolve_failure)
 {
     int64_t sec = 0; /* UNIX 時刻 [s] */
@@ -120,7 +120,7 @@ ZTEST(ntp, test_a_resolve_failure)
     zassert_equal(ntp_unix_time(&sec), -EAGAIN);
 }
 
-/** 問い合わせに失敗したら、そのエラーを返して、SNTP を閉じて、時計は設定しない */
+/** 問い合わせに失敗したら, そのエラーを返して, SNTP を閉じて, 時計は設定しない */
 ZTEST(ntp, test_b_query_failure)
 {
     sntp_query_fake.custom_fake = NULL;
@@ -130,7 +130,7 @@ ZTEST(ntp, test_b_query_failure)
     zassert_false(ntp_is_synced());
 }
 
-/** SNTP の初期化に失敗したら、そのエラーを返して、問い合わせない */
+/** SNTP の初期化に失敗したら, そのエラーを返して, 問い合わせない */
 ZTEST(ntp, test_c_init_failure)
 {
     sntp_init_fake.return_val = -ENOMEM;
@@ -139,7 +139,7 @@ ZTEST(ntp, test_c_init_failure)
     zassert_false(ntp_is_synced());
 }
 
-/** 同期に成功すると時計を設定して、同期済みになる。間隔内の再呼び出しは、問い合わせない */
+/** 同期に成功すると時計を設定して, 同期済みになる. 間隔内の再呼び出しは, 問い合わせない */
 ZTEST(ntp, test_e_success_then_skip)
 {
     int64_t sec = 0; /* UNIX 時刻 [s] */
@@ -147,14 +147,14 @@ ZTEST(ntp, test_e_success_then_skip)
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), 0);
     zassert_true(ntp_is_synced());
     zassert_equal(ntp_unix_time(&sec), 0);
-    /* 期待: 設定した時刻から、ほとんど進んでいない (本物の時計を使う) */
+    /* 期待: 設定した時刻から, ほとんど進んでいない (本物の時計を使う) */
     zassert_within(sec, (int64_t)TEST_SEC, 5);
 
-    /* 同期済みで、間隔がたっていなければ、問い合わせない */
+    /* 同期済みで, 間隔がたっていなければ, 問い合わせない */
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), 0);
     zassert_equal(sntp_query_fake.call_count, 1u);
 
-    /* 再同期の間隔 (CONFIG_THERMO_NTP_RESYNC_S) がたてば、もう一度、問い合わせる */
+    /* 再同期の間隔 (CONFIG_THERMO_NTP_RESYNC_S) がたてば, もう一度, 問い合わせる */
     k_sleep(K_SECONDS(RESYNC_S));
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), 0);
     zassert_equal(sntp_query_fake.call_count, 2u);
