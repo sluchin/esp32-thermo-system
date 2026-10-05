@@ -57,6 +57,7 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
 {
     uint16_t value = sys_cpu_to_le16(temperature_raw); /* 温度 (リトルエンディアン) */
 
+    LOG_HEXDUMP_DBG(&value, sizeof(value), "Read response");
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &value, sizeof(value));
 }
 
@@ -197,6 +198,7 @@ int ble_notify_temperature(uint16_t raw)
 
     temperature_raw = raw;
 
+    LOG_HEXDUMP_DBG(&value, sizeof(value), "Notify");
     err = bt_gatt_notify(NULL, &thermo_attrs[ATTR_INDEX_TEMPERATURE_VALUE], &value, sizeof(value));
     if (err == -ENOTCONN) {
         /* 接続しているゲートウェイがいない (値は更新したので, あとで読み取れる) */

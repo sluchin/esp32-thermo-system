@@ -122,6 +122,21 @@ west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -
 west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-sim -- -DCONF_FILE=prj-native_sim.conf
 ```
 
+### デバッグログ
+
+`LOG_DBG` と `LOG_HEXDUMP_DBG` (BLE で送受信したデータの 16 進ダンプ) は、通常のビルドでは、コードごと消えます。有効にするときは、cmake のオプション `THERMO_DEBUG_LOG` を `ON` にして、ビルドします (`CONFIG_LOG_DEFAULT_LEVEL=4` になります)。
+
+```bash
+# Docker: 環境変数 THERMO_DEBUG_LOG を ON にして、build-* のサービスを実行する (既定は OFF)
+THERMO_DEBUG_LOG=ON docker compose run --rm build-thermo-node
+THERMO_DEBUG_LOG=ON docker compose run --rm build-thermo-gateway
+
+# West (Docker を使わない場合)
+west build -p always -b xiao_esp32c3 app/thermo-node -- -DTHERMO_DEBUG_LOG=ON
+```
+
+設定を切り替えるときは、前のビルドが残っていると、反映されないことがあるので、ビルドのディレクトリ (`build/thermo-node` など) を削除してから、ビルドし直します (west は `-p always`)。
+
 ### フラッシング
 
 ```bash
