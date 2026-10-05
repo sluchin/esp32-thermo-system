@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief AWS IoT Core への、MQTT (TLS) による温度の送信
+ * @brief AWS IoT Core への, MQTT (TLS) による温度の送信
  */
 
 #include <zephyr/kernel.h>
@@ -28,7 +28,7 @@
 
 LOG_MODULE_REGISTER(thermo_cloud);
 
-/** AWS IoT Core の MQTT (TLS、クライアント証明書による相互認証) のポート */
+/** AWS IoT Core の MQTT (TLS, クライアント証明書による相互認証) のポート */
 #define BROKER_PORT        "8883"
 /** MQTT の keep alive の間隔 [s] (AWS IoT Core は 30 .. 1200) */
 #define KEEPALIVE_S        60u
@@ -40,11 +40,11 @@ LOG_MODULE_REGISTER(thermo_cloud);
 #define NTP_TIMEOUT_MS     5000
 /** MQTT の CONNACK を待つ時間 [ms] */
 #define CONNACK_TIMEOUT_MS 10000
-/** 送信するものがないときに、受信と keep alive を確認する間隔 [ms] */
+/** 送信するものがないときに, 受信と keep alive を確認する間隔 [ms] */
 #define SESSION_TICK_MS    1000
-/** 接続の再試行の間隔の、最小値 [s] */
+/** 接続の再試行の間隔の, 最小値 [s] */
 #define RETRY_MIN_S        5u
-/** 接続の再試行の間隔の、最大値 [s] */
+/** 接続の再試行の間隔の, 最大値 [s] */
 #define RETRY_MAX_S        60u
 /** 送信を待つ温度の最大数 */
 #define QUEUE_LEN          16
@@ -53,8 +53,8 @@ LOG_MODULE_REGISTER(thermo_cloud);
 /** ペイロードのバッファのサイズ */
 #define PAYLOAD_SIZE       160u
 /*
- * ペイロードの最大長が、入ること (SwitchBot の、機器のアドレス、-3276.7 ℃、湿度 100 %、
- * 電池 100 %、稼働時間が最大で、UNIX 時刻が 19 桁の場合は、155 文字 + NUL)
+ * ペイロードの最大長が, 入ること (SwitchBot の, 機器のアドレス, -3276.7 ℃, 湿度 100 %,
+ * 電池 100 %, 稼働時間が最大で, UNIX 時刻が 19 桁の場合は, 155 文字 + NUL)
  */
 BUILD_ASSERT(PAYLOAD_SIZE >= 156u, "The payload buffer is too small");
 /** MQTT の送受信バッファのサイズ */
@@ -74,8 +74,8 @@ enum sample_kind {
 struct sample {
     enum sample_kind kind;             /**< 値の種類 */
     bt_addr_le_t addr;                 /**< 送ってきた機器のアドレス */
-    uint32_t uptime_ms;                /**< 受信したときの、ゲートウェイの稼働時間 [ms] */
-    uint16_t raw;                      /**< 温度 (ADC の生値。SAMPLE_THERMO のとき) */
+    uint32_t uptime_ms;                /**< 受信したときの, ゲートウェイの稼働時間 [ms] */
+    uint16_t raw;                      /**< 温度 (ADC の生値. SAMPLE_THERMO のとき) */
     struct switchbot_sample switchbot; /**< SwitchBot の値 (SAMPLE_SWITCHBOT のとき) */
 };
 
@@ -93,11 +93,11 @@ static uint8_t tx_buf[MQTT_BUF_SIZE];
 /** TLS の証明書のセキュリティタグ */
 static const sec_tag_t sec_tags[] = {CFG_TLS_SEC_TAG};
 
-/** MQTT で接続している状態か (CONNACK を受け取ってから、DISCONNECT を受け取るまで) */
+/** MQTT で接続している状態か (CONNACK を受け取ってから, DISCONNECT を受け取るまで) */
 static volatile bool mqtt_up;
-/** 設定が変わったので、接続をやり直す依頼があるか */
+/** 設定が変わったので, 接続をやり直す依頼があるか */
 static volatile bool reconnect_requested;
-/** 次に失敗したときの、再試行までの間隔 [s] */
+/** 次に失敗したときの, 再試行までの間隔 [s] */
 static unsigned int retry_s = RETRY_MIN_S;
 /** 次に publish するメッセージの ID (1 .. 65535) */
 static uint16_t message_id;
@@ -117,7 +117,7 @@ static K_THREAD_STACK_DEFINE(cloud_stack, THREAD_STACK_SIZE)
 {
     ARG_UNUSED(c);
 
-    /* 使うのは、この 3 つだけ (購読は、しない) */
+    /* 使うのは, この 3 つだけ (購読は, しない) */
     if (evt->type == MQTT_EVT_CONNACK) {
         if (evt->result == 0) {
             mqtt_up = true;
@@ -138,7 +138,7 @@ static K_THREAD_STACK_DEFINE(cloud_stack, THREAD_STACK_SIZE)
  * ブローカー (AWS IoT Core のエンドポイント) の名前を解決する
  *
  * @param[in] host エンドポイント
- * @retval EXIT_SUCCESS 成功 (broker に、アドレスを保存する)
+ * @retval EXIT_SUCCESS 成功 (broker に, アドレスを保存する)
  * @retval -EHOSTUNREACH 名前を解決できなかった
  */
 static int resolve_broker(const char *host)
@@ -159,10 +159,10 @@ static int resolve_broker(const char *host)
 }
 
 /**
- * ソケットを待って、受信したデータがあれば、MQTT の処理をする
+ * ソケットを待って, 受信したデータがあれば, MQTT の処理をする
  *
- * @param[in] timeout_ms 待つ時間 [ms] (0 なら、待たない)
- * @retval EXIT_SUCCESS データがなかった、または、処理した
+ * @param[in] timeout_ms 待つ時間 [ms] (0 なら, 待たない)
+ * @retval EXIT_SUCCESS データがなかった, または, 処理した
  * @retval -ECONNRESET  ソケットにエラーがある
  * @retval negative     poll() または mqtt_input() の失敗 (負の errno)
  */
@@ -175,11 +175,11 @@ static int poll_input(int timeout_ms)
     if (ret < 0) {
         return -errno;
     }
-    /* 時間内に、受信したデータがなかった */
+    /* 時間内に, 受信したデータがなかった */
     if (ret == 0) {
         return EXIT_SUCCESS;
     }
-    /* 切断、エラー: mqtt_input() を呼ぶ前に、検出する */
+    /* 切断, エラー: mqtt_input() を呼ぶ前に, 検出する */
     if ((fds.revents & (ZSOCK_POLLERR | ZSOCK_POLLHUP | ZSOCK_POLLNVAL)) != 0) {
         return -ECONNRESET;
     }
@@ -187,11 +187,11 @@ static int poll_input(int timeout_ms)
 }
 
 /**
- * MQTT のブローカーに接続して、CONNACK を待つ
+ * MQTT のブローカーに接続して, CONNACK を待つ
  *
  * @retval EXIT_SUCCESS 接続した
- * @retval -ECONNREFUSED CONNACK が、拒否、または、時間内に来なかった
- * @retval negative     名前の解決、接続、受信の失敗 (負の errno)
+ * @retval -ECONNREFUSED CONNACK が, 拒否, または, 時間内に来なかった
+ * @retval negative     名前の解決, 接続, 受信の失敗 (負の errno)
  */
 static int connect_broker(void)
 {
@@ -204,7 +204,7 @@ static int connect_broker(void)
         return err;
     }
 
-    /* MQTT クライアントを、設定から作り直す (切断のたびに、初期化する) */
+    /* MQTT クライアントを, 設定から作り直す (切断のたびに, 初期化する) */
     mqtt_client_init(&client);
     client.broker = &broker;
     client.evt_cb = mqtt_evt_handler;
@@ -218,7 +218,7 @@ static int connect_broker(void)
     client.keepalive = KEEPALIVE_S;
     client.clean_session = 1u;
 
-    /* サーバの証明書を確認して、クライアント証明書で、認証される (相互認証) */
+    /* サーバの証明書を確認して, クライアント証明書で, 認証される (相互認証) */
     client.transport.type = MQTT_TRANSPORT_SECURE;
     tls->peer_verify = TLS_PEER_VERIFY_REQUIRED;
     tls->cipher_list = NULL;
@@ -226,7 +226,7 @@ static int connect_broker(void)
     tls->sec_tag_count = ARRAY_SIZE(sec_tags);
     tls->hostname = endpoint;
 
-    /* TCP の接続と、TLS のハンドシェイクと、MQTT の CONNECT の送信まで、ここで行う */
+    /* TCP の接続と, TLS のハンドシェイクと, MQTT の CONNECT の送信まで, ここで行う */
     mqtt_up = false;
     err = mqtt_connect(&client);
     if (err != 0) {
@@ -234,7 +234,7 @@ static int connect_broker(void)
         return err;
     }
 
-    /* CONNACK を受信して、MQTT のイベント (mqtt_evt_handler) で、mqtt_up が true になるのを確認する
+    /* CONNACK を受信して, MQTT のイベント (mqtt_evt_handler) で, mqtt_up が true になるのを確認する
      */
     err = poll_input(CONNACK_TIMEOUT_MS);
     if ((err != 0) || !mqtt_up) {
@@ -246,18 +246,18 @@ static int connect_broker(void)
 }
 
 /**
- * 値を受信したときの UNIX 時刻を求める (今の UNIX 時刻から、受信してからの経過を引く)
+ * 値を受信したときの UNIX 時刻を求める (今の UNIX 時刻から, 受信してからの経過を引く)
  *
- * 受信した時点では、時計が合っていないことがあるので、publish するときに求める
- * (接続の前に、必ず同期している)。
+ * 受信した時点では, 時計が合っていないことがあるので, publish するときに求める
+ * (接続の前に, 必ず同期している).
  *
- * @param[in] uptime_ms 受信したときの、ゲートウェイの稼働時間 [ms]
- * @return UNIX 時刻 [s]。時計が合っていなければ、-1
+ * @param[in] uptime_ms 受信したときの, ゲートウェイの稼働時間 [ms]
+ * @return UNIX 時刻 [s]. 時計が合っていなければ, -1
  */
 static int64_t received_unix_time(uint32_t uptime_ms)
 {
     int64_t now = 0; /* 現在の UNIX 時刻 [s] */
-    /* 32 bit の稼働時間は、約 49 日で戻るので、符号なしの引き算で、経過を求める */
+    /* 32 bit の稼働時間は, 約 49 日で戻るので, 符号なしの引き算で, 経過を求める */
     uint32_t elapsed_ms = k_uptime_get_32() - uptime_ms; /* 受信してからの経過時間 [ms] */
 
     if (ntp_unix_time(&now) != EXIT_SUCCESS) {
@@ -267,7 +267,7 @@ static int64_t received_unix_time(uint32_t uptime_ms)
 }
 
 /**
- * 温度 1 件を、MQTT で publish する (QoS 1)
+ * 温度 1 件を, MQTT で publish する (QoS 1)
  *
  * @param[in] s 温度
  * @retval EXIT_SUCCESS 成功
@@ -283,7 +283,7 @@ static int publish_sample(const struct sample *s)
     int topic_len = 0;                                  /* トピックの長さ [バイト] */
     int payload_len = 0;                                /* ペイロードの長さ [バイト] */
 
-    /* 値の種類で、トピックとペイロードの形式が違う */
+    /* 値の種類で, トピックとペイロードの形式が違う */
     if (s->kind == SAMPLE_SWITCHBOT) {
         topic_len = payload_format_switchbot_topic(topic, sizeof(topic), client_id, &s->addr);
         payload_len = payload_format_switchbot(payload, sizeof(payload), &s->addr, &s->switchbot,
@@ -294,12 +294,12 @@ static int publish_sample(const struct sample *s)
                                                  s->uptime_ms, unix_s);
     }
 
-    /* ペイロードは、必ずバッファに入る. トピックは、長いクライアント ID で、入らないことがある */
+    /* ペイロードは, 必ずバッファに入る. トピックは, 長いクライアント ID で, 入らないことがある */
     if (topic_len < 0) {
         return -ENOSPC;
     }
 
-    /* メッセージ ID は、1 から 65535 を、順に使う (QoS 1 では、0 は使えない) */
+    /* メッセージ ID は, 1 から 65535 を, 順に使う (QoS 1 では, 0 は使えない) */
     message_id = (uint16_t)((message_id % UINT16_MAX) + 1u);
     param.message.topic.qos = MQTT_QOS_1_AT_LEAST_ONCE;
     param.message.topic.topic.utf8 = (const uint8_t *)topic;
@@ -313,12 +313,12 @@ static int publish_sample(const struct sample *s)
 }
 
 /**
- * 接続している間、キューの温度を publish して、受信と keep alive を処理する
+ * 接続している間, キューの温度を publish して, 受信と keep alive を処理する
  *
- * 接続が切れるか、エラーになるか、cloud_reconnect() が呼ばれたら、MQTT を閉じて戻る.
+ * 接続が切れるか, エラーになるか, cloud_reconnect() が呼ばれたら, MQTT を閉じて戻る.
  *
  * @retval EXIT_SUCCESS cloud_reconnect() が呼ばれた
- * @retval negative     接続が切れた、または、エラー (負の errno)
+ * @retval negative     接続が切れた, または, エラー (負の errno)
  */
 static int run_session(void)
 {
@@ -326,7 +326,7 @@ static int run_session(void)
     int err = EXIT_SUCCESS;                    /* エラーコード */
 
     while (!reconnect_requested) {
-        /* 送るものがあれば、すぐ送る。なければ、最大 SESSION_TICK_MS 待って、受信などの確認に進む
+        /* 送るものがあれば, すぐ送る. なければ, 最大 SESSION_TICK_MS 待って, 受信などの確認に進む
          */
         if (k_msgq_get(&cloud_sample_q, &s, K_MSEC(SESSION_TICK_MS)) == 0) {
             err = publish_sample(&s);
@@ -336,7 +336,7 @@ static int run_session(void)
             }
         }
 
-        /* 受信 (PUBACK、サーバからの切断など) を処理する。待たない */
+        /* 受信 (PUBACK, サーバからの切断など) を処理する. 待たない */
         err = poll_input(0);
         if ((err == 0) && !mqtt_up) {
             err = -ECONNRESET;
@@ -346,7 +346,7 @@ static int run_session(void)
             break;
         }
 
-        /* keep alive の時間が来ていなければ、-EAGAIN */
+        /* keep alive の時間が来ていなければ, -EAGAIN */
         err = mqtt_live(&client);
         if (err == -EAGAIN) {
             err = EXIT_SUCCESS;
@@ -357,7 +357,7 @@ static int run_session(void)
         }
     }
 
-    /* サーバが切断していなければ、DISCONNECT を送ってから、ソケットを閉じる */
+    /* サーバが切断していなければ, DISCONNECT を送ってから, ソケットを閉じる */
     if (mqtt_up) {
         (void)mqtt_disconnect(&client, NULL);
     }
@@ -366,25 +366,34 @@ static int run_session(void)
     return err;
 }
 
-/* 接続と送信を 1 回分行う (スレッドが、繰り返し呼ぶ) */
+/**
+ * @brief 接続と送信を 1 回分だけ行う (スレッドが, 繰り返し呼ぶ)
+ *
+ * 設定が揃うまで待ち, WiFi と MQTT に接続して, 接続が切れるまで, キューの温度を publish する.
+ * 接続に失敗したときは, 間隔をあけてから (待つ時間は, 失敗のたびに倍にする), 戻る.
+ *
+ * @retval EXIT_SUCCESS 接続して, 設定の変更 (cloud_reconnect()) で, 正常に終わった
+ * @retval -EAGAIN      設定が揃っていない
+ * @retval negative     接続の失敗, または, 接続が切れた理由 (負の errno)
+ */
 int cloud_step(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    /* 設定 (WiFi、エンドポイント、証明書) が揃うまで、接続しないで待つ */
+    /* 設定 (WiFi, エンドポイント, 証明書) が揃うまで, 接続しないで待つ */
     if (!cfg_is_complete()) {
         (void)k_sleep(K_SECONDS(WAIT_CONFIG_S));
         return -EAGAIN;
     }
 
-    /* 接続をやり直す依頼は、これから始める接続で、反映される */
+    /* 接続をやり直す依頼は, これから始める接続で, 反映される */
     reconnect_requested = false;
     err = wifi_link_connect(cfg_get(CFG_KEY_SSID), cfg_get(CFG_KEY_PSK), K_SECONDS(WIFI_TIMEOUT_S));
     if (err == 0) {
         /*
-         * サーバ証明書の有効期限を確認する (mbedTLS が、システム時計を使う) ので、時計が合って
-         * いないと、TLS の接続は、必ず失敗する。1 度も同期していなければ、接続しないで、やり直す。
-         * 同期したことがあれば、今回の同期に失敗しても、時計は進んでいるので、接続を続ける。
+         * サーバ証明書の有効期限を確認する (mbedTLS が, システム時計を使う) ので, 時計が合って
+         * いないと, TLS の接続は, 必ず失敗する. 1 度も同期していなければ, 接続しないで, やり直す.
+         * 同期したことがあれば, 今回の同期に失敗しても, 時計は進んでいるので, 接続を続ける.
          */
         if (ntp_sync(CONFIG_THERMO_NTP_SERVER, K_MSEC(NTP_TIMEOUT_MS)) != 0) {
             LOG_WRN("Time synchronization failed");
@@ -395,7 +404,7 @@ int cloud_step(void)
             err = -ETIME;
         }
     }
-    /* 失敗したら、間隔をあけてから、やり直す (間隔は、失敗のたびに倍にして、上限で止める) */
+    /* 失敗したら, 間隔をあけてから, やり直す (間隔は, 失敗のたびに倍にして, 上限で止める) */
     if (err != 0) {
         LOG_WRN("Connection failed (err %d), retrying in %u s", err, retry_s);
         (void)k_sleep(K_SECONDS(retry_s));
@@ -430,7 +439,12 @@ static void cloud_thread_entry(void *p1, void *p2, void *p3)
     }
 }
 
-/* 設定を読み込んで、送信のスレッドを開始する */
+/**
+ * @brief 設定を読み込んで, WiFi と MQTT のスレッドを開始する
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno)
+ */
 int cloud_init(void)
 {
     int err = cfg_init(); /* エラーコード */
@@ -450,18 +464,22 @@ int cloud_init(void)
     return EXIT_SUCCESS;
 }
 
-/* 送信のスレッドを止める */
+/**
+ * @brief WiFi と MQTT のスレッドを止める (MQTT は, 切断しない)
+ *
+ * 通常は呼ばない (ゲートウェイは, 電源を切るまで動く). 単体テストが, スレッドを残さないために使う.
+ */
 void cloud_stop(void)
 {
     k_thread_abort(&cloud_thread);
 }
 
 /**
- * 値を、送信のキューに入れる (待たない)
+ * 値を, 送信のキューに入れる (待たない)
  *
  * @param[in] s 値
  * @retval EXIT_SUCCESS 成功
- * @retval -ENOMSG      キューが満杯で、値を捨てた
+ * @retval -ENOMSG      キューが満杯で, 値を捨てた
  */
 static int enqueue_sample(const struct sample *s)
 {
@@ -472,7 +490,16 @@ static int enqueue_sample(const struct sample *s)
     return EXIT_SUCCESS;
 }
 
-/* 温度を、送信のキューに入れる (待たない) */
+/**
+ * @brief 温度を, 送信のキューに入れる (待たずに, すぐ戻る)
+ *
+ * Bluetooth のスレッドから呼べる. キューが満杯のときは, 新しい温度を捨てる.
+ *
+ * @param[in] addr 温度を送ったノードのアドレス
+ * @param[in] raw  温度 (ADC の生値)
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOMSG      キューが満杯で, 温度を捨てた
+ */
 int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
 {
     struct sample s = {
@@ -481,7 +508,17 @@ int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
     return enqueue_sample(&s);
 }
 
-/* SwitchBot の温湿度計の値を、送信のキューに入れる (待たない) */
+/**
+ * @brief SwitchBot の温湿度計の値を, 送信のキューに入れる (待たずに, すぐ戻る)
+ *
+ * トピックは `thermo/<クライアント ID>/switchbot/<機器のアドレス>`. Bluetooth のスレッドから
+ * 呼べる. キューが満杯のときは, 新しい値を捨てる.
+ *
+ * @param[in] addr   機器のアドレス
+ * @param[in] sample 温度, 湿度, 電池残量
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOMSG      キューが満杯で, 値を捨てた
+ */
 int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sample *sample)
 {
     struct sample s = {.kind = SAMPLE_SWITCHBOT,
@@ -492,7 +529,11 @@ int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sam
     return enqueue_sample(&s);
 }
 
-/* 接続の切断を依頼して、新しい設定で、つなぎ直させる */
+/**
+ * @brief 設定を変えたあとに, 接続をやり直させる
+ *
+ * 今の MQTT の接続を閉じて, 新しい設定で, つなぎ直す.
+ */
 void cloud_reconnect(void)
 {
     reconnect_requested = true;

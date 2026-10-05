@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief thermo-node の BLE 実装 (アドバタイズと、GATT での温度の配信)
+ * @brief thermo-node の BLE 実装 (アドバタイズと, GATT での温度の配信)
  */
 
 #include <zephyr/bluetooth/bluetooth.h>
@@ -23,7 +23,7 @@
 
 LOG_MODULE_REGISTER(ble_thermo_node);
 
-/** アドバタイズデータ: フラグ (LE 一般発見可能、BR/EDR 非対応) とデバイス名 */
+/** アドバタイズデータ: フラグ (LE 一般発見可能, BR/EDR 非対応) とデバイス名 */
 static const struct bt_data ad[] = {
         BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
         BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1u),
@@ -32,14 +32,14 @@ static const struct bt_data ad[] = {
 /**
  * スキャン応答データ: Thermo サービスの UUID (128 bit)
  *
- * UUID (128 bit) は 18 byte あるので、デバイス名と合わせると、アドバタイズデータ (31 byte)
- * に入らない。ゲートウェイは、アクティブスキャンで、スキャン応答も受信して、ノードを見分ける。
+ * UUID (128 bit) は 18 byte あるので, デバイス名と合わせると, アドバタイズデータ (31 byte)
+ * に入らない. ゲートウェイは, アクティブスキャンで, スキャン応答も受信して, ノードを見分ける.
  */
 static const struct bt_data sd[] = {
         BT_DATA_BYTES(BT_DATA_UUID128_ALL, THERMO_UUID_SERVICE_VAL),
 };
 
-/** 温度の特性の値 (ADC の生値)。読み取り (read) で返す */
+/** 温度の特性の値 (ADC の生値). 読み取り (read) で返す */
 static uint16_t temperature_raw;
 
 /**
@@ -50,7 +50,7 @@ static uint16_t temperature_raw;
  * @param[out] buf 値を書き込むバッファ
  * @param[in] len バッファの大きさ
  * @param[in] offset 読み取りの開始位置
- * @return 読み取った大きさ (失敗なら、負の ATT エラー)
+ * @return 読み取った大きさ (失敗なら, 負の ATT エラー)
  */
 static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
                                 uint16_t len, uint16_t offset)
@@ -63,7 +63,7 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
 /**
  * Thermo サービスの属性
  *
- * 0: サービス、1: 特性の宣言、2: 特性の値 (温度)、3: CCC (通知の設定)
+ * 0: サービス, 1: 特性の宣言, 2: 特性の値 (温度), 3: CCC (通知の設定)
  */
 static struct bt_gatt_attr thermo_attrs[] = {
         BT_GATT_PRIMARY_SERVICE(THERMO_UUID_SERVICE),
@@ -96,7 +96,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
 }
 
 /**
- * 切断のコールバック (接続が切れたら、ゲートウェイから検出されるよう、アドバタイズを再開する)
+ * 切断のコールバック (接続が切れたら, ゲートウェイから検出されるよう, アドバタイズを再開する)
  *
  * @param[in] conn 接続
  * @param[in] reason 切断の理由
@@ -121,7 +121,14 @@ static struct bt_conn_cb conn_callbacks = {
         .disconnected = disconnected,
 };
 
-/* Bluetooth を有効にして、GATT サービスと接続のコールバックを登録する */
+/**
+ * @brief Bluetooth スタックを初期化して, Thermo サービス (GATT) を登録する
+ *
+ * 接続のコールバックも登録する. 接続が切れたら, アドバタイズを再開する.
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno)
+ */
 int ble_init(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
@@ -148,7 +155,16 @@ int ble_init(void)
     return EXIT_SUCCESS;
 }
 
-/* ゲートウェイから見つけられるよう、アドバタイズを始める */
+/**
+ * @brief 接続可能なアドバタイズを開始する
+ *
+ * ゲートウェイから検出されるよう, デバイス名を含むアドバタイズデータと,
+ * Thermo サービスの UUID を含むスキャン応答データを送信する.
+ * 事前に ble_init() を呼び出しておくこと.
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno)
+ */
 int ble_advertise(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
@@ -163,7 +179,17 @@ int ble_advertise(void)
     return EXIT_SUCCESS;
 }
 
-/* 温度を、通知する (接続している相手がいなければ、何もしない) */
+/**
+ * @brief 温度を更新して, 接続しているゲートウェイへ通知 (notify) する
+ *
+ * 通知を購読しているゲートウェイがいなくても, 値は更新される (読み取り (read) で取得できる).
+ * 接続しているゲートウェイがいないときは, 成功を返す.
+ *
+ * @param[in] raw 温度 (ADC の生値)
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     通知に失敗 (負の errno)
+ */
 int ble_notify_temperature(uint16_t raw)
 {
     uint16_t value = sys_cpu_to_le16(raw); /* 温度 (リトルエンディアン) */
@@ -173,7 +199,7 @@ int ble_notify_temperature(uint16_t raw)
 
     err = bt_gatt_notify(NULL, &thermo_attrs[ATTR_INDEX_TEMPERATURE_VALUE], &value, sizeof(value));
     if (err == -ENOTCONN) {
-        /* 接続しているゲートウェイがいない (値は更新したので、あとで読み取れる) */
+        /* 接続しているゲートウェイがいない (値は更新したので, あとで読み取れる) */
         LOG_DBG("No connection to notify");
         return EXIT_SUCCESS;
     }

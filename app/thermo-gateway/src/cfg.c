@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief 実行時の設定 (WiFi、AWS IoT Core のエンドポイント、証明書) の保存と読み出し
+ * @brief 実行時の設定 (WiFi, AWS IoT Core のエンドポイント, 証明書) の保存と読み出し
  */
 
 #include <zephyr/logging/log.h>
@@ -21,14 +21,14 @@
 
 LOG_MODULE_REGISTER(thermo_cfg);
 
-/** settings の、このアプリの項目のルート ("thermo/ssid" のように使う) */
+/** settings の, このアプリの項目のルート ("thermo/ssid" のように使う) */
 #define SETTINGS_ROOT      "thermo"
 /** settings の項目の名前 ("thermo/client_id" など) の最大長 (NUL を含む) */
 #define SETTINGS_NAME_SIZE 32u
 
-/** 設定の項目ごとの、名前と、値の最大長 */
+/** 設定の項目ごとの, 名前と, 値の最大長 */
 static const struct {
-    const char *name; /**< 項目の名前 (settings の名前と、シェルの引数に使う) */
+    const char *name; /**< 項目の名前 (settings の名前と, シェルの引数に使う) */
     size_t max;       /**< 値の最大長 (NUL を除く) */
 } key_infos[CFG_KEY_COUNT] = {
         [CFG_KEY_SSID] = {"ssid", CFG_SSID_MAX},
@@ -38,20 +38,20 @@ static const struct {
 };
 
 /**
- * フラッシュから読み込んだ、CA 証明書の保存先
+ * フラッシュから読み込んだ, CA 証明書の保存先
  *
- * tls_credential_add() は、データをコピーせず、ポインタを保持するので、登録している間は、
+ * tls_credential_add() は, データをコピーせず, ポインタを保持するので, 登録している間は,
  * 領域を残しておく必要がある.
  */
 static uint8_t ca_buf[CFG_CERT_MAX];
-/** フラッシュから読み込んだ、クライアント証明書の保存先 */
+/** フラッシュから読み込んだ, クライアント証明書の保存先 */
 static uint8_t cert_buf[CFG_CERT_MAX];
-/** フラッシュから読み込んだ、秘密鍵の保存先 */
+/** フラッシュから読み込んだ, 秘密鍵の保存先 */
 static uint8_t key_buf[CFG_KEY_PEM_MAX];
 
-/** 証明書の種類ごとの、名前と、TLS の認証情報の種類と、保存先 */
+/** 証明書の種類ごとの, 名前と, TLS の認証情報の種類と, 保存先 */
 static const struct {
-    const char *name;              /**< 名前 (settings の名前と、シェルの引数に使う) */
+    const char *name;              /**< 名前 (settings の名前と, シェルの引数に使う) */
     enum tls_credential_type type; /**< TLS の認証情報の種類 */
     uint8_t *buf;                  /**< フラッシュから読み込んだ証明書の保存先 */
     size_t max;                    /**< 証明書の最大サイズ */
@@ -64,7 +64,7 @@ static const struct {
 /** 設定の値 (NUL で終わる) */
 static char values[CFG_KEY_COUNT][CFG_ENDPOINT_MAX + 1u];
 
-/** 証明書をフラッシュに保存するときの、一時的な領域 (最も大きい証明書が入る大きさ) */
+/** 証明書をフラッシュに保存するときの, 一時的な領域 (最も大きい証明書が入る大きさ) */
 static uint8_t save_buf[CFG_KEY_PEM_MAX];
 
 /**
@@ -78,7 +78,12 @@ static void settings_name(char *out, const char *name)
     (void)snprintf(out, SETTINGS_NAME_SIZE, SETTINGS_ROOT "/%s", name);
 }
 
-/* 項目の名前から、項目を探す */
+/**
+ * @brief 項目の名前 ("ssid" など) から, 項目を探す
+ *
+ * @param[in] name 項目の名前
+ * @return 項目 (enum cfg_key). ない場合は -ENOENT
+ */
 int cfg_key_from_name(const char *name)
 {
     size_t i = 0u; /* ループ用の添字 */
@@ -91,19 +96,37 @@ int cfg_key_from_name(const char *name)
     return -ENOENT;
 }
 
-/* 項目の名前を返す */
+/**
+ * @brief 項目の名前を返す
+ *
+ * @param[in] key 項目
+ * @return 項目の名前 (NUL で終わる)
+ */
 const char *cfg_key_name(enum cfg_key key)
 {
     return key_infos[key].name;
 }
 
-/* 項目の値を返す */
+/**
+ * @brief 項目の値を返す
+ *
+ * @param[in] key 項目
+ * @return 値 (NUL で終わる. 未設定なら空の文字列)
+ */
 const char *cfg_get(enum cfg_key key)
 {
     return values[key];
 }
 
-/* 項目の値を、フラッシュに保存して、設定する */
+/**
+ * @brief 項目の値を設定して, フラッシュに保存する
+ *
+ * @param[in] key   項目
+ * @param[in] value 値 (空でもよい)
+ * @retval EXIT_SUCCESS 成功
+ * @retval -EINVAL      値が長すぎる
+ * @retval negative     保存に失敗 (負の errno)
+ */
 int cfg_set(enum cfg_key key, const char *value)
 {
     char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
@@ -114,7 +137,7 @@ int cfg_set(enum cfg_key key, const char *value)
         return -EINVAL;
     }
 
-    /* フラッシュに保存できたときだけ、RAM の値を更新する (NUL も保存する) */
+    /* フラッシュに保存できたときだけ, RAM の値を更新する (NUL も保存する) */
     settings_name(name, key_infos[key].name);
     err = settings_save_one(name, value, len + 1u);
     if (err != 0) {
@@ -125,7 +148,12 @@ int cfg_set(enum cfg_key key, const char *value)
     return EXIT_SUCCESS;
 }
 
-/* 証明書の種類の名前から、種類を探す */
+/**
+ * @brief 証明書の種類の名前 ("ca" など) から, 種類を探す
+ *
+ * @param[in] name 名前
+ * @return 種類 (enum cfg_cred). ない場合は -ENOENT
+ */
 int cfg_cred_from_name(const char *name)
 {
     size_t i = 0u; /* ループ用の添字 */
@@ -138,23 +166,41 @@ int cfg_cred_from_name(const char *name)
     return -ENOENT;
 }
 
-/* 証明書の種類の名前を返す */
+/**
+ * @brief 証明書の種類の名前を返す
+ *
+ * @param[in] cred 種類
+ * @return 名前 (NUL で終わる)
+ */
 const char *cfg_cred_name(enum cfg_cred cred)
 {
     return cred_infos[cred].name;
 }
 
-/* 証明書が、TLS の認証情報に登録されているか調べる */
+/**
+ * @brief 証明書が, TLS の認証情報に登録されているか調べる
+ *
+ * @param[in] cred 種類
+ * @return 登録されていれば true
+ */
 bool cfg_has_cred(enum cfg_cred cred)
 {
     uint8_t probe = 0u;         /* 存在確認用の 1 バイト */
     size_t len = sizeof(probe); /* 値の長さ [バイト] */
 
-    /* 登録されていれば、1 byte の領域には入らないので、-EFBIG になる */
+    /* 登録されていれば, 1 byte の領域には入らないので, -EFBIG になる */
     return tls_credential_get(CFG_TLS_SEC_TAG, cred_infos[cred].type, &probe, &len) != -ENOENT;
 }
 
-/* 登録されている証明書を、フラッシュに保存する */
+/**
+ * @brief TLS の認証情報に登録された証明書を, フラッシュに保存する
+ *
+ * 保存した証明書は, 次の起動から, cfg_init() が, 自動で登録する.
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOENT      登録されていない証明書がある
+ * @retval negative     失敗 (負の errno)
+ */
 int cfg_save_credentials(void)
 {
     char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
@@ -163,7 +209,7 @@ int cfg_save_credentials(void)
     int err = EXIT_SUCCESS;              /* エラーコード */
 
     for (i = 0u; i < ARRAY_SIZE(cred_infos); i++) {
-        /* 登録されている証明書を、一時的な領域に取り出して、フラッシュに保存する */
+        /* 登録されている証明書を, 一時的な領域に取り出して, フラッシュに保存する */
         len = sizeof(save_buf);
         err = tls_credential_get(CFG_TLS_SEC_TAG, cred_infos[i].type, save_buf, &len);
         if (err != 0) {
@@ -181,12 +227,18 @@ int cfg_save_credentials(void)
     return EXIT_SUCCESS;
 }
 
-/* 接続に必要な設定と証明書が、全て揃っているか調べる */
+/**
+ * @brief 接続に必要な設定が, 全て揃っているか調べる
+ *
+ * SSID, エンドポイント, クライアント ID が空でなく, 3 つの証明書が登録されていること.
+ *
+ * @return 揃っていれば true
+ */
 bool cfg_is_complete(void)
 {
     size_t i = 0u; /* ループ用の添字 */
 
-    /* PSK は、オープンネットワークでは、空 */
+    /* PSK は, オープンネットワークでは, 空 */
     if ((values[CFG_KEY_SSID][0] == '\0') || (values[CFG_KEY_ENDPOINT][0] == '\0') ||
         (values[CFG_KEY_CLIENT_ID][0] == '\0')) {
         return false;
@@ -200,7 +252,12 @@ bool cfg_is_complete(void)
     return true;
 }
 
-/* 設定と証明書を、フラッシュからも消す */
+/**
+ * @brief 設定と証明書を全て消す (フラッシュからも消す)
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno. 最初のエラーを返すが, 全ての項目の削除を試みる)
+ */
 int cfg_reset(void)
 {
     char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
@@ -208,7 +265,7 @@ int cfg_reset(void)
     int first_err = EXIT_SUCCESS;        /* 最初のエラー */
     int err = EXIT_SUCCESS;              /* エラーコード */
 
-    /* 失敗しても、残りの項目の削除を続けて、最初のエラーを返す */
+    /* 失敗しても, 残りの項目の削除を続けて, 最初のエラーを返す */
     for (i = 0u; i < ARRAY_SIZE(key_infos); i++) {
         settings_name(name, key_infos[i].name);
         err = settings_delete(name);
@@ -224,14 +281,14 @@ int cfg_reset(void)
         if ((err != 0) && (first_err == EXIT_SUCCESS)) {
             first_err = err;
         }
-        /* 登録されていなくても (-ENOENT)、かまわない */
+        /* 登録されていなくても (-ENOENT), かまわない */
         (void)tls_credential_delete(CFG_TLS_SEC_TAG, cred_infos[i].type);
     }
     return first_err;
 }
 
 /**
- * settings から読み込んだ設定の値を、登録する
+ * settings から読み込んだ設定の値を, 登録する
  *
  * @param[in] key     項目
  * @param[in] len     保存されている値の長さ (NUL を含む)
@@ -253,11 +310,11 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
         values[key][0] = '\0';
         return;
     }
-    values[key][len - 1u] = '\0'; /* 保存した値には NUL が含まれるが、念のため */
+    values[key][len - 1u] = '\0'; /* 保存した値には NUL が含まれるが, 念のため */
 }
 
 /**
- * settings から読み込んだ証明書を、TLS の認証情報に登録する
+ * settings から読み込んだ証明書を, TLS の認証情報に登録する
  *
  * @param[in] cred    種類
  * @param[in] len     保存されている証明書の長さ
@@ -280,7 +337,7 @@ static void load_credential(enum cfg_cred cred, size_t len, settings_read_cb rea
         return;
     }
 
-    /* 同じ種類が登録されていたら、置き換える (登録されていなくても、かまわない) */
+    /* 同じ種類が登録されていたら, 置き換える (登録されていなくても, かまわない) */
     (void)tls_credential_delete(CFG_TLS_SEC_TAG, cred_infos[cred].type);
     err = tls_credential_add(CFG_TLS_SEC_TAG, cred_infos[cred].type, cred_infos[cred].buf, len);
     if (err != 0) {
@@ -289,11 +346,11 @@ static void load_credential(enum cfg_cred cred, size_t len, settings_read_cb rea
 }
 
 /**
- * settings が、保存された項目を読み込むときに呼ぶコールバック
+ * settings が, 保存された項目を読み込むときに呼ぶコールバック
  *
- * 読み込めない項目があっても、ほかの項目の読み込みを続けるため、常に 0 を返す.
+ * 読み込めない項目があっても, ほかの項目の読み込みを続けるため, 常に 0 を返す.
  *
- * @param[in] name   項目の名前 (SETTINGS_ROOT の下の名前。"ssid" など)
+ * @param[in] name   項目の名前 (SETTINGS_ROOT の下の名前. "ssid" など)
  * @param[in] len    保存されている値の長さ
  * @param[in] read_cb 値を読むコールバック
  * @param[in] cb_arg  read_cb に渡す引数
@@ -314,10 +371,15 @@ static int settings_set_cb(const char *name, size_t len, settings_read_cb read_c
     return 0;
 }
 
-/** settings の、このアプリの項目のハンドラ */
+/** settings の, このアプリの項目のハンドラ */
 static struct settings_handler handler = {.name = SETTINGS_ROOT, .h_set = settings_set_cb};
 
-/* settings を初期化して、保存された設定と証明書を読み込む */
+/**
+ * @brief 設定を, フラッシュから読み込む (証明書は, TLS の認証情報に登録する)
+ *
+ * @retval EXIT_SUCCESS 成功 (保存された設定が, なくても成功)
+ * @retval negative     失敗 (負の errno)
+ */
 int cfg_init(void)
 {
     int err = settings_subsys_init(); /* エラーコード */

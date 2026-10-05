@@ -25,7 +25,7 @@ LOG_MODULE_REGISTER(thermo_gateway);
 #define STATUS_INTERVAL_S 10
 
 /**
- * 温度を受信したときのコールバック (ログに出力して、AWS IoT Core への送信のキューに入れる)
+ * 温度を受信したときのコールバック (ログに出力して, AWS IoT Core への送信のキューに入れる)
  *
  * Bluetooth のスレッドから呼ばれる.
  *
@@ -52,12 +52,12 @@ static void on_temperature(const bt_addr_le_t *addr, uint16_t raw)
 
 /**
  * SwitchBot の温湿度計のアドバタイズを受信したときのコールバック
- * (間引いて、ログに出力して、AWS IoT Core への送信のキューに入れる)
+ * (間引いて, ログに出力して, AWS IoT Core への送信のキューに入れる)
  *
  * Bluetooth のスレッドから呼ばれる.
  *
  * @param[in] addr 機器のアドレス
- * @param[in] ad 解析した結果 (機種と電池残量、または、温度と湿度)
+ * @param[in] ad 解析した結果 (機種と電池残量, または, 温度と湿度)
  */
 static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad)
 {
@@ -70,12 +70,12 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
     int ret = EXIT_SUCCESS; /* 戻り値 */
 #endif
 
-    /* 送信の間隔 (CONFIG_THERMO_SWITCHBOT_INTERVAL_MS) より短い間の値は、捨てる */
+    /* 送信の間隔 (CONFIG_THERMO_SWITCHBOT_INTERVAL_MS) より短い間の値は, 捨てる */
     if (!switchbot_accept(addr, ad, k_uptime_get_32(), &sample)) {
         return;
     }
 
-    /* 0 ℃ 未満は、整数部が 0 でも (-0.5 など) 符号を出すため、符号と絶対値に分けて表示する */
+    /* 0 ℃ 未満は, 整数部が 0 でも (-0.5 など) 符号を出すため, 符号と絶対値に分けて表示する */
     temp = sample.temp_x10;
     sign = ((temp < 0) ? "-" : "");
     magnitude = (unsigned int)((temp < 0) ? -temp : temp);
@@ -93,12 +93,12 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
 }
 
 /**
- * @brief ゲートウェイのメイン関数。
+ * @brief ゲートウェイのメイン関数
  *
- * BLE を初期化して、(CONFIG_THERMO_CLOUD が有効なら) AWS IoT Core への送信を開始して、
- * 周辺ノードのスキャンを開始し (見つけたノードには、接続して、温度の通知を購読する。
- * SwitchBot の温湿度計は、接続せずに、アドバタイズの値を受け取る)、
- * その後は定期的に稼働状況を出力する。
+ * BLE を初期化して, (CONFIG_THERMO_CLOUD が有効なら) AWS IoT Core への送信を開始して,
+ * 周辺ノードのスキャンを開始し (見つけたノードには, 接続して, 温度の通知を購読する.
+ * SwitchBot の温湿度計は, 接続せずに, アドバタイズの値を受け取る),
+ * その後は定期的に稼働状況を出力する.
  *
  * @retval EXIT_FAILURE 初期化またはスキャン開始に失敗した場合
  *                      (正常時はループから戻らない)
@@ -122,7 +122,7 @@ int main(void)
     }
 
 #ifdef CONFIG_THERMO_CLOUD
-    /* 設定を読み込んで、AWS IoT Core への送信のスレッドを開始する */
+    /* 設定を読み込んで, AWS IoT Core への送信のスレッドを開始する */
     ret = cloud_init();
     if (ret != EXIT_SUCCESS) {
         LOG_ERR("Failed to initialize the cloud connection");
@@ -130,10 +130,10 @@ int main(void)
     }
 #endif
 
-    /* 温度を受信したら、ログに出力する (クラウドが有効なら、送信のキューにも入れる) */
+    /* 温度を受信したら, ログに出力する (クラウドが有効なら, 送信のキューにも入れる) */
     ble_set_temperature_callback(on_temperature);
 
-    /* SwitchBot の温湿度計 (接続しない) の値も、同じ流れで扱う */
+    /* SwitchBot の温湿度計 (接続しない) の値も, 同じ流れで扱う */
     ble_set_switchbot_callback(on_switchbot);
 
     /* 周辺ノードのスキャンを開始する */
@@ -143,7 +143,7 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    /* 受信処理はコールバック側で行うため、ここでは定期的に稼働状況を出力するだけ */
+    /* 受信処理はコールバック側で行うため, ここでは定期的に稼働状況を出力するだけ */
     while (true) {
         LOG_INF("Gateway scanning for nodes...");
         (void)k_sleep(K_SECONDS(STATUS_INTERVAL_S));

@@ -6,13 +6,13 @@
 
 /**
  * @file
- * @brief 設定を入力するための、シェルのコマンド (`thermo`)
+ * @brief 設定を入力するための, シェルのコマンド (`thermo`)
  *
  * 使い方:
  * @code
  *   thermo set <ssid|psk|endpoint|client_id> <値>
- *   cred buf <PEM の 1 行>      (Zephyr のコマンド。行ごとに繰り返す)
- *   cred add 1 CA STRING        (Zephyr のコマンド。証明書の登録。CA, CLIENT, PK の 3 つ)
+ *   cred buf <PEM の 1 行>      (Zephyr のコマンド. 行ごとに繰り返す)
+ *   cred add 1 CA STRING        (Zephyr のコマンド. 証明書の登録. CA, CLIENT, PK の 3 つ)
  *   thermo save-certs
  *   thermo show
  *   thermo apply
@@ -28,12 +28,12 @@
 #include "cloud.h"
 
 /**
- * `thermo set <項目> <値>`: 設定の値を、フラッシュに保存する
+ * `thermo set <項目> <値>`: 設定の値を, フラッシュに保存する
  *
  * @param[in] sh   シェル
  * @param[in] argc 引数の数 (3)
- * @param[in] argv 引数 (argv[1] が項目の名前、argv[2] が値)
- * @return 0 (成功)、負の errno (失敗)
+ * @param[in] argv 引数 (argv[1] が項目の名前, argv[2] が値)
+ * @return 0 (成功), 負の errno (失敗)
  */
 static int cmd_set(const struct shell *sh, size_t argc, char **argv)
 {
@@ -57,7 +57,7 @@ static int cmd_set(const struct shell *sh, size_t argc, char **argv)
 }
 
 /**
- * `thermo show`: 設定の状態を表示する (パスワードは、表示しない)
+ * `thermo show`: 設定の状態を表示する (パスワードは, 表示しない)
  *
  * @param[in] sh   シェル
  * @param[in] argc 使用しない
@@ -88,12 +88,12 @@ static int cmd_show(const struct shell *sh, size_t argc, char **argv)
 }
 
 /**
- * `thermo save-certs`: 登録した証明書を、フラッシュに保存する
+ * `thermo save-certs`: 登録した証明書を, フラッシュに保存する
  *
  * @param[in] sh   シェル
  * @param[in] argc 使用しない
  * @param[in] argv 使用しない
- * @return 0 (成功)、負の errno (失敗)
+ * @return 0 (成功), 負の errno (失敗)
  */
 static int cmd_save_certs(const struct shell *sh, size_t argc, char **argv)
 {
@@ -132,12 +132,12 @@ static int cmd_apply(const struct shell *sh, size_t argc, char **argv)
 }
 
 /**
- * `thermo reset`: 設定と証明書を、全て消す
+ * `thermo reset`: 設定と証明書を, 全て消す
  *
  * @param[in] sh   シェル
  * @param[in] argc 使用しない
  * @param[in] argv 使用しない
- * @return 0 (成功)、負の errno (失敗)
+ * @return 0 (成功), 負の errno (失敗)
  */
 static int cmd_reset(const struct shell *sh, size_t argc, char **argv)
 {
@@ -161,8 +161,8 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
                       3, 0),
         SHELL_CMD(show, NULL, "show the settings (the password is hidden)", cmd_show),
         /*
-         * コマンド名のハイフンは、clang-format が、前後に空白を入れて ("save - certs")、
-         * 別の名前にしてしまうので、整形しない
+         * コマンド名のハイフンは, clang-format が, 前後に空白を入れて ("save - certs"),
+         * 別の名前にしてしまうので, 整形しない
          */
         /* clang-format off */
         SHELL_CMD(save-certs, NULL, "save the certificates added with 'cred add'", cmd_save_certs),
