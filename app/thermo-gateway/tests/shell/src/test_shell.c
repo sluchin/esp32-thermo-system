@@ -16,9 +16,9 @@
 #include <zephyr/fff.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/shell/shell_dummy.h>
-#include <errno.h>
+#include <errno.h> /* ENOENT EINVAL EIO */
 #include <stdlib.h>
-#include <string.h>
+#include <string.h> /* strcmp memset strstr */
 
 #include "cfg.h"
 #include "cloud.h"
@@ -54,7 +54,7 @@ static bool has_cred[CFG_CRED_COUNT];
  */
 static int fake_key_from_name(const char *name)
 {
-    size_t i = 0u;
+    size_t i = 0u; /* ループ用の添字 */
 
     for (i = 0u; i < ARRAY_SIZE(key_names); i++) {
         if (strcmp(name, key_names[i]) == 0) {
@@ -117,8 +117,8 @@ static bool fake_has_cred(enum cfg_cred cred)
  */
 static const char *run(const char *cmd, int *ret)
 {
-    const struct shell *sh = shell_backend_dummy_get_ptr();
-    size_t size = 0u;
+    const struct shell *sh = shell_backend_dummy_get_ptr(); /* ダミーのシェル */
+    size_t size = 0u;                                       /* サイズ [バイト] */
 
     shell_backend_dummy_clear_output(sh);
     *ret = shell_execute_cmd(sh, cmd);
@@ -132,7 +132,7 @@ static const char *run(const char *cmd, int *ret)
  */
 static void *setup(void)
 {
-    const struct shell *sh = shell_backend_dummy_get_ptr();
+    const struct shell *sh = shell_backend_dummy_get_ptr(); /* ダミーのシェル */
 
     while (!shell_ready(sh)) {
         k_msleep(10);
@@ -176,8 +176,8 @@ static void before(void *fixture)
 /** `thermo set <項目> <値>` は、値を保存して、保存したことを表示する */
 ZTEST(thermo_shell, test_set)
 {
-    int ret = 0;
-    const char *out = run("thermo set ssid home-ap", &ret);
+    int ret = 0;                                            /* 戻り値 */
+    const char *out = run("thermo set ssid home-ap", &ret); /* シェルの出力 */
 
     /* 期待: 値を保存して、"<項目> saved" と表示する */
     zassert_equal(ret, 0);
@@ -190,8 +190,8 @@ ZTEST(thermo_shell, test_set)
 /** 知らない項目は、-EINVAL (保存しない) */
 ZTEST(thermo_shell, test_set_unknown_item)
 {
-    int ret = 0;
-    const char *out = run("thermo set nothing value", &ret);
+    int ret = 0;                                             /* 戻り値 */
+    const char *out = run("thermo set nothing value", &ret); /* シェルの出力 */
 
     /* 期待: 知らない項目は -EINVAL で、保存しない (使える項目を表示する) */
     zassert_equal(ret, -EINVAL);
@@ -202,8 +202,8 @@ ZTEST(thermo_shell, test_set_unknown_item)
 /** 保存に失敗したら、そのエラーを返して、表示する */
 ZTEST(thermo_shell, test_set_failure)
 {
-    int ret = 0;
-    const char *out = NULL;
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
 
     cfg_set_fake.return_val = -EINVAL;
     out = run("thermo set psk toolong", &ret);
@@ -216,7 +216,7 @@ ZTEST(thermo_shell, test_set_failure)
 /** 引数が足りなければ、保存しない */
 ZTEST(thermo_shell, test_set_missing_argument)
 {
-    int ret = 0;
+    int ret = 0; /* 戻り値 */
 
     (void)run("thermo set ssid", &ret);
 
@@ -228,8 +228,8 @@ ZTEST(thermo_shell, test_set_missing_argument)
 /** `thermo show` は、値を表示して、パスワードは、伏せる (設定済みなら "********") */
 ZTEST(thermo_shell, test_show)
 {
-    int ret = 0;
-    const char *out = NULL;
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
 
     /* 準備: パスワードまで設定して、証明書は、CA とクライアント証明書だけを登録した状態 */
     values[CFG_KEY_SSID] = "home-ap";
@@ -258,8 +258,8 @@ ZTEST(thermo_shell, test_show)
 /** パスワードが空なら "(empty)"、全て揃っていれば、接続できると表示する */
 ZTEST(thermo_shell, test_show_empty_psk_and_ready)
 {
-    int ret = 0;
-    const char *out = NULL;
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
 
     cfg_is_complete_fake.return_val = true;
     out = run("thermo show", &ret);
@@ -273,8 +273,8 @@ ZTEST(thermo_shell, test_show_empty_psk_and_ready)
 /** `thermo save-certs` は、証明書を保存して、保存したことを表示する */
 ZTEST(thermo_shell, test_save_certs)
 {
-    int ret = 0;
-    const char *out = run("thermo save-certs", &ret);
+    int ret = 0;                                      /* 戻り値 */
+    const char *out = run("thermo save-certs", &ret); /* シェルの出力 */
 
     /* 期待: 証明書を保存して、"certificates saved" と表示する */
     zassert_equal(ret, 0);
@@ -285,8 +285,8 @@ ZTEST(thermo_shell, test_save_certs)
 /** 証明書の保存に失敗したら、そのエラーを返して、登録の手順を表示する */
 ZTEST(thermo_shell, test_save_certs_failure)
 {
-    int ret = 0;
-    const char *out = NULL;
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
 
     cfg_save_credentials_fake.return_val = -ENOENT;
     out = run("thermo save-certs", &ret);
@@ -300,8 +300,8 @@ ZTEST(thermo_shell, test_save_certs_failure)
 /** `thermo apply` は、接続をやり直させる */
 ZTEST(thermo_shell, test_apply)
 {
-    int ret = 0;
-    const char *out = run("thermo apply", &ret);
+    int ret = 0;                                 /* 戻り値 */
+    const char *out = run("thermo apply", &ret); /* シェルの出力 */
 
     /* 期待: 接続のやり直しを依頼して、"reconnecting" と表示する */
     zassert_equal(ret, 0);
@@ -312,8 +312,8 @@ ZTEST(thermo_shell, test_apply)
 /** `thermo reset` は、全て消して、消したことを表示する */
 ZTEST(thermo_shell, test_reset)
 {
-    int ret = 0;
-    const char *out = run("thermo reset", &ret);
+    int ret = 0;                                 /* 戻り値 */
+    const char *out = run("thermo reset", &ret); /* シェルの出力 */
 
     /* 期待: 全て消して、"settings erased" と表示する */
     zassert_equal(ret, 0);
@@ -324,8 +324,8 @@ ZTEST(thermo_shell, test_reset)
 /** 消すのに失敗したら、そのエラーを返す */
 ZTEST(thermo_shell, test_reset_failure)
 {
-    int ret = 0;
-    const char *out = NULL;
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
 
     cfg_reset_fake.return_val = -EIO;
     out = run("thermo reset", &ret);

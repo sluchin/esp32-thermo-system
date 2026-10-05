@@ -17,9 +17,9 @@
 #include <zephyr/ztest.h>
 #include <zephyr/fff.h>
 #include <zephyr/settings/settings.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>  /* EIO ENOENT EFBIG EINVAL ENOMEM EBUSY etc... */
+#include <stdlib.h> /* EXIT_SUCCESS */
+#include <string.h> /* strncpy memcpy memset strlen */
 
 #include "cfg.h"
 
@@ -77,7 +77,7 @@ static struct {
  */
 static int fake_save_one(const char *name, const void *value, size_t len)
 {
-    unsigned int i = save_count;
+    unsigned int i = save_count; /* ループ用の添字 */
 
     save_count++;
     if ((int)i == save_fail_index) {
@@ -121,7 +121,7 @@ static int fake_cred_add(sec_tag_t tag, enum tls_credential_type type, const voi
  */
 static int fake_cred_get(sec_tag_t tag, enum tls_credential_type type, void *cred, size_t *credlen)
 {
-    size_t i = (size_t)type - (size_t)TLS_CREDENTIAL_CA_CERTIFICATE;
+    size_t i = (size_t)type - (size_t)TLS_CREDENTIAL_CA_CERTIFICATE; /* ループ用の添字 */
 
     ARG_UNUSED(tag);
     if (!store[i].present) {
@@ -145,9 +145,9 @@ static int fake_cred_get(sec_tag_t tag, enum tls_credential_type type, void *cre
  */
 static int fake_cred_delete(sec_tag_t tag, enum tls_credential_type type)
 {
-    size_t i = (size_t)type - (size_t)TLS_CREDENTIAL_CA_CERTIFICATE;
-    bool present = store[i].present;
-    int ret = (present ? 0 : -ENOENT); /* 戻り値 */
+    size_t i = (size_t)type - (size_t)TLS_CREDENTIAL_CA_CERTIFICATE; /* ループ用の添字 */
+    bool present = store[i].present;                                 /* 保存されているか */
+    int ret = (present ? 0 : -ENOENT);                               /* 戻り値 */
 
     ARG_UNUSED(tag);
     store[i].present = false;
@@ -164,7 +164,7 @@ static int fake_cred_delete(sec_tag_t tag, enum tls_credential_type type)
  */
 static ssize_t read_source(void *cb_arg, void *data, size_t len)
 {
-    size_t n = MIN(len, source.len);
+    size_t n = MIN(len, source.len); /* コピーする長さ [バイト] */
 
     ARG_UNUSED(cb_arg);
     if (source.err < 0) {
@@ -194,7 +194,7 @@ static struct settings_handler *handler_of(void)
  */
 static void load(const char *name, const void *data, size_t len)
 {
-    struct settings_handler *h = handler_of();
+    struct settings_handler *h = handler_of(); /* settings のハンドラ */
 
     source.data = (const uint8_t *)data;
     source.len = len;
@@ -207,9 +207,9 @@ static void load(const char *name, const void *data, size_t len)
  */
 static void register_all_creds(void)
 {
-    static const char ca[] = "CA-PEM";
-    static const char cert[] = "CERT-PEM";
-    static const char key[] = "KEY-PEM";
+    static const char ca[] = "CA-PEM";     /* CA 証明書 (テスト用) */
+    static const char cert[] = "CERT-PEM"; /* クライアント証明書 (テスト用) */
+    static const char key[] = "KEY-PEM";   /* 設定項目の番号 */
 
     (void)fake_cred_add(CFG_TLS_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, ca, sizeof(ca));
     (void)fake_cred_add(CFG_TLS_SEC_TAG, TLS_CREDENTIAL_PUBLIC_CERTIFICATE, cert, sizeof(cert));
@@ -320,7 +320,7 @@ ZTEST(cfg, test_set_empty_value)
 /** 最大の長さの値は、設定できて、1 byte でも長ければ、-EINVAL (保存も、更新もしない) */
 ZTEST(cfg, test_set_length_limit)
 {
-    char value[CFG_ENDPOINT_MAX + 2u];
+    char value[CFG_ENDPOINT_MAX + 2u]; /* 値 */
 
     /* ちょうど最大の長さ: 設定できる */
     (void)memset(value, 'a', sizeof(value));
@@ -391,7 +391,7 @@ ZTEST(cfg, test_save_credentials_missing)
 /** 証明書が大きすぎて、保存の領域に入らなければ、-EFBIG */
 ZTEST(cfg, test_save_credentials_too_large)
 {
-    static uint8_t large[CFG_KEY_PEM_MAX + 1u];
+    static uint8_t large[CFG_KEY_PEM_MAX + 1u]; /* 上限を超える大きさのデータ */
 
     register_all_creds();
     (void)fake_cred_add(CFG_TLS_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, large, sizeof(large));
@@ -454,7 +454,7 @@ ZTEST(cfg, test_is_complete_missing_value)
 /** 証明書が 1 つでも登録されていなければ、完全ではない */
 ZTEST(cfg, test_is_complete_missing_cred)
 {
-    size_t i = 0u;
+    size_t i = 0u; /* ループ用の添字 */
 
     for (i = 0u; i < CRED_COUNT; i++) {
         set_all();
@@ -485,7 +485,7 @@ ZTEST(cfg, test_reset)
 /** 削除に失敗しても、残りを全て消して、最初のエラーを返す (項目、証明書の、どちらも) */
 ZTEST(cfg, test_reset_failure_returns_first_error)
 {
-    int results[] = {0, -EIO, -ENOMEM, 0, -EBUSY, 0, -EAGAIN};
+    int results[] = {0, -EIO, -ENOMEM, 0, -EBUSY, 0, -EAGAIN}; /* モックが順に返す戻り値 */
 
     set_all();
     RESET_FAKE(settings_delete);
@@ -499,7 +499,7 @@ ZTEST(cfg, test_reset_failure_returns_first_error)
 /** 項目は成功して、証明書の削除だけが失敗した場合も、そのエラーを返す */
 ZTEST(cfg, test_reset_failure_in_credentials)
 {
-    int results[] = {0, 0, 0, 0, 0, -ENOMEM, -EIO};
+    int results[] = {0, 0, 0, 0, 0, -ENOMEM, -EIO}; /* モックが順に返す戻り値 */
 
     RESET_FAKE(settings_delete);
     SET_RETURN_SEQ(settings_delete, results, ARRAY_SIZE(results));
@@ -553,7 +553,7 @@ ZTEST(cfg, test_init_load_failure)
 /** フラッシュに保存された項目は、読み込まれて、取り出せる */
 ZTEST(cfg, test_load_value)
 {
-    static const char ssid[] = "saved-ap";
+    static const char ssid[] = "saved-ap"; /* SSID (テスト用) */
 
     load("ssid", ssid, sizeof(ssid));
 
@@ -575,7 +575,7 @@ ZTEST(cfg, test_load_value_empty_ignored)
 /** 長さが、最大 (NUL を含めて、最大 + 1) を超える項目は、無視する */
 ZTEST(cfg, test_load_value_too_long_ignored)
 {
-    static char big[CFG_SSID_MAX + 2u];
+    static char big[CFG_SSID_MAX + 2u]; /* 上限を超える長さの文字列 */
 
     (void)memset(big, 'a', sizeof(big));
     /* 期待: 最大を超える長さの項目は無視して、設定済みの値のまま */
@@ -589,7 +589,7 @@ ZTEST(cfg, test_load_value_too_long_ignored)
 /** 読み出しに失敗した項目は、空にする */
 ZTEST(cfg, test_load_value_read_failure)
 {
-    struct settings_handler *h = handler_of();
+    struct settings_handler *h = handler_of(); /* settings のハンドラ */
 
     /* 期待: 読み出しに失敗した項目は、空にする (ハンドラは 0 を返して、読み込みを続ける) */
     zassert_equal(cfg_set(CFG_KEY_SSID, "keep"), EXIT_SUCCESS);
@@ -612,8 +612,8 @@ ZTEST(cfg, test_load_unknown_ignored)
 /** フラッシュに保存された証明書は、TLS の認証情報に登録される (既存の登録は、置き換える) */
 ZTEST(cfg, test_load_credential)
 {
-    static const char ca[] = "SAVED-CA";
-    const void *registered = NULL;
+    static const char ca[] = "SAVED-CA"; /* CA 証明書 (テスト用) */
+    const void *registered = NULL;       /* 登録されたハンドラ */
 
     load("ca", ca, sizeof(ca));
 
@@ -643,7 +643,7 @@ ZTEST(cfg, test_load_credential_types)
 /** 長さが 0 の証明書、領域に入らない証明書は、無視する */
 ZTEST(cfg, test_load_credential_invalid_length_ignored)
 {
-    static uint8_t big[CFG_KEY_PEM_MAX + 1u];
+    static uint8_t big[CFG_KEY_PEM_MAX + 1u]; /* 上限を超える長さの文字列 */
 
     load("ca", "x", 0u);
     load("ca", big, CFG_CERT_MAX + 1u);
@@ -656,7 +656,7 @@ ZTEST(cfg, test_load_credential_invalid_length_ignored)
 /** 証明書の読み出しに失敗したら、登録しない */
 ZTEST(cfg, test_load_credential_read_failure)
 {
-    struct settings_handler *h = handler_of();
+    struct settings_handler *h = handler_of(); /* settings のハンドラ */
 
     source.err = -EIO;
 

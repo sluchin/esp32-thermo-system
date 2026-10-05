@@ -16,7 +16,7 @@
  */
 
 #include <zephyr/bluetooth/addr.h>
-#include <stdint.h>
+#include <stdint.h> /* uint16_t */
 
 #include "switchbot.h"
 

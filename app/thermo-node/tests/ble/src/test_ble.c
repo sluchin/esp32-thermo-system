@@ -22,9 +22,9 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>  /* EINVAL EIO ENOMEM EALREADY ENOTCONN */
+#include <stdlib.h> /* EXIT_SUCCESS */
+#include <string.h> /* memset memcpy memcmp strlen */
 
 #include "ble.h"
 #include "thermo_ble_uuid.h"
@@ -98,7 +98,7 @@ static struct {
 static int capture_adv_start(const struct bt_le_adv_param *param, const struct bt_data *ad,
                              size_t ad_len, const struct bt_data *sd, size_t sd_len)
 {
-    size_t i = 0u;
+    size_t i = 0u; /* ループ用の添字 */
 
     (void)memset(&captured, 0, sizeof(captured));
     captured.param = *param;
@@ -156,7 +156,7 @@ static ssize_t fake_attr_read(struct bt_conn *conn, const struct bt_gatt_attr *a
                               uint16_t buf_len, uint16_t offset, const void *value,
                               uint16_t value_len)
 {
-    uint16_t len = 0u;
+    uint16_t len = 0u; /* 長さ [バイト] */
 
     ARG_UNUSED(conn);
     ARG_UNUSED(attr);
@@ -221,7 +221,7 @@ static void before(void *fixture)
 /** ble_init() は, bt_enable(NULL) を呼んで, GATT サービスと, 接続のコールバックを登録する */
 ZTEST(ble_node, test_init_success)
 {
-    const struct bt_gatt_service *service = init_and_get_service();
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
 
     /* 期待: bt_enable() (NULL)、GATT サービスの登録 (属性の数)、接続のコールバックの登録 */
     zassert_equal(bt_enable_fake.call_count, 1u);
@@ -268,8 +268,9 @@ ZTEST(ble_node, test_init_callback_failure)
 /** Thermo サービスは, 温度の特性 (読み取りと通知) と, CCC を持つ */
 ZTEST(ble_node, test_service_attributes)
 {
-    const struct bt_gatt_service *service = init_and_get_service();
-    const struct bt_gatt_attr *attrs = service->attrs;
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
+    const struct bt_gatt_attr *attrs = service->attrs;              /* サービスの属性の配列 */
+    /* キャラクタリスティックの定義 */
     const struct bt_gatt_chrc *chrc = (const struct bt_gatt_chrc *)attrs[1].user_data;
 
     /* 0: プライマリサービス (Thermo サービスの UUID) */
@@ -294,10 +295,10 @@ ZTEST(ble_node, test_service_attributes)
 /** 温度の特性の読み取り (read) は, 最後に更新した温度を, 2 byte のリトルエンディアンで返す */
 ZTEST(ble_node, test_read_temperature)
 {
-    const struct bt_gatt_service *service = init_and_get_service();
-    const struct bt_gatt_attr *attr = &service->attrs[ATTR_VALUE];
-    uint8_t buf[THERMO_TEMPERATURE_SIZE] = {0};
-    ssize_t len = 0;
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
+    const struct bt_gatt_attr *attr = &service->attrs[ATTR_VALUE];  /* 値の属性 */
+    uint8_t buf[THERMO_TEMPERATURE_SIZE] = {0};                     /* 出力バッファ */
+    ssize_t len = 0;                                                /* 長さ [バイト] */
 
     /* 0 に更新したあとは, 0 (温度は, ble.c の static 変数なので, 前のテストの値が残っている) */
     zassert_equal(ble_notify_temperature(0u), EXIT_SUCCESS);
@@ -321,7 +322,7 @@ ZTEST(ble_node, test_read_temperature)
 /** ble_notify_temperature() は, 特性の値の属性に, 温度 (リトルエンディアン) を通知する */
 ZTEST(ble_node, test_notify_success)
 {
-    const struct bt_gatt_service *service = init_and_get_service();
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
 
     /* 期待: 温度の特性の値に、リトルエンディアンの 2 byte で、通知する */
     zassert_equal(ble_notify_temperature(TEST_RAW), EXIT_SUCCESS);
@@ -393,7 +394,7 @@ ZTEST(ble_node, test_advertise_failure)
 /** 接続のコールバック: 接続しても, アドバタイズは再開しない */
 ZTEST(ble_node, test_connected_callback)
 {
-    struct bt_conn_cb *cb = NULL;
+    struct bt_conn_cb *cb = NULL; /* コールバックの登録情報 */
 
     zassert_equal(ble_init(), EXIT_SUCCESS);
     cb = bt_conn_cb_register_fake.arg0_val;
@@ -406,7 +407,7 @@ ZTEST(ble_node, test_connected_callback)
 /** 切断のコールバック: 接続が切れたら, アドバタイズを再開する */
 ZTEST(ble_node, test_disconnected_restarts_advertising)
 {
-    struct bt_conn_cb *cb = NULL;
+    struct bt_conn_cb *cb = NULL; /* コールバックの登録情報 */
 
     zassert_equal(ble_init(), EXIT_SUCCESS);
     cb = bt_conn_cb_register_fake.arg0_val;

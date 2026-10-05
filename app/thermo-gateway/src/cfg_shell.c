@@ -21,8 +21,8 @@
  */
 
 #include <zephyr/shell/shell.h>
-#include <errno.h>
-#include <stdlib.h>
+#include <errno.h>  /* EINVAL */
+#include <stdlib.h> /* EXIT_SUCCESS */
 
 #include "cfg.h"
 #include "cloud.h"
@@ -37,8 +37,8 @@
  */
 static int cmd_set(const struct shell *sh, size_t argc, char **argv)
 {
-    int key = cfg_key_from_name(argv[1]);
-    int err = EXIT_SUCCESS;
+    int key = cfg_key_from_name(argv[1]); /* 設定項目の番号 */
+    int err = EXIT_SUCCESS;               /* エラーコード */
 
     ARG_UNUSED(argc);
 
@@ -66,7 +66,7 @@ static int cmd_set(const struct shell *sh, size_t argc, char **argv)
  */
 static int cmd_show(const struct shell *sh, size_t argc, char **argv)
 {
-    size_t i = 0u;
+    size_t i = 0u; /* ループ用の添字 */
 
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
@@ -97,7 +97,7 @@ static int cmd_show(const struct shell *sh, size_t argc, char **argv)
  */
 static int cmd_save_certs(const struct shell *sh, size_t argc, char **argv)
 {
-    int err = cfg_save_credentials();
+    int err = cfg_save_credentials(); /* エラーコード */
 
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
@@ -141,7 +141,7 @@ static int cmd_apply(const struct shell *sh, size_t argc, char **argv)
  */
 static int cmd_reset(const struct shell *sh, size_t argc, char **argv)
 {
-    int err = cfg_reset();
+    int err = cfg_reset(); /* エラーコード */
 
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);

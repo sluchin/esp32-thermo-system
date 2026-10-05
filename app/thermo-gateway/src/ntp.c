@@ -13,9 +13,9 @@
 #include <zephyr/net/sntp.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/sys/clock.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>  /* EHOSTUNREACH EAGAIN */
+#include <stdlib.h> /* EXIT_SUCCESS */
+#include <string.h> /* memcpy */
 
 #include "ntp.h"
 
@@ -40,9 +40,10 @@ static int64_t last_sync_ms;
  */
 static int resolve_server(const char *server, struct sockaddr_storage *addr, socklen_t *len)
 {
+    /* 名前解決の条件 (UDP) */
     struct zsock_addrinfo hints = {.ai_family = AF_INET, .ai_socktype = SOCK_DGRAM};
-    struct zsock_addrinfo *res = NULL;
-    int err = zsock_getaddrinfo(server, NTP_PORT, &hints, &res);
+    struct zsock_addrinfo *res = NULL;                           /* 名前解決の結果 */
+    int err = zsock_getaddrinfo(server, NTP_PORT, &hints, &res); /* エラーコード */
 
     if (err != 0) {
         LOG_ERR("Resolving '%s' failed (err %d)", server, err);
@@ -58,12 +59,12 @@ static int resolve_server(const char *server, struct sockaddr_storage *addr, soc
 /* NTP サーバに問い合わせて、システム時計を合わせる */
 int ntp_sync(const char *server, k_timeout_t timeout)
 {
-    struct sockaddr_storage addr = {0};
-    socklen_t addr_len = 0;
-    struct sntp_ctx ctx = {0};
-    struct sntp_time ts = {0};
-    struct timespec now = {0};
-    int err = EXIT_SUCCESS;
+    struct sockaddr_storage addr = {0}; /* アドレス */
+    socklen_t addr_len = 0;             /* アドレスの長さ [バイト] */
+    struct sntp_ctx ctx = {0};          /* SNTP のコンテキスト */
+    struct sntp_time ts = {0};          /* SNTP の応答の時刻 */
+    struct timespec now = {0};          /* 現在時刻 */
+    int err = EXIT_SUCCESS;             /* エラーコード */
 
     /* 前回の同期から、間もなければ、問い合わせない */
     if (synced &&
@@ -110,7 +111,7 @@ bool ntp_is_synced(void)
 /* 現在の UNIX 時刻を返す */
 int ntp_unix_time(int64_t *sec)
 {
-    struct timespec now = {0};
+    struct timespec now = {0}; /* 現在時刻 */
 
     if (!synced) {
         return -EAGAIN;

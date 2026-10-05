@@ -11,8 +11,8 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <stdbool.h>
-#include <stdlib.h>
+#include <stdbool.h> /* true */
+#include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE */
 
 #include "ble.h"
 #ifdef CONFIG_THERMO_CLOUD
@@ -34,9 +34,9 @@ LOG_MODULE_REGISTER(thermo_gateway);
  */
 static void on_temperature(const bt_addr_le_t *addr, uint16_t raw)
 {
-    char addr_str[BT_ADDR_LE_STR_LEN] = {0};
+    char addr_str[BT_ADDR_LE_STR_LEN] = {0}; /* アドレスの文字列 */
 #ifdef CONFIG_THERMO_CLOUD
-    int ret = EXIT_SUCCESS;
+    int ret = EXIT_SUCCESS; /* 戻り値 */
 #endif
 
     (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
@@ -61,13 +61,13 @@ static void on_temperature(const bt_addr_le_t *addr, uint16_t raw)
  */
 static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad)
 {
-    char addr_str[BT_ADDR_LE_STR_LEN] = {0};
-    struct switchbot_sample sample = {0};
-    int temp = 0;                /* 温度 [℃ の 10 倍] */
-    const char *sign = "";       /* 温度の符号 ("-" か "") */
-    unsigned int magnitude = 0u; /* 温度の絶対値 [℃ の 10 倍] */
+    char addr_str[BT_ADDR_LE_STR_LEN] = {0}; /* アドレスの文字列 */
+    struct switchbot_sample sample = {0};    /* サンプル */
+    int temp = 0;                            /* 温度 [℃ の 10 倍] */
+    const char *sign = "";                   /* 温度の符号 ("-" か "") */
+    unsigned int magnitude = 0u;             /* 温度の絶対値 [℃ の 10 倍] */
 #ifdef CONFIG_THERMO_CLOUD
-    int ret = EXIT_SUCCESS;
+    int ret = EXIT_SUCCESS; /* 戻り値 */
 #endif
 
     /* 送信の間隔 (CONFIG_THERMO_SWITCHBOT_INTERVAL_MS) より短い間の値は、捨てる */
@@ -105,7 +105,7 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
  */
 int main(void)
 {
-    int ret = EXIT_SUCCESS;
+    int ret = EXIT_SUCCESS; /* 戻り値 */
 
 /* ビルド構成に応じて起動ログを切り替える */
 #ifdef CONFIG_SIMULATOR

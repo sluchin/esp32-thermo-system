@@ -23,10 +23,10 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>   /* EIO EALREADY ENOMEM EBUSY */
+#include <stdbool.h> /* bool */
+#include <stdlib.h>  /* EXIT_SUCCESS */
+#include <string.h>  /* memcpy memset memcmp */
 
 #include "ble.h"
 #include "thermo_ble_uuid.h"
@@ -139,7 +139,7 @@ static struct bt_conn *conn_of(unsigned int index)
  */
 static void fake_data_parse(struct net_buf_simple *ad, data_cb_t func, void *user_data)
 {
-    size_t pos = 0u;
+    size_t pos = 0u; /* 書き込み位置 */
 
     while (pos < ad->len) {
         struct bt_data data;
@@ -205,7 +205,7 @@ static int fake_conn_le_create_connected_early(const bt_addr_le_t *peer,
                                                const struct bt_le_conn_param *conn_param,
                                                struct bt_conn **conn)
 {
-    struct bt_conn *created = conn_of(next_conn);
+    struct bt_conn *created = conn_of(next_conn); /* 作成した接続 */
 
     conn_cb->connected(created, 0u);
     return fake_conn_le_create(peer, create_param, conn_param, conn);
@@ -380,7 +380,7 @@ static void before(void *fixture)
  */
 static void after(void *fixture)
 {
-    unsigned int i = 0u;
+    unsigned int i = 0u; /* ループ用の添字 */
 
     ARG_UNUSED(fixture);
 
@@ -465,7 +465,7 @@ ZTEST(ble_gateway, test_scan_failure)
 /** Thermo サービスを持たないデバイスには, 接続しない */
 ZTEST(ble_gateway, test_scan_ignores_other_devices)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     set_adv_without_service();
     scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_ADV_IND, &adv);
@@ -479,7 +479,7 @@ ZTEST(ble_gateway, test_scan_ignores_other_devices)
 /** Thermo サービスを持つノードを見つけたら, スキャンを止めて, そのアドレスへ接続する */
 ZTEST(ble_gateway, test_scan_connects_to_node)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     find_node(scan_cb, 0u);
 
@@ -493,7 +493,7 @@ ZTEST(ble_gateway, test_scan_connects_to_node)
 /** すでに接続している (または、接続中の) ノードは、無視する (参照は、解放する) */
 ZTEST(ble_gateway, test_scan_ignores_known_node)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     bt_conn_lookup_addr_le_fake.return_val = conn_of(0u);
     find_node(scan_cb, 0u);
@@ -508,8 +508,8 @@ ZTEST(ble_gateway, test_scan_ignores_known_node)
 /** 接続できる台数 (CONFIG_BT_MAX_CONN) に達したら, それ以上は接続しない */
 ZTEST(ble_gateway, test_scan_respects_max_nodes)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    unsigned int i = 0u;
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    unsigned int i = 0u;                      /* ループ用の添字 */
 
     for (i = 0u; i < MAX_NODES; i++) {
         find_node(scan_cb, i);
@@ -524,7 +524,7 @@ ZTEST(ble_gateway, test_scan_respects_max_nodes)
 /** スキャンを止められなかったら (EBUSY 以外), 接続しない。次に見つけたときに, やり直す */
 ZTEST(ble_gateway, test_scan_stop_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     bt_le_scan_stop_fake.return_val = -EIO;
     find_node(scan_cb, 0u);
@@ -541,8 +541,8 @@ ZTEST(ble_gateway, test_scan_stop_failure)
 /** スキャンを止められなくても (EBUSY), 少し待ってやり直して, 止められたら接続する */
 ZTEST(ble_gateway, test_scan_stop_busy_retries)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    int results[] = {-EBUSY, -EBUSY, 0};
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    int results[] = {-EBUSY, -EBUSY, 0};      /* モックが順に返す戻り値 */
 
     SET_RETURN_SEQ(bt_le_scan_stop, results, ARRAY_SIZE(results));
     find_node(scan_cb, 0u);
@@ -557,7 +557,7 @@ ZTEST(ble_gateway, test_scan_stop_busy_retries)
 /** スキャンを止められない (EBUSY) まま, やり直しの回数を超えたら, あきらめる */
 ZTEST(ble_gateway, test_scan_stop_busy_gives_up)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     bt_le_scan_stop_fake.return_val = -EBUSY;
     find_node(scan_cb, 0u);
@@ -575,7 +575,7 @@ ZTEST(ble_gateway, test_scan_stop_busy_gives_up)
 /** bt_conn_le_create() が戻る前に接続が完了しても, その接続を使って, 探索を始める */
 ZTEST(ble_gateway, test_connected_before_create_returns)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     bt_conn_le_create_fake.custom_fake = fake_conn_le_create_connected_early;
     find_node(scan_cb, 0u);
@@ -595,7 +595,7 @@ ZTEST(ble_gateway, test_connected_before_create_returns)
 /** bt_conn_le_create() が戻る前の接続でも, 接続を始めたノードと違うアドレスなら, 無視する */
 ZTEST(ble_gateway, test_connected_other_address_before_create_returns)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     next_conn = 1u; /* ノード 0 に接続する間に, ノード 1 の接続が完了する */
     bt_conn_le_create_fake.custom_fake = fake_conn_le_create_connected_early;
@@ -608,7 +608,7 @@ ZTEST(ble_gateway, test_connected_other_address_before_create_returns)
 /** 接続を始められなかったら, 状態を戻して, スキャンを再開する */
 ZTEST(ble_gateway, test_scan_connect_failure_restarts_scan)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     bt_conn_le_create_fake.custom_fake = NULL;
     bt_conn_le_create_fake.return_val = -ENOMEM;
@@ -626,8 +626,8 @@ ZTEST(ble_gateway, test_scan_connect_failure_restarts_scan)
 /** 接続できたら, Thermo サービスの探索を始めて, スキャンを再開する */
 ZTEST(ble_gateway, test_connected_starts_discovery)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    struct bt_gatt_discover_params *params = NULL;
+    scan_cb_ptr_t scan_cb = start_scanning();      /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -648,7 +648,7 @@ ZTEST(ble_gateway, test_connected_starts_discovery)
 /** 接続に失敗したら, 状態を戻して (参照を解放して), スキャンを再開する */
 ZTEST(ble_gateway, test_connected_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0x3eu);
@@ -674,7 +674,7 @@ ZTEST(ble_gateway, test_connected_unknown_connection)
 /** 探索を始められなかったら, 切断する */
 ZTEST(ble_gateway, test_connected_discovery_failure_disconnects)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     find_node(scan_cb, 0u);
     bt_gatt_discover_fake.return_val = -ENOMEM;
@@ -691,14 +691,14 @@ ZTEST(ble_gateway, test_connected_discovery_failure_disconnects)
  */
 ZTEST(ble_gateway, test_discovery_flow_subscribes)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    struct bt_gatt_discover_params *params = NULL;
-    struct bt_gatt_service_val service_val = {.end_handle = 0x0030u};
-    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val};
-    struct bt_gatt_attr chrc_attr = {.handle = 0x0012u};
-    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
-    struct bt_gatt_subscribe_params *sub = NULL;
-    uint8_t ret = 0u;
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+    struct bt_gatt_service_val service_val = {.end_handle = 0x0030u}; /* GATT サービスの値 */
+    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val}; /* サービスの属性 */
+    struct bt_gatt_attr chrc_attr = {.handle = 0x0012u}; /* キャラクタリスティックの属性 */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u}; /* CCC ディスクリプタの属性 */
+    struct bt_gatt_subscribe_params *sub = NULL; /* 購読のパラメータ */
+    uint8_t ret = 0u;                                                                  /* 戻り値 */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -739,8 +739,8 @@ ZTEST(ble_gateway, test_discovery_flow_subscribes)
 /** サービスが見つからなかったら (属性が NULL), 切断する */
 ZTEST(ble_gateway, test_discovery_not_found_disconnects)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    struct bt_gatt_discover_params *params = NULL;
+    scan_cb_ptr_t scan_cb = start_scanning();      /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -754,11 +754,11 @@ ZTEST(ble_gateway, test_discovery_not_found_disconnects)
 /** 探索や購読のいずれかが失敗したら, 切断する (購読が, すでに済んでいる EALREADY は, 成功) */
 ZTEST(ble_gateway, test_discovery_failure_disconnects)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    struct bt_gatt_discover_params *params = NULL;
-    struct bt_gatt_service_val service_val = {.end_handle = 0x0030u};
-    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val};
-    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+    struct bt_gatt_service_val service_val = {.end_handle = 0x0030u}; /* GATT サービスの値 */
+    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val}; /* サービスの属性 */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u}; /* CCC ディスクリプタの属性 */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -785,13 +785,13 @@ ZTEST(ble_gateway, test_discovery_failure_disconnects)
 /** 通知された温度 (リトルエンディアン) を, ノードのアドレスとともに, コールバックへ渡す */
 ZTEST(ble_gateway, test_notification_delivers_temperature)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    struct bt_gatt_discover_params *params = NULL;
-    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
-    struct bt_gatt_subscribe_params *sub = NULL;
+    scan_cb_ptr_t scan_cb = start_scanning();           /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL;      /* ディスカバリのパラメータ */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u}; /* CCC ディスクリプタの属性 */
+    struct bt_gatt_subscribe_params *sub = NULL;        /* 購読のパラメータ */
     const uint8_t data[THERMO_TEMPERATURE_SIZE] = {(uint8_t)(TEST_RAW & 0xffu),
                                                    (uint8_t)(TEST_RAW >> 8)};
-    uint8_t ret = 0u;
+    uint8_t ret = 0u; /* 戻り値 */
 
     find_node(scan_cb, 1u); /* 2 台目 (アドレス B) のノード */
     next_conn = 0u;
@@ -811,11 +811,11 @@ ZTEST(ble_gateway, test_notification_delivers_temperature)
 /** 大きさが違う通知は、無視する (購読は、続ける) */
 ZTEST(ble_gateway, test_notification_wrong_length_ignored)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    struct bt_gatt_discover_params *params = NULL;
-    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
-    struct bt_gatt_subscribe_params *sub = NULL;
-    const uint8_t data[3] = {1u, 2u, 3u};
+    scan_cb_ptr_t scan_cb = start_scanning();           /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL;      /* ディスカバリのパラメータ */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u}; /* CCC ディスクリプタの属性 */
+    struct bt_gatt_subscribe_params *sub = NULL;        /* 購読のパラメータ */
+    const uint8_t data[3] = {1u, 2u, 3u};               /* 入力データ */
 
     /* ノードに接続して、購読まで進める */
     find_node(scan_cb, 0u);
@@ -833,11 +833,11 @@ ZTEST(ble_gateway, test_notification_wrong_length_ignored)
 /** 購読が解除された通知 (データが NULL) は、購読を終える。コールバックが未設定でも、落ちない */
 ZTEST(ble_gateway, test_notification_unsubscribed_and_no_callback)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    struct bt_gatt_discover_params *params = NULL;
-    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};
-    struct bt_gatt_subscribe_params *sub = NULL;
-    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {1u, 0u};
+    scan_cb_ptr_t scan_cb = start_scanning();               /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL;          /* ディスカバリのパラメータ */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};     /* CCC ディスクリプタの属性 */
+    struct bt_gatt_subscribe_params *sub = NULL;            /* 購読のパラメータ */
+    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {1u, 0u}; /* 入力データ */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -860,8 +860,8 @@ ZTEST(ble_gateway, test_notification_unsubscribed_and_no_callback)
 /** 切断されたら, 状態を戻して (参照を解放して), スキャンを再開する。同じノードへ, 再び接続できる */
 ZTEST(ble_gateway, test_disconnected_releases_and_restarts_scan)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    unsigned int scan_starts = 0u;
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    unsigned int scan_starts = 0u;            /* スキャン開始の回数 */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -894,7 +894,7 @@ ZTEST(ble_gateway, test_disconnected_unknown_connection)
 /** UUID (128 bit) が, Thermo サービスと違うデバイスには, 接続しない */
 ZTEST(ble_gateway, test_scan_ignores_other_uuid)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     set_adv_with_service();
     adv_bytes[2] ^= 0xffu; /* UUID の先頭の 1 byte を変える */
@@ -907,7 +907,7 @@ ZTEST(ble_gateway, test_scan_ignores_other_uuid)
 /** UUID (128 bit) の項目の長さが違うデバイス (壊れたデータ) には, 接続しない */
 ZTEST(ble_gateway, test_scan_ignores_short_uuid)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     set_adv_with_service();
     adv_bytes[0] = 5u;
@@ -922,7 +922,7 @@ ZTEST(ble_gateway, test_scan_ignores_short_uuid)
 /** 接続を始める依頼を処理している間 (スキャンを止められず, 待っている間) は, 次の依頼を受けない */
 ZTEST(ble_gateway, test_scan_ignores_while_pending)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     bt_le_scan_stop_fake.return_val = -EBUSY;
     find_node(scan_cb, 0u);
@@ -939,7 +939,7 @@ ZTEST(ble_gateway, test_scan_ignores_while_pending)
 /** 接続を始められず, スキャンの再開にも失敗しても, 次に見つけたときに, 接続できる */
 ZTEST(ble_gateway, test_scan_connect_failure_and_scan_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     /* 接続を始められず、スキャンの再開にも失敗する */
     bt_conn_le_create_fake.custom_fake = NULL;
@@ -957,7 +957,7 @@ ZTEST(ble_gateway, test_scan_connect_failure_and_scan_failure)
 /** 接続できたあと, スキャンを再開できなくても, 探索は始める */
 ZTEST(ble_gateway, test_connected_scan_restart_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     find_node(scan_cb, 0u);
     bt_le_scan_start_fake.return_val = -EIO;
@@ -971,7 +971,7 @@ ZTEST(ble_gateway, test_connected_scan_restart_failure)
 /** 探索を始められず, 切断にも失敗しても, 処理を続ける (スキャンを再開する) */
 ZTEST(ble_gateway, test_connected_discovery_and_disconnect_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     find_node(scan_cb, 0u);
     bt_gatt_discover_fake.return_val = -ENOMEM;
@@ -986,8 +986,8 @@ ZTEST(ble_gateway, test_connected_discovery_and_disconnect_failure)
 /** サービスが見つからず, 切断にも失敗しても, 探索を止める */
 ZTEST(ble_gateway, test_discovery_not_found_and_disconnect_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    struct bt_gatt_discover_params *params = NULL;
+    scan_cb_ptr_t scan_cb = start_scanning();      /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -1002,10 +1002,10 @@ ZTEST(ble_gateway, test_discovery_not_found_and_disconnect_failure)
 /** 次の探索を始められず, 切断にも失敗しても, 探索を止める */
 ZTEST(ble_gateway, test_discovery_next_failure_and_disconnect_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    struct bt_gatt_discover_params *params = NULL;
-    struct bt_gatt_service_val service_val = {.end_handle = 0x0030u};
-    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val};
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+    struct bt_gatt_service_val service_val = {.end_handle = 0x0030u}; /* GATT サービスの値 */
+    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val}; /* サービスの属性 */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -1021,7 +1021,7 @@ ZTEST(ble_gateway, test_discovery_next_failure_and_disconnect_failure)
 /** 切断されたあと, スキャンを再開できなくても, 状態は戻す */
 ZTEST(ble_gateway, test_disconnected_scan_restart_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -1035,8 +1035,8 @@ ZTEST(ble_gateway, test_disconnected_scan_restart_failure)
 /** SwitchBot のサービスデータ (機種、電池残量) は、接続せずに、コールバックに渡す */
 ZTEST(ble_gateway, test_scan_switchbot_service_data)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    const uint8_t service[] = {0x3D, 0xFD, 0x77, 0x00, 0x64};
+    scan_cb_ptr_t scan_cb = start_scanning();                 /* スキャン結果のコールバック */
+    const uint8_t service[] = {0x3D, 0xFD, 0x77, 0x00, 0x64}; /* サービス */
 
     ble_set_switchbot_callback(on_switchbot);
     set_adv_element(BT_DATA_SVC_DATA16, service, sizeof(service));
@@ -1056,7 +1056,7 @@ ZTEST(ble_gateway, test_scan_switchbot_service_data)
 /** SwitchBot の製造者データ (温度、湿度) も、接続せずに、コールバックに渡す */
 ZTEST(ble_gateway, test_scan_switchbot_manufacturer_data)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
     const uint8_t mfr[] = {0x69, 0x09, 0xB0, 0xE9, 0xFE, 0x12, 0x34,
                            0x56, 0x00, 0x00, 0x05, 0x97, 0x37};
 
@@ -1075,8 +1075,8 @@ ZTEST(ble_gateway, test_scan_switchbot_manufacturer_data)
 /** SwitchBot のコールバックを設定していなければ、SwitchBot のデータは、捨てる (接続もしない) */
 ZTEST(ble_gateway, test_scan_switchbot_without_callback)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
-    const uint8_t service[] = {0x3D, 0xFD, 0x77, 0x00, 0x64};
+    scan_cb_ptr_t scan_cb = start_scanning();                 /* スキャン結果のコールバック */
+    const uint8_t service[] = {0x3D, 0xFD, 0x77, 0x00, 0x64}; /* サービス */
 
     set_adv_element(BT_DATA_SVC_DATA16, service, sizeof(service));
     scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_ADV_IND, &adv);
@@ -1089,7 +1089,7 @@ ZTEST(ble_gateway, test_scan_switchbot_without_callback)
 /** Thermo のノードを見つけても、SwitchBot のコールバックは呼ばない (従来どおり、接続する) */
 ZTEST(ble_gateway, test_scan_thermo_node_is_not_switchbot)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
     ble_set_switchbot_callback(on_switchbot);
     find_node(scan_cb, 0u);

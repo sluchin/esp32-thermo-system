@@ -14,9 +14,9 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
-#include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <errno.h>  /* ENOTCONN */
+#include <stdint.h> /* uint16_t uint8_t */
+#include <stdlib.h> /* EXIT_SUCCESS */
 
 #include "ble.h"
 #include "thermo_ble_uuid.h"
@@ -55,7 +55,7 @@ static uint16_t temperature_raw;
 static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
                                 uint16_t len, uint16_t offset)
 {
-    uint16_t value = sys_cpu_to_le16(temperature_raw);
+    uint16_t value = sys_cpu_to_le16(temperature_raw); /* 温度 (リトルエンディアン) */
 
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &value, sizeof(value));
 }
@@ -103,7 +103,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
  */
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
-    int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS; /* エラーコード */
 
     ARG_UNUSED(conn);
 
@@ -124,7 +124,7 @@ static struct bt_conn_cb conn_callbacks = {
 /* Bluetooth を有効にして、GATT サービスと接続のコールバックを登録する */
 int ble_init(void)
 {
-    int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS; /* エラーコード */
 
     err = bt_enable(NULL);
     if (err != 0) {
@@ -151,7 +151,7 @@ int ble_init(void)
 /* ゲートウェイから見つけられるよう、アドバタイズを始める */
 int ble_advertise(void)
 {
-    int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS; /* エラーコード */
 
     err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
     if (err != 0) {
@@ -166,8 +166,8 @@ int ble_advertise(void)
 /* 温度を、通知する (接続している相手がいなければ、何もしない) */
 int ble_notify_temperature(uint16_t raw)
 {
-    uint16_t value = sys_cpu_to_le16(raw);
-    int err = EXIT_SUCCESS;
+    uint16_t value = sys_cpu_to_le16(raw); /* 温度 (リトルエンディアン) */
+    int err = EXIT_SUCCESS;                /* エラーコード */
 
     temperature_raw = raw;
 

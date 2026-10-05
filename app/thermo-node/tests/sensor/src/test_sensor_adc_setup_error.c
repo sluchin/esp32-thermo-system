@@ -12,7 +12,7 @@
  */
 
 #include <zephyr/ztest.h>
-#include <errno.h>
+#include <errno.h> /* ENOTSUP */
 
 #include "sensor.h"
 

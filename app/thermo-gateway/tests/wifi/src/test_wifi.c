@@ -21,9 +21,9 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/wifi_mgmt.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>  /* ENODEV EIO ECONNREFUSED ETIMEDOUT */
+#include <stdlib.h> /* EXIT_SUCCESS */
+#include <string.h> /* memcpy memset strlen */
 
 #include "wifi_link.h"
 
@@ -65,8 +65,8 @@ static net_mgmt_event_handler_t handler;
  */
 static void send_event(uint64_t event, const int *status)
 {
-    struct wifi_status info = {0};
-    struct net_mgmt_event_callback cb = {0};
+    struct wifi_status info = {0};           /* 機器の情報の広告データ */
+    struct net_mgmt_event_callback cb = {0}; /* コールバックの登録情報 */
 
     if (status != NULL) {
         info.status = *status;
@@ -86,9 +86,10 @@ static void send_event(uint64_t event, const int *status)
  */
 static int fake_connect(uint64_t request, struct net_if *iface, void *data, size_t len)
 {
+    /* 接続のパラメータ */
     const struct wifi_connect_req_params *params = (const struct wifi_connect_req_params *)data;
-    int failed = -1;
-    int ok = 0;
+    int failed = -1; /* 失敗の状態 */
+    int ok = 0;      /* 成功の状態 */
 
     ARG_UNUSED(request);
     ARG_UNUSED(iface);

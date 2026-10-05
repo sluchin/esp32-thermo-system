@@ -16,10 +16,10 @@
 #include <zephyr/ztest.h>
 #include <zephyr/fff.h>
 #include <zephyr/kernel.h>
-#include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>  /* EIO EALREADY ENOMSG EBUSY */
+#include <stdint.h> /* uint32_t uint16_t uintptr_t int16_t */
+#include <stdlib.h> /* EXIT_FAILURE */
+#include <string.h> /* memset */
 
 #include "ble.h"
 #include "cloud.h"
@@ -237,6 +237,7 @@ ZTEST(main_gateway, test_main_loop)
 /** SwitchBot のコールバックは、間引きを通った値を、クラウドの送信のキューに渡す */
 ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
 {
+    /* 広告データ */
     const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV, .temp_x10 = 235, .humidity = 55u};
 
     /* コールバックを取り出すため、スキャンの失敗で、main() を終わらせる */
@@ -258,7 +259,7 @@ ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
 /** 間引きで捨てられた値 (または、機種と電池残量だけのデータ) は、クラウドに渡さない */
 ZTEST(main_gateway, test_switchbot_dropped_by_interval)
 {
-    const struct switchbot_ad ad = {.kind = SWITCHBOT_INFO};
+    const struct switchbot_ad ad = {.kind = SWITCHBOT_INFO}; /* 広告データ */
 
     ble_scan_fake.return_val = -EIO;
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
@@ -273,7 +274,7 @@ ZTEST(main_gateway, test_switchbot_dropped_by_interval)
 /** 0 ℃ 未満の値と、クラウドに渡せなかった (キューが満杯) 場合も、ログに出すだけで、問題なく戻る */
 ZTEST(main_gateway, test_switchbot_negative_and_queue_full)
 {
-    const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV};
+    const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV}; /* 広告データ */
 
     ble_scan_fake.return_val = -EIO;
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);

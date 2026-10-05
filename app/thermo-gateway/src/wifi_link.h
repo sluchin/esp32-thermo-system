@@ -15,7 +15,7 @@
  */
 
 #include <zephyr/kernel.h>
-#include <stdbool.h>
+#include <stdbool.h> /* bool */
 
 /**
  * @brief WiFi のイベント (接続の結果、切断、IPv4 アドレスの取得) のコールバックを登録する。

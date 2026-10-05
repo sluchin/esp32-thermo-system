@@ -11,9 +11,9 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <stdbool.h> /* true */
+#include <stdint.h>  /* uint16_t */
+#include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE */
 
 #include "ble.h"
 #include "sensor.h"
@@ -34,7 +34,7 @@ LOG_MODULE_REGISTER(thermo_node);
  */
 int main(void)
 {
-    int ret = EXIT_SUCCESS;
+    int ret = EXIT_SUCCESS; /* 戻り値 */
 
 /* ビルド構成に応じて起動ログを切り替える */
 #ifdef CONFIG_SIMULATOR

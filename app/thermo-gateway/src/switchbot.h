@@ -21,8 +21,8 @@
  */
 
 #include <zephyr/bluetooth/addr.h>
-#include <stdbool.h>
-#include <stdint.h>
+#include <stdbool.h> /* bool */
+#include <stdint.h>  /* uint8_t int16_t int8_t uint32_t */
 
 /** 屋外用温湿度計の機種コード (サービスデータの先頭。ASCII の 'w') */
 #define SWITCHBOT_MODEL_OUTDOOR   0x77u
