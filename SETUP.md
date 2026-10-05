@@ -350,7 +350,7 @@ west build -p always -b xiao_esp32c3 app/thermo-node
 ## リソース
 
 - [Zephyr 公式ドキュメント](https://docs.zephyrproject.org/)
-- [ESP32C3 ボード情報](https://docs.zephyrproject.org/latest/boards/riscv/xiao_esp32c3/doc/index.html)
+- [ESP32C3 ボード情報](https://docs.zephyrproject.org/latest/boards/seeed/xiao_esp32c3/doc/index.html)
 - [Bluetooth Low Energy ガイド](https://docs.zephyrproject.org/latest/connectivity/bluetooth/index.html)
 
 ## サポート
