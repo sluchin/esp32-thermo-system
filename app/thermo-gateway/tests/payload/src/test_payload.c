@@ -35,8 +35,9 @@ static const bt_addr_le_t node = {
 /** トピックは, クライアント ID と, ノードのアドレスから作る */
 ZTEST(payload, test_topic)
 {
-    char buf[64] = {0};                                                    /* 出力バッファ */
-    int len = payload_format_topic(buf, sizeof(buf), "gateway-01", &node); /* 書き込んだ長さ [バイト] */
+    char buf[64] = {0}; /* 出力バッファ */
+    int len = payload_format_topic(buf, sizeof(buf), "gateway-01",
+                                   &node); /* 書き込んだ長さ [バイト] */
 
     /* 期待: thermo/<クライアント ID>/<アドレス>/temperature の形式で, 長さは, NUL を除く */
     zassert_equal(len, (int)strlen(EXPECTED_TOPIC));
@@ -137,8 +138,9 @@ ZTEST(payload, test_switchbot_payload)
 /** 0 ℃ 未満の温度は, 符号を付ける (整数部が 0 の -0.5 でも, 符号を落とさない) */
 ZTEST(payload, test_switchbot_payload_negative_temperature)
 {
-    char buf[160] = {0};                                                                /* 出力バッファ */
-    struct switchbot_sample sample = {.temp_x10 = -53, .humidity = 55u, .battery = 87}; /* サンプル */
+    char buf[160] = {0}; /* 出力バッファ */
+    struct switchbot_sample sample = {
+        .temp_x10 = -53, .humidity = 55u, .battery = 87}; /* サンプル */
 
     zassert_true(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 1u, -1) > 0);
     zassert_not_null(strstr(buf, "\"temperature_c\":-5.3,"));
@@ -152,7 +154,8 @@ ZTEST(payload, test_switchbot_payload_negative_temperature)
 ZTEST(payload, test_switchbot_payload_zero_temperature)
 {
     char buf[160] = {0}; /* 出力バッファ */
-    const struct switchbot_sample sample = {.temp_x10 = 0, .humidity = 0u, .battery = 0}; /* サンプル */
+    const struct switchbot_sample sample = {
+        .temp_x10 = 0, .humidity = 0u, .battery = 0}; /* サンプル */
 
     zassert_true(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 1u, -1) > 0);
     zassert_not_null(strstr(buf, "\"temperature_c\":0.0,\"humidity\":0,\"battery\":0,"));

@@ -72,7 +72,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 単体テストは、Zephyr のテストフレームワーク Ztest (`zephyr/ztest.h`) と、モックの FFF (`zephyr/fff.h`) で書く。`native_sim` (ホスト上) で実行し、Zephyr のテストランナー twister が実行する。
 
-- カバレッジ: `docker compose run --rm coverage-thermo-node` / `docker compose run --rm coverage-thermo-gateway` (`app/thermo-*/src` の行と分岐が 100% でなければ失敗する。分岐は `LOG_*` マクロの内部を除く)。テストを追加・変更したら、実行して、100% を保つ。
+- カバレッジ: `docker compose run --rm coverage-thermo-node` / `docker compose run --rm coverage-thermo-gateway` (`app/thermo-*/src` の行と分岐が 100% でなければ失敗する。分岐は `LOG_*` と `LOG_HEXDUMP_*` マクロの内部を除く)。テストを追加・変更したら、実行して、100% を保つ。
 - 実行: `docker compose run --rm test-thermo-node` / `docker compose run --rm test-thermo-gateway` (全てのテストを実行する。結果は、コンテナの `/tmp` に出力する)
 - 配置: `app/<アプリ>/tests/<対象>/`。1 ディレクトリが 1 つのテストアプリ (`CMakeLists.txt` `prj.conf` `testcase.yaml` `src/test_*.c`)。twister が、`testcase.yaml` を探して、自動で実行する。
   - `sensor` (thermo-node): `sensor.c`。ADC エミュレータ (`zephyr,adc-emul`。入力電圧とエラーを、テストから設定する) を使う実機用の経路と、シミュレーション値の経路の、2 つの構成 (`TEST_MODE=adc` / `simulator`)。

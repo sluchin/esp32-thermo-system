@@ -129,6 +129,33 @@ struct scan_result {
     struct switchbot_ad switchbot; /**< SwitchBot の温湿度計のデータ (has_switchbot のとき) */
 };
 
+#if (CONFIG_LOG_DEFAULT_LEVEL >= 4) /* 4: LOG_LEVEL_DBG (#if では, 列挙子を使えない) */
+/** アドバタイズデータの 16 進ダンプを出す間隔 (要素の数. この回数に 1 回だけ出す) */
+#define ADV_HEXDUMP_EVERY 50u
+
+/**
+ * アドバタイズデータの 1 要素を, 16 進数でログに出す (ADV_HEXDUMP_EVERY 回に 1 回だけ)
+ *
+ * スキャンでは, まわりの機器の広告が, 大量に届くので, 回数で間引く.
+ *
+ * @param[in] data アドバタイズデータの 1 要素
+ */
+static void adv_hexdump(const struct bt_data *data)
+{
+    static uint32_t count; /* 受け取った要素の数 (static なので, 0 から始まる) */
+
+    if ((count % ADV_HEXDUMP_EVERY) == 0u) {
+        LOG_HEXDUMP_DBG(data->data, data->data_len, "Advertising data");
+    }
+    count++;
+}
+#else
+/** アドバタイズデータの 16 進ダンプ (デバッグログが無効のときは, 何もしない) */
+#define adv_hexdump(data)                                                                          \
+    do {                                                                                           \
+    } while (0)
+#endif
+
 /**
  * アドバタイズデータの中から, Thermo サービスの UUID か, SwitchBot の温湿度計のデータを探す
  *
@@ -139,6 +166,8 @@ struct scan_result {
 static bool parse_ad(struct bt_data *data, void *user_data)
 {
     struct scan_result *result = (struct scan_result *)user_data; /* スキャンの結果 */
+
+    adv_hexdump(data);
 
     if ((data->type == BT_DATA_UUID128_ALL) && (data->data_len == sizeof(service_uuid_val)) &&
         (memcmp(data->data, service_uuid_val, sizeof(service_uuid_val)) == 0)) {

@@ -139,7 +139,7 @@ MISRA-C への対応方針と、あえて従わない規則 (例外事項。Devi
 3. **戻り値にリテラルを直書きしない**: `return 0;` / `return -1;` は使わず、`EXIT_SUCCESS` / `EXIT_FAILURE` (`<stdlib.h>`)、または `-ENODEV` 等の名前付き定数を使う。
 4. **マジックナンバーを使わない**: 時間、解像度、範囲などは `#define` で名前を付ける。符号なしの値には、小文字の `u` サフィックスを付ける (`12u`、`0u`)。`long` / `ssize_t` には大文字の `L`、`long long` には `LL` を付ける (小文字の `l` は使わない)。
 5. **三項演算子は、式全体を括弧で囲む**: `((x != NULL) ? x : y)` のように書く (`(x != NULL) ? x : y` と書かない)。条件は、2 と同じく、bool にする。
-6. **ローカル変数は宣言時に必ず初期化する**: 例: `int err = EXIT_SUCCESS;`、`bool ready = false;`、`char buf[N] = {0};`。
+6. **ローカル変数は宣言時に必ず初期化する**: 例: `int err = EXIT_SUCCESS;`、`bool ready = false;`、`char buf[N] = {0};`。ただし、`static` の変数は、0 になるので、0 で初期化しない (checkpatch.pl の `INITIALISED_STATIC` が、エラーにする)。
 7. **`extern` 宣言を `.c` に書かない**: 関数宣言はヘッダ (`ble.h`, `sensor.h` 等) に置き、利用側で `#include "xxx.h"` する。ヘッダにはインクルードガードを付ける。
 8. **論理演算子の前後の比較に括弧を付ける (Rule 12.1)**: `&&` や `||` でつなぐ、それぞれの比較は、括弧で囲む。`if ((err == 0) && (ptr != NULL))` のように書き、`if (err == 0 && ptr != NULL)` とは書かない。
 

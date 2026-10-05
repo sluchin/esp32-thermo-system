@@ -691,14 +691,15 @@ ZTEST(ble_gateway, test_connected_discovery_failure_disconnects)
  */
 ZTEST(ble_gateway, test_discovery_flow_subscribes)
 {
-    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    scan_cb_ptr_t scan_cb = start_scanning();      /* スキャン結果のコールバック */
     struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
     struct bt_gatt_service_val service_val = {.end_handle = 0x0030u}; /* GATT サービスの値 */
-    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val}; /* サービスの属性 */
+    struct bt_gatt_attr service_attr = {.handle = 0x0010u,
+                                        .user_data = &service_val}; /* サービスの属性 */
     struct bt_gatt_attr chrc_attr = {.handle = 0x0012u}; /* キャラクタリスティックの属性 */
-    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u}; /* CCC ディスクリプタの属性 */
-    struct bt_gatt_subscribe_params *sub = NULL; /* 購読のパラメータ */
-    uint8_t ret = 0u;                                                                  /* 戻り値 */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};  /* CCC ディスクリプタの属性 */
+    struct bt_gatt_subscribe_params *sub = NULL;         /* 購読のパラメータ */
+    uint8_t ret = 0u;                                    /* 戻り値 */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -754,11 +755,12 @@ ZTEST(ble_gateway, test_discovery_not_found_disconnects)
 /** 探索や購読のいずれかが失敗したら, 切断する (購読が, すでに済んでいる EALREADY は, 成功) */
 ZTEST(ble_gateway, test_discovery_failure_disconnects)
 {
-    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    scan_cb_ptr_t scan_cb = start_scanning();      /* スキャン結果のコールバック */
     struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
     struct bt_gatt_service_val service_val = {.end_handle = 0x0030u}; /* GATT サービスの値 */
-    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val}; /* サービスの属性 */
-    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u}; /* CCC ディスクリプタの属性 */
+    struct bt_gatt_attr service_attr = {.handle = 0x0010u,
+                                        .user_data = &service_val}; /* サービスの属性 */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014u};             /* CCC ディスクリプタの属性 */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
@@ -1002,10 +1004,11 @@ ZTEST(ble_gateway, test_discovery_not_found_and_disconnect_failure)
 /** 次の探索を始められず, 切断にも失敗しても, 探索を止める */
 ZTEST(ble_gateway, test_discovery_next_failure_and_disconnect_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    scan_cb_ptr_t scan_cb = start_scanning();      /* スキャン結果のコールバック */
     struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
     struct bt_gatt_service_val service_val = {.end_handle = 0x0030u}; /* GATT サービスの値 */
-    struct bt_gatt_attr service_attr = {.handle = 0x0010u, .user_data = &service_val}; /* サービスの属性 */
+    struct bt_gatt_attr service_attr = {.handle = 0x0010u,
+                                        .user_data = &service_val}; /* サービスの属性 */
 
     find_node(scan_cb, 0u);
     conn_cb->connected(conn_of(0u), 0u);
