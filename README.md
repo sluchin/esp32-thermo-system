@@ -143,7 +143,11 @@ gateway がスキャンで受け取る広告データの 16 進ダンプは、�
 
 ```bash
 # ビルド後、USB で接続した状態で実行
-esptool.py -p /dev/ttyUSB0 write_flash 0x0 build/zephyr/zephyr.bin
+# XIAO ESP32C3 は USB を内蔵しているので、ポートは /dev/ttyACM0 (macOS は /dev/tty.usbmodem*)
+esptool -p /dev/ttyACM0 write-flash 0x0 build/thermo-gateway/zephyr/zephyr.bin
+
+# スクリプト (TARGET は node / gateway / all。PORT の既定値は /dev/ttyACM0)
+./flash.sh gateway /dev/ttyACM0
 ```
 
 ## 機能
@@ -201,7 +205,7 @@ git push --force-with-lease --force-if-includes origin <ブランチ名>
 ### シリアルコンソール接続
 
 ```bash
-picocom -b 115200 /dev/ttyUSB0
+picocom -b 115200 /dev/ttyACM0
 ```
 
 ### Zephyr ログレベル
