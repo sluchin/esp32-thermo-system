@@ -31,7 +31,7 @@ Thermo Gateway は、BLE で受信した温度 (ADC の生値) を、WiFi と MQ
 - 温度は、機器が変換した ℃ です (Thermo ノードの `raw` とは違います)。電池残量がわからないときは、`battery` を出力しません。
 - ポリシーの `topic/thermo/gateway-01/*` に、このトピックも含まれます (変更は、不要です)。
 - 10 秒に 1 回だと、1 台で 1 日に 8,640 件、1 か月に約 26 万件です。AWS IoT Core は、メッセージの件数で課金されます (料金は、リージョンごとの料金表で確認してください)。間隔は、`prj.conf` の `CONFIG_THERMO_SWITCHBOT_INTERVAL_MS` (ミリ秒) で変えられます (Kconfig の既定値は 1000)。
-- アドバタイズの並びは、SwitchBot の公開仕様に基づいていて、**実機では未確認**です。屋外用温湿度計の機種コードと、温度の位置が違うと、値が出ません。
+- アドバタイズの並びは、SwitchBot の公開仕様に基づいています。実機 (屋外用温湿度計) で、温度・湿度・電池残量が、SwitchBot のアプリの表示と一致することを確認しました (AWS IoT Core への送信は、まだ確認していません)。屋外用温湿度計の機種コードと、温度の位置が違う機種では、値が出ません。
 
 ## 2. AWS 側の準備
 
@@ -105,14 +105,21 @@ Zephyr の `cred` コマンドで、セキュリティタグ `1` に、3 つの 
 | クライアント証明書 | `CLIENT` | `device.pem.crt` |
 | 秘密鍵 | `PK` | `private.pem.key` |
 
+1 つの証明書ごとに、次の 3 つを実行します (種類は、`CA` / `CLIENT` / `PK`)。
+
 ```
-cred buf <PEM の 1 行目>
-cred buf <PEM の 2 行目>
-...
-cred add 1 CA STRING
+cred buf load
+(PEM を、`-----BEGIN` から `-----END` の行まで貼り付ける。最後に Ctrl-C)
+cred add 1 CA default strt
 ```
 
-`cred buf` と `cred add` の書式は、ファームウェアの `cred add -h` と `cred buf -h` で確認してください (Zephyr の `tls_credentials_shell` の仕様です)。登録できたか確認します。
+- `cred buf load` は、貼り付けた文字を、改行も含めて、そのままバッファに入れます。`cred buf <1 行>` は、改行を入れないので、PEM が壊れるため、使いません。
+- `Ctrl-C` で、`Stored N bytes.` と出れば、バッファに入っています。
+- `strt` は、文字列で、末尾に NUL を付ける指定です (mbedTLS が PEM を読むのに必要です)。
+- バッファは、`CONFIG_TLS_CREDENTIALS_SHELL_CRED_BUF_SIZE` (2048 バイト) です。PEM が、これより長いと、エラーになります。
+- シェルの受信バッファが小さい (64 バイト) ので、貼り付けの途中で、文字が欠けるかもしれません。`Stored N bytes.` の N が、PEM のサイズ (`wc -c` の値) と合うか、確認してください。
+
+登録できたか確認します。
 
 ```
 cred list
