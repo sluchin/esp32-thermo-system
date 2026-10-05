@@ -36,11 +36,11 @@ FAKE_VALUE_FUNC(int, tls_credential_get, sec_tag_t, enum tls_credential_type, vo
 FAKE_VALUE_FUNC(int, tls_credential_delete, sec_tag_t, enum tls_credential_type)
 
 /** 保存の記録の最大数 */
-#define MAX_SAVES  32u
+#define MAX_SAVES  32U
 /** 1 回の保存の, データの最大サイズ */
-#define SAVE_DATA  2048u
+#define SAVE_DATA  2048U
 /** 証明書の種類の数 */
-#define CRED_COUNT 3u
+#define CRED_COUNT 3U
 
 /** settings_save_one() に渡された内容の記録 */
 static struct {
@@ -85,7 +85,7 @@ static int fake_save_one(const char *name, const void *value, size_t len)
     }
     zassert_true(i < MAX_SAVES);
     zassert_true(len <= SAVE_DATA);
-    (void)strncpy(saves[i].name, name, sizeof(saves[i].name) - 1u);
+    (void)strncpy(saves[i].name, name, sizeof(saves[i].name) - 1U);
     (void)memcpy(saves[i].data, value, len);
     saves[i].len = len;
     return 0;
@@ -254,7 +254,7 @@ static void before(void *fixture)
     (void)memset(store, 0, sizeof(store));
     (void)memset(saves, 0, sizeof(saves));
     (void)memset(&source, 0, sizeof(source));
-    save_count = 0u;
+    save_count = 0U;
     save_fail_index = -1;
 
     /* ble.c の static な状態 (設定の値) を, 空に戻す */
@@ -300,10 +300,10 @@ ZTEST(cfg, test_set_saves_and_get)
     zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
 
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "home-ap");
-    zassert_equal(save_count, 1u);
+    zassert_equal(save_count, 1U);
     zassert_str_equal(saves[0].name, "thermo/ssid");
-    zassert_equal(saves[0].len, strlen("home-ap") + 1u);
-    zassert_mem_equal(saves[0].data, "home-ap", strlen("home-ap") + 1u);
+    zassert_equal(saves[0].len, strlen("home-ap") + 1U);
+    zassert_mem_equal(saves[0].data, "home-ap", strlen("home-ap") + 1U);
 }
 
 /** 空の値も, 設定できる (オープンネットワークの, パスワード) */
@@ -314,13 +314,13 @@ ZTEST(cfg, test_set_empty_value)
     zassert_equal(cfg_set(CFG_KEY_PSK, ""), EXIT_SUCCESS);
 
     zassert_str_equal(cfg_get(CFG_KEY_PSK), "");
-    zassert_equal(saves[1].len, 1u);
+    zassert_equal(saves[1].len, 1U);
 }
 
 /** 最大の長さの値は, 設定できて, 1 byte でも長ければ, -EINVAL (保存も, 更新もしない) */
 ZTEST(cfg, test_set_length_limit)
 {
-    char value[CFG_ENDPOINT_MAX + 2u]; /* 値 */
+    char value[CFG_ENDPOINT_MAX + 2U]; /* 値 */
 
     /* ちょうど最大の長さ: 設定できる */
     (void)memset(value, 'a', sizeof(value));
@@ -330,10 +330,10 @@ ZTEST(cfg, test_set_length_limit)
 
     /* 1 byte 長い: 拒否する (前の値のまま. 保存は, 1 回目だけ) */
     value[CFG_ENDPOINT_MAX] = 'a';
-    value[CFG_ENDPOINT_MAX + 1u] = '\0';
+    value[CFG_ENDPOINT_MAX + 1U] = '\0';
     zassert_equal(cfg_set(CFG_KEY_ENDPOINT, value), -EINVAL);
     zassert_equal(strlen(cfg_get(CFG_KEY_ENDPOINT)), CFG_ENDPOINT_MAX);
-    zassert_equal(save_count, 1u);
+    zassert_equal(save_count, 1U);
 }
 
 /** 保存に失敗したら, そのエラーを返して, 値は更新しない */
@@ -367,7 +367,7 @@ ZTEST(cfg, test_save_credentials)
 
     /* 3 つの証明書が, CA, クライアント証明書, 秘密鍵の順に, 種類ごとの名前で保存される */
     zassert_equal(cfg_save_credentials(), EXIT_SUCCESS);
-    zassert_equal(save_count, 3u);
+    zassert_equal(save_count, 3U);
     zassert_str_equal(saves[0].name, "thermo/ca");
     zassert_mem_equal(saves[0].data, "CA-PEM", sizeof("CA-PEM"));
     zassert_equal(saves[0].len, sizeof("CA-PEM"));
@@ -385,20 +385,20 @@ ZTEST(cfg, test_save_credentials_missing)
 
     /* 期待: 秘密鍵がないので, -ENOENT (CA と証明書は, その前に, 保存される) */
     zassert_equal(cfg_save_credentials(), -ENOENT);
-    zassert_equal(save_count, 2u);
+    zassert_equal(save_count, 2U);
 }
 
 /** 証明書が大きすぎて, 保存の領域に入らなければ, -EFBIG */
 ZTEST(cfg, test_save_credentials_too_large)
 {
-    static uint8_t large[CFG_KEY_PEM_MAX + 1u]; /* 上限を超える大きさのデータ */
+    static uint8_t large[CFG_KEY_PEM_MAX + 1U]; /* 上限を超える大きさのデータ */
 
     register_all_creds();
     (void)fake_cred_add(CFG_TLS_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, large, sizeof(large));
 
     /* 期待: 保存の領域に入らない証明書は, -EFBIG (何も保存しない) */
     zassert_equal(cfg_save_credentials(), -EFBIG);
-    zassert_equal(save_count, 0u);
+    zassert_equal(save_count, 0U);
 }
 
 /** 保存に失敗したら, そのエラーを返して, 残りは保存しない */
@@ -409,7 +409,7 @@ ZTEST(cfg, test_save_credentials_save_failure)
 
     /* 期待: 2 つめの保存の失敗で止まって, そのエラーを返す */
     zassert_equal(cfg_save_credentials(), -EIO);
-    zassert_equal(save_count, 2u);
+    zassert_equal(save_count, 2U);
 }
 
 /** 設定が全て揃い, 証明書が 3 つ登録されていれば, 完全 */
@@ -454,9 +454,9 @@ ZTEST(cfg, test_is_complete_missing_value)
 /** 証明書が 1 つでも登録されていなければ, 完全ではない */
 ZTEST(cfg, test_is_complete_missing_cred)
 {
-    size_t i = 0u; /* ループ用の添字 */
+    size_t i = 0U; /* ループ用の添字 */
 
-    for (i = 0u; i < CRED_COUNT; i++) {
+    for (i = 0U; i < CRED_COUNT; i++) {
         set_all();
         store[i].present = false;
         /* 期待: 証明書のどれか 1 つがなければ, false */
@@ -474,8 +474,8 @@ ZTEST(cfg, test_reset)
 
     zassert_equal(cfg_reset(), EXIT_SUCCESS);
 
-    zassert_equal(settings_delete_fake.call_count, 7u); /* 項目 4 つと, 証明書 3 つ */
-    zassert_equal(tls_credential_delete_fake.call_count, 3u);
+    zassert_equal(settings_delete_fake.call_count, 7U); /* 項目 4 つと, 証明書 3 つ */
+    zassert_equal(tls_credential_delete_fake.call_count, 3U);
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "");
     zassert_str_equal(cfg_get(CFG_KEY_CLIENT_ID), "");
     zassert_false(cfg_has_cred(CFG_CRED_CA));
@@ -492,7 +492,7 @@ ZTEST(cfg, test_reset_failure_returns_first_error)
     SET_RETURN_SEQ(settings_delete, results, ARRAY_SIZE(results));
 
     zassert_equal(cfg_reset(), -EIO);
-    zassert_equal(settings_delete_fake.call_count, 7u);
+    zassert_equal(settings_delete_fake.call_count, 7U);
     zassert_str_equal(cfg_get(CFG_KEY_PSK), ""); /* 失敗しても, 値は空にする */
 }
 
@@ -514,10 +514,10 @@ ZTEST(cfg, test_init)
     /* 期待: settings を初期化して, ハンドラを登録して, "thermo" 以下を読み込む */
     zassert_equal(cfg_init(), EXIT_SUCCESS);
 
-    zassert_equal(settings_subsys_init_fake.call_count, 1u);
-    zassert_equal(settings_register_fake.call_count, 1u);
+    zassert_equal(settings_subsys_init_fake.call_count, 1U);
+    zassert_equal(settings_register_fake.call_count, 1U);
     zassert_str_equal(settings_register_fake.arg0_val->name, "thermo");
-    zassert_equal(settings_load_subtree_fake.call_count, 1u);
+    zassert_equal(settings_load_subtree_fake.call_count, 1U);
     zassert_str_equal(settings_load_subtree_fake.arg0_val, "thermo");
 }
 
@@ -528,7 +528,7 @@ ZTEST(cfg, test_init_subsys_failure)
 
     /* 期待: settings の初期化に失敗したら, ハンドラは登録しない */
     zassert_equal(cfg_init(), -EIO);
-    zassert_equal(settings_register_fake.call_count, 0u);
+    zassert_equal(settings_register_fake.call_count, 0U);
 }
 
 /** ハンドラの登録に失敗したら, そのエラーを返す (読み込まない) */
@@ -538,7 +538,7 @@ ZTEST(cfg, test_init_register_failure)
 
     /* 期待: ハンドラの登録に失敗したら, 読み込まない */
     zassert_equal(cfg_init(), -ENOMEM);
-    zassert_equal(settings_load_subtree_fake.call_count, 0u);
+    zassert_equal(settings_load_subtree_fake.call_count, 0U);
 }
 
 /** 読み込みに失敗したら, そのエラーを返す */
@@ -567,7 +567,7 @@ ZTEST(cfg, test_load_value_empty_ignored)
     /* 期待: 長さ 0 の項目は無視して, 設定済みの値のまま */
     zassert_equal(cfg_set(CFG_KEY_SSID, "keep"), EXIT_SUCCESS);
 
-    load("ssid", "x", 0u);
+    load("ssid", "x", 0U);
 
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "keep");
 }
@@ -575,7 +575,7 @@ ZTEST(cfg, test_load_value_empty_ignored)
 /** 長さが, 最大 (NUL を含めて, 最大 + 1) を超える項目は, 無視する */
 ZTEST(cfg, test_load_value_too_long_ignored)
 {
-    static char big[CFG_SSID_MAX + 2u]; /* 上限を超える長さの文字列 */
+    static char big[CFG_SSID_MAX + 2U]; /* 上限を超える長さの文字列 */
 
     (void)memset(big, 'a', sizeof(big));
     /* 期待: 最大を超える長さの項目は無視して, 設定済みの値のまま */
@@ -595,17 +595,17 @@ ZTEST(cfg, test_load_value_read_failure)
     zassert_equal(cfg_set(CFG_KEY_SSID, "keep"), EXIT_SUCCESS);
     source.err = -EIO;
 
-    zassert_equal(h->h_set("ssid", 5u, read_source, NULL), 0);
+    zassert_equal(h->h_set("ssid", 5U, read_source, NULL), 0);
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "");
 }
 
 /** 知らない名前の項目は, 無視する (読み込みを止めないため, 0 を返す) */
 ZTEST(cfg, test_load_unknown_ignored)
 {
-    load("unknown", "x", 2u);
+    load("unknown", "x", 2U);
 
     /* 期待: 知らない名前は無視する (証明書も, 項目も, 変わらない) */
-    zassert_equal(tls_credential_add_fake.call_count, 0u);
+    zassert_equal(tls_credential_add_fake.call_count, 0U);
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "");
 }
 
@@ -618,8 +618,8 @@ ZTEST(cfg, test_load_credential)
     load("ca", ca, sizeof(ca));
 
     /* 先に, 同じ種類の登録を消してから, 追加する */
-    zassert_equal(tls_credential_delete_fake.call_count, 1u);
-    zassert_equal(tls_credential_add_fake.call_count, 1u);
+    zassert_equal(tls_credential_delete_fake.call_count, 1U);
+    zassert_equal(tls_credential_add_fake.call_count, 1U);
     zassert_equal(tls_credential_add_fake.arg0_val, CFG_TLS_SEC_TAG);
     zassert_equal(tls_credential_add_fake.arg1_val, TLS_CREDENTIAL_CA_CERTIFICATE);
     zassert_equal(tls_credential_add_fake.arg3_val, sizeof(ca));
@@ -632,25 +632,25 @@ ZTEST(cfg, test_load_credential)
 /** 3 種類の証明書は, それぞれの種類で登録される */
 ZTEST(cfg, test_load_credential_types)
 {
-    load("cert", "C", 2u);
+    load("cert", "C", 2U);
     /* 期待: "cert" はクライアント証明書, "key" は秘密鍵の種類で, 登録する */
     zassert_equal(tls_credential_add_fake.arg1_val, TLS_CREDENTIAL_PUBLIC_CERTIFICATE);
 
-    load("key", "K", 2u);
+    load("key", "K", 2U);
     zassert_equal(tls_credential_add_fake.arg1_val, TLS_CREDENTIAL_PRIVATE_KEY);
 }
 
 /** 長さが 0 の証明書, 領域に入らない証明書は, 無視する */
 ZTEST(cfg, test_load_credential_invalid_length_ignored)
 {
-    static uint8_t big[CFG_KEY_PEM_MAX + 1u]; /* 上限を超える長さの文字列 */
+    static uint8_t big[CFG_KEY_PEM_MAX + 1U]; /* 上限を超える長さの文字列 */
 
-    load("ca", "x", 0u);
-    load("ca", big, CFG_CERT_MAX + 1u);
-    load("key", big, CFG_KEY_PEM_MAX + 1u);
+    load("ca", "x", 0U);
+    load("ca", big, CFG_CERT_MAX + 1U);
+    load("key", big, CFG_KEY_PEM_MAX + 1U);
 
     /* 期待: 長さ 0 と, 領域に入らない証明書は, 登録しない */
-    zassert_equal(tls_credential_add_fake.call_count, 0u);
+    zassert_equal(tls_credential_add_fake.call_count, 0U);
 }
 
 /** 証明書の読み出しに失敗したら, 登録しない */
@@ -661,8 +661,8 @@ ZTEST(cfg, test_load_credential_read_failure)
     source.err = -EIO;
 
     /* 期待: 読み出しに失敗した証明書は, 登録しない */
-    zassert_equal(h->h_set("ca", 4u, read_source, NULL), 0);
-    zassert_equal(tls_credential_add_fake.call_count, 0u);
+    zassert_equal(h->h_set("ca", 4U, read_source, NULL), 0);
+    zassert_equal(tls_credential_add_fake.call_count, 0U);
 }
 
 /** 証明書の登録に失敗しても, 読み込みは続ける (0 を返す) */
@@ -671,10 +671,10 @@ ZTEST(cfg, test_load_credential_add_failure)
     tls_credential_add_fake.custom_fake = NULL;
     tls_credential_add_fake.return_val = -ENOMEM;
 
-    load("ca", "x", 2u);
+    load("ca", "x", 2U);
 
     /* 期待: 登録に失敗しても, 読み込みは続けて, 登録されていない状態のまま */
-    zassert_equal(tls_credential_add_fake.call_count, 1u);
+    zassert_equal(tls_credential_add_fake.call_count, 1U);
     zassert_false(cfg_has_cred(CFG_CRED_CA));
 }
 

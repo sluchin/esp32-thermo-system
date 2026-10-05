@@ -115,7 +115,7 @@ ZTEST(ntp, test_a_resolve_failure)
     zsock_getaddrinfo_fake.custom_fake = NULL;
     zsock_getaddrinfo_fake.return_val = -1;
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), -EHOSTUNREACH);
-    zassert_equal(sntp_init_fake.call_count, 0u);
+    zassert_equal(sntp_init_fake.call_count, 0U);
     zassert_false(ntp_is_synced());
     zassert_equal(ntp_unix_time(&sec), -EAGAIN);
 }
@@ -126,7 +126,7 @@ ZTEST(ntp, test_b_query_failure)
     sntp_query_fake.custom_fake = NULL;
     sntp_query_fake.return_val = -ETIMEDOUT;
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), -ETIMEDOUT);
-    zassert_equal(sntp_close_fake.call_count, 1u);
+    zassert_equal(sntp_close_fake.call_count, 1U);
     zassert_false(ntp_is_synced());
 }
 
@@ -135,7 +135,7 @@ ZTEST(ntp, test_c_init_failure)
 {
     sntp_init_fake.return_val = -ENOMEM;
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), -ENOMEM);
-    zassert_equal(sntp_query_fake.call_count, 0u);
+    zassert_equal(sntp_query_fake.call_count, 0U);
     zassert_false(ntp_is_synced());
 }
 
@@ -152,10 +152,10 @@ ZTEST(ntp, test_e_success_then_skip)
 
     /* 同期済みで, 間隔がたっていなければ, 問い合わせない */
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), 0);
-    zassert_equal(sntp_query_fake.call_count, 1u);
+    zassert_equal(sntp_query_fake.call_count, 1U);
 
     /* 再同期の間隔 (CONFIG_THERMO_NTP_RESYNC_S) がたてば, もう一度, 問い合わせる */
     k_sleep(K_SECONDS(RESYNC_S));
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), 0);
-    zassert_equal(sntp_query_fake.call_count, 2u);
+    zassert_equal(sntp_query_fake.call_count, 2U);
 }

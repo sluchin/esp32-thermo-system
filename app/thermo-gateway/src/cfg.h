@@ -24,17 +24,17 @@
 #define CFG_TLS_SEC_TAG 1
 
 /** SSID の最大長 [byte] (NUL を除く) */
-#define CFG_SSID_MAX      32u
+#define CFG_SSID_MAX      32U
 /** WiFi のパスワードの最大長 [byte] (NUL を除く) */
-#define CFG_PSK_MAX       64u
+#define CFG_PSK_MAX       64U
 /** AWS IoT Core のエンドポイントの最大長 [byte] (NUL を除く) */
-#define CFG_ENDPOINT_MAX  128u
+#define CFG_ENDPOINT_MAX  128U
 /** クライアント ID の最大長 [byte] (NUL を除く) */
-#define CFG_CLIENT_ID_MAX 64u
+#define CFG_CLIENT_ID_MAX 64U
 /** 証明書 (CA, クライアント証明書) 1 つの最大サイズ [byte] (PEM. NUL を含む) */
-#define CFG_CERT_MAX      1536u
+#define CFG_CERT_MAX      1536U
 /** 秘密鍵の最大サイズ [byte] (PEM. NUL を含む. RSA 2048 bit の PEM は約 1700 byte) */
-#define CFG_KEY_PEM_MAX   1792u
+#define CFG_KEY_PEM_MAX   1792U
 
 /** 設定の項目 */
 enum cfg_key {

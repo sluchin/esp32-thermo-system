@@ -45,15 +45,15 @@ enum scenario {
 };
 
 /** ネットワークインターフェースの代わり (ポインタの値だけを使う. 中身は参照しない) */
-#define FAKE_IFACE ((struct net_if *)(uintptr_t)0x1000u)
+#define FAKE_IFACE ((struct net_if *)(uintptr_t)0x1000U)
 /** 接続の要求の間に再現するイベント */
 static enum scenario scenario;
 /** 接続の要求に渡されたパラメータの写し */
 static struct wifi_connect_req_params captured;
 /** 接続の要求に渡された SSID の写し */
-static char captured_ssid[33u];
+static char captured_ssid[33U];
 /** 接続の要求に渡されたパスワードの写し */
-static char captured_psk[65u];
+static char captured_psk[65U];
 /** wifi_link.c が登録した, イベントのコールバック */
 static net_mgmt_event_handler_t handler;
 
@@ -151,7 +151,7 @@ ZTEST(wifi, test_init_registers_callbacks)
             net_mgmt_add_event_callback_fake.arg0_history[1];
 
     /* 期待: WiFi (接続の結果, 切断) と IPv4 (アドレスの取得) の, 2 つを, 同じ処理で登録する */
-    zassert_equal(net_mgmt_add_event_callback_fake.call_count, 2u);
+    zassert_equal(net_mgmt_add_event_callback_fake.call_count, 2U);
     zassert_equal(wifi_cb->event_mask,
                   NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT);
     zassert_equal(ipv4_cb->event_mask, NET_EVENT_IPV4_ADDR_ADD);
@@ -165,7 +165,7 @@ ZTEST(wifi, test_connect_success)
     zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
 
     zassert_true(wifi_link_is_up());
-    zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 1u);
+    zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 1U);
     zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.arg1_val, FAKE_IFACE);
 }
 
@@ -196,7 +196,7 @@ ZTEST(wifi, test_connect_parameters)
     send_event(NET_EVENT_WIFI_DISCONNECT_RESULT, NULL);
     zassert_equal(wifi_link_connect("open-ap", "", K_MSEC(100)), EXIT_SUCCESS);
     zassert_str_equal(captured_ssid, "open-ap");
-    zassert_equal(captured.psk_length, 0u);
+    zassert_equal(captured.psk_length, 0U);
     zassert_equal(captured.security, WIFI_SECURITY_TYPE_NONE);
 }
 
@@ -207,7 +207,7 @@ ZTEST(wifi, test_connect_already_up)
     zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
     zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
 
-    zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 1u);
+    zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 1U);
 }
 
 /** ネットワークインターフェースがなければ, -ENODEV */
@@ -217,7 +217,7 @@ ZTEST(wifi, test_connect_no_interface)
 
     /* 期待: インターフェースがなければ -ENODEV で, 要求しない */
     zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), -ENODEV);
-    zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 0u);
+    zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 0U);
 }
 
 /** 接続の要求に失敗したら, そのエラーを返す */
@@ -284,7 +284,7 @@ ZTEST(wifi, test_disconnect)
     wifi_link_disconnect();
 
     zassert_false(wifi_link_is_up());
-    zassert_equal(net_mgmt_NET_REQUEST_WIFI_DISCONNECT_fake.call_count, 1u);
+    zassert_equal(net_mgmt_NET_REQUEST_WIFI_DISCONNECT_fake.call_count, 1U);
 }
 
 /** 切断の要求に失敗しても, 接続していない状態にする */
@@ -296,7 +296,7 @@ ZTEST(wifi, test_disconnect_request_failure)
 
     /* 期待: 要求が失敗しても, 接続していない状態にする */
     zassert_false(wifi_link_is_up());
-    zassert_equal(net_mgmt_NET_REQUEST_WIFI_DISCONNECT_fake.call_count, 1u);
+    zassert_equal(net_mgmt_NET_REQUEST_WIFI_DISCONNECT_fake.call_count, 1U);
 }
 
 /** ネットワークインターフェースがなければ, 切断の要求は出さない */
@@ -307,7 +307,7 @@ ZTEST(wifi, test_disconnect_no_interface)
     wifi_link_disconnect();
 
     /* 期待: インターフェースがなければ, 要求を出さない */
-    zassert_equal(net_mgmt_NET_REQUEST_WIFI_DISCONNECT_fake.call_count, 0u);
+    zassert_equal(net_mgmt_NET_REQUEST_WIFI_DISCONNECT_fake.call_count, 0U);
 }
 
 ZTEST_SUITE(wifi, NULL, NULL, before, NULL, NULL);

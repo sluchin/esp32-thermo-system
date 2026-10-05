@@ -54,9 +54,9 @@ static bool has_cred[CFG_CRED_COUNT];
  */
 static int fake_key_from_name(const char *name)
 {
-    size_t i = 0u; /* ループ用の添字 */
+    size_t i = 0U; /* ループ用の添字 */
 
-    for (i = 0u; i < ARRAY_SIZE(key_names); i++) {
+    for (i = 0U; i < ARRAY_SIZE(key_names); i++) {
         if (strcmp(name, key_names[i]) == 0) {
             return (int)i;
         }
@@ -118,7 +118,7 @@ static bool fake_has_cred(enum cfg_cred cred)
 static const char *run(const char *cmd, int *ret)
 {
     const struct shell *sh = shell_backend_dummy_get_ptr(); /* ダミーのシェル */
-    size_t size = 0u;                                       /* サイズ [バイト] */
+    size_t size = 0U;                                       /* サイズ [バイト] */
 
     shell_backend_dummy_clear_output(sh);
     *ret = shell_execute_cmd(sh, cmd);
@@ -181,7 +181,7 @@ ZTEST(thermo_shell, test_set)
 
     /* 期待: 値を保存して, "<項目> saved" と表示する */
     zassert_equal(ret, 0);
-    zassert_equal(cfg_set_fake.call_count, 1u);
+    zassert_equal(cfg_set_fake.call_count, 1U);
     zassert_equal(cfg_set_fake.arg0_val, CFG_KEY_SSID);
     zassert_str_equal(cfg_set_fake.arg1_val, "home-ap");
     zassert_not_null(strstr(out, "ssid saved"));
@@ -195,7 +195,7 @@ ZTEST(thermo_shell, test_set_unknown_item)
 
     /* 期待: 知らない項目は -EINVAL で, 保存しない (使える項目を表示する) */
     zassert_equal(ret, -EINVAL);
-    zassert_equal(cfg_set_fake.call_count, 0u);
+    zassert_equal(cfg_set_fake.call_count, 0U);
     zassert_not_null(strstr(out, "Unknown item 'nothing'"));
 }
 
@@ -222,7 +222,7 @@ ZTEST(thermo_shell, test_set_missing_argument)
 
     /* 期待: 値がなければ, シェルが拒否して, 保存しない */
     zassert_not_equal(ret, 0);
-    zassert_equal(cfg_set_fake.call_count, 0u);
+    zassert_equal(cfg_set_fake.call_count, 0U);
 }
 
 /** `thermo show` は, 値を表示して, パスワードは, 伏せる (設定済みなら "********") */
@@ -278,7 +278,7 @@ ZTEST(thermo_shell, test_save_certs)
 
     /* 期待: 証明書を保存して, "certificates saved" と表示する */
     zassert_equal(ret, 0);
-    zassert_equal(cfg_save_credentials_fake.call_count, 1u);
+    zassert_equal(cfg_save_credentials_fake.call_count, 1U);
     zassert_not_null(strstr(out, "certificates saved"));
 }
 
@@ -305,7 +305,7 @@ ZTEST(thermo_shell, test_apply)
 
     /* 期待: 接続のやり直しを依頼して, "reconnecting" と表示する */
     zassert_equal(ret, 0);
-    zassert_equal(cloud_reconnect_fake.call_count, 1u);
+    zassert_equal(cloud_reconnect_fake.call_count, 1U);
     zassert_not_null(strstr(out, "reconnecting"));
 }
 
@@ -317,7 +317,7 @@ ZTEST(thermo_shell, test_reset)
 
     /* 期待: 全て消して, "settings erased" と表示する */
     zassert_equal(ret, 0);
-    zassert_equal(cfg_reset_fake.call_count, 1u);
+    zassert_equal(cfg_reset_fake.call_count, 1U);
     zassert_not_null(strstr(out, "settings erased"));
 }
 

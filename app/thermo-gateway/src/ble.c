@@ -36,7 +36,7 @@ LOG_MODULE_REGISTER(ble_thermo_gateway);
 /** スキャンを止められなかったとき (EBUSY) に, 接続を始め直すまでの間隔 [ms] */
 #define CONNECT_RETRY_MS  100
 /** スキャンを止められなかったときに, 接続を始め直す最大の回数 */
-#define CONNECT_RETRY_MAX 10u
+#define CONNECT_RETRY_MAX 10U
 
 /** 接続しているノード 1 台ぶんの状態 */
 struct node {
@@ -84,9 +84,9 @@ static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_handler);
  */
 static struct node *find_node(const struct bt_conn *conn)
 {
-    size_t i = 0u; /* ループ用の添字 */
+    size_t i = 0U; /* ループ用の添字 */
 
-    for (i = 0u; i < ARRAY_SIZE(nodes); i++) {
+    for (i = 0U; i < ARRAY_SIZE(nodes); i++) {
         if (nodes[i].conn == conn) {
             return &nodes[i];
         }
@@ -101,9 +101,9 @@ static struct node *find_node(const struct bt_conn *conn)
  */
 static struct node *find_free_node(void)
 {
-    size_t i = 0u; /* ループ用の添字 */
+    size_t i = 0U; /* ループ用の添字 */
 
-    for (i = 0u; i < ARRAY_SIZE(nodes); i++) {
+    for (i = 0U; i < ARRAY_SIZE(nodes); i++) {
         if (nodes[i].conn == NULL) {
             return &nodes[i];
         }
@@ -131,7 +131,7 @@ struct scan_result {
 
 #if (CONFIG_LOG_DEFAULT_LEVEL >= 4) /* 4: LOG_LEVEL_DBG (#if では, 列挙子を使えない) */
 /** アドバタイズデータの 16 進ダンプを出す間隔 (要素の数. この回数に 1 回だけ出す) */
-#define ADV_HEXDUMP_EVERY 50u
+#define ADV_HEXDUMP_EVERY 50U
 
 /**
  * アドバタイズデータの 1 要素を, 16 進数でログに出す (ADV_HEXDUMP_EVERY 回に 1 回だけ)
@@ -144,7 +144,7 @@ static void adv_hexdump(const struct bt_data *data)
 {
     static uint32_t count; /* 受け取った要素の数 (static なので, 0 から始まる) */
 
-    if ((count % ADV_HEXDUMP_EVERY) == 0u) {
+    if ((count % ADV_HEXDUMP_EVERY) == 0U) {
         LOG_HEXDUMP_DBG(data->data, data->data_len, "Advertising data");
     }
     count++;
@@ -194,11 +194,11 @@ static bool parse_ad(struct bt_data *data, void *user_data)
 static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
                          const void *data, uint16_t length)
 {
-    uint16_t raw = 0u; /* 温度 (ADC の生値) */
+    uint16_t raw = 0U; /* 温度 (ADC の生値) */
 
     if (data == NULL) {
         LOG_INF("Unsubscribed");
-        params->value_handle = 0u;
+        params->value_handle = 0U;
         return BT_GATT_ITER_STOP;
     }
 
@@ -246,7 +246,7 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
         /* 次は, サービスの中から, 温度の特性を探す */
         service = (const struct bt_gatt_service_val *)attr->user_data;
         params->uuid = &temperature_uuid.uuid;
-        params->start_handle = (uint16_t)(attr->handle + 1u);
+        params->start_handle = (uint16_t)(attr->handle + 1U);
         params->end_handle = service->end_handle;
         params->type = BT_GATT_DISCOVER_CHARACTERISTIC;
         err = bt_gatt_discover(conn, params);
@@ -254,7 +254,7 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
         /* 次は, 特性の CCC (通知の設定) を探す */
         node->subscribe.value_handle = bt_gatt_attr_value_handle(attr);
         params->uuid = &ccc_uuid.uuid;
-        params->start_handle = (uint16_t)(attr->handle + 2u);
+        params->start_handle = (uint16_t)(attr->handle + 2U);
         params->type = BT_GATT_DISCOVER_DESCRIPTOR;
         err = bt_gatt_discover(conn, params);
     } else {
@@ -313,7 +313,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
         return; /* このゲートウェイが, 接続を始めたものではない */
     }
 
-    if (err != 0u) {
+    if (err != 0U) {
         LOG_ERR("Connection failed (err 0x%02x)", err);
         release_node(node);
     } else {
@@ -475,7 +475,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 
     bt_addr_le_copy(&pending_addr, addr);
     pending_node = node;
-    pending_retries = 0u;
+    pending_retries = 0U;
     /* 戻り値は, 0 以上 (ワークキューが停止しているときだけ, 負). 実行中の依頼は, 重ねない */
     (void)k_work_schedule(&connect_work, K_NO_WAIT);
 }

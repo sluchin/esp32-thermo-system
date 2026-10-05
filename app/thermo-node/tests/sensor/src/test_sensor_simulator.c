@@ -18,7 +18,7 @@
 #include "sensor.h"
 
 /** 12 bit ADC の生値の上限 (この値未満) */
-#define RAW_LIMIT 4096u
+#define RAW_LIMIT 4096U
 /** 繰り返し回数 */
 #define REPEAT    200
 
@@ -32,7 +32,7 @@ ZTEST(sensor_simulator, test_init)
 /** sensor_read_temperature() は, 12 bit の範囲 (0 .. 4095) の値を返す */
 ZTEST(sensor_simulator, test_read_range)
 {
-    uint16_t value = 0u; /* 値 */
+    uint16_t value = 0U; /* 値 */
     int i = 0;           /* ループ用の添字 */
 
     for (i = 0; i < REPEAT; i++) {
@@ -45,8 +45,8 @@ ZTEST(sensor_simulator, test_read_range)
 /** 値は, 毎回同じにならない (乱数で作る) */
 ZTEST(sensor_simulator, test_read_varies)
 {
-    uint16_t first = 0u;  /* 最初の値 */
-    uint16_t value = 0u;  /* 値 */
+    uint16_t first = 0U;  /* 最初の値 */
+    uint16_t value = 0U;  /* 値 */
     bool changed = false; /* 値が変わったか */
     int i = 0;            /* ループ用の添字 */
 

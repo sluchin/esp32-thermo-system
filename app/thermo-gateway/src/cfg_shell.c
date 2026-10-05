@@ -66,12 +66,12 @@ static int cmd_set(const struct shell *sh, size_t argc, char **argv)
  */
 static int cmd_show(const struct shell *sh, size_t argc, char **argv)
 {
-    size_t i = 0u; /* ループ用の添字 */
+    size_t i = 0U; /* ループ用の添字 */
 
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
 
-    for (i = 0u; i < (size_t)CFG_KEY_COUNT; i++) {
+    for (i = 0U; i < (size_t)CFG_KEY_COUNT; i++) {
         if ((enum cfg_key)i == CFG_KEY_PSK) {
             shell_print(sh, "%s: %s", cfg_key_name(CFG_KEY_PSK),
                         ((cfg_get(CFG_KEY_PSK)[0] == '\0') ? "(empty)" : "********"));
@@ -79,7 +79,7 @@ static int cmd_show(const struct shell *sh, size_t argc, char **argv)
             shell_print(sh, "%s: %s", cfg_key_name((enum cfg_key)i), cfg_get((enum cfg_key)i));
         }
     }
-    for (i = 0u; i < (size_t)CFG_CRED_COUNT; i++) {
+    for (i = 0U; i < (size_t)CFG_CRED_COUNT; i++) {
         shell_print(sh, "%s: %s", cfg_cred_name((enum cfg_cred)i),
                     (cfg_has_cred((enum cfg_cred)i) ? "registered" : "missing"));
     }

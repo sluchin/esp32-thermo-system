@@ -16,11 +16,11 @@
 #include "payload.h"
 
 /** アドレスの文字列 ("00:AA:01:00:00:42") の最大長 (NUL を含む) */
-#define ADDR_STR_SIZE        18u
+#define ADDR_STR_SIZE        18U
 /** UNIX 時刻の項目 (",\"timestamp\":9223372036854775807") の最大長 (NUL を含む) */
-#define TIMESTAMP_FIELD_SIZE 33u
+#define TIMESTAMP_FIELD_SIZE 33U
 /** 電池残量の項目 (",\"battery\":100") の最大長 (NUL を含む) */
-#define BATTERY_FIELD_SIZE   16u
+#define BATTERY_FIELD_SIZE   16U
 
 /**
  * アドレスを, "00:AA:01:00:00:42" の形式の文字列にする
@@ -175,7 +175,7 @@ int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
                                  "{\"node\":\"%s\",\"type\":\"switchbot\","
                                  "\"temperature_c\":%s%u.%u,\"humidity\":%u%s,"
                                  "\"uptime_ms\":%" PRIu32 "%s}",
-                                 node, sign, magnitude / 10u, magnitude % 10u,
+                                 node, sign, magnitude / 10U, magnitude % 10U,
                                  (unsigned int)sample->humidity, battery, uptime_ms, timestamp),
                         size);
 }

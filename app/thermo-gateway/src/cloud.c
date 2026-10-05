@@ -31,7 +31,7 @@ LOG_MODULE_REGISTER(thermo_cloud);
 /** AWS IoT Core の MQTT (TLS, クライアント証明書による相互認証) のポート */
 #define BROKER_PORT        "8883"
 /** MQTT の keep alive の間隔 [s] (AWS IoT Core は 30 .. 1200) */
-#define KEEPALIVE_S        60u
+#define KEEPALIVE_S        60U
 /** 設定が揃うのを待つ間隔 [s] */
 #define WAIT_CONFIG_S      5
 /** WiFi の接続を待つ時間 [s] */
@@ -43,22 +43,22 @@ LOG_MODULE_REGISTER(thermo_cloud);
 /** 送信するものがないときに, 受信と keep alive を確認する間隔 [ms] */
 #define SESSION_TICK_MS    1000
 /** 接続の再試行の間隔の, 最小値 [s] */
-#define RETRY_MIN_S        5u
+#define RETRY_MIN_S        5U
 /** 接続の再試行の間隔の, 最大値 [s] */
-#define RETRY_MAX_S        60u
+#define RETRY_MAX_S        60U
 /** 送信を待つ温度の最大数 */
 #define QUEUE_LEN          16
 /** トピックのバッファのサイズ */
-#define TOPIC_SIZE         128u
+#define TOPIC_SIZE         128U
 /** ペイロードのバッファのサイズ */
-#define PAYLOAD_SIZE       160u
+#define PAYLOAD_SIZE       160U
 /*
  * ペイロードの最大長が, 入ること (SwitchBot の, 機器のアドレス, -3276.7 ℃, 湿度 100 %,
  * 電池 100 %, 稼働時間が最大で, UNIX 時刻が 19 桁の場合は, 155 文字 + NUL)
  */
-BUILD_ASSERT(PAYLOAD_SIZE >= 156u, "The payload buffer is too small");
+BUILD_ASSERT(PAYLOAD_SIZE >= 156U, "The payload buffer is too small");
 /** MQTT の送受信バッファのサイズ */
-#define MQTT_BUF_SIZE     512u
+#define MQTT_BUF_SIZE     512U
 /** スレッドのスタックサイズ (TLS のハンドシェイクを含む) */
 #define THREAD_STACK_SIZE 6144
 /** スレッドの優先度 */
@@ -216,7 +216,7 @@ static int connect_broker(void)
     client.tx_buf = tx_buf;
     client.tx_buf_size = sizeof(tx_buf);
     client.keepalive = KEEPALIVE_S;
-    client.clean_session = 1u;
+    client.clean_session = 1U;
 
     /* サーバの証明書を確認して, クライアント証明書で, 認証される (相互認証) */
     client.transport.type = MQTT_TRANSPORT_SECURE;
@@ -263,7 +263,7 @@ static int64_t received_unix_time(uint32_t uptime_ms)
     if (ntp_unix_time(&now) != EXIT_SUCCESS) {
         return -1;
     }
-    return now - (int64_t)(elapsed_ms / 1000u);
+    return now - (int64_t)(elapsed_ms / 1000U);
 }
 
 /**
@@ -300,15 +300,15 @@ static int publish_sample(const struct sample *s)
     }
 
     /* メッセージ ID は, 1 から 65535 を, 順に使う (QoS 1 では, 0 は使えない) */
-    message_id = (uint16_t)((message_id % UINT16_MAX) + 1u);
+    message_id = (uint16_t)((message_id % UINT16_MAX) + 1U);
     param.message.topic.qos = MQTT_QOS_1_AT_LEAST_ONCE;
     param.message.topic.topic.utf8 = (const uint8_t *)topic;
     param.message.topic.topic.size = (uint32_t)topic_len;
     param.message.payload.data = (uint8_t *)payload;
     param.message.payload.len = (uint32_t)payload_len;
     param.message_id = message_id;
-    param.dup_flag = 0u;
-    param.retain_flag = 0u;
+    param.dup_flag = 0U;
+    param.retain_flag = 0U;
     return mqtt_publish(&client, &param);
 }
 
@@ -408,7 +408,7 @@ int cloud_step(void)
     if (err != 0) {
         LOG_WRN("Connection failed (err %d), retrying in %u s", err, retry_s);
         (void)k_sleep(K_SECONDS(retry_s));
-        retry_s = MIN(retry_s * 2u, RETRY_MAX_S);
+        retry_s = MIN(retry_s * 2U, RETRY_MAX_S);
         return err;
     }
 

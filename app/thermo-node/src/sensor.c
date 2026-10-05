@@ -29,10 +29,10 @@ LOG_MODULE_REGISTER(sensor_thermo_node);
 
 #ifndef HAVE_ADC
 /** 12 bit ADC の生値の取り得る範囲 (0 .. 4095). シミュレーション値の生成に使用する */
-#define ADC_RAW_RANGE 4096u
+#define ADC_RAW_RANGE 4096U
 #else
 /** ADC の分解能 [bit] */
-#define ADC_RESOLUTION_BITS 12u
+#define ADC_RESOLUTION_BITS 12U
 
 /** Devicetree (zephyr,user の io-channels) から取得した ADC チャンネル仕様 */
 static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
