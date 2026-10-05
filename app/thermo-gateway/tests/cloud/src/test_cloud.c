@@ -161,6 +161,7 @@ static const char *fake_cfg_get(enum cfg_key key)
     if (key == CFG_KEY_ENDPOINT) {
         return ENDPOINT;
     }
+
     return client_id;
 }
 
@@ -180,6 +181,7 @@ static int fake_getaddrinfo(const char *host, const char *service,
     ARG_UNUSED(service);
     resolved_family = hints->ai_family;
     *res = &addrinfo;
+
     return 0;
 }
 
@@ -194,6 +196,7 @@ static int fake_mqtt_connect(struct mqtt_client *client)
     evt_cb = client->evt_cb;
     evt_client = client;
     client->transport.tls.sock = FAKE_SOCK;
+
     return 0;
 }
 
@@ -217,6 +220,7 @@ static int fake_poll(struct zvfs_pollfd *fds, int nfds, int timeout)
     }
     fds->revents = poll_tick.revents;
     errno = poll_tick.err;
+
     return poll_tick.ret;
 }
 
@@ -239,6 +243,7 @@ static int fake_mqtt_input(struct mqtt_client *client)
     if (step.evt != NULL) {
         evt_cb(evt_client, step.evt);
     }
+
     return step.ret;
 }
 
@@ -276,6 +281,7 @@ static int fake_mqtt_publish(struct mqtt_client *client, const struct mqtt_publi
     published[i].payload[param->message.payload.len] = '\0';
     published[i].qos = param->message.topic.qos;
     published[i].message_id = param->message_id;
+
     return 0;
 }
 
@@ -292,6 +298,7 @@ static int fake_mqtt_live(struct mqtt_client *client)
     if (live_calls >= end_after_live_calls) {
         cloud_reconnect();
     }
+
     return live_return;
 }
 
@@ -386,6 +393,7 @@ static uint32_t step_failure_duration(void)
     uint32_t start = k_uptime_get_32(); /* 開始時刻 [ms] */
 
     zassert_not_equal(cloud_step(), EXIT_SUCCESS);
+
     return k_uptime_get_32() - start;
 }
 
@@ -486,6 +494,7 @@ ZTEST(cloud, test_session_publishes_sample)
 static int fake_unix_time(int64_t *sec)
 {
     *sec = 1790000000;
+
     return 0;
 }
 

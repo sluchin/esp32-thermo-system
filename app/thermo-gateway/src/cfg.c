@@ -93,6 +93,7 @@ int cfg_key_from_name(const char *name)
             return (int)i;
         }
     }
+
     return -ENOENT;
 }
 
@@ -145,6 +146,7 @@ int cfg_set(enum cfg_key key, const char *value)
     }
 
     (void)memcpy(values[key], value, len + 1U);
+
     return EXIT_SUCCESS;
 }
 
@@ -163,6 +165,7 @@ int cfg_cred_from_name(const char *name)
             return (int)i;
         }
     }
+
     return -ENOENT;
 }
 
@@ -224,6 +227,7 @@ int cfg_save_credentials(void)
             return err;
         }
     }
+
     return EXIT_SUCCESS;
 }
 
@@ -249,6 +253,7 @@ bool cfg_is_complete(void)
             return false;
         }
     }
+
     return true;
 }
 
@@ -284,6 +289,7 @@ int cfg_reset(void)
         /* 登録されていなくても (-ENOENT), かまわない */
         (void)tls_credential_delete(CFG_TLS_SEC_TAG, cred_infos[i].type);
     }
+
     return first_err;
 }
 
@@ -368,6 +374,7 @@ static int settings_set_cb(const char *name, size_t len, settings_read_cb read_c
     } else {
         LOG_WRN("Ignoring the unknown setting '%s'", name);
     }
+
     return 0;
 }
 
@@ -400,5 +407,6 @@ int cfg_init(void)
         LOG_ERR("Loading the settings failed (err %d)", err);
         return err;
     }
+
     return EXIT_SUCCESS;
 }

@@ -64,6 +64,7 @@ static int getaddrinfo_ok(const char *host, const char *port, const struct zsock
     ARG_UNUSED(port);
     ARG_UNUSED(hints);
     *res = &resolved;
+
     return 0;
 }
 
@@ -81,6 +82,7 @@ static int sntp_query_ok(struct sntp_ctx *ctx, uint32_t timeout, struct sntp_tim
     ARG_UNUSED(timeout);
     ts->seconds = TEST_SEC;
     ts->fraction = 0;
+
     return 0;
 }
 

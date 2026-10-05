@@ -155,6 +155,7 @@ static int resolve_broker(const char *host)
 
     (void)memcpy(&broker, res->ai_addr, res->ai_addrlen);
     zsock_freeaddrinfo(res);
+
     return EXIT_SUCCESS;
 }
 
@@ -183,6 +184,7 @@ static int poll_input(int timeout_ms)
     if ((fds.revents & (ZSOCK_POLLERR | ZSOCK_POLLHUP | ZSOCK_POLLNVAL)) != 0) {
         return -ECONNRESET;
     }
+
     return mqtt_input(&client);
 }
 
@@ -242,6 +244,7 @@ static int connect_broker(void)
         (void)mqtt_abort(&client);
         return ((err != 0) ? err : -ECONNREFUSED);
     }
+
     return EXIT_SUCCESS;
 }
 
@@ -263,6 +266,7 @@ static int64_t received_unix_time(uint32_t uptime_ms)
     if (ntp_unix_time(&now) != EXIT_SUCCESS) {
         return -1;
     }
+
     return now - (int64_t)(elapsed_ms / 1000U);
 }
 
@@ -309,6 +313,7 @@ static int publish_sample(const struct sample *s)
     param.message_id = message_id;
     param.dup_flag = 0U;
     param.retain_flag = 0U;
+
     return mqtt_publish(&client, &param);
 }
 
@@ -363,6 +368,7 @@ static int run_session(void)
     }
     (void)mqtt_abort(&client);
     mqtt_up = false;
+
     return err;
 }
 
@@ -418,6 +424,7 @@ int cloud_step(void)
     if (err != 0) {
         (void)k_sleep(K_SECONDS(RETRY_MIN_S)); /* すぐに失敗を繰り返さない */
     }
+
     return err;
 }
 
@@ -461,6 +468,7 @@ int cloud_init(void)
     (void)k_thread_create(&cloud_thread, cloud_stack, K_THREAD_STACK_SIZEOF(cloud_stack),
                           cloud_thread_entry, NULL, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
     (void)k_thread_name_set(&cloud_thread, "cloud");
+
     return EXIT_SUCCESS;
 }
 
@@ -487,6 +495,7 @@ static int enqueue_sample(const struct sample *s)
         LOG_WRN("Send queue is full, the value was dropped");
         return -ENOMSG;
     }
+
     return EXIT_SUCCESS;
 }
 
