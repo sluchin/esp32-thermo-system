@@ -56,7 +56,19 @@ static int resolve_server(const char *server, struct sockaddr_storage *addr, soc
     return EXIT_SUCCESS;
 }
 
-/* NTP サーバに問い合わせて、システム時計を合わせる */
+/**
+ * @brief NTP サーバに問い合わせて, システム時計を合わせる
+ *
+ * すでに同期していて, 前回の同期から CONFIG_THERMO_NTP_RESYNC_S 秒たっていなければ,
+ * 問い合わせずに, すぐ戻る.
+ *
+ * @param[in] server  NTP サーバのホスト名
+ * @param[in] timeout 応答を待つ時間
+ * @retval EXIT_SUCCESS    同期した (または, 同期済み)
+ * @retval -EHOSTUNREACH   サーバの名前を解決できなかった
+ * @retval -ETIMEDOUT      時間内に, 応答がなかった
+ * @retval negative        問い合わせ, または, 時計の設定の失敗 (負の errno)
+ */
 int ntp_sync(const char *server, k_timeout_t timeout)
 {
     struct sockaddr_storage addr = {0}; /* アドレス */
@@ -66,7 +78,7 @@ int ntp_sync(const char *server, k_timeout_t timeout)
     struct timespec now = {0};          /* 現在時刻 */
     int err = EXIT_SUCCESS;             /* エラーコード */
 
-    /* 前回の同期から、間もなければ、問い合わせない */
+    /* 前回の同期から, 間もなければ, 問い合わせない */
     if (synced &&
         ((k_uptime_get() - last_sync_ms) < ((int64_t)CONFIG_THERMO_NTP_RESYNC_S * 1000))) {
         return EXIT_SUCCESS;
@@ -90,10 +102,10 @@ int ntp_sync(const char *server, k_timeout_t timeout)
         return err;
     }
 
-    /* 秒だけを使う (小数部は、ミリ秒の精度が要らないので、捨てる) */
+    /* 秒だけを使う (小数部は, ミリ秒の精度が要らないので, 捨てる) */
     now.tv_sec = (time_t)ts.seconds;
     now.tv_nsec = 0;
-    /* 戻り値は、時計の種類が違うか、ナノ秒が範囲外のときだけ、負. どちらでもないので、見ない */
+    /* 戻り値は, 時計の種類が違うか, ナノ秒が範囲外のときだけ, 負. どちらでもないので, 見ない */
     (void)sys_clock_settime(SYS_CLOCK_REALTIME, &now);
 
     last_sync_ms = k_uptime_get();
@@ -102,13 +114,23 @@ int ntp_sync(const char *server, k_timeout_t timeout)
     return EXIT_SUCCESS;
 }
 
-/* 同期したことがあるか返す */
+/**
+ * @brief 時刻を同期したことがあるか調べる
+ *
+ * @return 1 回でも同期していれば true
+ */
 bool ntp_is_synced(void)
 {
     return synced;
 }
 
-/* 現在の UNIX 時刻を返す */
+/**
+ * @brief 現在の UNIX 時刻を返す
+ *
+ * @param[out] sec UNIX 時刻 [s] (同期していなければ, 変更しない)
+ * @retval EXIT_SUCCESS 成功
+ * @retval -EAGAIN      まだ, 同期していない
+ */
 int ntp_unix_time(int64_t *sec)
 {
     struct timespec now = {0}; /* 現在時刻 */
@@ -116,7 +138,7 @@ int ntp_unix_time(int64_t *sec)
     if (!synced) {
         return -EAGAIN;
     }
-    /* 戻り値は、時計の種類が違うときだけ、負. 違わないので、見ない */
+    /* 戻り値は, 時計の種類が違うときだけ, 負. 違わないので, 見ない */
     (void)sys_clock_gettime(SYS_CLOCK_REALTIME, &now);
     *sec = (int64_t)now.tv_sec;
     return EXIT_SUCCESS;

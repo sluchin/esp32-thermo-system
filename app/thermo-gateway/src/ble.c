@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief thermo-gateway の BLE 実装 (ノードのスキャンと接続、GATT での温度の受信)
+ * @brief thermo-gateway の BLE 実装 (ノードのスキャンと接続, GATT での温度の受信)
  */
 
 #include <zephyr/bluetooth/bluetooth.h>
@@ -33,9 +33,9 @@ LOG_MODULE_REGISTER(ble_thermo_gateway);
 #define SCAN_WINDOW_MS    50
 /** 接続できるノードの数 (接続の数と同じ) */
 #define MAX_NODES         CONFIG_BT_MAX_CONN
-/** スキャンを止められなかったとき (EBUSY) に、接続を始め直すまでの間隔 [ms] */
+/** スキャンを止められなかったとき (EBUSY) に, 接続を始め直すまでの間隔 [ms] */
 #define CONNECT_RETRY_MS  100
-/** スキャンを止められなかったときに、接続を始め直す最大の回数 */
+/** スキャンを止められなかったときに, 接続を始め直す最大の回数 */
 #define CONNECT_RETRY_MAX 10u
 
 /** 接続しているノード 1 台ぶんの状態 */
@@ -55,7 +55,7 @@ static const struct bt_uuid_128 temperature_uuid = BT_UUID_INIT_128(THERMO_UUID_
 /** CCC (通知の設定) の UUID */
 static const struct bt_uuid_16 ccc_uuid = BT_UUID_INIT_16(BT_UUID_GATT_CCC_VAL);
 
-/** スキャン応答の UUID (128 bit) と比べるための、Thermo サービスの UUID の値 */
+/** スキャン応答の UUID (128 bit) と比べるための, Thermo サービスの UUID の値 */
 static const uint8_t service_uuid_val[] = {THERMO_UUID_SERVICE_VAL};
 
 /** 温度を受信したときのコールバック */
@@ -63,21 +63,21 @@ static ble_temperature_cb_t temperature_cb;
 /** SwitchBot のアドバタイズを受信したときのコールバック */
 static ble_switchbot_cb_t switchbot_cb;
 
-/** 接続を始めるノードのアドレス (スキャンのコールバックが、記録する) */
+/** 接続を始めるノードのアドレス (スキャンのコールバックが, 記録する) */
 static bt_addr_le_t pending_addr;
-/** 接続を始める依頼で、確保したノードの状態 (依頼から、接続を始めるまでの間。依頼がなければ NULL)
+/** 接続を始める依頼で, 確保したノードの状態 (依頼から, 接続を始めるまでの間. 依頼がなければ NULL)
  */
 static struct node *pending_node;
 /** 接続を始め直した回数 */
 static unsigned int pending_retries;
 
-/* 接続を始める処理 (ワークの定義で使うため、先に宣言する。説明は、定義にある) */
+/* 接続を始める処理 (ワークの定義で使うため, 先に宣言する. 説明は, 定義にある) */
 static void connect_work_handler(struct k_work *work);
 /** 接続を始める処理 (システムのワークキューで実行する) */
 static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_handler);
 
 /**
- * 接続から、ノードの状態を探す
+ * 接続から, ノードの状態を探す
  *
  * @param[in] conn 接続 (NULL にしてはいけない)
  * @return ノードの状態 (見つからなければ NULL)
@@ -112,7 +112,7 @@ static struct node *find_free_node(void)
 }
 
 /**
- * ノードの状態を、使っていない状態に戻す (接続の参照も、解放する)
+ * ノードの状態を, 使っていない状態に戻す (接続の参照も, 解放する)
  *
  * @param[in,out] node ノードの状態
  */
@@ -122,7 +122,7 @@ static void release_node(struct node *node)
     (void)memset(node, 0, sizeof(*node));
 }
 
-/** アドバタイズデータ (スキャン応答を含む) を、解析した結果 */
+/** アドバタイズデータ (スキャン応答を含む) を, 解析した結果 */
 struct scan_result {
     bool thermo;                   /**< Thermo サービスの UUID があった */
     bool has_switchbot;            /**< SwitchBot の温湿度計のデータがあった */
@@ -130,7 +130,7 @@ struct scan_result {
 };
 
 /**
- * アドバタイズデータの中から、Thermo サービスの UUID か、SwitchBot の温湿度計のデータを探す
+ * アドバタイズデータの中から, Thermo サービスの UUID か, SwitchBot の温湿度計のデータを探す
  *
  * @param[in] data アドバタイズデータの 1 要素
  * @param[in,out] user_data 見つかったものを書き込む (struct scan_result *)
@@ -158,9 +158,9 @@ static bool parse_ad(struct bt_data *data, void *user_data)
  *
  * @param[in] conn 接続
  * @param[in,out] params 購読のパラメータ
- * @param[in] data 通知されたデータ (NULL なら、購読が解除された)
+ * @param[in] data 通知されたデータ (NULL なら, 購読が解除された)
  * @param[in] length データの大きさ
- * @return BT_GATT_ITER_CONTINUE (購読を続ける)、または BT_GATT_ITER_STOP (購読を解除する)
+ * @return BT_GATT_ITER_CONTINUE (購読を続ける), または BT_GATT_ITER_STOP (購読を解除する)
  */
 static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
                          const void *data, uint16_t length)
@@ -189,12 +189,12 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
 /**
  * サービスの探索のコールバック
  *
- * Thermo サービス、温度の特性、CCC の順に探索して、最後に、通知を購読する。
+ * Thermo サービス, 温度の特性, CCC の順に探索して, 最後に, 通知を購読する.
  *
  * @param[in] conn 接続
- * @param[in] attr 見つかった属性 (NULL なら、探索が終わった)
+ * @param[in] attr 見つかった属性 (NULL なら, 探索が終わった)
  * @param[in,out] params 探索のパラメータ
- * @return BT_GATT_ITER_STOP (探索を、続けない)
+ * @return BT_GATT_ITER_STOP (探索を, 続けない)
  */
 static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                            struct bt_gatt_discover_params *params)
@@ -255,8 +255,8 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
 /**
  * 接続のコールバック
  *
- * 接続できたら、Thermo サービスの探索を始める。接続できなかったら、状態を戻す。
- * どちらの場合も、ほかのノードを探すために、スキャンを再開する。
+ * 接続できたら, Thermo サービスの探索を始める. 接続できなかったら, 状態を戻す.
+ * どちらの場合も, ほかのノードを探すために, スキャンを再開する.
  *
  * @param[in] conn 接続
  * @param[in] err 接続の結果 (0 なら成功)
@@ -269,8 +269,8 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
     if ((node == NULL) && (pending_node != NULL)) {
         /*
-         * bt_conn_le_create() が戻る前に、接続が完了することがある (node->conn が、まだ NULL).
-         * 接続を始めたノードのアドレスと同じなら、この接続を、使っていない状態に割り当てる.
+         * bt_conn_le_create() が戻る前に, 接続が完了することがある (node->conn が, まだ NULL).
+         * 接続を始めたノードのアドレスと同じなら, この接続を, 使っていない状態に割り当てる.
          */
         dst = bt_conn_get_dst(conn);
         if (bt_addr_le_eq(dst, &pending_addr)) {
@@ -280,7 +280,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
     }
 
     if (node == NULL) {
-        return; /* このゲートウェイが、接続を始めたものではない */
+        return; /* このゲートウェイが, 接続を始めたものではない */
     }
 
     if (err != 0u) {
@@ -310,7 +310,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
 }
 
 /**
- * 切断のコールバック (状態を戻して、スキャンを再開する)
+ * 切断のコールバック (状態を戻して, スキャンを再開する)
  *
  * @param[in] conn 接続
  * @param[in] reason 切断の理由
@@ -342,9 +342,9 @@ static struct bt_conn_cb conn_callbacks = {
 /**
  * 接続を始める処理 (システムのワークキューで実行する)
  *
- * スキャンのコールバックの中で、スキャンを止めたり、接続を始めたりすると、スキャンの開始と
- * 重なって、スキャンを止められない (EBUSY) ことがある. そのため、コールバックでは、依頼を
- * 記録するだけにして、スキャンの停止と、接続は、ここで行う. EBUSY のときは、少し待って、やり直す.
+ * スキャンのコールバックの中で, スキャンを止めたり, 接続を始めたりすると, スキャンの開始と
+ * 重なって, スキャンを止められない (EBUSY) ことがある. そのため, コールバックでは, 依頼を
+ * 記録するだけにして, スキャンの停止と, 接続は, ここで行う. EBUSY のときは, 少し待って, やり直す.
  *
  * @param[in] work 使用しない
  */
@@ -365,18 +365,18 @@ static void connect_work_handler(struct k_work *work)
     }
     if (err != 0) {
         LOG_ERR("Stopping scan failed (err %d)", err);
-        pending_node = NULL; /* 次に、ノードが見つかったときに、やり直す */
+        pending_node = NULL; /* 次に, ノードが見つかったときに, やり直す */
         return;
     }
 
-    /* 接続を始める (結果は、connected() / disconnected() で受け取る) */
+    /* 接続を始める (結果は, connected() / disconnected() で受け取る) */
     err = bt_conn_le_create(&pending_addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT,
                             &created);
     if (err == 0) {
         if (node->conn == NULL) {
             node->conn = created;
         } else {
-            bt_conn_unref(created); /* 接続のコールバックが、先に参照を取っている */
+            bt_conn_unref(created); /* 接続のコールバックが, 先に参照を取っている */
         }
     } else {
         LOG_ERR("Connection failed to start (err %d)", err);
@@ -389,11 +389,11 @@ static void connect_work_handler(struct k_work *work)
 }
 
 /**
- * スキャンのコールバック (ノードを見つけたら、接続を始める依頼を記録する)
+ * スキャンのコールバック (ノードを見つけたら, 接続を始める依頼を記録する)
  *
- * SwitchBot の温湿度計のアドバタイズは、接続せずに、設定されたコールバックに渡す.
+ * SwitchBot の温湿度計のアドバタイズは, 接続せずに, 設定されたコールバックに渡す.
  *
- * Bluetooth のスレッドから呼ばれるので、接続は、connect_work_handler() が始める.
+ * Bluetooth のスレッドから呼ばれるので, 接続は, connect_work_handler() が始める.
  *
  * @param[in] addr 見つかったデバイスのアドレス
  * @param[in] rssi 受信信号強度 [dBm]
@@ -412,7 +412,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 
     bt_data_parse(adv_data, parse_ad, &result);
 
-    /* SwitchBot の温湿度計: 接続せずに、アドバタイズの値を渡す */
+    /* SwitchBot の温湿度計: 接続せずに, アドバタイズの値を渡す */
     if (result.has_switchbot) {
         if (switchbot_cb != NULL) {
             switchbot_cb(addr, &result.switchbot);
@@ -428,7 +428,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
         return; /* 接続を始める依頼を処理中 */
     }
 
-    /* すでに接続している (または、接続中の) ノードは、無視する */
+    /* すでに接続している (または, 接続中の) ノードは, 無視する */
     known = bt_conn_lookup_addr_le(BT_ID_DEFAULT, addr);
     if (known != NULL) {
         bt_conn_unref(known);
@@ -450,12 +450,17 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
     (void)k_work_schedule(&connect_work, K_NO_WAIT);
 }
 
-/* Bluetooth を有効にして、接続のコールバックを登録する */
+/**
+ * @brief Bluetooth スタックを初期化して, 接続のコールバックを登録する
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno)
+ */
 int ble_init(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    /* Bluetooth スタックを、同期で有効にする (戻ったときには、使える) */
+    /* Bluetooth スタックを, 同期で有効にする (戻ったときには, 使える) */
     err = bt_enable(NULL);
     if (err != 0) {
         LOG_ERR("Bluetooth init failed (err %d)", err);
@@ -472,23 +477,50 @@ int ble_init(void)
     return EXIT_SUCCESS;
 }
 
-/* 温度を受信したときのコールバックを設定する (NULL で解除) */
+/**
+ * @brief 温度を受信したときのコールバックを設定する
+ *
+ * ble_scan() の前に設定しておくこと. NULL で, 解除する.
+ *
+ * @param[in] cb コールバック
+ */
 void ble_set_temperature_callback(ble_temperature_cb_t cb)
 {
     temperature_cb = cb;
 }
 
-/* SwitchBot のアドバタイズを受信したときのコールバックを設定する (NULL で解除) */
+/**
+ * @brief SwitchBot 屋外用温湿度計のアドバタイズを受信したときのコールバックを設定する
+ *
+ * ble_scan() の前に設定しておくこと. NULL で, 解除する (SwitchBot のデータは, 捨てる).
+ *
+ * @param[in] cb コールバック
+ */
 void ble_set_switchbot_callback(ble_switchbot_cb_t cb)
 {
     switchbot_cb = cb;
 }
 
-/* Thermo のノードを探すスキャンを始める (すでに始まっていれば、成功) */
+/**
+ * @brief 周辺ノードのアクティブスキャンを開始する
+ *
+ * スキャン応答に Thermo サービスの UUID を持つノードを見つけたら, 接続して, 温度の特性の
+ * 通知 (notify) を購読する. 温度を受信するたびに, ble_set_temperature_callback() で設定した
+ * コールバックを呼ぶ. 接続できる台数は, CONFIG_BT_MAX_CONN まで. 接続が切れたら,
+ * スキャンを再開して, 再び接続する.
+ *
+ * SwitchBot のアドバタイズ (接続しない) を受信したら, ble_set_switchbot_callback() で設定した
+ * コールバックを呼ぶ.
+ *
+ * 事前に ble_init() を呼び出しておくこと.
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno)
+ */
 int ble_scan(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
-    /* アクティブスキャン: ノードの UUID は、スキャン応答に入っているので、要求を出して受け取る */
+    /* アクティブスキャン: ノードの UUID は, スキャン応答に入っているので, 要求を出して受け取る */
     struct bt_le_scan_param scan_param = {
             .type = BT_LE_SCAN_TYPE_ACTIVE,
             .options = BT_LE_SCAN_OPT_NONE,
@@ -498,7 +530,7 @@ int ble_scan(void)
 
     err = bt_le_scan_start(&scan_param, scan_cb);
     if (err == -EALREADY) {
-        return EXIT_SUCCESS; /* すでに、スキャンしている */
+        return EXIT_SUCCESS; /* すでに, スキャンしている */
     }
     if (err != 0) {
         LOG_ERR("Starting scan failed (err %d)", err);

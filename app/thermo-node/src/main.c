@@ -24,10 +24,10 @@ LOG_MODULE_REGISTER(thermo_node);
 #define SAMPLE_INTERVAL_S 5
 
 /**
- * @brief ノードのメイン関数。
+ * @brief ノードのメイン関数
  *
- * センサと BLE を初期化してアドバタイズを開始し、その後は一定間隔で温度を読み取って、
- * ログ出力して、接続しているゲートウェイへ通知 (GATT の notify) する。
+ * センサと BLE を初期化してアドバタイズを開始し, その後は一定間隔で温度を読み取って,
+ * ログ出力して, 接続しているゲートウェイへ通知 (GATT の notify) する.
  *
  * @retval EXIT_FAILURE 初期化またはアドバタイズ開始に失敗した場合
  *                      (正常時はループから戻らない)
@@ -74,7 +74,7 @@ int main(void)
         if (read_ret == EXIT_SUCCESS) {
             LOG_INF("Temperature: %u (raw ADC value)", temp_raw);
 
-            /* 接続しているゲートウェイへ通知する (失敗しても、次回に再試行する) */
+            /* 接続しているゲートウェイへ通知する (失敗しても, 次回に再試行する) */
             read_ret = ble_notify_temperature(temp_raw);
             if (read_ret != EXIT_SUCCESS) {
                 LOG_ERR("Failed to notify the temperature (err %d)", read_ret);

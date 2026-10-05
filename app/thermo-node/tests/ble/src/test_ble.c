@@ -42,7 +42,7 @@ DEFINE_FFF_GLOBALS
 /** テストで使う温度の生値 */
 #define TEST_RAW      0x04d2u
 
-/* FAKE_*: FFF のモック (実物の代わりの関数。呼ばれた回数と引数を記録する) */
+/* FAKE_*: FFF のモック (実物の代わりの関数. 呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, bt_enable, bt_ready_cb_t)
 FAKE_VALUE_FUNC(int, bt_le_adv_start, const struct bt_le_adv_param *, const struct bt_data *,
                 size_t, const struct bt_data *, size_t)
@@ -223,7 +223,7 @@ ZTEST(ble_node, test_init_success)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
 
-    /* 期待: bt_enable() (NULL)、GATT サービスの登録 (属性の数)、接続のコールバックの登録 */
+    /* 期待: bt_enable() (NULL), GATT サービスの登録 (属性の数), 接続のコールバックの登録 */
     zassert_equal(bt_enable_fake.call_count, 1u);
     zassert_is_null(bt_enable_fake.arg0_val);
     zassert_equal(service->attr_count, ATTR_COUNT);
@@ -237,7 +237,7 @@ ZTEST(ble_node, test_init_enable_failure)
 {
     bt_enable_fake.return_val = -EIO;
 
-    /* 期待: 有効にできなければ、サービスもコールバックも登録しない */
+    /* 期待: 有効にできなければ, サービスもコールバックも登録しない */
     zassert_equal(ble_init(), -EIO);
     zassert_equal(bt_enable_fake.call_count, 1u);
     zassert_equal(bt_gatt_service_register_fake.call_count, 0u);
@@ -249,7 +249,7 @@ ZTEST(ble_node, test_init_service_failure)
 {
     bt_gatt_service_register_fake.return_val = -ENOMEM;
 
-    /* 期待: サービスの登録に失敗したら、コールバックは登録しない */
+    /* 期待: サービスの登録に失敗したら, コールバックは登録しない */
     zassert_equal(ble_init(), -ENOMEM);
     zassert_equal(bt_gatt_service_register_fake.call_count, 1u);
     zassert_equal(bt_conn_cb_register_fake.call_count, 0u);
@@ -278,7 +278,7 @@ ZTEST(ble_node, test_service_attributes)
     zassert_equal(BT_UUID_16(attrs[0].uuid)->val, BT_UUID_GATT_PRIMARY_VAL);
     zassert_true(uuid128_equals((const struct bt_uuid *)attrs[0].user_data, service_uuid));
 
-    /* 1: 特性の宣言 (読み取りと通知。温度の特性の UUID) */
+    /* 1: 特性の宣言 (読み取りと通知. 温度の特性の UUID) */
     zassert_equal(BT_UUID_16(attrs[1].uuid)->val, BT_UUID_GATT_CHRC_VAL);
     zassert_equal(chrc->properties, (BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY));
     zassert_true(uuid128_equals(chrc->uuid, temperature_uuid));
@@ -324,7 +324,7 @@ ZTEST(ble_node, test_notify_success)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
 
-    /* 期待: 温度の特性の値に、リトルエンディアンの 2 byte で、通知する */
+    /* 期待: 温度の特性の値に, リトルエンディアンの 2 byte で, 通知する */
     zassert_equal(ble_notify_temperature(TEST_RAW), EXIT_SUCCESS);
     zassert_equal(bt_gatt_notify_cb_fake.call_count, 1u);
     zassert_equal(notified.attr, &service->attrs[ATTR_VALUE]);
@@ -339,7 +339,7 @@ ZTEST(ble_node, test_notify_not_connected)
     (void)init_and_get_service();
     bt_gatt_notify_cb_fake.return_val = -ENOTCONN;
 
-    /* 期待: 接続している相手がいなければ (-ENOTCONN)、成功として扱う */
+    /* 期待: 接続している相手がいなければ (-ENOTCONN), 成功として扱う */
     zassert_equal(ble_notify_temperature(TEST_RAW), EXIT_SUCCESS);
     zassert_equal(bt_gatt_notify_cb_fake.call_count, 1u);
 }
@@ -350,7 +350,7 @@ ZTEST(ble_node, test_notify_failure)
     (void)init_and_get_service();
     bt_gatt_notify_cb_fake.return_val = -EIO;
 
-    /* 期待: ほかの失敗は、そのエラーを返す */
+    /* 期待: ほかの失敗は, そのエラーを返す */
     zassert_equal(ble_notify_temperature(TEST_RAW), -EIO);
 }
 
@@ -386,7 +386,7 @@ ZTEST(ble_node, test_advertise_failure)
 {
     bt_le_adv_start_fake.return_val = -ENOMEM;
 
-    /* 期待: アドバタイズを始められなければ、そのエラーを返す */
+    /* 期待: アドバタイズを始められなければ, そのエラーを返す */
     zassert_equal(ble_advertise(), -ENOMEM);
     zassert_equal(bt_le_adv_start_fake.call_count, 1u);
 }
