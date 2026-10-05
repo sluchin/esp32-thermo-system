@@ -46,6 +46,7 @@ static int failing_input(const struct device *dev, unsigned int chan, void *data
     ARG_UNUSED(chan);
     ARG_UNUSED(data);
     ARG_UNUSED(result);
+
     return -EIO;
 }
 

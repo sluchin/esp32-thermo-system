@@ -88,6 +88,7 @@ static int fake_save_one(const char *name, const void *value, size_t len)
     (void)strncpy(saves[i].name, name, sizeof(saves[i].name) - 1U);
     (void)memcpy(saves[i].data, value, len);
     saves[i].len = len;
+
     return 0;
 }
 
@@ -107,6 +108,7 @@ static int fake_cred_add(sec_tag_t tag, enum tls_credential_type type, const voi
     store[type - TLS_CREDENTIAL_CA_CERTIFICATE].data = cred;
     store[type - TLS_CREDENTIAL_CA_CERTIFICATE].len = credlen;
     store[type - TLS_CREDENTIAL_CA_CERTIFICATE].present = true;
+
     return 0;
 }
 
@@ -133,6 +135,7 @@ static int fake_cred_get(sec_tag_t tag, enum tls_credential_type type, void *cre
     }
     (void)memcpy(cred, store[i].data, store[i].len);
     *credlen = store[i].len;
+
     return 0;
 }
 
@@ -151,6 +154,7 @@ static int fake_cred_delete(sec_tag_t tag, enum tls_credential_type type)
 
     ARG_UNUSED(tag);
     store[i].present = false;
+
     return ret;
 }
 
@@ -171,6 +175,7 @@ static ssize_t read_source(void *cb_arg, void *data, size_t len)
         return source.err;
     }
     (void)memcpy(data, source.data, n);
+
     return (ssize_t)n;
 }
 
@@ -182,6 +187,7 @@ static ssize_t read_source(void *cb_arg, void *data, size_t len)
 static struct settings_handler *handler_of(void)
 {
     zassert_equal(cfg_init(), EXIT_SUCCESS);
+
     return settings_register_fake.arg0_val;
 }
 

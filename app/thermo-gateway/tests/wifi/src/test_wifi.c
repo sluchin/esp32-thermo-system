@@ -111,6 +111,7 @@ static int fake_connect(uint64_t request, struct net_if *iface, void *data, size
     } else {
         /* 何も起きない */
     }
+
     return 0;
 }
 

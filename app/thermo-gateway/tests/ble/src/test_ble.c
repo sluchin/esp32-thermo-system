@@ -177,6 +177,7 @@ static int fake_conn_le_create(const bt_addr_le_t *peer,
 
     *conn = conn_of(next_conn);
     next_conn++;
+
     return 0;
 }
 
@@ -208,6 +209,7 @@ static int fake_conn_le_create_connected_early(const bt_addr_le_t *peer,
     struct bt_conn *created = conn_of(next_conn); /* 作成した接続 */
 
     conn_cb->connected(created, 0U);
+
     return fake_conn_le_create(peer, create_param, conn_param, conn);
 }
 
@@ -223,6 +225,7 @@ static int capture_scan_start(const struct bt_le_scan_param *param, scan_cb_ptr_
     ARG_UNUSED(cb);
 
     captured_scan_param = *param;
+
     return 0;
 }
 
@@ -321,6 +324,7 @@ static scan_cb_ptr_t start_scanning(void)
     conn_cb = bt_conn_cb_register_fake.arg0_val;
     ble_set_temperature_callback(on_temperature);
     zassert_equal(ble_scan(), EXIT_SUCCESS);
+
     return bt_le_scan_start_fake.arg1_val;
 }
 

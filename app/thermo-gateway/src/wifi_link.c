@@ -80,6 +80,7 @@ int wifi_link_init(void)
 
     net_mgmt_init_event_callback(&ipv4_cb, event_handler, NET_EVENT_IPV4_ADDR_ADD);
     net_mgmt_add_event_callback(&ipv4_cb);
+
     return EXIT_SUCCESS;
 }
 
@@ -142,6 +143,7 @@ int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
     if (connect_status != 0) {
         return -ECONNREFUSED;
     }
+
     return EXIT_SUCCESS;
 }
 
