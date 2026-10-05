@@ -65,7 +65,7 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
     struct switchbot_sample sample = {0};    /* サンプル */
     int temp = 0;                            /* 温度 [℃ の 10 倍] */
     const char *sign = "";                   /* 温度の符号 ("-" か "") */
-    unsigned int magnitude = 0u;             /* 温度の絶対値 [℃ の 10 倍] */
+    unsigned int magnitude = 0U;             /* 温度の絶対値 [℃ の 10 倍] */
 #ifdef CONFIG_THERMO_CLOUD
     int ret = EXIT_SUCCESS; /* 戻り値 */
 #endif
@@ -81,8 +81,8 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
     magnitude = (unsigned int)((temp < 0) ? -temp : temp);
 
     (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
-    LOG_INF("SwitchBot %s: %s%u.%u C, %u %%, battery %d %%", addr_str, sign, magnitude / 10u,
-            magnitude % 10u, sample.humidity, sample.battery);
+    LOG_INF("SwitchBot %s: %s%u.%u C, %u %%, battery %d %%", addr_str, sign, magnitude / 10U,
+            magnitude % 10U, sample.humidity, sample.battery);
 
 #ifdef CONFIG_THERMO_CLOUD
     ret = cloud_publish_switchbot(addr, &sample);

@@ -20,11 +20,11 @@
 
 /** Thermo サービスの UUID (128 bit) の値 */
 #define THERMO_UUID_SERVICE_VAL                                                                    \
-    BT_UUID_128_ENCODE(0x9f3c1a00, 0x7b6e, 0x4c3a, 0x9d5e, 0x2a6f0b1c8d01)
+    BT_UUID_128_ENCODE(0x9F3C1A00, 0x7B6E, 0x4C3A, 0x9D5E, 0x2A6F0B1C8D01)
 
 /** 温度の特性の UUID (128 bit) の値 */
 #define THERMO_UUID_TEMPERATURE_VAL                                                                \
-    BT_UUID_128_ENCODE(0x9f3c1a01, 0x7b6e, 0x4c3a, 0x9d5e, 0x2a6f0b1c8d01)
+    BT_UUID_128_ENCODE(0x9F3C1A01, 0x7B6E, 0x4C3A, 0x9D5E, 0x2A6F0B1C8D01)
 
 /** Thermo サービスの UUID */
 #define THERMO_UUID_SERVICE BT_UUID_DECLARE_128(THERMO_UUID_SERVICE_VAL)
@@ -37,6 +37,6 @@
  *
  * 値は, ADC の生値 (0 .. 4095) を, 2 byte のリトルエンディアン (uint16) で表したもの.
  */
-#define THERMO_TEMPERATURE_SIZE 2u
+#define THERMO_TEMPERATURE_SIZE 2U
 
 #endif /* THERMO_BLE_UUID_H */

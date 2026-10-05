@@ -66,7 +66,7 @@ int main(void)
 
     /* 一定間隔で温度を読み取ってログ出力する */
     while (true) {
-        uint16_t temp_raw = 0u;
+        uint16_t temp_raw = 0U;
         int read_ret = EXIT_SUCCESS;
 
         read_ret = sensor_read_temperature(&temp_raw);
