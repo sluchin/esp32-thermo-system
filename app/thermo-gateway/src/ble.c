@@ -173,6 +173,7 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
         return BT_GATT_ITER_STOP;
     }
 
+    LOG_HEXDUMP_DBG(data, length, "Notification");
     if (length != THERMO_TEMPERATURE_SIZE) {
         LOG_WRN("Unexpected notification length: %u", length);
         return BT_GATT_ITER_CONTINUE;
