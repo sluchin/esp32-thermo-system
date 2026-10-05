@@ -2,7 +2,7 @@
 
 本ドキュメントは、BLE サーモメータシステム (`thermo-node` / `thermo-gateway`) における MISRA-C (MISRA C:2012) ガイドラインの適用方針と、プロジェクトの目的・アーキテクチャ上の理由から**あえて対応せず例外 (Deviation) としているルール**を定義・記録したものです。
 
-コーディング規約の詳細は [.CLAUDE.md](.CLAUDE.md) を参照してください。
+コーディング規約の詳細は [CODING_STYLE.md](CODING_STYLE.md) を参照してください。
 
 ---
 
@@ -120,7 +120,7 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 | 機能 | MISRA C:2012 | 備考 |
 |:---|:---|:---|
 | `goto` | Rule 15.1 | エラー処理は、早期リターンで行う (リソースを確保しないため) |
-| 動的メモリ (`malloc` / `free`) | Rule 21.3 | 静的確保のみ。使う場合は、確保結果を検査し、解放後に `NULL` を代入する (`.CLAUDE.md`) |
+| 動的メモリ (`malloc` / `free`) | Rule 21.3 | 静的確保のみ。使う場合は、確保結果を検査し、解放後に `NULL` を代入する (`CODING_STYLE.md`) |
 | 再帰呼び出し | Rule 17.2 | |
 | 標準入出力 (`<stdio.h>`) | Rule 21.6 | ログは Zephyr Logging API |
 | 未定義マクロを `#if` の値として評価 | Rule 20.9 | `CONFIG_SIMULATOR` は `#ifdef` で、Devicetree は `DT_NODE_HAS_PROP` (0 か 1 に展開される) で判定する |
