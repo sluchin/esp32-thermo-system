@@ -53,6 +53,7 @@ static int resolve_server(const char *server, struct sockaddr_storage *addr, soc
     (void)memcpy(addr, res->ai_addr, res->ai_addrlen);
     *len = res->ai_addrlen;
     zsock_freeaddrinfo(res);
+
     return EXIT_SUCCESS;
 }
 
@@ -111,6 +112,7 @@ int ntp_sync(const char *server, k_timeout_t timeout)
     last_sync_ms = k_uptime_get();
     synced = true;
     LOG_INF("Time synchronized (UNIX time %lld)", (long long)ts.seconds);
+
     return EXIT_SUCCESS;
 }
 
@@ -141,5 +143,6 @@ int ntp_unix_time(int64_t *sec)
     /* 戻り値は, 時計の種類が違うときだけ, 負. 違わないので, 見ない */
     (void)sys_clock_gettime(SYS_CLOCK_REALTIME, &now);
     *sec = (int64_t)now.tv_sec;
+
     return EXIT_SUCCESS;
 }

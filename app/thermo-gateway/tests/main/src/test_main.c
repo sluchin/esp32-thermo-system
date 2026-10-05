@@ -113,6 +113,7 @@ static bool fake_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad,
     out->temp_x10 = accepted_temp_x10;
     out->humidity = 55U;
     out->battery = 87;
+
     return switchbot_accept_fake.return_val;
 }
 
@@ -127,6 +128,7 @@ static int capture_switchbot(const bt_addr_le_t *addr, const struct switchbot_sa
 {
     ARG_UNUSED(addr);
     published_sample = *sample;
+
     return cloud_publish_switchbot_fake.return_val;
 }
 

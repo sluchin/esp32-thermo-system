@@ -117,6 +117,7 @@ static int capture_adv_start(const struct bt_le_adv_param *param, const struct b
         captured.sd = sd[0];
         (void)memcpy(captured.sd_data, sd[0].data, sizeof(captured.sd_data));
     }
+
     return 0;
 }
 
@@ -136,6 +137,7 @@ static int capture_notify(struct bt_conn *conn, struct bt_gatt_notify_params *pa
     if (params->len <= sizeof(notified.data)) {
         (void)memcpy(notified.data, params->data, params->len);
     }
+
     /* custom_fake があると, return_val は使われないので, ここで返す */
     return bt_gatt_notify_cb_fake.return_val;
 }
@@ -166,6 +168,7 @@ static ssize_t fake_attr_read(struct bt_conn *conn, const struct bt_gatt_attr *a
     }
     len = (uint16_t)MIN(buf_len, value_len - offset);
     (void)memcpy(buf, (const uint8_t *)value + offset, len);
+
     return len;
 }
 
@@ -190,6 +193,7 @@ static const struct bt_gatt_service *init_and_get_service(void)
 {
     zassert_equal(ble_init(), EXIT_SUCCESS);
     zassert_equal(bt_gatt_service_register_fake.call_count, 1U);
+
     return bt_gatt_service_register_fake.arg0_val;
 }
 

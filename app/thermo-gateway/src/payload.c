@@ -50,6 +50,7 @@ static int check_length(int written, size_t size)
     if ((size_t)written >= size) {
         return -ENOSPC;
     }
+
     return written;
 }
 
@@ -70,6 +71,7 @@ int payload_format_topic(char *buf, size_t size, const char *client_id, const bt
     char node[ADDR_STR_SIZE] = {0}; /* ノードのアドレスの文字列 */
 
     format_addr(node, addr);
+
     return check_length(snprintf(buf, size, "thermo/%s/%s/temperature", client_id, node), size);
 }
 
@@ -135,6 +137,7 @@ int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id
     char node[ADDR_STR_SIZE] = {0}; /* ノードのアドレスの文字列 */
 
     format_addr(node, addr);
+
     return check_length(snprintf(buf, size, "thermo/%s/switchbot/%s", client_id, node), size);
 }
 

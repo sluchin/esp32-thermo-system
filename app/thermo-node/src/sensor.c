@@ -68,6 +68,7 @@ int sensor_init(void)
 #else
     LOG_WRN("ADC not configured in device tree, using simulated values");
 #endif
+
     return EXIT_SUCCESS;
 }
 

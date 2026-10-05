@@ -69,6 +69,7 @@ static bool parse_service_data(const uint8_t *data, uint8_t len, struct switchbo
     out->kind = SWITCHBOT_INFO;
     out->model = data[0] & LOW7_MASK;
     out->battery = data[2] & LOW7_MASK;
+
     return true;
 }
 
@@ -102,6 +103,7 @@ static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct swi
     out->kind = SWITCHBOT_ENV;
     out->temp_x10 = (((env[1] & SIGN_POSITIVE_BIT) != 0U) ? magnitude : (int16_t)-magnitude);
     out->humidity = humidity;
+
     return true;
 }
 
@@ -125,6 +127,7 @@ bool switchbot_parse(uint8_t type, const uint8_t *data, uint8_t len, struct swit
         (data[1] == COMPANY_ID_HI)) {
         return parse_manufacturer_data(&data[2], (uint8_t)(len - 2U), out);
     }
+
     return false;
 }
 
@@ -154,6 +157,7 @@ static struct sb_device *find_device(const bt_addr_le_t *addr)
         free_slot->used = true;
         free_slot->battery = SWITCHBOT_BATTERY_UNKNOWN;
     }
+
     return free_slot;
 }
 
@@ -201,6 +205,7 @@ bool switchbot_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad, u
     out->temp_x10 = ad->temp_x10;
     out->humidity = ad->humidity;
     out->battery = dev->battery;
+
     return true;
 }
 

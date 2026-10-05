@@ -64,6 +64,7 @@ static K_THREAD_STACK_DEFINE(main_stack, STACK_SIZE)
         static int fake_read(uint16_t *value)
 {
     *value = (uint16_t)FAKE_TEMP_RAW;
+
     return 0;
 }
 

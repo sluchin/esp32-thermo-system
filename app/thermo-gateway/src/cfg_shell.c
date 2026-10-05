@@ -53,6 +53,7 @@ static int cmd_set(const struct shell *sh, size_t argc, char **argv)
         return err;
     }
     shell_print(sh, "%s saved", argv[1]);
+
     return EXIT_SUCCESS;
 }
 
@@ -84,6 +85,7 @@ static int cmd_show(const struct shell *sh, size_t argc, char **argv)
                     (cfg_has_cred((enum cfg_cred)i) ? "registered" : "missing"));
     }
     shell_print(sh, "ready to connect: %s", (cfg_is_complete() ? "yes" : "no"));
+
     return EXIT_SUCCESS;
 }
 
@@ -110,6 +112,7 @@ static int cmd_save_certs(const struct shell *sh, size_t argc, char **argv)
         return err;
     }
     shell_print(sh, "certificates saved");
+
     return EXIT_SUCCESS;
 }
 
@@ -128,6 +131,7 @@ static int cmd_apply(const struct shell *sh, size_t argc, char **argv)
 
     cloud_reconnect();
     shell_print(sh, "reconnecting");
+
     return EXIT_SUCCESS;
 }
 
@@ -151,6 +155,7 @@ static int cmd_reset(const struct shell *sh, size_t argc, char **argv)
         return err;
     }
     shell_print(sh, "settings erased");
+
     return EXIT_SUCCESS;
 }
 

@@ -60,6 +60,7 @@ static int fake_key_from_name(const char *name)
             return (int)i;
         }
     }
+
     return -ENOENT;
 }
 
@@ -121,6 +122,7 @@ static const char *run(const char *cmd, int *ret)
 
     shell_backend_dummy_clear_output(sh);
     *ret = shell_execute_cmd(sh, cmd);
+
     return shell_backend_dummy_get_output(sh, &size);
 }
 
@@ -136,6 +138,7 @@ static void *setup(void)
     while (!shell_ready(sh)) {
         k_msleep(10);
     }
+
     return NULL;
 }
 

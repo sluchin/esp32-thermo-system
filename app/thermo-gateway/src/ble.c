@@ -91,6 +91,7 @@ static struct node *find_node(const struct bt_conn *conn)
             return &nodes[i];
         }
     }
+
     return NULL;
 }
 
@@ -108,6 +109,7 @@ static struct node *find_free_node(void)
             return &nodes[i];
         }
     }
+
     return NULL;
 }
 
@@ -179,6 +181,7 @@ static bool parse_ad(struct bt_data *data, void *user_data)
         result->has_switchbot = true;
         return false;
     }
+
     return true;
 }
 
@@ -502,8 +505,8 @@ int ble_init(void)
         LOG_ERR("Connection callback register failed (err %d)", err);
         return err;
     }
-
     LOG_INF("Bluetooth initialized");
+
     return EXIT_SUCCESS;
 }
 
@@ -566,7 +569,7 @@ int ble_scan(void)
         LOG_ERR("Starting scan failed (err %d)", err);
         return err;
     }
-
     LOG_INF("BLE scan started");
+
     return EXIT_SUCCESS;
 }
