@@ -34,57 +34,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 ## コーディング規約
 
-Zephyr のコーディング規約に合わせる。Zephyr と違う点 (例外) と、使う道具は、[CODING_STYLE.md](CODING_STYLE.md) に書いてある。
-
-1. **インデント**: 空白 4 つ (Zephyr は、タブ 8。例外。`CODING_STYLE.md` を参照)。整形は clang-format (`.clang-format`) が行う。
-2. **ログ**: `LOG_INF`, `LOG_ERR`, `LOG_DBG` 等の Zephyr Logging API を使用。
-   - 各ファイルで `LOG_MODULE_REGISTER` を定義。
-3. **戻り値**: 成功は `EXIT_SUCCESS`、エラー時は負の `errno` 値を返す（例: `-ENODEV`, `-EIO`）。
-4. **ハードウェア操作**: Devicetree (DT) と `device_is_ready()` を使用してドライバにアクセス。
-5. **ヘッダ**: `#include <zephyr/...>` 形式で Zephyr API をインクルード。
-6. **変数命名**: スネークケース (`snake_case`)。
-
-### 共通ルール
-
-1. **戻り値は必ずチェックする**: 戻り値を返す関数は、戻り値を確認し、失敗時は `LOG_ERR` でログを出力して呼び出し元へ伝える。
-2. **無視する戻り値は `(void)` でキャストする**: あえてチェックしない標準関数や API は `(void)memset(...)` のように明示する。
-3. **エラー処理は `goto` で末尾に集約する**: リソースの解放が必要な関数は、後方のラベル (`error_handler:` など) へ前方ジャンプでまとめる。後方ジャンプやブロック内部へのジャンプはしない。
-4. **動的メモリは原則使わない**: 静的確保を使う。やむを得ず確保する場合は、結果を `NULL` チェックし、解放後に `NULL` を代入する。
-5. **バッファの安全性**: `strcpy` / `sprintf` / `strcat` などの長さを見ない関数は使わない。`snprintf` など長さを指定する関数を使い、サイズと境界を確認する。
-6. **ログに `printk` / `printf` を使わない**: 必ず Zephyr Logging API (`LOG_*`) を使う。
-7. **MISRA-C に従えない箇所**: 理由をコメントで残す。
-8. **行末コメントは桁を揃える**: 型やサフィックス (`u` `L`) を足して、コードの長さが変わったら、連続する行の行末コメントの桁も揃え直す。
-
-### MISRA-C 準拠ルール
-
-`app/` 配下の C ソースは極力 MISRA-C に従う。
-MISRA-C への対応方針と、あえて従わない規則 (例外事項。Deviations) は、[MISRA.md](MISRA.md) を参照。例外を増やすときは、`MISRA.md` に理由と安全対策を追記する。
-
-1. **条件式の中の関数呼び出し**: 判定だけをする関数 (状態を調べるだけで、何も変えない関数) は、条件式に、そのまま書いてよい。副作用のある関数 (状態を変える、書き込む、開始・初期化・設定する関数) は、先に呼び出して、戻り値を変数に入れてから、判定する。
-   - 条件式に書いてよい関数: `bool` を返す判定関数 (`adc_is_ready_dt()` `device_is_ready()` や、自分で作る `is_xxx()` / `has_xxx()`)、`isdigit()` などの `is*()`、`strcmp()` (文字列が同じかの判定)、`strlen()` など。
-   - 変数に入れる関数の例: `bt_enable()` `bt_le_adv_start()` `bt_le_scan_start()` `ble_init()` `sensor_init()` `adc_channel_setup_dt()` `adc_read_dt()` `k_sleep()`。
-     - NG: `if (ble_init() != 0)`
-     - OK: `ret = ble_init();` → `if (ret != EXIT_SUCCESS)`
-   - 厳密には、判定関数も、変数に入れてから判定するべきだが、変数が増えて、かえって読みにくくなるので、許容する。
-   - 単体テスト (`app/*/tests/`) のコードは、この規約の対象外とする。
-2. **条件式は bool だけにする (Rule 14.4)**: 整数やポインタを、そのまま条件式に書かず、比較して bool にする (`if (err != 0)`、`if (ptr != NULL)`)。bool の値 (`bool` 型の変数、`bool` を返す関数) は、そのまま書き、`== true` / `== false` とは比較しない (`if (ready)`、`if (!ready)`)。無限ループは `while (true)` (`<stdbool.h>`)。
-   - NG: `if (err)`、`if (ptr)`、`if (!count)`、`if (ready == false)`
-   - OK: `if (err != 0)`、`if (ptr != NULL)`、`if (count == 0)`、`if (!ready)`
-3. **戻り値にリテラルを直書きしない**: `return 0;` / `return -1;` は使わず、`EXIT_SUCCESS` / `EXIT_FAILURE` (`<stdlib.h>`)、または `-ENODEV` 等の名前付き定数を使う。
-4. **マジックナンバーを使わない**: 時間、解像度、範囲などは `#define` で名前を付ける。符号なしの値には、小文字の `u` サフィックスを付ける (`12u`、`0u`)。`long` / `ssize_t` には大文字の `L`、`long long` には `LL` を付ける (小文字の `l` は使わない)。
-5. **三項演算子は、式全体を括弧で囲む**: `((x != NULL) ? x : y)` のように書く (`(x != NULL) ? x : y` と書かない)。条件は、2 と同じく、bool にする。
-6. **ローカル変数は宣言時に必ず初期化する**: 例: `int err = EXIT_SUCCESS;`、`bool ready = false;`、`char buf[N] = {0};`。
-7. **`extern` 宣言を `.c` に書かない**: 関数宣言はヘッダ (`ble.h`, `sensor.h` 等) に置き、利用側で `#include "xxx.h"` する。ヘッダにはインクルードガードを付ける。
-8. **論理演算子の前後の比較に括弧を付ける (Rule 12.1)**: `&&` や `||` でつなぐ、それぞれの比較は、括弧で囲む。`if ((err == 0) && (ptr != NULL))` のように書き、`if (err == 0 && ptr != NULL)` とは書かない。
-
-### Doxygen コメント
-
-1. **公開関数はヘッダに Doxygen コメントを書く**: `/** ... */` 形式で `@brief`、`@param[in]`/`@param[out]`、`@retval` を記述する。 `.c` 側には、Doxygen コメントを重複して書かず、定義の直前に、`/* ... */` の 1 行で、何をする関数かを書く (`/**` にしない)。
-2. **各ファイルの先頭に、`Copyright` と `SPDX-License-Identifier: GPL-3.0-or-later` (Zephyr の形式。`CODING_STYLE.md` を参照)、続けて `@file` と `@brief` を書く** (Zephyr と同じく、`@file` の後に、ファイル名は書かない)。
-3. **`static` 関数、`#define`、グローバル/静的変数、構造体のメンバー、単体テストのテストケース (`ZTEST`) と補助関数にも `/** ... */` で説明を付ける**。`docs-thermo` が、説明のないものを警告にする (`Doxyfile` の `PREDEFINED` で、`ZTEST` と `K_*_DEFINE` を、関数や変数として扱う。FFF のモック (`FAKE_*`) は、対象外。モックの宣言の前に、1 行の注釈を付ける)。
-4. コメントは日本語で記述する。
-5. **全ての引数と戻り値を書く**: 引数がある関数には `@param[in]` / `@param[out]`、値を返す関数には `@retval` (または `@return`) を書く。値を返さない (`void`) 関数には `@return なし` を書かない。
-6. **ドキュメントは、警告ゼロにする**: コメントを書いたら、`docker compose run --rm docs-thermo` で、警告がないことを確認する (ドキュメントのない関数・引数・変数が 1 つでもあれば失敗する)。Markdown で、日本語の直後に、`.` か `(` で始まるコードを続けると、Doxygen が誤るので、空白を 1 つ入れる。
+@../CODING_STYLE.md
 
 ## 開発フロー
 
@@ -109,7 +59,7 @@ MISRA-C への対応方針と、あえて従わない規則 (例外事項。Devi
   - 静的解析: `docker compose run --rm analyze-thermo-node` / `docker compose run --rm analyze-thermo-gateway` (gcc の `-fanalyzer` を、app のソースだけに `-O0` で掛ける。通常のビルドとは分けてあり、指摘があれば失敗する)。コードを修正したら、実行して、指摘が出ないことを確認する。
   - 警告オプションの一覧は `app/warnings.txt` にある (`-Wall` `-Wextra` `-Wpedantic` `-Wconversion` `-Wsign-conversion` `-Wshadow` `-Wformat=2` など約 55 個)。`app/warnings.cmake` が読み込み、アプリのソース (`app/` 配下) だけに付ける。Zephyr のヘッダは、システムヘッダとして扱うので、警告を出さない。オプションを足し引きするときは、`warnings.txt` だけを直す。
   - ビルドを実行できなかったときは、そのことを報告する (成功したとは書かない)。
-  - **例外**: 変更が `.CLAUDE.md` や `README.md` などの文書のみの場合は、ビルドしない。
+  - **例外**: 変更が `.claude/CLAUDE.md` や `README.md` などの文書のみの場合は、ビルドしない。
 - ビルドやコマンドの手順を変更したら、`README.md` / `SETUP.md` / `SIMULATION.md` も更新する。
 - ソースファイルを追加したら、該当アプリの `CMakeLists.txt` も更新する。
 

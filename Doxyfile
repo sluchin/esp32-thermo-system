@@ -23,7 +23,7 @@ INPUT                  = README.md \
                          CODING_STYLE.md \
                          MISRA.md \
                          TODO.md \
-                         .CLAUDE.md \
+                         .claude/CLAUDE.md \
                          app/common \
                          app/$(DOCS_APP)
 FILE_PATTERNS          = *.c \
