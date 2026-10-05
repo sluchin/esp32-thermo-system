@@ -18,7 +18,6 @@
 
 #include <zephyr/net/tls_credentials.h>
 #include <stdbool.h> /* bool */
-#include <stddef.h>
 
 /** TLS の証明書を登録する, セキュリティタグ (CA, クライアント証明書, 秘密鍵で共通) */
 #define CFG_TLS_SEC_TAG 1

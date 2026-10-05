@@ -16,7 +16,6 @@
 - [ ] ビルドとテストの確認: 標準ヘッダとローカル変数の行末コメントを足した変更を、Docker と Zephyr の環境で、ビルドして、単体テストを実行する。(コメントだけの変更だが、未確認)。BLE の送受信の `LOG_HEXDUMP_DBG` の追加も、ビルドして、単体テストを実行して、確認する。
 - [ ] 行末コメントの見直し: `tests/` のローカル変数のコメントは、変数名から機械的に付けた。ファイルごとの意味に合っているか、確認して直す。
 - [ ] 整形の確認: 手作業で揃えたコメントの桁を、Docker の `format-thermo` で確認する。(この環境の clang-format 18 は、 `.clang-format` で、無関係な行まで書き換える)
-- [ ] 使っていない可能性のある `#include` を、確認して、削除する: `cfg.h` の `<stddef.h>`、`tests/ntp` の `<string.h>`、`tests/shell` と `tests/switchbot` の `<stdlib.h>`、`thermo-node/src/sensor.c` の `<stdbool.h>`。(間接的に必要かもしれないので、ビルドで確認する)
 
 ## 対応済み
 

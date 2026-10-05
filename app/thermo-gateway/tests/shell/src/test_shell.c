@@ -16,8 +16,7 @@
 #include <zephyr/fff.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/shell/shell_dummy.h>
-#include <errno.h> /* ENOENT EINVAL EIO */
-#include <stdlib.h>
+#include <errno.h>  /* ENOENT EINVAL EIO */
 #include <string.h> /* strcmp memset strstr */
 
 #include "cfg.h"

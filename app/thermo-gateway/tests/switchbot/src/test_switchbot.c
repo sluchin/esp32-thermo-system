@@ -14,7 +14,6 @@
 
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/ztest.h>
-#include <stdlib.h>
 #include <string.h> /* memcpy */
 
 #include "switchbot.h"
