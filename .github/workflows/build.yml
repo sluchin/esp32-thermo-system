@@ -1,10 +1,12 @@
 name: CI
 
 # 開発環境 (Dockerfile) と同じイメージで, docker compose のサービスを実行する.
-#   build  : 実機 (xiao_esp32c3) 用と, native_sim 用のビルド. 警告が出たら失敗する
-#   test   : 単体テスト (Ztest + FFF) を native_sim で実行する (twister)
-#   analyze: 静的解析 (gcc -fanalyzer). 指摘があれば失敗する
-#   lint   : 整形の確認 (clang-format), Zephyr の checkpatch.pl, 行末の空白の確認. 指摘があれば失敗する
+#   build  : 実機 (xiao_esp32c3) 用と, native_sim 用のビルド. 警告が出たら失敗する. 成果物とログを artifact に保存する
+#   test   : 単体テスト (Ztest + FFF) を native_sim で実行する (twister). ログを artifact に保存する
+#   coverage: 行と分岐のカバレッジが 100% であること. ログを artifact に保存する
+#   docs   : Doxygen のドキュメント. 警告があれば失敗する. ドキュメントとログを artifact に保存する
+#   analyze: 静的解析 (gcc -fanalyzer). 指摘があれば失敗する. ログを artifact に保存する
+#   lint   : 整形の確認 (clang-format), Zephyr の checkpatch.pl, 行末の空白の確認. 指摘があれば失敗する. ログを artifact に保存する
 # イメージは, レイヤーを GitHub Actions のキャッシュに保存する (.github/actions/docker-image).
 
 on:
@@ -51,6 +53,7 @@ jobs:
             build/*/zephyr/zephyr.elf
             build/*/zephyr/zephyr.bin
             build/*/zephyr/zephyr.exe
+            build.log
           if-no-files-found: warn
 
   test:
@@ -71,7 +74,17 @@ jobs:
         uses: ./.github/actions/docker-image
 
       - name: Run the unit tests
-        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
+        run: |
+          set -o pipefail
+          env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee "$RUNNER_TEMP/test.log"
+
+      - name: Upload the test log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.service }}-log
+          path: ${{ runner.temp }}/test.log
+          if-no-files-found: warn
 
   coverage:
     name: Coverage (${{ matrix.service }})
@@ -91,7 +104,17 @@ jobs:
         uses: ./.github/actions/docker-image
 
       - name: Check that the coverage is 100%
-        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
+        run: |
+          set -o pipefail
+          env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee "$RUNNER_TEMP/coverage.log"
+
+      - name: Upload the coverage log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.service }}-log
+          path: ${{ runner.temp }}/coverage.log
+          if-no-files-found: warn
 
   docs:
     name: Documentation
@@ -105,14 +128,25 @@ jobs:
         uses: ./.github/actions/docker-image
 
       - name: Generate the documentation (Doxygen, no warnings allowed)
-        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm docs-thermo
+        run: |
+          set -o pipefail
+          env UID="$(id -u)" GID="$(id -g)" docker compose run --rm docs-thermo 2>&1 | tee "$RUNNER_TEMP/docs.log"
 
       - name: Upload the documentation
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: docs
           path: docs/
           if-no-files-found: error
+
+      - name: Upload the documentation log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: docs-log
+          path: ${{ runner.temp }}/docs.log
+          if-no-files-found: warn
 
       - name: Upload the documentation for GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -160,7 +194,17 @@ jobs:
         uses: ./.github/actions/docker-image
 
       - name: Run the static analysis
-        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
+        run: |
+          set -o pipefail
+          env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee "$RUNNER_TEMP/analyze.log"
+
+      - name: Upload the analysis log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.service }}-log
+          path: ${{ runner.temp }}/analyze.log
+          if-no-files-found: warn
 
   lint:
     name: Format and lint (${{ matrix.service }})
@@ -181,4 +225,14 @@ jobs:
         uses: ./.github/actions/docker-image
 
       - name: Check
-        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }}
+        run: |
+          set -o pipefail
+          env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee "$RUNNER_TEMP/lint.log"
+
+      - name: Upload the lint log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.service }}-log
+          path: ${{ runner.temp }}/lint.log
+          if-no-files-found: warn

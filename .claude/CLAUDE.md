@@ -40,7 +40,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 1. 機能開発は `ccr-*` ブランチで行う。
 2. Push 時に GitHub Actions (`.github/workflows/build.yml`) が、開発用の Docker イメージ (ローカルと同じ環境) で、`docker compose` のサービスを実行する。
-   - `build` ジョブ: `build-thermo-node` / `build-thermo-gateway` (実機用) と、`*-sim` (native_sim 用)。ビルドに警告が出たら失敗する。成果物 (`zephyr.elf` など) は、アーティファクトとして保存する。
+   - `build` ジョブ: `build-thermo-node` / `build-thermo-gateway` (実機用) と、`*-sim` (native_sim 用)。ビルドに警告が出たら失敗する。成果物 (`zephyr.elf` など) とビルドのログは、アーティファクトとして保存する。`test` / `coverage` / `docs` / `analyze` / `lint` の各ジョブも、実行のログを、アーティファクト (`<サービス名>-log`、`docs-log`) として保存する (失敗したときも保存する)。
    - `test` ジョブ: `test-thermo-node` / `test-thermo-gateway` (単体テスト)。
    - `docs` ジョブ: `docs-thermo` (Doxygen のドキュメントを生成する。警告があれば失敗する)。
    - `coverage` ジョブ: `coverage-thermo-node` / `coverage-thermo-gateway` (行と分岐のカバレッジが 100% であること)。
