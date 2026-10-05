@@ -68,7 +68,7 @@ static const bt_addr_le_t test_addr = {
     .a = {.val = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}},
 };
 /** 温度のコールバックに渡す, 温度の生値 */
-#define TEST_RAW 0x0abcu
+#define TEST_RAW 0x0ABCU
 
 /** main を動かすスレッド */
 static struct k_thread main_thread;
@@ -111,7 +111,7 @@ static bool fake_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad,
     ARG_UNUSED(ad);
     ARG_UNUSED(now_ms);
     out->temp_x10 = accepted_temp_x10;
-    out->humidity = 55u;
+    out->humidity = 55U;
     out->battery = 87;
     return switchbot_accept_fake.return_val;
 }
@@ -159,9 +159,9 @@ ZTEST(main_gateway, test_ble_init_failure)
 
     /* 期待: BLE の初期化に失敗したら, クラウドの初期化にもスキャンにも進まない */
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
-    zassert_equal(ble_init_fake.call_count, 1u);
-    zassert_equal(ble_scan_fake.call_count, 0u);
-    zassert_equal(ble_set_temperature_callback_fake.call_count, 0u);
+    zassert_equal(ble_init_fake.call_count, 1U);
+    zassert_equal(ble_scan_fake.call_count, 0U);
+    zassert_equal(ble_set_temperature_callback_fake.call_count, 0U);
 }
 
 /** クラウドの初期化に失敗したら, コールバックの設定とスキャンには進まず, EXIT_FAILURE を返す */
@@ -171,10 +171,10 @@ ZTEST(main_gateway, test_cloud_init_failure)
 
     /* 期待: クラウドの初期化の失敗で止まる (コールバックは, まだ設定しない) */
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
-    zassert_equal(ble_init_fake.call_count, 1u);
-    zassert_equal(cloud_init_fake.call_count, 1u);
-    zassert_equal(ble_set_temperature_callback_fake.call_count, 0u);
-    zassert_equal(ble_scan_fake.call_count, 0u);
+    zassert_equal(ble_init_fake.call_count, 1U);
+    zassert_equal(cloud_init_fake.call_count, 1U);
+    zassert_equal(ble_set_temperature_callback_fake.call_count, 0U);
+    zassert_equal(ble_scan_fake.call_count, 0U);
 }
 
 /** スキャンの開始に失敗したら, EXIT_FAILURE を返す */
@@ -184,9 +184,9 @@ ZTEST(main_gateway, test_scan_failure)
 
     /* 期待: スキャンの開始の失敗で, EXIT_FAILURE (コールバックは, 設定済み) */
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
-    zassert_equal(ble_init_fake.call_count, 1u);
-    zassert_equal(ble_scan_fake.call_count, 1u);
-    zassert_equal(ble_set_temperature_callback_fake.call_count, 1u);
+    zassert_equal(ble_init_fake.call_count, 1U);
+    zassert_equal(ble_scan_fake.call_count, 1U);
+    zassert_equal(ble_set_temperature_callback_fake.call_count, 1U);
 }
 
 /** 初期化に成功したら, 初期化とスキャン開始を 1 回ずつ行い, 終了せずに動き続ける */
@@ -196,40 +196,40 @@ ZTEST(main_gateway, test_main_loop)
                     NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
 
     k_msleep(STARTUP_WAIT_MS);
-    zassert_equal(ble_init_fake.call_count, 1u);
-    zassert_equal(ble_scan_fake.call_count, 1u);
+    zassert_equal(ble_init_fake.call_count, 1U);
+    zassert_equal(ble_scan_fake.call_count, 1U);
 
     /*
      * 温度のコールバックは, スキャンを始める前に設定する.
      * 呼び出しの順序: ble_init, cloud_init (コールバックが呼ばれる前に, 送信の準備をする),
      * set, scan
      */
-    zassert_equal(ble_set_temperature_callback_fake.call_count, 1u);
+    zassert_equal(ble_set_temperature_callback_fake.call_count, 1U);
     zassert_not_null(ble_set_temperature_callback_fake.arg0_val);
-    zassert_equal(cloud_init_fake.call_count, 1u);
+    zassert_equal(cloud_init_fake.call_count, 1U);
     zassert_equal(fff.call_history[0], FUNCTION_ADDRESS(ble_init));
     zassert_equal(fff.call_history[1], FUNCTION_ADDRESS(cloud_init));
     zassert_equal(fff.call_history[2], FUNCTION_ADDRESS(ble_set_temperature_callback));
     zassert_equal(fff.call_history[3], FUNCTION_ADDRESS(ble_set_switchbot_callback));
     zassert_equal(fff.call_history[4], FUNCTION_ADDRESS(ble_scan));
-    zassert_equal(ble_set_switchbot_callback_fake.call_count, 1u);
+    zassert_equal(ble_set_switchbot_callback_fake.call_count, 1U);
 
     /* 温度のコールバックは, ノードのアドレスと温度を, クラウドの送信のキューに渡す */
     ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_RAW);
-    zassert_equal(cloud_publish_temperature_fake.call_count, 1u);
+    zassert_equal(cloud_publish_temperature_fake.call_count, 1U);
     zassert_equal(cloud_publish_temperature_fake.arg0_val, &test_addr);
     zassert_equal(cloud_publish_temperature_fake.arg1_val, TEST_RAW);
 
     /* キューに入れられなくても (満杯など), ログに出すだけで, 問題なく戻る */
     cloud_publish_temperature_fake.return_val = -ENOMSG;
     ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_RAW);
-    zassert_equal(cloud_publish_temperature_fake.call_count, 2u);
+    zassert_equal(cloud_publish_temperature_fake.call_count, 2U);
 
     /* 何周期か待っても, 終了せず (k_thread_join() が, EBUSY を返す), 初期化を繰り返さない */
     k_sleep(K_SECONDS(STATUS_INTERVAL_S * WAIT_CYCLES));
     zassert_equal(k_thread_join(&main_thread, K_NO_WAIT), -EBUSY);
-    zassert_equal(ble_init_fake.call_count, 1u);
-    zassert_equal(ble_scan_fake.call_count, 1u);
+    zassert_equal(ble_init_fake.call_count, 1U);
+    zassert_equal(ble_scan_fake.call_count, 1U);
 
     k_thread_abort(&main_thread);
 }
@@ -238,7 +238,7 @@ ZTEST(main_gateway, test_main_loop)
 ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
 {
     /* 広告データ */
-    const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV, .temp_x10 = 235, .humidity = 55u};
+    const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV, .temp_x10 = 235, .humidity = 55U};
 
     /* コールバックを取り出すため, スキャンの失敗で, main() を終わらせる */
     ble_scan_fake.return_val = -EIO;
@@ -249,10 +249,10 @@ ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
     ble_set_switchbot_callback_fake.arg0_val(&test_addr, &ad);
 
     /* 期待: 間引きの結果の値 (23.5 ℃, 55 %, 電池 87 %) を, クラウドに渡す */
-    zassert_equal(switchbot_accept_fake.call_count, 1u);
-    zassert_equal(cloud_publish_switchbot_fake.call_count, 1u);
+    zassert_equal(switchbot_accept_fake.call_count, 1U);
+    zassert_equal(cloud_publish_switchbot_fake.call_count, 1U);
     zassert_equal(published_sample.temp_x10, 235);
-    zassert_equal(published_sample.humidity, 55u);
+    zassert_equal(published_sample.humidity, 55U);
     zassert_equal(published_sample.battery, 87);
 }
 
@@ -267,8 +267,8 @@ ZTEST(main_gateway, test_switchbot_dropped_by_interval)
     switchbot_accept_fake.return_val = false;
     ble_set_switchbot_callback_fake.arg0_val(&test_addr, &ad);
 
-    zassert_equal(switchbot_accept_fake.call_count, 1u);
-    zassert_equal(cloud_publish_switchbot_fake.call_count, 0u);
+    zassert_equal(switchbot_accept_fake.call_count, 1U);
+    zassert_equal(cloud_publish_switchbot_fake.call_count, 0U);
 }
 
 /** 0 ℃ 未満の値と, クラウドに渡せなかった (キューが満杯) 場合も, ログに出すだけで, 問題なく戻る */
@@ -285,7 +285,7 @@ ZTEST(main_gateway, test_switchbot_negative_and_queue_full)
     ble_set_switchbot_callback_fake.arg0_val(&test_addr, &ad);
 
     zassert_equal(published_sample.temp_x10, -53);
-    zassert_equal(cloud_publish_switchbot_fake.call_count, 1u);
+    zassert_equal(cloud_publish_switchbot_fake.call_count, 1U);
     accepted_temp_x10 = 235;
 }
 

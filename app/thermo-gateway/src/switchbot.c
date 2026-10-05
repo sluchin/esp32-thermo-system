@@ -16,27 +16,27 @@
 #include "switchbot.h"
 
 /** サービスデータの UUID (16 bit) の, 下位の byte (UUID 0xFD3D) */
-#define SERVICE_UUID_LO     0x3Du
+#define SERVICE_UUID_LO     0x3DU
 /** サービスデータの UUID (16 bit) の, 上位の byte */
-#define SERVICE_UUID_HI     0xFDu
+#define SERVICE_UUID_HI     0xFDU
 /** 製造者データの会社 ID (SwitchBot: 0x0969) の, 下位の byte */
-#define COMPANY_ID_LO       0x69u
+#define COMPANY_ID_LO       0x69U
 /** 製造者データの会社 ID の, 上位の byte */
-#define COMPANY_ID_HI       0x09u
+#define COMPANY_ID_HI       0x09U
 /** サービスデータの, UUID のあとの長さ (機種, 状態, 電池残量) */
-#define SERVICE_PAYLOAD_LEN 3u
+#define SERVICE_PAYLOAD_LEN 3U
 /** 製造者データの, 会社 ID のあとの長さ (MAC 6 byte, 不明 2 byte, 温度 3 byte) */
-#define MFR_PAYLOAD_LEN     11u
+#define MFR_PAYLOAD_LEN     11U
 /** 製造者データの, 温度の位置 (会社 ID のあとから. MAC と不明な 2 byte の次) */
-#define MFR_ENV_OFFSET      8u
+#define MFR_ENV_OFFSET      8U
 /** 下位 7 bit を取り出すマスク (最上位の bit は, 符号などの別の意味) */
-#define LOW7_MASK           0x7Fu
+#define LOW7_MASK           0x7FU
 /** 小数部 (10 分の 1) の, 下位 4 bit のマスク */
-#define DECIMAL_MASK        0x0Fu
+#define DECIMAL_MASK        0x0FU
 /** 温度の整数部の最上位の bit: 1 なら 0 ℃ 以上, 0 なら 0 ℃ 未満 */
-#define SIGN_POSITIVE_BIT   0x80u
+#define SIGN_POSITIVE_BIT   0x80U
 /** 湿度の最大値 [%] (これを超えたら, 壊れたデータ) */
-#define HUMIDITY_MAX        100u
+#define HUMIDITY_MAX        100U
 /** 送信の間隔 [ms] */
 #define INTERVAL_MS         CONFIG_THERMO_SWITCHBOT_INTERVAL_MS
 
@@ -87,7 +87,7 @@ static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct swi
 {
     const uint8_t *env = &data[MFR_ENV_OFFSET]; /* 環境データの先頭 */
     int16_t magnitude = 0;                      /* 温度の絶対値 [℃ の 10 倍] */
-    uint8_t humidity = 0u;                      /* 湿度 [%] */
+    uint8_t humidity = 0U;                      /* 湿度 [%] */
 
     if (len < MFR_PAYLOAD_LEN) {
         return false;
@@ -100,7 +100,7 @@ static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct swi
 
     magnitude = (int16_t)(((env[1] & LOW7_MASK) * 10) + (env[0] & DECIMAL_MASK));
     out->kind = SWITCHBOT_ENV;
-    out->temp_x10 = (((env[1] & SIGN_POSITIVE_BIT) != 0u) ? magnitude : (int16_t)-magnitude);
+    out->temp_x10 = (((env[1] & SIGN_POSITIVE_BIT) != 0U) ? magnitude : (int16_t)-magnitude);
     out->humidity = humidity;
     return true;
 }
@@ -117,13 +117,13 @@ static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct swi
 bool switchbot_parse(uint8_t type, const uint8_t *data, uint8_t len, struct switchbot_ad *out)
 {
     /* UUID または会社 ID の 2 byte を確認して, そのあとの中身を解析する */
-    if ((type == BT_DATA_SVC_DATA16) && (len >= 2u) && (data[0] == SERVICE_UUID_LO) &&
+    if ((type == BT_DATA_SVC_DATA16) && (len >= 2U) && (data[0] == SERVICE_UUID_LO) &&
         (data[1] == SERVICE_UUID_HI)) {
-        return parse_service_data(&data[2], (uint8_t)(len - 2u), out);
+        return parse_service_data(&data[2], (uint8_t)(len - 2U), out);
     }
-    if ((type == BT_DATA_MANUFACTURER_DATA) && (len >= 2u) && (data[0] == COMPANY_ID_LO) &&
+    if ((type == BT_DATA_MANUFACTURER_DATA) && (len >= 2U) && (data[0] == COMPANY_ID_LO) &&
         (data[1] == COMPANY_ID_HI)) {
-        return parse_manufacturer_data(&data[2], (uint8_t)(len - 2u), out);
+        return parse_manufacturer_data(&data[2], (uint8_t)(len - 2U), out);
     }
     return false;
 }
@@ -137,9 +137,9 @@ bool switchbot_parse(uint8_t type, const uint8_t *data, uint8_t len, struct swit
 static struct sb_device *find_device(const bt_addr_le_t *addr)
 {
     struct sb_device *free_slot = NULL; /* 空いているスロット */
-    size_t i = 0u;                      /* ループ用の添字 */
+    size_t i = 0U;                      /* ループ用の添字 */
 
-    for (i = 0u; i < ARRAY_SIZE(devices); i++) {
+    for (i = 0U; i < ARRAY_SIZE(devices); i++) {
         if (devices[i].used && bt_addr_le_eq(&devices[i].addr, addr)) {
             return &devices[i];
         }

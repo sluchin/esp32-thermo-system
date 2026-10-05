@@ -24,7 +24,7 @@ LOG_MODULE_REGISTER(thermo_cfg);
 /** settings の, このアプリの項目のルート ("thermo/ssid" のように使う) */
 #define SETTINGS_ROOT      "thermo"
 /** settings の項目の名前 ("thermo/client_id" など) の最大長 (NUL を含む) */
-#define SETTINGS_NAME_SIZE 32u
+#define SETTINGS_NAME_SIZE 32U
 
 /** 設定の項目ごとの, 名前と, 値の最大長 */
 static const struct {
@@ -62,7 +62,7 @@ static const struct {
 };
 
 /** 設定の値 (NUL で終わる) */
-static char values[CFG_KEY_COUNT][CFG_ENDPOINT_MAX + 1u];
+static char values[CFG_KEY_COUNT][CFG_ENDPOINT_MAX + 1U];
 
 /** 証明書をフラッシュに保存するときの, 一時的な領域 (最も大きい証明書が入る大きさ) */
 static uint8_t save_buf[CFG_KEY_PEM_MAX];
@@ -86,9 +86,9 @@ static void settings_name(char *out, const char *name)
  */
 int cfg_key_from_name(const char *name)
 {
-    size_t i = 0u; /* ループ用の添字 */
+    size_t i = 0U; /* ループ用の添字 */
 
-    for (i = 0u; i < ARRAY_SIZE(key_infos); i++) {
+    for (i = 0U; i < ARRAY_SIZE(key_infos); i++) {
         if (strcmp(name, key_infos[i].name) == 0) {
             return (int)i;
         }
@@ -139,12 +139,12 @@ int cfg_set(enum cfg_key key, const char *value)
 
     /* フラッシュに保存できたときだけ, RAM の値を更新する (NUL も保存する) */
     settings_name(name, key_infos[key].name);
-    err = settings_save_one(name, value, len + 1u);
+    err = settings_save_one(name, value, len + 1U);
     if (err != 0) {
         return err;
     }
 
-    (void)memcpy(values[key], value, len + 1u);
+    (void)memcpy(values[key], value, len + 1U);
     return EXIT_SUCCESS;
 }
 
@@ -156,9 +156,9 @@ int cfg_set(enum cfg_key key, const char *value)
  */
 int cfg_cred_from_name(const char *name)
 {
-    size_t i = 0u; /* ループ用の添字 */
+    size_t i = 0U; /* ループ用の添字 */
 
-    for (i = 0u; i < ARRAY_SIZE(cred_infos); i++) {
+    for (i = 0U; i < ARRAY_SIZE(cred_infos); i++) {
         if (strcmp(name, cred_infos[i].name) == 0) {
             return (int)i;
         }
@@ -185,7 +185,7 @@ const char *cfg_cred_name(enum cfg_cred cred)
  */
 bool cfg_has_cred(enum cfg_cred cred)
 {
-    uint8_t probe = 0u;         /* 存在確認用の 1 バイト */
+    uint8_t probe = 0U;         /* 存在確認用の 1 バイト */
     size_t len = sizeof(probe); /* 値の長さ [バイト] */
 
     /* 登録されていれば, 1 byte の領域には入らないので, -EFBIG になる */
@@ -204,11 +204,11 @@ bool cfg_has_cred(enum cfg_cred cred)
 int cfg_save_credentials(void)
 {
     char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
-    size_t len = 0u;                     /* 値の長さ [バイト] */
-    size_t i = 0u;                       /* ループ用の添字 */
+    size_t len = 0U;                     /* 値の長さ [バイト] */
+    size_t i = 0U;                       /* ループ用の添字 */
     int err = EXIT_SUCCESS;              /* エラーコード */
 
-    for (i = 0u; i < ARRAY_SIZE(cred_infos); i++) {
+    for (i = 0U; i < ARRAY_SIZE(cred_infos); i++) {
         /* 登録されている証明書を, 一時的な領域に取り出して, フラッシュに保存する */
         len = sizeof(save_buf);
         err = tls_credential_get(CFG_TLS_SEC_TAG, cred_infos[i].type, save_buf, &len);
@@ -236,7 +236,7 @@ int cfg_save_credentials(void)
  */
 bool cfg_is_complete(void)
 {
-    size_t i = 0u; /* ループ用の添字 */
+    size_t i = 0U; /* ループ用の添字 */
 
     /* PSK は, オープンネットワークでは, 空 */
     if ((values[CFG_KEY_SSID][0] == '\0') || (values[CFG_KEY_ENDPOINT][0] == '\0') ||
@@ -244,7 +244,7 @@ bool cfg_is_complete(void)
         return false;
     }
 
-    for (i = 0u; i < ARRAY_SIZE(cred_infos); i++) {
+    for (i = 0U; i < ARRAY_SIZE(cred_infos); i++) {
         if (!cfg_has_cred((enum cfg_cred)i)) {
             return false;
         }
@@ -261,12 +261,12 @@ bool cfg_is_complete(void)
 int cfg_reset(void)
 {
     char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
-    size_t i = 0u;                       /* ループ用の添字 */
+    size_t i = 0U;                       /* ループ用の添字 */
     int first_err = EXIT_SUCCESS;        /* 最初のエラー */
     int err = EXIT_SUCCESS;              /* エラーコード */
 
     /* 失敗しても, 残りの項目の削除を続けて, 最初のエラーを返す */
-    for (i = 0u; i < ARRAY_SIZE(key_infos); i++) {
+    for (i = 0U; i < ARRAY_SIZE(key_infos); i++) {
         settings_name(name, key_infos[i].name);
         err = settings_delete(name);
         if ((err != 0) && (first_err == EXIT_SUCCESS)) {
@@ -275,7 +275,7 @@ int cfg_reset(void)
         values[i][0] = '\0';
     }
 
-    for (i = 0u; i < ARRAY_SIZE(cred_infos); i++) {
+    for (i = 0U; i < ARRAY_SIZE(cred_infos); i++) {
         settings_name(name, cred_infos[i].name);
         err = settings_delete(name);
         if ((err != 0) && (first_err == EXIT_SUCCESS)) {
@@ -299,7 +299,7 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
 {
     ssize_t read_len = 0; /* 読み込んだ長さ [バイト] */
 
-    if ((len == 0u) || (len > (key_infos[key].max + 1u))) {
+    if ((len == 0U) || (len > (key_infos[key].max + 1U))) {
         LOG_WRN("Ignoring '%s' with an invalid length %zu", key_infos[key].name, len);
         return;
     }
@@ -310,7 +310,7 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
         values[key][0] = '\0';
         return;
     }
-    values[key][len - 1u] = '\0'; /* 保存した値には NUL が含まれるが, 念のため */
+    values[key][len - 1U] = '\0'; /* 保存した値には NUL が含まれるが, 念のため */
 }
 
 /**
@@ -326,7 +326,7 @@ static void load_credential(enum cfg_cred cred, size_t len, settings_read_cb rea
     ssize_t read_len = 0;   /* 読み込んだ長さ [バイト] */
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    if ((len == 0u) || (len > cred_infos[cred].max)) {
+    if ((len == 0U) || (len > cred_infos[cred].max)) {
         LOG_WRN("Ignoring credential '%s' with an invalid length %zu", cred_infos[cred].name, len);
         return;
     }

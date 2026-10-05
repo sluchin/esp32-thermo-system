@@ -25,11 +25,11 @@
 #include <stdint.h>  /* uint8_t int16_t int8_t uint32_t */
 
 /** 屋外用温湿度計の機種コード (サービスデータの先頭. ASCII の 'w') */
-#define SWITCHBOT_MODEL_OUTDOOR   0x77u
+#define SWITCHBOT_MODEL_OUTDOOR   0x77U
 /** 電池残量が, わからないことを示す値 */
 #define SWITCHBOT_BATTERY_UNKNOWN (-1)
 /** 同時に扱える機器の数 */
-#define SWITCHBOT_MAX_DEVICES     4u
+#define SWITCHBOT_MAX_DEVICES     4U
 
 /** アドバタイズデータ 1 要素の内容の種類 */
 enum switchbot_kind {
