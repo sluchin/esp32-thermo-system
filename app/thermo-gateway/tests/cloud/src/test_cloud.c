@@ -21,9 +21,9 @@
 #include <zephyr/fff.h>
 #include <zephyr/net/mqtt.h>
 #include <zephyr/net/socket.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>  /* errno EAGAIN ENOMSG EIO ENOSPC ECONNRESET etc... */
+#include <stdlib.h> /* EXIT_SUCCESS strtoll */
+#include <string.h> /* memcpy memset strlen strstr */
 
 #include "cfg.h"
 #include "cloud.h"
@@ -228,7 +228,7 @@ static int fake_poll(struct zvfs_pollfd *fds, int nfds, int timeout)
  */
 static int fake_mqtt_input(struct mqtt_client *client)
 {
-    struct input_step step = {0};
+    struct input_step step = {0}; /* 入力の手順 */
 
     ARG_UNUSED(client);
     if (script_pos >= script_len) {
@@ -265,7 +265,7 @@ static void set_script(const struct input_step *steps, size_t count)
  */
 static int fake_mqtt_publish(struct mqtt_client *client, const struct mqtt_publish_param *param)
 {
-    unsigned int i = mqtt_publish_fake.call_count - 1u;
+    unsigned int i = mqtt_publish_fake.call_count - 1u; /* ループ用の添字 */
 
     ARG_UNUSED(client);
     zassert_true(i < MAX_PUBLISHED);
@@ -383,7 +383,7 @@ static void before(void *fixture)
  */
 static uint32_t step_failure_duration(void)
 {
-    uint32_t start = k_uptime_get_32();
+    uint32_t start = k_uptime_get_32(); /* 開始時刻 [ms] */
 
     zassert_not_equal(cloud_step(), EXIT_SUCCESS);
     return k_uptime_get_32() - start;
@@ -401,7 +401,7 @@ static void drain_queue(void)
 /** 設定が揃っていなければ、接続せずに、待って、-EAGAIN */
 ZTEST(cloud, test_step_waits_for_config)
 {
-    uint32_t start = k_uptime_get_32();
+    uint32_t start = k_uptime_get_32(); /* 開始時刻 [ms] */
 
     cfg_is_complete_fake.return_val = false;
 
@@ -414,7 +414,7 @@ ZTEST(cloud, test_step_waits_for_config)
 /** 接続の手順: WiFi、名前の解決 (ポート 8883)、TLS の設定、MQTT の接続 */
 ZTEST(cloud, test_step_connects)
 {
-    const struct mqtt_client *c = NULL;
+    const struct mqtt_client *c = NULL; /* MQTT クライアント */
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
@@ -492,7 +492,7 @@ static int fake_unix_time(int64_t *sec)
 /** 時計が合っていれば、受信した時刻 (今の UNIX 時刻から、経過を引いた値) を、payload に入れる */
 ZTEST(cloud, test_session_publishes_timestamp)
 {
-    const char *p = NULL;
+    const char *p = NULL; /* 見つかった位置 */
     long long ts = 0;
 
     ntp_unix_time_fake.custom_fake = fake_unix_time;
@@ -543,7 +543,7 @@ ZTEST(cloud, test_session_publishes_in_order)
 /** キューが満杯のときは、新しい温度を捨てて、-ENOMSG */
 ZTEST(cloud, test_publish_queue_full)
 {
-    unsigned int i = 0u;
+    unsigned int i = 0u; /* ループ用の添字 */
 
     for (i = 0u; i < QUEUE_LEN; i++) {
         /* 期待: 満杯のキューは、新しい温度を捨てて -ENOMSG。残りの 16 件は、あとで送られる */
@@ -568,7 +568,7 @@ ZTEST(cloud, test_session_closes_connection)
 /** 送信に失敗したら、そのエラーを返して、接続を閉じる (失敗の直後は、少し待つ) */
 ZTEST(cloud, test_session_publish_failure)
 {
-    uint32_t start = k_uptime_get_32();
+    uint32_t start = k_uptime_get_32(); /* 開始時刻 [ms] */
 
     zassert_equal(cloud_publish_temperature(&node, 1u), EXIT_SUCCESS);
     mqtt_publish_fake.custom_fake = NULL;
@@ -585,7 +585,7 @@ ZTEST(cloud, test_session_publish_failure)
 /** トピックやペイロードが、バッファに入らなければ、-ENOSPC (publish しない) */
 ZTEST(cloud, test_session_format_failure)
 {
-    static char long_id[161];
+    static char long_id[161]; /* 上限を超える長さのクライアント ID */
 
     (void)memset(long_id, 'x', sizeof(long_id) - 1u);
     client_id = long_id;
@@ -779,9 +779,9 @@ ZTEST(cloud, test_step_connack_input_failure)
 /** 接続に失敗するたびに、再試行までの間隔を 2 倍にして (5、10、20、40、60 秒)、60 秒で止める */
 ZTEST(cloud, test_retry_backoff)
 {
-    const uint32_t expected_s[] = {5u, 10u, 20u, 40u, 60u, 60u};
-    size_t i = 0u;
-    uint32_t elapsed = 0u;
+    const uint32_t expected_s[] = {5u, 10u, 20u, 40u, 60u, 60u}; /* 期待する待ち時間 [s] */
+    size_t i = 0u;                                               /* ループ用の添字 */
+    uint32_t elapsed = 0u;                                       /* 経過時間 [ms] */
 
     wifi_link_connect_fake.return_val = -ETIMEDOUT;
     for (i = 0u; i < ARRAY_SIZE(expected_s); i++) {
@@ -796,7 +796,7 @@ ZTEST(cloud, test_retry_backoff)
 /** 接続に成功したら、再試行の間隔は、最小に戻る */
 ZTEST(cloud, test_retry_backoff_resets_on_success)
 {
-    uint32_t elapsed = 0u;
+    uint32_t elapsed = 0u; /* 経過時間 [ms] */
 
     /* 2 回失敗して、間隔を 20 秒まで伸ばす */
     wifi_link_connect_fake.return_val = -ETIMEDOUT;
@@ -861,6 +861,7 @@ ZTEST(cloud, test_init_starts_thread)
  */
 ZTEST(cloud, test_session_publishes_switchbot)
 {
+    /* テスト用のサンプル */
     const struct switchbot_sample sample = {.temp_x10 = -53, .humidity = 55u, .battery = 87};
 
     zassert_equal(cloud_publish_switchbot(&node, &sample), EXIT_SUCCESS);
@@ -879,6 +880,7 @@ ZTEST(cloud, test_session_publishes_switchbot)
 /** Thermo ノードの温度と、SwitchBot の値は、同じキューで、受け取った順に送る */
 ZTEST(cloud, test_session_publishes_mixed_in_order)
 {
+    /* テスト用のサンプル */
     const struct switchbot_sample sample = {.temp_x10 = 235, .humidity = 55u, .battery = 87};
 
     zassert_equal(cloud_publish_temperature(&node, 100u), EXIT_SUCCESS);
@@ -898,8 +900,9 @@ ZTEST(cloud, test_session_publishes_mixed_in_order)
 /** SwitchBot のキューが満杯のときも、新しい値を捨てて -ENOMSG */
 ZTEST(cloud, test_publish_switchbot_queue_full)
 {
+    /* テスト用のサンプル */
     const struct switchbot_sample sample = {.temp_x10 = 235, .humidity = 55u, .battery = 87};
-    unsigned int i = 0u;
+    unsigned int i = 0u; /* ループ用の添字 */
 
     for (i = 0u; i < QUEUE_LEN; i++) {
         zassert_equal(cloud_publish_switchbot(&node, &sample), EXIT_SUCCESS);
@@ -912,7 +915,8 @@ ZTEST(cloud, test_publish_switchbot_queue_full)
 /** SwitchBot のトピックが、バッファに入らなければ -ENOSPC で、publish しない */
 ZTEST(cloud, test_session_switchbot_format_failure)
 {
-    static char long_id[161];
+    static char long_id[161]; /* 上限を超える長さのクライアント ID */
+    /* テスト用のサンプル */
     const struct switchbot_sample sample = {.temp_x10 = 235, .humidity = 55u, .battery = 87};
 
     (void)memset(long_id, 'x', sizeof(long_id) - 1u);

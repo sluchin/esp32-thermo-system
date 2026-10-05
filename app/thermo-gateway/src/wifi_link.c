@@ -13,9 +13,9 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/wifi_mgmt.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>  /* ENODEV ETIMEDOUT ECONNREFUSED */
+#include <stdlib.h> /* EXIT_SUCCESS */
+#include <string.h> /* strlen */
 
 #include "wifi_link.h"
 
@@ -42,7 +42,7 @@ static volatile int connect_status;
  */
 static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, struct net_if *iface)
 {
-    const struct wifi_status *status = NULL;
+    const struct wifi_status *status = NULL; /* 接続の状態 */
 
     ARG_UNUSED(iface);
 
@@ -82,9 +82,9 @@ int wifi_link_init(void)
 /* アクセスポイントに接続して、IPv4 アドレスの取得まで待つ */
 int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
 {
-    struct net_if *iface = net_if_get_default();
-    struct wifi_connect_req_params params = {0};
-    int err = EXIT_SUCCESS;
+    struct net_if *iface = net_if_get_default(); /* ネットワークインターフェース */
+    struct wifi_connect_req_params params = {0}; /* 接続のパラメータ */
+    int err = EXIT_SUCCESS;                      /* エラーコード */
 
     if (iface == NULL) {
         return -ENODEV;
@@ -137,8 +137,8 @@ bool wifi_link_is_up(void)
 /* アクセスポイントから切断を要求する */
 void wifi_link_disconnect(void)
 {
-    struct net_if *iface = net_if_get_default();
-    int err = EXIT_SUCCESS;
+    struct net_if *iface = net_if_get_default(); /* ネットワークインターフェース */
+    int err = EXIT_SUCCESS;                      /* エラーコード */
 
     /* 切断の完了を待たずに、接続していない状態にする (再接続が、すぐ始められるように) */
     ip_ready = false;

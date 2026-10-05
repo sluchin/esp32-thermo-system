@@ -15,9 +15,9 @@
 #include <zephyr/ztest.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/adc/adc_emul.h>
-#include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <errno.h>  /* EIO ENODEV */
+#include <stdint.h> /* uint32_t uint16_t */
+#include <stdlib.h> /* EXIT_SUCCESS */
 
 #include "sensor.h"
 
@@ -71,7 +71,7 @@ ZTEST(sensor_adc, test_init)
 /** ADC が準備できていなければ (初期化されていない), -ENODEV を返す */
 ZTEST(sensor_adc, test_init_not_ready)
 {
-    struct device_state *state = adc_dev->state;
+    struct device_state *state = adc_dev->state; /* ADC デバイスの状態 */
 
     state->initialized = false;
     /* 期待: ADC が初期化されていなければ -ENODEV (終わったら、元に戻す) */
@@ -82,7 +82,7 @@ ZTEST(sensor_adc, test_init_not_ready)
 /** 入力が 0 mV のとき, 生値は 0 */
 ZTEST(sensor_adc, test_read_zero)
 {
-    uint16_t value = 1u;
+    uint16_t value = 1u; /* 値 */
 
     /* 期待: 入力 0 mV の生値は 0 (初期値の 1 が、上書きされる) */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
@@ -93,7 +93,7 @@ ZTEST(sensor_adc, test_read_zero)
 /** 入力が基準電圧のとき, 生値は 12 bit の最大 (4095) */
 ZTEST(sensor_adc, test_read_full_scale)
 {
-    uint16_t value = 0u;
+    uint16_t value = 0u; /* 値 */
 
     /* 期待: 基準電圧と同じ入力で、12 bit の最大値 */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
@@ -105,7 +105,7 @@ ZTEST(sensor_adc, test_read_full_scale)
 /** 入力が基準電圧の半分のとき, 生値は, 最大のほぼ半分 */
 ZTEST(sensor_adc, test_read_half_scale)
 {
-    uint16_t value = 0u;
+    uint16_t value = 0u; /* 値 */
 
     /* 期待: 基準電圧の半分の入力で、最大値のほぼ半分 (誤差は 2 まで) */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
@@ -117,8 +117,8 @@ ZTEST(sensor_adc, test_read_half_scale)
 /** 電圧が高いほど, 生値も大きい */
 ZTEST(sensor_adc, test_read_monotonic)
 {
-    uint16_t low = 0u;
-    uint16_t high = 0u;
+    uint16_t low = 0u;  /* 低い側の値 */
+    uint16_t high = 0u; /* 高い側の値 */
 
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     /* 低い電圧 (500 mV) と、高い電圧 (2500 mV) を、順に読む */
@@ -132,7 +132,7 @@ ZTEST(sensor_adc, test_read_monotonic)
 /** ADC の読み取りに失敗したら, そのエラーコードを返す */
 ZTEST(sensor_adc, test_read_failure)
 {
-    uint16_t value = 0u;
+    uint16_t value = 0u; /* 値 */
 
     /* 期待: ADC の読み取りの失敗 (-EIO) を、そのまま返す */
     zassert_equal(sensor_init(), EXIT_SUCCESS);

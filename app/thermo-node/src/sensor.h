@@ -12,7 +12,7 @@
  * @brief thermo-node の温度センサ (ADC) 制御
  */
 
-#include <stdint.h>
+#include <stdint.h> /* uint16_t */
 
 /**
  * @brief センサを初期化する。

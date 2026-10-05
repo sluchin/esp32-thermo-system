@@ -11,7 +11,7 @@
 
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/sys/util.h>
-#include <string.h>
+#include <string.h> /* memset */
 
 #include "switchbot.h"
 
@@ -85,9 +85,9 @@ static bool parse_service_data(const uint8_t *data, uint8_t len, struct switchbo
  */
 static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct switchbot_ad *out)
 {
-    const uint8_t *env = &data[MFR_ENV_OFFSET];
-    int16_t magnitude = 0;
-    uint8_t humidity = 0u;
+    const uint8_t *env = &data[MFR_ENV_OFFSET]; /* 環境データの先頭 */
+    int16_t magnitude = 0;                      /* 温度の絶対値 [℃ の 10 倍] */
+    uint8_t humidity = 0u;                      /* 湿度 [%] */
 
     if (len < MFR_PAYLOAD_LEN) {
         return false;
@@ -128,8 +128,8 @@ bool switchbot_parse(uint8_t type, const uint8_t *data, uint8_t len, struct swit
  */
 static struct sb_device *find_device(const bt_addr_le_t *addr)
 {
-    struct sb_device *free_slot = NULL;
-    size_t i = 0u;
+    struct sb_device *free_slot = NULL; /* 空いているスロット */
+    size_t i = 0u;                      /* ループ用の添字 */
 
     for (i = 0u; i < ARRAY_SIZE(devices); i++) {
         if (devices[i].used && bt_addr_le_eq(&devices[i].addr, addr)) {
@@ -153,7 +153,7 @@ static struct sb_device *find_device(const bt_addr_le_t *addr)
 bool switchbot_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad, uint32_t now_ms,
                       struct switchbot_sample *out)
 {
-    struct sb_device *dev = find_device(addr);
+    struct sb_device *dev = find_device(addr); /* 対象の機器 */
 
     if (dev == NULL) {
         return false; /* 扱える機器の数を超えた */

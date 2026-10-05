@@ -16,11 +16,11 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>   /* EALREADY EBUSY */
+#include <stdbool.h> /* bool true false */
+#include <stdint.h>  /* uint8_t uint16_t int8_t */
+#include <stdlib.h>  /* EXIT_SUCCESS */
+#include <string.h>  /* memset memcmp */
 
 #include "ble.h"
 #include "thermo_ble_uuid.h"
@@ -84,7 +84,7 @@ static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_handler);
  */
 static struct node *find_node(const struct bt_conn *conn)
 {
-    size_t i = 0u;
+    size_t i = 0u; /* ループ用の添字 */
 
     for (i = 0u; i < ARRAY_SIZE(nodes); i++) {
         if (nodes[i].conn == conn) {
@@ -101,7 +101,7 @@ static struct node *find_node(const struct bt_conn *conn)
  */
 static struct node *find_free_node(void)
 {
-    size_t i = 0u;
+    size_t i = 0u; /* ループ用の添字 */
 
     for (i = 0u; i < ARRAY_SIZE(nodes); i++) {
         if (nodes[i].conn == NULL) {
@@ -138,7 +138,7 @@ struct scan_result {
  */
 static bool parse_ad(struct bt_data *data, void *user_data)
 {
-    struct scan_result *result = (struct scan_result *)user_data;
+    struct scan_result *result = (struct scan_result *)user_data; /* スキャンの結果 */
 
     if ((data->type == BT_DATA_UUID128_ALL) && (data->data_len == sizeof(service_uuid_val)) &&
         (memcmp(data->data, service_uuid_val, sizeof(service_uuid_val)) == 0)) {
@@ -165,7 +165,7 @@ static bool parse_ad(struct bt_data *data, void *user_data)
 static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
                          const void *data, uint16_t length)
 {
-    uint16_t raw = 0u;
+    uint16_t raw = 0u; /* 温度 (ADC の生値) */
 
     if (data == NULL) {
         LOG_INF("Unsubscribed");
@@ -199,9 +199,9 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
 static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                            struct bt_gatt_discover_params *params)
 {
-    struct node *node = CONTAINER_OF(params, struct node, discover);
-    const struct bt_gatt_service_val *service = NULL;
-    int err = EXIT_SUCCESS;
+    struct node *node = CONTAINER_OF(params, struct node, discover); /* 対象のノード */
+    const struct bt_gatt_service_val *service = NULL;                /* GATT サービス */
+    int err = EXIT_SUCCESS;                                          /* エラーコード */
 
     if (attr == NULL) {
         LOG_ERR("Thermo service not found");
@@ -263,9 +263,9 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
  */
 static void connected(struct bt_conn *conn, uint8_t err)
 {
-    struct node *node = find_node(conn);
-    const bt_addr_le_t *dst = NULL;
-    int ret = EXIT_SUCCESS;
+    struct node *node = find_node(conn); /* 対象のノード */
+    const bt_addr_le_t *dst = NULL;      /* 接続先のアドレス */
+    int ret = EXIT_SUCCESS;              /* 戻り値 */
 
     if ((node == NULL) && (pending_node != NULL)) {
         /*
@@ -317,8 +317,8 @@ static void connected(struct bt_conn *conn, uint8_t err)
  */
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
-    struct node *node = find_node(conn);
-    int err = EXIT_SUCCESS;
+    struct node *node = find_node(conn); /* 対象のノード */
+    int err = EXIT_SUCCESS;              /* エラーコード */
 
     if (node == NULL) {
         return;
@@ -350,9 +350,9 @@ static struct bt_conn_cb conn_callbacks = {
  */
 static void connect_work_handler(struct k_work *work)
 {
-    struct node *node = pending_node;
-    struct bt_conn *created = NULL;
-    int err = EXIT_SUCCESS;
+    struct node *node = pending_node; /* 対象のノード */
+    struct bt_conn *created = NULL;   /* 作成した接続 */
+    int err = EXIT_SUCCESS;           /* エラーコード */
 
     ARG_UNUSED(work);
 
@@ -403,10 +403,10 @@ static void connect_work_handler(struct k_work *work)
 static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
                     struct net_buf_simple *adv_data)
 {
-    char addr_str[BT_ADDR_LE_STR_LEN] = {0};
-    struct bt_conn *known = NULL;
-    struct node *node = NULL;
-    struct scan_result result = {0};
+    char addr_str[BT_ADDR_LE_STR_LEN] = {0}; /* アドレスの文字列 */
+    struct bt_conn *known = NULL;            /* 既知の接続 */
+    struct node *node = NULL;                /* 対象のノード */
+    struct scan_result result = {0};         /* スキャンの結果 */
 
     ARG_UNUSED(adv_type);
 
@@ -453,7 +453,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 /* Bluetooth を有効にして、接続のコールバックを登録する */
 int ble_init(void)
 {
-    int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS; /* エラーコード */
 
     /* Bluetooth スタックを、同期で有効にする (戻ったときには、使える) */
     err = bt_enable(NULL);
@@ -487,7 +487,7 @@ void ble_set_switchbot_callback(ble_switchbot_cb_t cb)
 /* Thermo のノードを探すスキャンを始める (すでに始まっていれば、成功) */
 int ble_scan(void)
 {
-    int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS; /* エラーコード */
     /* アクティブスキャン: ノードの UUID は、スキャン応答に入っているので、要求を出して受け取る */
     struct bt_le_scan_param scan_param = {
             .type = BT_LE_SCAN_TYPE_ACTIVE,

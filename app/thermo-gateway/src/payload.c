@@ -9,9 +9,9 @@
  * @brief MQTT のトピックと、ペイロード (JSON) の生成
  */
 
-#include <errno.h>
-#include <inttypes.h>
-#include <stdio.h>
+#include <errno.h>    /* ENOSPC */
+#include <inttypes.h> /* PRId64 PRIu32 */
+#include <stdio.h>    /* snprintf */
 
 #include "payload.h"
 
@@ -32,7 +32,7 @@
  */
 static void format_addr(char *out, const bt_addr_le_t *addr)
 {
-    const uint8_t *v = addr->a.val;
+    const uint8_t *v = addr->a.val; /* アドレスのバイト列 */
 
     (void)snprintf(out, ADDR_STR_SIZE, "%02X:%02X:%02X:%02X:%02X:%02X", v[5], v[4], v[3], v[2],
                    v[1], v[0]);
@@ -56,7 +56,7 @@ static int check_length(int written, size_t size)
 /* MQTT のトピックを作る */
 int payload_format_topic(char *buf, size_t size, const char *client_id, const bt_addr_le_t *addr)
 {
-    char node[ADDR_STR_SIZE] = {0};
+    char node[ADDR_STR_SIZE] = {0}; /* ノードのアドレスの文字列 */
 
     format_addr(node, addr);
     return check_length(snprintf(buf, size, "thermo/%s/%s/temperature", client_id, node), size);
@@ -81,8 +81,8 @@ static void format_timestamp(char *field, size_t size, int64_t unix_s)
 int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr, uint16_t raw,
                                uint32_t uptime_ms, int64_t unix_s)
 {
-    char node[ADDR_STR_SIZE] = {0};
-    char timestamp[TIMESTAMP_FIELD_SIZE] = {0};
+    char node[ADDR_STR_SIZE] = {0};             /* ノードのアドレスの文字列 */
+    char timestamp[TIMESTAMP_FIELD_SIZE] = {0}; /* 時刻の項目 */
 
     format_addr(node, addr);
     format_timestamp(timestamp, sizeof(timestamp), unix_s);
@@ -96,7 +96,7 @@ int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr,
 int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id,
                                    const bt_addr_le_t *addr)
 {
-    char node[ADDR_STR_SIZE] = {0};
+    char node[ADDR_STR_SIZE] = {0}; /* ノードのアドレスの文字列 */
 
     format_addr(node, addr);
     return check_length(snprintf(buf, size, "thermo/%s/switchbot/%s", client_id, node), size);
@@ -107,13 +107,13 @@ int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
                              const struct switchbot_sample *sample, uint32_t uptime_ms,
                              int64_t unix_s)
 {
-    char node[ADDR_STR_SIZE] = {0};
-    char battery[BATTERY_FIELD_SIZE] = {0};
-    char timestamp[TIMESTAMP_FIELD_SIZE] = {0};
-    int temp = sample->temp_x10;
+    char node[ADDR_STR_SIZE] = {0};             /* ノードのアドレスの文字列 */
+    char battery[BATTERY_FIELD_SIZE] = {0};     /* 電池残量の項目 */
+    char timestamp[TIMESTAMP_FIELD_SIZE] = {0}; /* 時刻の項目 */
+    int temp = sample->temp_x10;                /* 温度 [℃ の 10 倍] */
     /* 0 ℃ 未満は、整数部が 0 でも (-0.5 など) 符号を出すため、符号を別に出力する */
-    const char *sign = ((temp < 0) ? "-" : "");
-    unsigned int magnitude = (unsigned int)((temp < 0) ? -temp : temp);
+    const char *sign = ((temp < 0) ? "-" : "");                         /* 符号 */
+    unsigned int magnitude = (unsigned int)((temp < 0) ? -temp : temp); /* 絶対値 */
 
     format_addr(node, addr);
     format_timestamp(timestamp, sizeof(timestamp), unix_s);

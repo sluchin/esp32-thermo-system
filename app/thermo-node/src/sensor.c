@@ -14,7 +14,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/devicetree.h>
 #include <stdbool.h>
-#include <stdlib.h>
+#include <stdlib.h> /* EXIT_SUCCESS */
 
 #include "sensor.h"
 
@@ -42,7 +42,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 int sensor_init(void)
 {
 #ifdef HAVE_ADC
-    int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS; /* エラーコード */
 
     /* ADC のドライバが、初期化されていること */
     if (!adc_is_ready_dt(&adc_channel)) {
@@ -68,7 +68,7 @@ int sensor_init(void)
 int sensor_read_temperature(uint16_t *value)
 {
 #ifdef HAVE_ADC
-    int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS; /* エラーコード */
 
     /* 1 回だけ、1 チャンネルを読む (生値を、そのまま value に書き込む) */
     struct adc_sequence sequence = {

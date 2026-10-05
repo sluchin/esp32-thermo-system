@@ -16,9 +16,9 @@
 #include <zephyr/ztest.h>
 #include <zephyr/fff.h>
 #include <zephyr/kernel.h>
-#include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <errno.h>  /* ENODEV EIO ENOMEM */
+#include <stdint.h> /* uint16_t */
+#include <stdlib.h> /* EXIT_FAILURE */
 
 #include "ble.h"
 #include "sensor.h"

@@ -14,11 +14,11 @@
 #include <zephyr/net/mqtt.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/tls_credentials.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <errno.h>   /* EHOSTUNREACH errno ECONNRESET ECONNREFUSED ENOSPC EAGAIN etc... */
+#include <stdbool.h> /* bool true false */
+#include <stdint.h>  /* uint32_t uint16_t uint8_t int64_t UINT16_MAX */
+#include <stdlib.h>  /* EXIT_SUCCESS */
+#include <string.h>  /* memcpy strlen */
 
 #include "cfg.h"
 #include "cloud.h"
@@ -143,9 +143,10 @@ static K_THREAD_STACK_DEFINE(cloud_stack, THREAD_STACK_SIZE)
  */
 static int resolve_broker(const char *host)
 {
+    /* 名前解決の条件 (TCP) */
     struct zsock_addrinfo hints = {.ai_family = AF_INET, .ai_socktype = SOCK_STREAM};
-    struct zsock_addrinfo *res = NULL;
-    int err = zsock_getaddrinfo(host, BROKER_PORT, &hints, &res);
+    struct zsock_addrinfo *res = NULL;                            /* 名前解決の結果 */
+    int err = zsock_getaddrinfo(host, BROKER_PORT, &hints, &res); /* エラーコード */
 
     if (err != 0) {
         LOG_ERR("Resolving '%s' failed (err %d)", host, err);
@@ -167,8 +168,9 @@ static int resolve_broker(const char *host)
  */
 static int poll_input(int timeout_ms)
 {
+    /* ポーリングの対象 */
     struct zsock_pollfd fds = {.fd = client.transport.tls.sock, .events = ZSOCK_POLLIN};
-    int ret = zsock_poll(&fds, 1, timeout_ms);
+    int ret = zsock_poll(&fds, 1, timeout_ms); /* 戻り値 */
 
     if (ret < 0) {
         return -errno;
@@ -193,10 +195,10 @@ static int poll_input(int timeout_ms)
  */
 static int connect_broker(void)
 {
-    const char *endpoint = cfg_get(CFG_KEY_ENDPOINT);
-    const char *client_id = cfg_get(CFG_KEY_CLIENT_ID);
-    struct mqtt_sec_config *tls = &client.transport.tls.config;
-    int err = resolve_broker(endpoint);
+    const char *endpoint = cfg_get(CFG_KEY_ENDPOINT);           /* ブローカーのホスト名 */
+    const char *client_id = cfg_get(CFG_KEY_CLIENT_ID);         /* クライアント ID */
+    struct mqtt_sec_config *tls = &client.transport.tls.config; /* TLS の設定 */
+    int err = resolve_broker(endpoint);                         /* エラーコード */
 
     if (err != 0) {
         return err;
@@ -254,9 +256,9 @@ static int connect_broker(void)
  */
 static int64_t received_unix_time(uint32_t uptime_ms)
 {
-    int64_t now = 0;
+    int64_t now = 0; /* 現在の UNIX 時刻 [s] */
     /* 32 bit の稼働時間は、約 49 日で戻るので、符号なしの引き算で、経過を求める */
-    uint32_t elapsed_ms = k_uptime_get_32() - uptime_ms;
+    uint32_t elapsed_ms = k_uptime_get_32() - uptime_ms; /* 受信してからの経過時間 [ms] */
 
     if (ntp_unix_time(&now) != EXIT_SUCCESS) {
         return -1;
@@ -273,13 +275,13 @@ static int64_t received_unix_time(uint32_t uptime_ms)
  */
 static int publish_sample(const struct sample *s)
 {
-    char topic[TOPIC_SIZE] = {0};
-    char payload[PAYLOAD_SIZE] = {0};
-    struct mqtt_publish_param param = {0};
-    const char *client_id = cfg_get(CFG_KEY_CLIENT_ID);
-    int64_t unix_s = received_unix_time(s->uptime_ms);
-    int topic_len = 0;
-    int payload_len = 0;
+    char topic[TOPIC_SIZE] = {0};                       /* トピック */
+    char payload[PAYLOAD_SIZE] = {0};                   /* ペイロード */
+    struct mqtt_publish_param param = {0};              /* パブリッシュのパラメータ */
+    const char *client_id = cfg_get(CFG_KEY_CLIENT_ID); /* クライアント ID */
+    int64_t unix_s = received_unix_time(s->uptime_ms);  /* UNIX 時刻 [s] */
+    int topic_len = 0;                                  /* トピックの長さ [バイト] */
+    int payload_len = 0;                                /* ペイロードの長さ [バイト] */
 
     /* 値の種類で、トピックとペイロードの形式が違う */
     if (s->kind == SAMPLE_SWITCHBOT) {
@@ -320,8 +322,8 @@ static int publish_sample(const struct sample *s)
  */
 static int run_session(void)
 {
-    struct sample s = {.kind = SAMPLE_THERMO};
-    int err = EXIT_SUCCESS;
+    struct sample s = {.kind = SAMPLE_THERMO}; /* 受信したサンプル */
+    int err = EXIT_SUCCESS;                    /* エラーコード */
 
     while (!reconnect_requested) {
         /* 送るものがあれば、すぐ送る。なければ、最大 SESSION_TICK_MS 待って、受信などの確認に進む
@@ -367,7 +369,7 @@ static int run_session(void)
 /* 接続と送信を 1 回分行う (スレッドが、繰り返し呼ぶ) */
 int cloud_step(void)
 {
-    int err = EXIT_SUCCESS;
+    int err = EXIT_SUCCESS; /* エラーコード */
 
     /* 設定 (WiFi、エンドポイント、証明書) が揃うまで、接続しないで待つ */
     if (!cfg_is_complete()) {
@@ -431,7 +433,7 @@ static void cloud_thread_entry(void *p1, void *p2, void *p3)
 /* 設定を読み込んで、送信のスレッドを開始する */
 int cloud_init(void)
 {
-    int err = cfg_init();
+    int err = cfg_init(); /* エラーコード */
 
     if (err != 0) {
         return err;
