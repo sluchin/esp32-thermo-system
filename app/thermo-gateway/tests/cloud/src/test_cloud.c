@@ -78,8 +78,8 @@ static struct {
 
 /** テストのノードのアドレス */
 static const bt_addr_le_t node = {
-        .type = BT_ADDR_LE_PUBLIC,
-        .a = {.val = {0x42, 0x00, 0x00, 0x01, 0xAA, 0x00}},
+    .type = BT_ADDR_LE_PUBLIC,
+    .a = {.val = {0x42, 0x00, 0x00, 0x01, 0xAA, 0x00}},
 };
 
 /** cfg_get() が返す, クライアント ID (テストが, 長いものに変える) */

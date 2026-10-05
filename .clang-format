@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Zephyr (v4.3.0) の .clang-format に, 次の 4 点だけ変えたもの (例外は CODING_STYLE.md を参照).
+# Zephyr (v4.3.0) の .clang-format に, 次の 5 点だけ変えたもの (例外は CODING_STYLE.md を参照).
 #   IndentWidth: 8 -> 4
 #   UseTab: ForContinuationAndIndentation -> Never (タブではなく, 空白)
 #   TabWidth: 4 を追加
 #   InsertBraces: true -> false (1 文の本体に, {} を自動で付けない)
-# Zephyr を更新したときは, Zephyr の .clang-format を取り込み直して, 上の 3 点を変える.
+#   BracedInitializerIndentWidth: 4 を追加 (構造体などの初期化リストの中を, 空白 4 つにする)
+# Zephyr を更新したときは, Zephyr の .clang-format を取り込み直して, 上の 5 点を変える.
 #
 # (以下は, Zephyr の元のコメント)
 # Note: The list of ForEachMacros can be obtained using:
@@ -39,6 +40,7 @@ BreakBeforeBraces: Linux
 ColumnLimit: 100
 ConstructorInitializerIndentWidth: 8
 ContinuationIndentWidth: 8
+BracedInitializerIndentWidth: 4
 ForEachMacros:
   - 'ARRAY_FOR_EACH'
   - 'ARRAY_FOR_EACH_PTR'

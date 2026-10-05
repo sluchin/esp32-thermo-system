@@ -90,9 +90,9 @@ static const uint8_t temperature_uuid[] = {THERMO_UUID_TEMPERATURE_VAL};
 
 /** ノードのアドレス (A, B, C) */
 static const bt_addr_le_t node_addr[] = {
-        {.type = BT_ADDR_LE_RANDOM, .a = {.val = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}}},
-        {.type = BT_ADDR_LE_RANDOM, .a = {.val = {0x11, 0x12, 0x13, 0x14, 0x15, 0x16}}},
-        {.type = BT_ADDR_LE_RANDOM, .a = {.val = {0x21, 0x22, 0x23, 0x24, 0x25, 0x26}}},
+    {.type = BT_ADDR_LE_RANDOM, .a = {.val = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}}},
+    {.type = BT_ADDR_LE_RANDOM, .a = {.val = {0x11, 0x12, 0x13, 0x14, 0x15, 0x16}}},
+    {.type = BT_ADDR_LE_RANDOM, .a = {.val = {0x21, 0x22, 0x23, 0x24, 0x25, 0x26}}},
 };
 
 /** ダミーの接続 (struct bt_conn の中身は, ここでは使わない. アドレスで見分ける) */

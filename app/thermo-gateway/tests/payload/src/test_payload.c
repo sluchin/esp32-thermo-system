@@ -19,8 +19,8 @@
 
 /** テストのノードのアドレス (表示は, 00:AA:01:00:00:42. val[0] が下位の byte) */
 static const bt_addr_le_t node = {
-        .type = BT_ADDR_LE_PUBLIC,
-        .a = {.val = {0x42, 0x00, 0x00, 0x01, 0xAA, 0x00}},
+    .type = BT_ADDR_LE_PUBLIC,
+    .a = {.val = {0x42, 0x00, 0x00, 0x01, 0xAA, 0x00}},
 };
 
 /** 期待するトピック */
@@ -163,7 +163,7 @@ ZTEST(payload, test_switchbot_payload_unknown_battery)
 {
     char buf[160] = {0}; /* 出力バッファ */
     const struct switchbot_sample sample = {
-            .temp_x10 = 235, .humidity = 55u, .battery = SWITCHBOT_BATTERY_UNKNOWN};
+        .temp_x10 = 235, .humidity = 55u, .battery = SWITCHBOT_BATTERY_UNKNOWN};
 
     zassert_true(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 1u, -1) > 0);
 
@@ -177,7 +177,7 @@ ZTEST(payload, test_switchbot_payload_longest)
 {
     char buf[160] = {0}; /* 出力バッファ */
     const struct switchbot_sample sample = {
-            .temp_x10 = INT16_MIN + 1, .humidity = 100u, .battery = 100};
+        .temp_x10 = INT16_MIN + 1, .humidity = 100u, .battery = 100};
 
     zassert_equal(payload_format_switchbot(buf, sizeof(buf), &node, &sample, UINT32_MAX, -1), 123);
 }
@@ -228,7 +228,7 @@ ZTEST(payload, test_switchbot_payload_longest_with_timestamp)
 {
     char buf[160] = {0}; /* 出力バッファ */
     const struct switchbot_sample sample = {
-            .temp_x10 = INT16_MIN + 1, .humidity = 100u, .battery = 100};
+        .temp_x10 = INT16_MIN + 1, .humidity = 100u, .battery = 100};
 
     zassert_equal(payload_format_switchbot(buf, sizeof(buf), &node, &sample, UINT32_MAX, INT64_MAX),
                   155);
