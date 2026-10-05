@@ -25,8 +25,8 @@ LOG_MODULE_REGISTER(ble_thermo_node);
 
 /** アドバタイズデータ: フラグ (LE 一般発見可能, BR/EDR 非対応) とデバイス名 */
 static const struct bt_data ad[] = {
-        BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-        BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1u),
+    BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+    BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1u),
 };
 
 /**
@@ -36,7 +36,7 @@ static const struct bt_data ad[] = {
  * に入らない. ゲートウェイは, アクティブスキャンで, スキャン応答も受信して, ノードを見分ける.
  */
 static const struct bt_data sd[] = {
-        BT_DATA_BYTES(BT_DATA_UUID128_ALL, THERMO_UUID_SERVICE_VAL),
+    BT_DATA_BYTES(BT_DATA_UUID128_ALL, THERMO_UUID_SERVICE_VAL),
 };
 
 /** 温度の特性の値 (ADC の生値). 読み取り (read) で返す */
@@ -66,10 +66,10 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
  * 0: サービス, 1: 特性の宣言, 2: 特性の値 (温度), 3: CCC (通知の設定)
  */
 static struct bt_gatt_attr thermo_attrs[] = {
-        BT_GATT_PRIMARY_SERVICE(THERMO_UUID_SERVICE),
-        BT_GATT_CHARACTERISTIC(THERMO_UUID_TEMPERATURE, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
-                               BT_GATT_PERM_READ, read_temperature, NULL, NULL),
-        BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+    BT_GATT_PRIMARY_SERVICE(THERMO_UUID_SERVICE),
+    BT_GATT_CHARACTERISTIC(THERMO_UUID_TEMPERATURE, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
+                           BT_GATT_PERM_READ, read_temperature, NULL, NULL),
+    BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 };
 
 /** 温度の特性の値の属性の位置 (thermo_attrs) */
@@ -117,8 +117,8 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
 /** 接続のコールバック */
 static struct bt_conn_cb conn_callbacks = {
-        .connected = connected,
-        .disconnected = disconnected,
+    .connected = connected,
+    .disconnected = disconnected,
 };
 
 /**

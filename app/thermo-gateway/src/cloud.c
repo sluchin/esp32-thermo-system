@@ -503,7 +503,7 @@ static int enqueue_sample(const struct sample *s)
 int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
 {
     struct sample s = {
-            .kind = SAMPLE_THERMO, .addr = *addr, .raw = raw, .uptime_ms = k_uptime_get_32()};
+        .kind = SAMPLE_THERMO, .addr = *addr, .raw = raw, .uptime_ms = k_uptime_get_32()};
 
     return enqueue_sample(&s);
 }

@@ -335,8 +335,8 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
 /** 接続のコールバック */
 static struct bt_conn_cb conn_callbacks = {
-        .connected = connected,
-        .disconnected = disconnected,
+    .connected = connected,
+    .disconnected = disconnected,
 };
 
 /**
@@ -522,10 +522,10 @@ int ble_scan(void)
     int err = EXIT_SUCCESS; /* エラーコード */
     /* アクティブスキャン: ノードの UUID は, スキャン応答に入っているので, 要求を出して受け取る */
     struct bt_le_scan_param scan_param = {
-            .type = BT_LE_SCAN_TYPE_ACTIVE,
-            .options = BT_LE_SCAN_OPT_NONE,
-            .interval = BT_GAP_MS_TO_SCAN_INTERVAL(SCAN_INTERVAL_MS),
-            .window = BT_GAP_MS_TO_SCAN_WINDOW(SCAN_WINDOW_MS),
+        .type = BT_LE_SCAN_TYPE_ACTIVE,
+        .options = BT_LE_SCAN_OPT_NONE,
+        .interval = BT_GAP_MS_TO_SCAN_INTERVAL(SCAN_INTERVAL_MS),
+        .window = BT_GAP_MS_TO_SCAN_WINDOW(SCAN_WINDOW_MS),
     };
 
     err = bt_le_scan_start(&scan_param, scan_cb);

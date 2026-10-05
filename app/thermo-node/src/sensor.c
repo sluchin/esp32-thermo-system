@@ -89,10 +89,10 @@ int sensor_read_temperature(uint16_t *value)
 
     /* 1 回だけ, 1 チャンネルを読む (生値を, そのまま value に書き込む) */
     struct adc_sequence sequence = {
-            .buffer = value,
-            .buffer_size = sizeof(*value),
-            .channels = (uint32_t)BIT(adc_channel.channel_id),
-            .resolution = ADC_RESOLUTION_BITS,
+        .buffer = value,
+        .buffer_size = sizeof(*value),
+        .channels = (uint32_t)BIT(adc_channel.channel_id),
+        .resolution = ADC_RESOLUTION_BITS,
     };
 
     err = adc_read_dt(&adc_channel, &sequence);

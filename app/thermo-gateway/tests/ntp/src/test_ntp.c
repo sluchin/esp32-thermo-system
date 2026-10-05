@@ -45,8 +45,8 @@ FAKE_VOID_FUNC(sntp_close, struct sntp_ctx *)
 static struct sockaddr_in resolved_addr;
 /** 名前の解決の結果 (getaddrinfo のモックが返す) */
 static struct zsock_addrinfo resolved = {
-        .ai_addr = (struct sockaddr *)&resolved_addr,
-        .ai_addrlen = sizeof(resolved_addr),
+    .ai_addr = (struct sockaddr *)&resolved_addr,
+    .ai_addrlen = sizeof(resolved_addr),
 };
 
 /**
