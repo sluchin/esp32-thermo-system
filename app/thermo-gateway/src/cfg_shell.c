@@ -11,8 +11,8 @@
  * 使い方:
  * @code
  *   thermo set <ssid|psk|endpoint|client_id> <値>
- *   cred buf <PEM の 1 行>      (Zephyr のコマンド. 行ごとに繰り返す)
- *   cred add 1 CA STRING        (Zephyr のコマンド. 証明書の登録. CA, CLIENT, PK の 3 つ)
+ *   cred buf load               (Zephyr のコマンド. PEM を貼り付けて, Ctrl-C で終える)
+ *   cred add 1 CA default strt  (Zephyr のコマンド. 証明書の登録. CA, CLIENT, PK の 3 つ)
  *   thermo save-certs
  *   thermo show
  *   thermo apply
