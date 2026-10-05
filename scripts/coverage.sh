@@ -24,7 +24,7 @@ west twister -T "app/thermo-$app/tests" -p native_sim/native/64 -O "$out" --cove
 cd "$out"
 opts=(. --root "$project" --gcov-executable gcov --gcov-ignore-errors=no_working_dir_found
     --filter "$project/app/thermo-$app/src/"
-    --exclude-branches-by-pattern '.*LOG_(ERR|WRN|INF|DBG).*')
+    --exclude-branches-by-pattern '.*LOG_(ERR|WRN|INF|DBG|HEXDUMP_(ERR|WRN|INF|DBG)).*')
 
 echo "Line coverage:"
 gcovr "${opts[@]}" --txt --fail-under-line 100
