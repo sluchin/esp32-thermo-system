@@ -13,7 +13,6 @@
 #include <zephyr/random/random.h>
 #include <zephyr/kernel.h>
 #include <zephyr/devicetree.h>
-#include <stdbool.h>
 #include <stdlib.h> /* EXIT_SUCCESS */
 
 #include "sensor.h"

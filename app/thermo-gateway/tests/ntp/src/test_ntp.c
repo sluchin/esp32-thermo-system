@@ -21,7 +21,6 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/sys/clock.h>
 #include <errno.h> /* EHOSTUNREACH EAGAIN ETIMEDOUT ENOMEM */
-#include <string.h>
 
 #include "ntp.h"
 
