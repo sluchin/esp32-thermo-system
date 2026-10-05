@@ -304,6 +304,17 @@ docker compose run --rm whitespace-thermo
 - `zephyr.bin` - バイナリ (実機用)
 - `zephyr.exe` - シミュレーション用の実行ファイル (`native_sim`)
 
+アーティファクトの名前は、小文字のスネークケースです (サービス名の `-` を `_` にします)。
+
+| 名前 | 内容 |
+|:---|:---|
+| `build_thermo_node` `build_thermo_gateway` `build_thermo_node_sim` `build_thermo_gateway_sim` | 上のビルド成果物と `build.log` |
+| `test_thermo_node_log` `test_thermo_gateway_log` | 単体テストのログ |
+| `coverage_thermo_node_log` `coverage_thermo_gateway_log` | カバレッジのログ |
+| `analyze_thermo_node_log` `analyze_thermo_gateway_log` | 静的解析のログ |
+| `format_thermo_log` `lint_thermo_log` `whitespace_thermo_log` | 整形、lint、行末の空白の確認のログ |
+| `docs` `docs_log` | Doxygen のドキュメントと、生成のログ |
+
 ## トラブルシューティング
 
 ### Docker コマンド実行時に permission denied エラーが発生する
