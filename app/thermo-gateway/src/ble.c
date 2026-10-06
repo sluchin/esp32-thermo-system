@@ -71,10 +71,153 @@ static struct node *pending_node;
 /** 接続を始め直した回数 */
 static unsigned int pending_retries;
 
-/* 接続を始める処理 (ワークの定義で使うため, 先に宣言する. 説明は定義にある) */
+static struct node *find_node(const struct bt_conn *conn);
+static struct node *find_free_node(void);
+static void release_node(struct node *node);
+static bool parse_ad(struct bt_data *data, void *user_data);
+static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
+                         const void *data, uint16_t length);
+static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                           struct bt_gatt_discover_params *params);
+static void connected(struct bt_conn *conn, uint8_t err);
+static void disconnected(struct bt_conn *conn, uint8_t reason);
 static void connect_work_handler(struct k_work *work);
+static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
+                    struct net_buf_simple *adv_data);
+
 /** 接続を始める処理 (システムのワークキューで実行する) */
 static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_handler);
+
+/** アドバタイズデータ (スキャン応答を含む) を解析した結果 */
+struct scan_result {
+    bool thermo;                   /**< Thermo サービスの UUID があった */
+    bool has_switchbot;            /**< SwitchBot の温湿度計のデータがあった */
+    struct switchbot_ad switchbot; /**< SwitchBot の温湿度計のデータ (has_switchbot のとき) */
+};
+
+#if (CONFIG_LOG_DEFAULT_LEVEL >= 4) /* 4: LOG_LEVEL_DBG (#if では, 列挙子を使えない) */
+/** アドバタイズデータの 16 進ダンプを出す間隔 (要素の数. この回数に 1 回だけ出す) */
+#define ADV_HEXDUMP_EVERY 50U
+
+/**
+ * アドバタイズデータの 1 要素を, 16 進数でログに出す (ADV_HEXDUMP_EVERY 回に 1 回だけ)
+ *
+ * スキャンでは, まわりの機器の広告が大量に届くので, 回数で間引く.
+ *
+ * @param[in] data アドバタイズデータの 1 要素
+ */
+static void adv_hexdump(const struct bt_data *data)
+{
+    static uint32_t count; /* 受け取った要素の数 (static なので 0 から始まる) */
+
+    if ((count % ADV_HEXDUMP_EVERY) == 0U) {
+        LOG_HEXDUMP_DBG(data->data, data->data_len, "Advertising data");
+    }
+    count++;
+}
+#else
+/** アドバタイズデータの 16 進ダンプ (デバッグログが無効のときは, 何もしない) */
+#define adv_hexdump(data)                                                                          \
+    do {                                                                                           \
+    } while (0)
+#endif
+
+/** 接続のコールバック */
+static struct bt_conn_cb conn_callbacks = {
+    .connected = connected,
+    .disconnected = disconnected,
+};
+
+/**
+ * @brief Bluetooth スタックを初期化して, 接続のコールバックを登録する
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno)
+ */
+int ble_init(void)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    /* Bluetooth スタックを, 同期で有効にする (戻ったときには, 使える) */
+    err = bt_enable(NULL);
+    if (err != 0) {
+        LOG_ERR("Bluetooth init failed (err %d)", err);
+        return err;
+    }
+
+    err = bt_conn_cb_register(&conn_callbacks);
+    if (err != 0) {
+        LOG_ERR("Connection callback register failed (err %d)", err);
+        return err;
+    }
+    LOG_INF("Bluetooth initialized");
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * @brief 温度を受信したときのコールバックを設定する
+ *
+ * ble_scan() の前に設定しておくこと. NULL で解除する.
+ *
+ * @param[in] cb コールバック
+ */
+void ble_set_temperature_callback(ble_temperature_cb_t cb)
+{
+    temperature_cb = cb;
+}
+
+/**
+ * @brief SwitchBot 屋外用温湿度計のアドバタイズを受信したときのコールバックを設定する
+ *
+ * ble_scan() の前に設定しておくこと. NULL で解除する (SwitchBot のデータは, 捨てる).
+ *
+ * @param[in] cb コールバック
+ */
+void ble_set_switchbot_callback(ble_switchbot_cb_t cb)
+{
+    switchbot_cb = cb;
+}
+
+/**
+ * @brief 周辺ノードのアクティブスキャンを開始する
+ *
+ * スキャン応答に Thermo サービスの UUID を持つノードを見つけたら, 接続して, 温度の特性の
+ * 通知 (notify) を購読する. 温度を受信するたびに ble_set_temperature_callback() で設定した
+ * コールバックを呼ぶ. 接続できる台数は CONFIG_BT_MAX_CONN まで. 接続が切れたら,
+ * スキャンを再開して, 再び接続する.
+ *
+ * SwitchBot のアドバタイズ (接続しない) を受信したら, ble_set_switchbot_callback() で設定した
+ * コールバックを呼ぶ.
+ *
+ * 事前に ble_init() を呼び出しておくこと.
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno)
+ */
+int ble_scan(void)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+    /* アクティブスキャン: ノードの UUID は, スキャン応答に入っているので要求を出して受け取る */
+    struct bt_le_scan_param scan_param = {
+        .type = BT_LE_SCAN_TYPE_ACTIVE,
+        .options = BT_LE_SCAN_OPT_NONE,
+        .interval = BT_GAP_MS_TO_SCAN_INTERVAL(SCAN_INTERVAL_MS),
+        .window = BT_GAP_MS_TO_SCAN_WINDOW(SCAN_WINDOW_MS),
+    };
+
+    err = bt_le_scan_start(&scan_param, scan_cb);
+    if (err == -EALREADY) {
+        return EXIT_SUCCESS; /* すでにスキャンしている */
+    }
+    if (err != 0) {
+        LOG_ERR("Starting scan failed (err %d)", err);
+        return err;
+    }
+    LOG_INF("BLE scan started");
+
+    return EXIT_SUCCESS;
+}
 
 /**
  * 接続から, ノードの状態を探す
@@ -123,40 +266,6 @@ static void release_node(struct node *node)
     bt_conn_unref(node->conn);
     (void)memset(node, 0, sizeof(*node));
 }
-
-/** アドバタイズデータ (スキャン応答を含む) を解析した結果 */
-struct scan_result {
-    bool thermo;                   /**< Thermo サービスの UUID があった */
-    bool has_switchbot;            /**< SwitchBot の温湿度計のデータがあった */
-    struct switchbot_ad switchbot; /**< SwitchBot の温湿度計のデータ (has_switchbot のとき) */
-};
-
-#if (CONFIG_LOG_DEFAULT_LEVEL >= 4) /* 4: LOG_LEVEL_DBG (#if では, 列挙子を使えない) */
-/** アドバタイズデータの 16 進ダンプを出す間隔 (要素の数. この回数に 1 回だけ出す) */
-#define ADV_HEXDUMP_EVERY 50U
-
-/**
- * アドバタイズデータの 1 要素を, 16 進数でログに出す (ADV_HEXDUMP_EVERY 回に 1 回だけ)
- *
- * スキャンでは, まわりの機器の広告が大量に届くので, 回数で間引く.
- *
- * @param[in] data アドバタイズデータの 1 要素
- */
-static void adv_hexdump(const struct bt_data *data)
-{
-    static uint32_t count; /* 受け取った要素の数 (static なので 0 から始まる) */
-
-    if ((count % ADV_HEXDUMP_EVERY) == 0U) {
-        LOG_HEXDUMP_DBG(data->data, data->data_len, "Advertising data");
-    }
-    count++;
-}
-#else
-/** アドバタイズデータの 16 進ダンプ (デバッグログが無効のときは, 何もしない) */
-#define adv_hexdump(data)                                                                          \
-    do {                                                                                           \
-    } while (0)
-#endif
 
 /**
  * アドバタイズデータの中から, Thermo サービスの UUID か, SwitchBot の温湿度計のデータを探す
@@ -366,12 +475,6 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
     }
 }
 
-/** 接続のコールバック */
-static struct bt_conn_cb conn_callbacks = {
-    .connected = connected,
-    .disconnected = disconnected,
-};
-
 /**
  * 接続を始める処理 (システムのワークキューで実行する)
  *
@@ -481,95 +584,4 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
     pending_retries = 0U;
     /* 戻り値は 0 以上 (ワークキューが停止しているときだけ, 負). 実行中の依頼は重ねない */
     (void)k_work_schedule(&connect_work, K_NO_WAIT);
-}
-
-/**
- * @brief Bluetooth スタックを初期化して, 接続のコールバックを登録する
- *
- * @retval EXIT_SUCCESS 成功
- * @retval negative     失敗 (負の errno)
- */
-int ble_init(void)
-{
-    int err = EXIT_SUCCESS; /* エラーコード */
-
-    /* Bluetooth スタックを, 同期で有効にする (戻ったときには, 使える) */
-    err = bt_enable(NULL);
-    if (err != 0) {
-        LOG_ERR("Bluetooth init failed (err %d)", err);
-        return err;
-    }
-
-    err = bt_conn_cb_register(&conn_callbacks);
-    if (err != 0) {
-        LOG_ERR("Connection callback register failed (err %d)", err);
-        return err;
-    }
-    LOG_INF("Bluetooth initialized");
-
-    return EXIT_SUCCESS;
-}
-
-/**
- * @brief 温度を受信したときのコールバックを設定する
- *
- * ble_scan() の前に設定しておくこと. NULL で解除する.
- *
- * @param[in] cb コールバック
- */
-void ble_set_temperature_callback(ble_temperature_cb_t cb)
-{
-    temperature_cb = cb;
-}
-
-/**
- * @brief SwitchBot 屋外用温湿度計のアドバタイズを受信したときのコールバックを設定する
- *
- * ble_scan() の前に設定しておくこと. NULL で解除する (SwitchBot のデータは, 捨てる).
- *
- * @param[in] cb コールバック
- */
-void ble_set_switchbot_callback(ble_switchbot_cb_t cb)
-{
-    switchbot_cb = cb;
-}
-
-/**
- * @brief 周辺ノードのアクティブスキャンを開始する
- *
- * スキャン応答に Thermo サービスの UUID を持つノードを見つけたら, 接続して, 温度の特性の
- * 通知 (notify) を購読する. 温度を受信するたびに ble_set_temperature_callback() で設定した
- * コールバックを呼ぶ. 接続できる台数は CONFIG_BT_MAX_CONN まで. 接続が切れたら,
- * スキャンを再開して, 再び接続する.
- *
- * SwitchBot のアドバタイズ (接続しない) を受信したら, ble_set_switchbot_callback() で設定した
- * コールバックを呼ぶ.
- *
- * 事前に ble_init() を呼び出しておくこと.
- *
- * @retval EXIT_SUCCESS 成功
- * @retval negative     失敗 (負の errno)
- */
-int ble_scan(void)
-{
-    int err = EXIT_SUCCESS; /* エラーコード */
-    /* アクティブスキャン: ノードの UUID は, スキャン応答に入っているので要求を出して受け取る */
-    struct bt_le_scan_param scan_param = {
-        .type = BT_LE_SCAN_TYPE_ACTIVE,
-        .options = BT_LE_SCAN_OPT_NONE,
-        .interval = BT_GAP_MS_TO_SCAN_INTERVAL(SCAN_INTERVAL_MS),
-        .window = BT_GAP_MS_TO_SCAN_WINDOW(SCAN_WINDOW_MS),
-    };
-
-    err = bt_le_scan_start(&scan_param, scan_cb);
-    if (err == -EALREADY) {
-        return EXIT_SUCCESS; /* すでにスキャンしている */
-    }
-    if (err != 0) {
-        LOG_ERR("Starting scan failed (err %d)", err);
-        return err;
-    }
-    LOG_INF("BLE scan started");
-
-    return EXIT_SUCCESS;
 }

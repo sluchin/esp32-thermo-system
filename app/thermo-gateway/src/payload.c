@@ -22,37 +22,9 @@
 /** 電池残量の項目 (",\"battery\":100") の最大長 (NUL を含む) */
 #define BATTERY_FIELD_SIZE   16U
 
-/**
- * アドレスを"00:AA:01:00:00:42" の形式の文字列にする
- *
- * bt_addr_le_to_str() は末尾に " (public)" などが付くので, 使わない.
- *
- * @param[out] out  出力先 (ADDR_STR_SIZE 以上)
- * @param[in]  addr アドレス (val[0] が下位の byte)
- */
-static void format_addr(char *out, const bt_addr_le_t *addr)
-{
-    const uint8_t *v = addr->a.val; /* アドレスのバイト列 */
-
-    (void)snprintf(out, ADDR_STR_SIZE, "%02X:%02X:%02X:%02X:%02X:%02X", v[5], v[4], v[3], v[2],
-                   v[1], v[0]);
-}
-
-/**
- * snprintf() の戻り値をこのモジュールの戻り値にする
- *
- * @param[in] written snprintf() の戻り値
- * @param[in] size    出力先のサイズ
- * @return written. 出力が切り捨てられたら -ENOSPC (snprintf() の失敗 (負の値) も同じ扱い)
- */
-static int check_length(int written, size_t size)
-{
-    if ((size_t)written >= size) {
-        return -ENOSPC;
-    }
-
-    return written;
-}
+static void format_addr(char *out, const bt_addr_le_t *addr);
+static int check_length(int written, size_t size);
+static void format_timestamp(char *field, size_t size, int64_t unix_s);
 
 /**
  * @brief トピックを生成する
@@ -73,21 +45,6 @@ int payload_format_topic(char *buf, size_t size, const char *client_id, const bt
     format_addr(node, addr);
 
     return check_length(snprintf(buf, size, "thermo/%s/%s/temperature", client_id, node), size);
-}
-
-/**
- * UNIX 時刻の項目 (",\"timestamp\":<秒>") を作る
- *
- * @param[out] field  出力先 (NUL で終わる. unix_s が負なら, 空の文字列)
- * @param[in]  size   field のサイズ
- * @param[in]  unix_s UNIX 時刻 [s] (負なら, わからない)
- */
-static void format_timestamp(char *field, size_t size, int64_t unix_s)
-{
-    field[0] = '\0';
-    if (unix_s >= 0) {
-        (void)snprintf(field, size, ",\"timestamp\":%" PRId64, unix_s);
-    }
 }
 
 /**
@@ -181,4 +138,51 @@ int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
                                  node, sign, magnitude / 10U, magnitude % 10U,
                                  (unsigned int)sample->humidity, battery, uptime_ms, timestamp),
                         size);
+}
+
+/**
+ * アドレスを"00:AA:01:00:00:42" の形式の文字列にする
+ *
+ * bt_addr_le_to_str() は末尾に " (public)" などが付くので, 使わない.
+ *
+ * @param[out] out  出力先 (ADDR_STR_SIZE 以上)
+ * @param[in]  addr アドレス (val[0] が下位の byte)
+ */
+static void format_addr(char *out, const bt_addr_le_t *addr)
+{
+    const uint8_t *v = addr->a.val; /* アドレスのバイト列 */
+
+    (void)snprintf(out, ADDR_STR_SIZE, "%02X:%02X:%02X:%02X:%02X:%02X", v[5], v[4], v[3], v[2],
+                   v[1], v[0]);
+}
+
+/**
+ * snprintf() の戻り値をこのモジュールの戻り値にする
+ *
+ * @param[in] written snprintf() の戻り値
+ * @param[in] size    出力先のサイズ
+ * @return written. 出力が切り捨てられたら -ENOSPC (snprintf() の失敗 (負の値) も同じ扱い)
+ */
+static int check_length(int written, size_t size)
+{
+    if ((size_t)written >= size) {
+        return -ENOSPC;
+    }
+
+    return written;
+}
+
+/**
+ * UNIX 時刻の項目 (",\"timestamp\":<秒>") を作る
+ *
+ * @param[out] field  出力先 (NUL で終わる. unix_s が負なら, 空の文字列)
+ * @param[in]  size   field のサイズ
+ * @param[in]  unix_s UNIX 時刻 [s] (負なら, わからない)
+ */
+static void format_timestamp(char *field, size_t size, int64_t unix_s)
+{
+    field[0] = '\0';
+    if (unix_s >= 0) {
+        (void)snprintf(field, size, ",\"timestamp\":%" PRId64, unix_s);
+    }
 }
