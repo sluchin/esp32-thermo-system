@@ -55,13 +55,13 @@ static struct k_thread main_thread;
 /** main を動かすスレッドのスタック */
 static K_THREAD_STACK_DEFINE(main_stack, STACK_SIZE)
 
-        /**
-         * sensor_read_temperature() のモック動作 (値を書き込む)
-         *
-         * @param[out] value 温度の生値
-         * @return 0
-         */
-        static int fake_read(uint16_t *value)
+/**
+ * sensor_read_temperature() のモック動作 (値を書き込む)
+ *
+ * @param[out] value 温度の生値
+ * @return 0
+ */
+static int fake_read(uint16_t *value)
 {
     *value = (uint16_t)FAKE_TEMP_RAW;
 
