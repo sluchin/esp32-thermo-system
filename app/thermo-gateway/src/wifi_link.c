@@ -33,38 +33,7 @@ static K_SEM_DEFINE(result_sem, 0, 1)
 /** 接続の結果 (0 なら成功) */
 static volatile int connect_status;
 
-/**
- * net_mgmt のイベントのコールバック
- *
- * @param[in] cb    コールバック (info にイベントの情報がある)
- * @param[in] event イベント
- * @param[in] iface 使用しない
- */
-static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, struct net_if *iface)
-{
-    const struct wifi_status *status = NULL; /* 接続の状態 */
-
-    ARG_UNUSED(iface);
-
-    if (event == NET_EVENT_WIFI_CONNECT_RESULT) {
-        status = (const struct wifi_status *)cb->info;
-        if (status->status != 0) {
-            LOG_ERR("WiFi connection failed (status %d)", status->status);
-            connect_status = status->status;
-            k_sem_give(&result_sem);
-        }
-    } else if (event == NET_EVENT_WIFI_DISCONNECT_RESULT) {
-        LOG_WRN("WiFi disconnected");
-        ip_ready = false;
-    } else if (event == NET_EVENT_IPV4_ADDR_ADD) {
-        LOG_INF("WiFi connected (IPv4 address acquired)");
-        connect_status = 0;
-        ip_ready = true;
-        k_sem_give(&result_sem);
-    } else {
-        LOG_DBG("Ignoring the net event 0x%llx", (unsigned long long)event);
-    }
-}
+static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, struct net_if *iface);
 
 /**
  * @brief WiFi のイベント (接続の結果, 切断, IPv4 アドレスの取得) のコールバックを登録する
@@ -174,5 +143,38 @@ void wifi_link_disconnect(void)
     err = net_mgmt(NET_REQUEST_WIFI_DISCONNECT, iface, NULL, 0);
     if (err != 0) {
         LOG_WRN("WiFi disconnect request failed (err %d)", err);
+    }
+}
+
+/**
+ * net_mgmt のイベントのコールバック
+ *
+ * @param[in] cb    コールバック (info にイベントの情報がある)
+ * @param[in] event イベント
+ * @param[in] iface 使用しない
+ */
+static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, struct net_if *iface)
+{
+    const struct wifi_status *status = NULL; /* 接続の状態 */
+
+    ARG_UNUSED(iface);
+
+    if (event == NET_EVENT_WIFI_CONNECT_RESULT) {
+        status = (const struct wifi_status *)cb->info;
+        if (status->status != 0) {
+            LOG_ERR("WiFi connection failed (status %d)", status->status);
+            connect_status = status->status;
+            k_sem_give(&result_sem);
+        }
+    } else if (event == NET_EVENT_WIFI_DISCONNECT_RESULT) {
+        LOG_WRN("WiFi disconnected");
+        ip_ready = false;
+    } else if (event == NET_EVENT_IPV4_ADDR_ADD) {
+        LOG_INF("WiFi connected (IPv4 address acquired)");
+        connect_status = 0;
+        ip_ready = true;
+        k_sem_give(&result_sem);
+    } else {
+        LOG_DBG("Ignoring the net event 0x%llx", (unsigned long long)event);
     }
 }

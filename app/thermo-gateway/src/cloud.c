@@ -107,6 +107,158 @@ static struct k_thread cloud_thread;
 /** 送信のスレッドのスタック */
 static K_THREAD_STACK_DEFINE(cloud_stack, THREAD_STACK_SIZE)
 
+static void mqtt_evt_handler(struct mqtt_client *c, const struct mqtt_evt *evt);
+static int resolve_broker(const char *host);
+static int poll_input(int timeout_ms);
+static int connect_broker(void);
+static int64_t received_unix_time(uint32_t uptime_ms);
+static int publish_sample(const struct sample *s);
+static int run_session(void);
+static void cloud_thread_entry(void *p1, void *p2, void *p3);
+static int enqueue_sample(const struct sample *s);
+
+/**
+ * @brief 接続と送信を 1 回分だけ行う (スレッドが繰り返し呼ぶ)
+ *
+ * 設定が揃うまで待ち, WiFi と MQTT に接続して, 接続が切れるまでキューの温度を publish する.
+ * 接続に失敗したときは間隔をあけてから (待つ時間は失敗のたびに倍にする), 戻る.
+ *
+ * @retval EXIT_SUCCESS 接続して, 設定の変更 (cloud_reconnect()) で正常に終わった
+ * @retval -EAGAIN      設定が揃っていない
+ * @retval negative     接続の失敗, または接続が切れた理由 (負の errno)
+ */
+int cloud_step(void)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    /* 設定 (WiFi, エンドポイント, 証明書) が揃うまで接続しないで待つ */
+    if (!cfg_is_complete()) {
+        (void)k_sleep(K_SECONDS(WAIT_CONFIG_S));
+        return -EAGAIN;
+    }
+
+    /* 接続をやり直す依頼はこれから始める接続で, 反映される */
+    reconnect_requested = false;
+    err = wifi_link_connect(cfg_get(CFG_KEY_SSID), cfg_get(CFG_KEY_PSK), K_SECONDS(WIFI_TIMEOUT_S));
+    if (err == 0) {
+        /*
+         * サーバ証明書の有効期限を確認する (mbedTLS がシステム時計を使う) ので, 時計が合って
+         * いないと, TLS の接続は必ず失敗する. 1 度も同期していなければ, 接続しないでやり直す.
+         * 同期したことがあれば, 今回の同期に失敗しても時計は進んでいるので, 接続を続ける.
+         */
+        if (ntp_sync(CONFIG_THERMO_NTP_SERVER, K_MSEC(NTP_TIMEOUT_MS)) != 0) {
+            LOG_WRN("Time synchronization failed");
+        }
+        if (ntp_is_synced()) {
+            err = connect_broker();
+        } else {
+            err = -ETIME;
+        }
+    }
+    /* 失敗したら, 間隔をあけてから, やり直す (間隔は失敗のたびに倍にして, 上限で止める) */
+    if (err != 0) {
+        LOG_WRN("Connection failed (err %d), retrying in %u s", err, retry_s);
+        (void)k_sleep(K_SECONDS(retry_s));
+        retry_s = MIN(retry_s * 2U, RETRY_MAX_S);
+        return err;
+    }
+
+    retry_s = RETRY_MIN_S;
+    LOG_INF("Connected to AWS IoT Core");
+    err = run_session();
+    if (err != 0) {
+        (void)k_sleep(K_SECONDS(RETRY_MIN_S)); /* すぐに失敗を繰り返さない */
+    }
+
+    return err;
+}
+
+/**
+ * @brief 設定を読み込んで, WiFi と MQTT のスレッドを開始する
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     失敗 (負の errno)
+ */
+int cloud_init(void)
+{
+    int err = cfg_init(); /* エラーコード */
+
+    if (err != 0) {
+        return err;
+    }
+
+    err = wifi_link_init();
+    if (err != 0) {
+        return err;
+    }
+
+    (void)k_thread_create(&cloud_thread, cloud_stack, K_THREAD_STACK_SIZEOF(cloud_stack),
+                          cloud_thread_entry, NULL, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
+    (void)k_thread_name_set(&cloud_thread, "cloud");
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * @brief WiFi と MQTT のスレッドを止める (MQTT は切断しない)
+ *
+ * 通常は呼ばない (ゲートウェイは電源を切るまで動く). 単体テストがスレッドを残さないために使う.
+ */
+void cloud_stop(void)
+{
+    k_thread_abort(&cloud_thread);
+}
+
+/**
+ * @brief 温度を送信のキューに入れる (待たずにすぐ戻る)
+ *
+ * Bluetooth のスレッドから呼べる. キューが満杯のときは, 新しい温度を捨てる.
+ *
+ * @param[in] addr 温度を送ったノードのアドレス
+ * @param[in] raw  温度 (ADC の生値)
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOMSG      キューが満杯で, 温度を捨てた
+ */
+int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
+{
+    struct sample s = {
+        .kind = SAMPLE_THERMO, .addr = *addr, .raw = raw, .uptime_ms = k_uptime_get_32()};
+
+    return enqueue_sample(&s);
+}
+
+/**
+ * @brief SwitchBot の温湿度計の値を, 送信のキューに入れる (待たずにすぐ戻る)
+ *
+ * トピックは `thermo/<クライアント ID>/switchbot/<機器のアドレス>`. Bluetooth のスレッドから
+ * 呼べる. キューが満杯のときは, 新しい値を捨てる.
+ *
+ * @param[in] addr   機器のアドレス
+ * @param[in] sample 温度, 湿度, 電池残量
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOMSG      キューが満杯で, 値を捨てた
+ */
+int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sample *sample)
+{
+    struct sample s = {.kind = SAMPLE_SWITCHBOT,
+                       .addr = *addr,
+                       .switchbot = *sample,
+                       .uptime_ms = k_uptime_get_32()};
+
+    return enqueue_sample(&s);
+}
+
+/**
+ * @brief 設定を変えたあとに, 接続をやり直させる
+ *
+ * 今の MQTT の接続を閉じて, 新しい設定でつなぎ直す.
+ */
+void cloud_reconnect(void)
+{
+    reconnect_requested = true;
+    wifi_link_disconnect();
+}
+
 /**
  * MQTT のイベントのコールバック
  *
@@ -373,62 +525,6 @@ static int run_session(void)
 }
 
 /**
- * @brief 接続と送信を 1 回分だけ行う (スレッドが繰り返し呼ぶ)
- *
- * 設定が揃うまで待ち, WiFi と MQTT に接続して, 接続が切れるまでキューの温度を publish する.
- * 接続に失敗したときは間隔をあけてから (待つ時間は失敗のたびに倍にする), 戻る.
- *
- * @retval EXIT_SUCCESS 接続して, 設定の変更 (cloud_reconnect()) で正常に終わった
- * @retval -EAGAIN      設定が揃っていない
- * @retval negative     接続の失敗, または接続が切れた理由 (負の errno)
- */
-int cloud_step(void)
-{
-    int err = EXIT_SUCCESS; /* エラーコード */
-
-    /* 設定 (WiFi, エンドポイント, 証明書) が揃うまで接続しないで待つ */
-    if (!cfg_is_complete()) {
-        (void)k_sleep(K_SECONDS(WAIT_CONFIG_S));
-        return -EAGAIN;
-    }
-
-    /* 接続をやり直す依頼はこれから始める接続で, 反映される */
-    reconnect_requested = false;
-    err = wifi_link_connect(cfg_get(CFG_KEY_SSID), cfg_get(CFG_KEY_PSK), K_SECONDS(WIFI_TIMEOUT_S));
-    if (err == 0) {
-        /*
-         * サーバ証明書の有効期限を確認する (mbedTLS がシステム時計を使う) ので, 時計が合って
-         * いないと, TLS の接続は必ず失敗する. 1 度も同期していなければ, 接続しないでやり直す.
-         * 同期したことがあれば, 今回の同期に失敗しても時計は進んでいるので, 接続を続ける.
-         */
-        if (ntp_sync(CONFIG_THERMO_NTP_SERVER, K_MSEC(NTP_TIMEOUT_MS)) != 0) {
-            LOG_WRN("Time synchronization failed");
-        }
-        if (ntp_is_synced()) {
-            err = connect_broker();
-        } else {
-            err = -ETIME;
-        }
-    }
-    /* 失敗したら, 間隔をあけてから, やり直す (間隔は失敗のたびに倍にして, 上限で止める) */
-    if (err != 0) {
-        LOG_WRN("Connection failed (err %d), retrying in %u s", err, retry_s);
-        (void)k_sleep(K_SECONDS(retry_s));
-        retry_s = MIN(retry_s * 2U, RETRY_MAX_S);
-        return err;
-    }
-
-    retry_s = RETRY_MIN_S;
-    LOG_INF("Connected to AWS IoT Core");
-    err = run_session();
-    if (err != 0) {
-        (void)k_sleep(K_SECONDS(RETRY_MIN_S)); /* すぐに失敗を繰り返さない */
-    }
-
-    return err;
-}
-
-/**
  * 送信のスレッドの入口 (cloud_step() を繰り返す)
  *
  * @param[in] p1 使用しない
@@ -447,42 +543,6 @@ static void cloud_thread_entry(void *p1, void *p2, void *p3)
 }
 
 /**
- * @brief 設定を読み込んで, WiFi と MQTT のスレッドを開始する
- *
- * @retval EXIT_SUCCESS 成功
- * @retval negative     失敗 (負の errno)
- */
-int cloud_init(void)
-{
-    int err = cfg_init(); /* エラーコード */
-
-    if (err != 0) {
-        return err;
-    }
-
-    err = wifi_link_init();
-    if (err != 0) {
-        return err;
-    }
-
-    (void)k_thread_create(&cloud_thread, cloud_stack, K_THREAD_STACK_SIZEOF(cloud_stack),
-                          cloud_thread_entry, NULL, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
-    (void)k_thread_name_set(&cloud_thread, "cloud");
-
-    return EXIT_SUCCESS;
-}
-
-/**
- * @brief WiFi と MQTT のスレッドを止める (MQTT は切断しない)
- *
- * 通常は呼ばない (ゲートウェイは電源を切るまで動く). 単体テストがスレッドを残さないために使う.
- */
-void cloud_stop(void)
-{
-    k_thread_abort(&cloud_thread);
-}
-
-/**
  * 値を送信のキューに入れる (待たない)
  *
  * @param[in] s 値
@@ -497,54 +557,4 @@ static int enqueue_sample(const struct sample *s)
     }
 
     return EXIT_SUCCESS;
-}
-
-/**
- * @brief 温度を送信のキューに入れる (待たずにすぐ戻る)
- *
- * Bluetooth のスレッドから呼べる. キューが満杯のときは, 新しい温度を捨てる.
- *
- * @param[in] addr 温度を送ったノードのアドレス
- * @param[in] raw  温度 (ADC の生値)
- * @retval EXIT_SUCCESS 成功
- * @retval -ENOMSG      キューが満杯で, 温度を捨てた
- */
-int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
-{
-    struct sample s = {
-        .kind = SAMPLE_THERMO, .addr = *addr, .raw = raw, .uptime_ms = k_uptime_get_32()};
-
-    return enqueue_sample(&s);
-}
-
-/**
- * @brief SwitchBot の温湿度計の値を, 送信のキューに入れる (待たずにすぐ戻る)
- *
- * トピックは `thermo/<クライアント ID>/switchbot/<機器のアドレス>`. Bluetooth のスレッドから
- * 呼べる. キューが満杯のときは, 新しい値を捨てる.
- *
- * @param[in] addr   機器のアドレス
- * @param[in] sample 温度, 湿度, 電池残量
- * @retval EXIT_SUCCESS 成功
- * @retval -ENOMSG      キューが満杯で, 値を捨てた
- */
-int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sample *sample)
-{
-    struct sample s = {.kind = SAMPLE_SWITCHBOT,
-                       .addr = *addr,
-                       .switchbot = *sample,
-                       .uptime_ms = k_uptime_get_32()};
-
-    return enqueue_sample(&s);
-}
-
-/**
- * @brief 設定を変えたあとに, 接続をやり直させる
- *
- * 今の MQTT の接続を閉じて, 新しい設定でつなぎ直す.
- */
-void cloud_reconnect(void)
-{
-    reconnect_requested = true;
-    wifi_link_disconnect();
 }

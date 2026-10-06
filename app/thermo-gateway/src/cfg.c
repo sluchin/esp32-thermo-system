@@ -67,16 +67,10 @@ static char values[CFG_KEY_COUNT][CFG_ENDPOINT_MAX + 1U];
 /** 証明書をフラッシュに保存するときの一時的な領域 (最も大きい証明書が入る大きさ) */
 static uint8_t save_buf[CFG_KEY_PEM_MAX];
 
-/**
- * settings の項目の名前 ("thermo/ssid" など) を作る
- *
- * @param[out] out  出力先 (SETTINGS_NAME_SIZE)
- * @param[in]  name 項目の名前 ("ssid" など)
- */
-static void settings_name(char *out, const char *name)
-{
-    (void)snprintf(out, SETTINGS_NAME_SIZE, SETTINGS_ROOT "/%s", name);
-}
+static void settings_name(char *out, const char *name);
+static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, void *cb_arg);
+static void load_credential(enum cfg_cred cred, size_t len, settings_read_cb read_cb, void *cb_arg);
+static int settings_set_cb(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg);
 
 /**
  * @brief 項目の名前 ("ssid" など) から, 項目を探す
@@ -293,6 +287,50 @@ int cfg_reset(void)
     return first_err;
 }
 
+/** settings のこのアプリの項目のハンドラ */
+static struct settings_handler handler = {.name = SETTINGS_ROOT, .h_set = settings_set_cb};
+
+/**
+ * @brief 設定をフラッシュから読み込む (証明書は TLS の認証情報に登録する)
+ *
+ * @retval EXIT_SUCCESS 成功 (保存された設定がなくても成功)
+ * @retval negative     失敗 (負の errno)
+ */
+int cfg_init(void)
+{
+    int err = settings_subsys_init(); /* エラーコード */
+
+    if (err != 0) {
+        LOG_ERR("Settings init failed (err %d)", err);
+        return err;
+    }
+
+    err = settings_register(&handler);
+    if (err != 0) {
+        LOG_ERR("Registering the settings handler failed (err %d)", err);
+        return err;
+    }
+
+    err = settings_load_subtree(SETTINGS_ROOT);
+    if (err != 0) {
+        LOG_ERR("Loading the settings failed (err %d)", err);
+        return err;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * settings の項目の名前 ("thermo/ssid" など) を作る
+ *
+ * @param[out] out  出力先 (SETTINGS_NAME_SIZE)
+ * @param[in]  name 項目の名前 ("ssid" など)
+ */
+static void settings_name(char *out, const char *name)
+{
+    (void)snprintf(out, SETTINGS_NAME_SIZE, SETTINGS_ROOT "/%s", name);
+}
+
 /**
  * settings から読み込んだ設定の値を, 登録する
  *
@@ -376,37 +414,4 @@ static int settings_set_cb(const char *name, size_t len, settings_read_cb read_c
     }
 
     return 0;
-}
-
-/** settings のこのアプリの項目のハンドラ */
-static struct settings_handler handler = {.name = SETTINGS_ROOT, .h_set = settings_set_cb};
-
-/**
- * @brief 設定をフラッシュから読み込む (証明書は TLS の認証情報に登録する)
- *
- * @retval EXIT_SUCCESS 成功 (保存された設定がなくても成功)
- * @retval negative     失敗 (負の errno)
- */
-int cfg_init(void)
-{
-    int err = settings_subsys_init(); /* エラーコード */
-
-    if (err != 0) {
-        LOG_ERR("Settings init failed (err %d)", err);
-        return err;
-    }
-
-    err = settings_register(&handler);
-    if (err != 0) {
-        LOG_ERR("Registering the settings handler failed (err %d)", err);
-        return err;
-    }
-
-    err = settings_load_subtree(SETTINGS_ROOT);
-    if (err != 0) {
-        LOG_ERR("Loading the settings failed (err %d)", err);
-        return err;
-    }
-
-    return EXIT_SUCCESS;
 }
