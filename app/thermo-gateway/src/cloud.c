@@ -107,13 +107,13 @@ static struct k_thread cloud_thread;
 /** 送信のスレッドのスタック */
 static K_THREAD_STACK_DEFINE(cloud_stack, THREAD_STACK_SIZE)
 
-        /**
-         * MQTT のイベントのコールバック
-         *
-         * @param[in] c   MQTT クライアント (使用しない)
-         * @param[in] evt イベント
-         */
-        static void mqtt_evt_handler(struct mqtt_client *c, const struct mqtt_evt *evt)
+/**
+ * MQTT のイベントのコールバック
+ *
+ * @param[in] c   MQTT クライアント (使用しない)
+ * @param[in] evt イベント
+ */
+static void mqtt_evt_handler(struct mqtt_client *c, const struct mqtt_evt *evt)
 {
     ARG_UNUSED(c);
 

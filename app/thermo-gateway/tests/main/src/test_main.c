@@ -75,14 +75,14 @@ static struct k_thread main_thread;
 /** main を動かすスレッドのスタック */
 static K_THREAD_STACK_DEFINE(main_stack, STACK_SIZE)
 
-        /**
-         * main を動かすスレッドの入口
-         *
-         * @param[in] p1 使用しない
-         * @param[in] p2 使用しない
-         * @param[in] p3 使用しない
-         */
-        static void main_entry(void *p1, void *p2, void *p3)
+/**
+ * main を動かすスレッドの入口
+ *
+ * @param[in] p1 使用しない
+ * @param[in] p2 使用しない
+ * @param[in] p3 使用しない
+ */
+static void main_entry(void *p1, void *p2, void *p3)
 {
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
