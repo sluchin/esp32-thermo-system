@@ -10,7 +10,7 @@ Zephyr と同じ道具を、Zephyr のバージョン (v4.3.0) に合わせて�
 
 | 道具 | 設定 | 内容 |
 |:---|:---|:---|
-| clang-format | [.clang-format](.clang-format) | 整形。Zephyr の `.clang-format` に、5 行だけ変えたもの (例外 1、例外 5) |
+| clang-format | [.clang-format](.clang-format) | 整形。Zephyr の `.clang-format` に、6 点だけ変えたもの (例外 1、例外 5。`StatementMacros` の追加は、下の注を参照) |
 | EditorConfig | [.editorconfig](.editorconfig) | エディタの設定。Zephyr の `.editorconfig` に、C / C++ / Perl のインデントだけ変えたもの (例外 1) |
 | checkpatch.pl | Zephyr の `.checkpatch.conf` | Zephyr のリンター。インデントの 3 種類だけ無視する (例外 1) |
 | 行末の空白 | `scripts/check-whitespace.sh` | 全てのテキストファイル (Markdown、YAML、CMake、シェルスクリプトなど) に、行末の空白がないことを確認する (`.editorconfig` の `trim_trailing_whitespace = true` に対応。patch ファイルと `LICENSE` は、対象外) |
@@ -28,9 +28,11 @@ docker compose run --rm lint-thermo
 docker compose run --rm whitespace-thermo
 ```
 
+`.clang-format` の `StatementMacros` には、`K_THREAD_STACK_DEFINE` が入っています。Zephyr のこのマクロは、末尾に `;` を付けない書き方なので、clang-format が文の終わりを見失い、次のコメントや関数を、8 桁字下げしてしまうためです。
+
 コードを修正したら、`format-thermo-fix` で整形してから、`lint-thermo` と `whitespace-thermo` を実行します。CI (GitHub Actions) の `lint` ジョブも、同じ確認を行います。
 
-Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と `.editorconfig` を取り込み直して、例外 1 と例外 5 の変更 (と、初期化リストのインデント) だけを、もう一度行います。
+Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と `.editorconfig` を取り込み直して、例外 1 と例外 5 の変更 (と、初期化リストのインデント、`StatementMacros`) だけを、もう一度行います。
 
 ## 2. Zephyr と同じにしているもの (例外ではない)
 
@@ -62,7 +64,7 @@ Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と 
 - **このプロジェクト**: 空白 4 つ (C のソースとヘッダ。実装と単体テスト)。
 - **理由**: 空白 4 つの方が、浅く見えて、100 桁の中に、収まりやすいためです。ほかのプロジェクトのコードとも、そろいます。
 - **設定**:
-  - `.clang-format`: `IndentWidth: 4`、`UseTab: Never`、`TabWidth: 4` (この 3 行だけが、Zephyr と違います。折り返した行のインデントは、Zephyr のとおり 8 です)。構造体などの初期化リストの中だけは、`BracedInitializerIndentWidth: 4` で、4 にします。
+  - `.clang-format`: `IndentWidth: 4`、`UseTab: Never`、`TabWidth: 4` (この 3 行だけが、Zephyr と違います。折り返した行は、Zephyr のとおり、開き括弧にそろえます。括弧の中で折り返さないときの字下げは、8 です)。構造体などの初期化リストの中だけは、`BracedInitializerIndentWidth: 4` で、4 にします。
   - `.editorconfig`: C のソースとヘッダ (`*.c`、`*.h`)、C++ (`*.cpp`、`*.hpp`)、Perl (`*.pl`) を、`indent_style = space`、`indent_size = 4` にする。C++ と Perl のファイルは、今のリポジトリにはなく、C と同じ流儀にそろえてある。patch ファイル (`*.patch`、`*.diff`) の `trim_trailing_whitespace = false` は、Zephyr のとおり (patch の空行の文脈を、壊さないため)。
   - checkpatch.pl: インデントの検査は、タブが前提なので、`LEADING_SPACE`、`CODE_INDENT`、`SUSPECT_CODE_INDENT` の 3 種類だけ無視する (`scripts/lint.sh`)。インデントは、clang-format が確認する。
 - **対象外**: Devicetree (`*.overlay`)、Kconfig、`prj.conf` は、Zephyr のとおりで、変えていません。
