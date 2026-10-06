@@ -57,7 +57,7 @@ static void on_temperature(const bt_addr_le_t *addr, uint16_t raw)
  * Bluetooth のスレッドから呼ばれる.
  *
  * @param[in] addr 機器のアドレス
- * @param[in] ad 解析した結果 (機種と電池残量, または, 温度と湿度)
+ * @param[in] ad 解析した結果 (機種と電池残量, または温度と湿度)
  */
 static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad)
 {
@@ -75,7 +75,7 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
         return;
     }
 
-    /* 0 ℃ 未満は, 整数部が 0 でも (-0.5 など) 符号を出すため, 符号と絶対値に分けて表示する */
+    /* 0 ℃ 未満は整数部が 0 でも (-0.5 など) 符号を出すため, 符号と絶対値に分けて表示する */
     temp = sample.temp_x10;
     sign = ((temp < 0) ? "-" : "");
     magnitude = (unsigned int)((temp < 0) ? -temp : temp);
@@ -97,7 +97,7 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
  *
  * BLE を初期化して, (CONFIG_THERMO_CLOUD が有効なら) AWS IoT Core への送信を開始して,
  * 周辺ノードのスキャンを開始し (見つけたノードには, 接続して, 温度の通知を購読する.
- * SwitchBot の温湿度計は, 接続せずに, アドバタイズの値を受け取る),
+ * SwitchBot の温湿度計は, 接続せずにアドバタイズの値を受け取る),
  * その後は定期的に稼働状況を出力する.
  *
  * @retval EXIT_FAILURE 初期化またはスキャン開始に失敗した場合
@@ -122,7 +122,7 @@ int main(void)
     }
 
 #ifdef CONFIG_THERMO_CLOUD
-    /* 設定を読み込んで, AWS IoT Core への送信のスレッドを開始する */
+    /* 設定を読み込んで AWS IoT Core への送信のスレッドを開始する */
     ret = cloud_init();
     if (ret != EXIT_SUCCESS) {
         LOG_ERR("Failed to initialize the cloud connection");
@@ -133,7 +133,7 @@ int main(void)
     /* 温度を受信したら, ログに出力する (クラウドが有効なら, 送信のキューにも入れる) */
     ble_set_temperature_callback(on_temperature);
 
-    /* SwitchBot の温湿度計 (接続しない) の値も, 同じ流れで扱う */
+    /* SwitchBot の温湿度計 (接続しない) の値も同じ流れで扱う */
     ble_set_switchbot_callback(on_switchbot);
 
     /* 周辺ノードのスキャンを開始する */

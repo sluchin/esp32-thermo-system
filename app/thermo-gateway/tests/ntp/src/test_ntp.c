@@ -9,10 +9,10 @@
  * @brief ntp.c の単体テスト
  *
  * SNTP とソケットの関数を FFF のモックに置き換えて, ntp_sync() の流れを確認する (時計は,
- * Zephyr の本物を使う. sys_clock_settime() は, システムコールで, モックにできない).
+ * Zephyr の本物を使う. sys_clock_settime() はシステムコールでモックにできない).
  *  - 同期の成功 (時計の設定, 同期済みの状態, UNIX 時刻の取得)
- *  - 名前の解決, SNTP の初期化, 問い合わせの, 各段階の失敗
- *  - 同期済みのときの, 再同期の間隔
+ *  - 名前の解決, SNTP の初期化, 問い合わせの各段階の失敗
+ *  - 同期済みのときの再同期の間隔
  */
 
 #include <zephyr/ztest.h>
@@ -87,7 +87,7 @@ static int sntp_query_ok(struct sntp_ctx *ctx, uint32_t timeout, struct sntp_tim
 }
 
 /**
- * 各テストの前に, モックを初期状態に戻す
+ * 各テストの前にモックを初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -106,7 +106,7 @@ static void before(void *fixture)
 
 ZTEST_SUITE(ntp, NULL, NULL, before, NULL, NULL);
 
-/* 同期できなかったテストを先に実行する (同期済みの状態は, リセットできないため, 名前順) */
+/* 同期できなかったテストを先に実行する (同期済みの状態はリセットできないため, 名前順) */
 
 /** 名前を解決できなければ -EHOSTUNREACH で, SNTP には進まず, 同期済みにならない */
 ZTEST(ntp, test_a_resolve_failure)
@@ -151,7 +151,7 @@ ZTEST(ntp, test_e_success_then_skip)
     /* 期待: 設定した時刻から, ほとんど進んでいない (本物の時計を使う) */
     zassert_within(sec, (int64_t)TEST_SEC, 5);
 
-    /* 同期済みで, 間隔がたっていなければ, 問い合わせない */
+    /* 同期済みで間隔がたっていなければ, 問い合わせない */
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), 0);
     zassert_equal(sntp_query_fake.call_count, 1U);
 
