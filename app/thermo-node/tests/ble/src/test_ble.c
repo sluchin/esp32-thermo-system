@@ -10,11 +10,11 @@
  *
  * Bluetooth スタックの関数 (bt_enable, bt_le_adv_start, bt_gatt_service_register など) を,
  * FFF のモックに置き換えて, 次を確認する.
- *  - ble_init() が, GATT サービスと, 接続のコールバックを登録すること
- *  - ble_advertise() が, 正しいアドバタイズデータとスキャン応答データで, アドバタイズを始めること
+ *  - ble_init() が GATT サービスと, 接続のコールバックを登録すること
+ *  - ble_advertise() が正しいアドバタイズデータとスキャン応答データで, アドバタイズを始めること
  *  - GATT サービスの属性 (UUID, 特性の性質) と, 温度の読み取り (read) のコールバック
- *  - ble_notify_temperature() が, 温度を更新して, 通知 (notify) すること
- *  - 切断のコールバックが, アドバタイズを再開すること
+ *  - ble_notify_temperature() が温度を更新して, 通知 (notify) すること
+ *  - 切断のコールバックがアドバタイズを再開すること
  */
 
 #include <zephyr/ztest.h>
@@ -51,7 +51,7 @@ FAKE_VALUE_FUNC(int, bt_conn_cb_register, struct bt_conn_cb *)
 FAKE_VALUE_FUNC(int, bt_gatt_notify_cb, struct bt_conn *, struct bt_gatt_notify_params *)
 FAKE_VALUE_FUNC(ssize_t, bt_gatt_attr_read, struct bt_conn *, const struct bt_gatt_attr *, void *,
                 uint16_t, uint16_t, const void *, uint16_t)
-/* 次の 4 つは, 属性の定義 (BT_GATT_PRIMARY_SERVICE() など) が参照する (ble.c は, 呼び出さない) */
+/* 次の 4 つは属性の定義 (BT_GATT_PRIMARY_SERVICE() など) が参照する (ble.c は呼び出さない) */
 FAKE_VALUE_FUNC(ssize_t, bt_gatt_attr_read_service, struct bt_conn *, const struct bt_gatt_attr *,
                 void *, uint16_t, uint16_t)
 FAKE_VALUE_FUNC(ssize_t, bt_gatt_attr_read_chrc, struct bt_conn *, const struct bt_gatt_attr *,
@@ -66,7 +66,7 @@ static const uint8_t service_uuid[] = {THERMO_UUID_SERVICE_VAL};
 /** 温度の特性の UUID (128 bit) */
 static const uint8_t temperature_uuid[] = {THERMO_UUID_TEMPERATURE_VAL};
 
-/** bt_le_adv_start() の引数 (呼び出しの後は, 引数の指す先が無効になるので, 写しを残す) */
+/** bt_le_adv_start() の引数 (呼び出しの後は引数の指す先が無効になるので, 写しを残す) */
 static struct {
     struct bt_le_adv_param param;        /**< アドバタイズパラメータ */
     struct bt_data ad[AD_COUNT];         /**< アドバタイズデータ */
@@ -173,7 +173,7 @@ static ssize_t fake_attr_read(struct bt_conn *conn, const struct bt_gatt_attr *a
 }
 
 /**
- * UUID (128 bit) が, 期待する値と同じか調べる
+ * UUID (128 bit) が期待する値と同じか調べる
  *
  * @param[in] uuid UUID
  * @param[in] expected 期待する値 (16 byte)
@@ -198,7 +198,7 @@ static const struct bt_gatt_service *init_and_get_service(void)
 }
 
 /**
- * 各テストの前に, モックを初期状態に戻す
+ * 各テストの前にモックを初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -222,7 +222,7 @@ static void before(void *fixture)
     bt_gatt_notify_cb_fake.custom_fake = capture_notify;
 }
 
-/** ble_init() は, bt_enable(NULL) を呼んで, GATT サービスと, 接続のコールバックを登録する */
+/** ble_init() は bt_enable(NULL) を呼んで GATT サービスと, 接続のコールバックを登録する */
 ZTEST(ble_node, test_init_success)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -236,7 +236,7 @@ ZTEST(ble_node, test_init_success)
     zassert_not_null(bt_conn_cb_register_fake.arg0_val->disconnected);
 }
 
-/** ble_init() は, bt_enable() のエラーを返して, 何も登録しない */
+/** ble_init() は bt_enable() のエラーを返して, 何も登録しない */
 ZTEST(ble_node, test_init_enable_failure)
 {
     bt_enable_fake.return_val = -EIO;
@@ -248,7 +248,7 @@ ZTEST(ble_node, test_init_enable_failure)
     zassert_equal(bt_conn_cb_register_fake.call_count, 0U);
 }
 
-/** ble_init() は, GATT サービスの登録のエラーを返して, 接続のコールバックは登録しない */
+/** ble_init() は GATT サービスの登録のエラーを返して, 接続のコールバックは登録しない */
 ZTEST(ble_node, test_init_service_failure)
 {
     bt_gatt_service_register_fake.return_val = -ENOMEM;
@@ -259,7 +259,7 @@ ZTEST(ble_node, test_init_service_failure)
     zassert_equal(bt_conn_cb_register_fake.call_count, 0U);
 }
 
-/** ble_init() は, 接続のコールバックの登録のエラーを返す */
+/** ble_init() は接続のコールバックの登録のエラーを返す */
 ZTEST(ble_node, test_init_callback_failure)
 {
     bt_conn_cb_register_fake.return_val = -EALREADY;
@@ -296,7 +296,7 @@ ZTEST(ble_node, test_service_attributes)
     zassert_equal(BT_UUID_16(attrs[3].uuid)->val, BT_UUID_GATT_CCC_VAL);
 }
 
-/** 温度の特性の読み取り (read) は, 最後に更新した温度を, 2 byte のリトルエンディアンで返す */
+/** 温度の特性の読み取り (read) は最後に更新した温度を, 2 byte のリトルエンディアンで返す */
 ZTEST(ble_node, test_read_temperature)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -304,14 +304,14 @@ ZTEST(ble_node, test_read_temperature)
     uint8_t buf[THERMO_TEMPERATURE_SIZE] = {0};                     /* 出力バッファ */
     ssize_t len = 0;                                                /* 長さ [バイト] */
 
-    /* 0 に更新したあとは, 0 (温度は, ble.c の static 変数なので, 前のテストの値が残っている) */
+    /* 0 に更新したあとは, 0 (温度は ble.c の static 変数なので, 前のテストの値が残っている) */
     zassert_equal(ble_notify_temperature(0U), EXIT_SUCCESS);
     len = attr->read(NULL, attr, buf, sizeof(buf), 0);
     zassert_equal(len, THERMO_TEMPERATURE_SIZE);
     zassert_equal(buf[0], 0U);
     zassert_equal(buf[1], 0U);
 
-    /* 更新したあと (通知する相手がいなくても, 値は更新される) */
+    /* 更新したあと (通知する相手がいなくても値は更新される) */
     bt_gatt_notify_cb_fake.return_val = -ENOTCONN;
     zassert_equal(ble_notify_temperature(TEST_RAW), EXIT_SUCCESS);
     len = attr->read(NULL, attr, buf, sizeof(buf), 0);
@@ -323,12 +323,12 @@ ZTEST(ble_node, test_read_temperature)
     zassert_true(attr->read(NULL, attr, buf, sizeof(buf), 3) < 0);
 }
 
-/** ble_notify_temperature() は, 特性の値の属性に, 温度 (リトルエンディアン) を通知する */
+/** ble_notify_temperature() は特性の値の属性に温度 (リトルエンディアン) を通知する */
 ZTEST(ble_node, test_notify_success)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
 
-    /* 期待: 温度の特性の値に, リトルエンディアンの 2 byte で, 通知する */
+    /* 期待: 温度の特性の値にリトルエンディアンの 2 byte で, 通知する */
     zassert_equal(ble_notify_temperature(TEST_RAW), EXIT_SUCCESS);
     zassert_equal(bt_gatt_notify_cb_fake.call_count, 1U);
     zassert_equal(notified.attr, &service->attrs[ATTR_VALUE]);
@@ -354,11 +354,11 @@ ZTEST(ble_node, test_notify_failure)
     (void)init_and_get_service();
     bt_gatt_notify_cb_fake.return_val = -EIO;
 
-    /* 期待: ほかの失敗は, そのエラーを返す */
+    /* 期待: ほかの失敗はそのエラーを返す */
     zassert_equal(ble_notify_temperature(TEST_RAW), -EIO);
 }
 
-/** ble_advertise() は, 接続可能なアドバタイズを, フラグと名前のデータ付きで始める */
+/** ble_advertise() は接続可能なアドバタイズを, フラグと名前のデータ付きで始める */
 ZTEST(ble_node, test_advertise_success)
 {
     bt_le_adv_start_fake.custom_fake = capture_adv_start;
@@ -385,7 +385,7 @@ ZTEST(ble_node, test_advertise_success)
     zassert_mem_equal(captured.sd_data, service_uuid, sizeof(service_uuid));
 }
 
-/** ble_advertise() は, bt_le_adv_start() のエラーを, そのまま返す */
+/** ble_advertise() は bt_le_adv_start() のエラーをそのまま返す */
 ZTEST(ble_node, test_advertise_failure)
 {
     bt_le_adv_start_fake.return_val = -ENOMEM;

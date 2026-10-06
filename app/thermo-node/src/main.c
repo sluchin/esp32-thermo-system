@@ -74,7 +74,7 @@ int main(void)
         if (read_ret == EXIT_SUCCESS) {
             LOG_INF("Temperature: %u (raw ADC value)", temp_raw);
 
-            /* 接続しているゲートウェイへ通知する (失敗しても, 次回に再試行する) */
+            /* 接続しているゲートウェイへ通知する (失敗しても次回に再試行する) */
             read_ret = ble_notify_temperature(temp_raw);
             if (read_ret != EXIT_SUCCESS) {
                 LOG_ERR("Failed to notify the temperature (err %d)", read_ret);

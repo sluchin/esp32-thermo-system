@@ -8,11 +8,11 @@
  * @file
  * @brief cloud.c の単体テスト
  *
- * cfg, wifi_link, MQTT ライブラリ, ソケットの関数を, FFF のモックに置き換えて (payload.c は
- * 本物を使う), 接続から送信までの流れを, cloud_step() を直接呼んで確認する.
+ * cfg, wifi_link, MQTT ライブラリ, ソケットの関数を FFF のモックに置き換えて (payload.c は
+ * 本物を使う), 接続から送信までの流れを cloud_step() を直接呼んで確認する.
  *  - 接続の手順 (WiFi, 名前の解決, TLS の設定, MQTT の接続, CONNACK) と, 各段階の失敗
- *  - 接続中の, 送信 (トピック, ペイロード, QoS, メッセージ ID), 受信, keep alive
- *  - 失敗したときの, 再試行の間隔 (倍々に増やして, 上限で止める)
+ *  - 接続中の送信 (トピック, ペイロード, QoS, メッセージ ID), 受信, keep alive
+ *  - 失敗したときの再試行の間隔 (倍々に増やして, 上限で止める)
  *  - 設定の変更 (cloud_reconnect()) による, 接続のやり直し
  *  - 送信のキューと, スレッドの開始
  */
@@ -54,7 +54,7 @@ FAKE_VALUE_FUNC(int, zsock_getaddrinfo, const char *, const char *, const struct
 FAKE_VOID_FUNC(zsock_freeaddrinfo, struct zsock_addrinfo *)
 FAKE_VALUE_FUNC(int, z_impl_zvfs_poll, struct zvfs_pollfd *, int, int)
 
-/** ソケットの代わりの番号 (mqtt_connect() が, 設定する) */
+/** ソケットの代わりの番号 (mqtt_connect() が設定する) */
 #define FAKE_SOCK      7
 /** 送信の記録の最大数 */
 #define MAX_PUBLISHED  24U
@@ -82,7 +82,7 @@ static const bt_addr_le_t node = {
     .a = {.val = {0x42, 0x00, 0x00, 0x01, 0xAA, 0x00}},
 };
 
-/** cfg_get() が返す, クライアント ID (テストが, 長いものに変える) */
+/** cfg_get() が返す, クライアント ID (テストが長いものに変える) */
 static const char *client_id;
 /** 名前の解決の結果の代わり */
 static struct sockaddr_in broker_addr = {.sin_family = AF_INET};
@@ -91,10 +91,10 @@ static struct zsock_addrinfo addrinfo;
 
 /** MQTT のイベントのコールバック (mqtt_connect() が受け取ったもの) */
 static mqtt_evt_cb_t evt_cb;
-/** mqtt_input() が配るイベントの代わりの, MQTT クライアント */
+/** mqtt_input() が配るイベントの代わりの MQTT クライアント */
 static struct mqtt_client *evt_client;
 
-/** zsock_getaddrinfo() に渡された hints の ai_family (引数のポインタは, 呼び出しの後は, 無効になる)
+/** zsock_getaddrinfo() に渡された hints の ai_family (引数のポインタは呼び出しの後は, 無効になる)
  */
 static int resolved_family;
 /** zsock_poll() に渡されたソケットの番号 (同上) */
@@ -110,7 +110,7 @@ struct input_step {
 static struct input_step script[4];
 /** 台本の長さ */
 static size_t script_len;
-/** 台本の, 次に使う位置 */
+/** 台本の次に使う位置 */
 static size_t script_pos;
 
 /** CONNACK (成功) */
@@ -124,13 +124,13 @@ static const struct mqtt_evt puback_evt = {.type = MQTT_EVT_PUBACK, .result = 0}
 /** 使わないイベント (PINGRESP) */
 static const struct mqtt_evt pingresp_evt = {.type = MQTT_EVT_PINGRESP, .result = 0};
 
-/** zsock_poll() の, 接続を待つとき (待ち時間が正) の結果 */
+/** zsock_poll() の接続を待つとき (待ち時間が正) の結果 */
 static struct {
     int ret;       /**< 戻り値 */
     int err;       /**< ret が負のときの errno */
     short revents; /**< ret が正のときの revents */
 } poll_wait;
-/** zsock_poll() の, 接続中の確認 (待ち時間が 0) の結果 */
+/** zsock_poll() の接続中の確認 (待ち時間が 0) の結果 */
 static struct {
     int ret;       /**< 戻り値 */
     int err;       /**< ret が負のときの errno */
@@ -139,7 +139,7 @@ static struct {
 
 /** mqtt_live() が呼ばれた回数 */
 static unsigned int live_calls;
-/** この回数目の mqtt_live() で, cloud_reconnect() を呼んで, 接続中の処理を終わらせる */
+/** この回数目の mqtt_live() で cloud_reconnect() を呼んで接続中の処理を終わらせる */
 static unsigned int end_after_live_calls;
 /** mqtt_live() の戻り値 (接続を終わらせる回以外) */
 static int live_return;
@@ -201,7 +201,7 @@ static int fake_mqtt_connect(struct mqtt_client *client)
 }
 
 /**
- * zvfs_poll() (zsock_poll() の実体) のモック動作 (待ち時間が正か 0 かで, 結果を変える)
+ * zvfs_poll() (zsock_poll() の実体) のモック動作 (待ち時間が正か 0 かで結果を変える)
  *
  * @param[in,out] fds 監視するソケット
  * @param[in] nfds 使用しない
@@ -286,7 +286,7 @@ static int fake_mqtt_publish(struct mqtt_client *client, const struct mqtt_publi
 }
 
 /**
- * mqtt_live() のモック動作 (指定の回数目に, 接続をやり直す依頼を出して, 接続中の処理を終わらせる)
+ * mqtt_live() のモック動作 (指定の回数目に接続をやり直す依頼を出して, 接続中の処理を終わらせる)
  *
  * @param[in] client 使用しない
  * @return live_return
@@ -303,7 +303,7 @@ static int fake_mqtt_live(struct mqtt_client *client)
 }
 
 /**
- * モックの動作を, 既定 (全て成功. 接続したら, 1 回の確認で終わる) にする
+ * モックの動作を既定 (全て成功. 接続したら, 1 回の確認で終わる) にする
  */
 static void setup_defaults(void)
 {
@@ -357,7 +357,7 @@ static void setup_defaults(void)
 }
 
 /**
- * 接続中の処理を, 指定の回数の確認 (mqtt_live()) で終わらせる準備をして, 次の接続に備える
+ * 接続中の処理を指定の回数の確認 (mqtt_live()) で終わらせる準備をして, 次の接続に備える
  *
  * @param[in] ticks 確認の回数
  */
@@ -369,9 +369,9 @@ static void connect_and_run_for(unsigned int ticks)
 }
 
 /**
- * 各テストの前に, モックを既定にして, 再試行の間隔を最小に戻す
+ * 各テストの前にモックを既定にして, 再試行の間隔を最小に戻す
  *
- * 再試行の間隔は, cloud.c の static な状態なので, 接続に成功して, 戻す.
+ * 再試行の間隔は cloud.c の static な状態なので, 接続に成功して, 戻す.
  *
  * @param[in] fixture 使用しない
  */
@@ -398,7 +398,7 @@ static uint32_t step_failure_duration(void)
 }
 
 /**
- * 送信のキューを, 空にする (空になるまで, 接続中の処理を回して, publish させる)
+ * 送信のキューを空にする (空になるまで接続中の処理を回して, publish させる)
  */
 static void drain_queue(void)
 {
@@ -406,14 +406,14 @@ static void drain_queue(void)
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 }
 
-/** 設定が揃っていなければ, 接続せずに, 待って, -EAGAIN */
+/** 設定が揃っていなければ, 接続せずに待って, -EAGAIN */
 ZTEST(cloud, test_step_waits_for_config)
 {
     uint32_t start = k_uptime_get_32(); /* 開始時刻 [ms] */
 
     cfg_is_complete_fake.return_val = false;
 
-    /* 期待: 設定が揃うまで, 5 秒待って -EAGAIN (WiFi には, つながない) */
+    /* 期待: 設定が揃うまで 5 秒待って -EAGAIN (WiFi には, つながない) */
     zassert_equal(cloud_step(), -EAGAIN);
     zassert_true((k_uptime_get_32() - start) >= 5000U);
     zassert_equal(wifi_link_connect_fake.call_count, 0U);
@@ -426,11 +426,11 @@ ZTEST(cloud, test_step_connects)
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
-    /* 1. WiFi に, 設定の SSID とパスワードで接続する */
+    /* 1. WiFi に設定の SSID とパスワードで接続する */
     zassert_equal(wifi_link_connect_fake.call_count, 1U);
     zassert_str_equal(wifi_link_connect_fake.arg0_val, "home-ap");
     zassert_str_equal(wifi_link_connect_fake.arg1_val, "secret-pass");
-    /* 2. エンドポイントの名前を, IPv4 で, ポート 8883 として解決する */
+    /* 2. エンドポイントの名前を IPv4 で, ポート 8883 として解決する */
     zassert_equal(zsock_getaddrinfo_fake.call_count, 1U);
     zassert_str_equal(zsock_getaddrinfo_fake.arg0_val, ENDPOINT);
     zassert_str_equal(zsock_getaddrinfo_fake.arg1_val, "8883");
@@ -468,14 +468,14 @@ ZTEST(cloud, test_step_waits_for_connack)
     zassert_equal(mqtt_live_fake.call_count, 1U);
 }
 
-/** 接続中は, キューの温度を, トピックとペイロードにして, QoS 1 で publish する */
+/** 接続中はキューの温度をトピックとペイロードにして, QoS 1 で publish する */
 ZTEST(cloud, test_session_publishes_sample)
 {
     zassert_equal(cloud_publish_temperature(&node, 2568U), EXIT_SUCCESS);
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
-    /* トピックは, クライアント ID とノードのアドレス. ペイロードは, アドレス, 生値, 稼働時間 */
+    /* トピックはクライアント ID とノードのアドレス. ペイロードはアドレス, 生値, 稼働時間 */
     zassert_equal(mqtt_publish_fake.call_count, 1U);
     zassert_str_equal(published[0].topic, "thermo/gateway-01/00:AA:01:00:00:42/temperature");
     zassert_not_null(strstr(published[0].payload, "\"node\":\"00:AA:01:00:00:42\""));
@@ -498,7 +498,7 @@ static int fake_unix_time(int64_t *sec)
     return 0;
 }
 
-/** 時計が合っていれば, 受信した時刻 (今の UNIX 時刻から, 経過を引いた値) を, payload に入れる */
+/** 時計が合っていれば, 受信した時刻 (今の UNIX 時刻から, 経過を引いた値) を payload に入れる */
 ZTEST(cloud, test_session_publishes_timestamp)
 {
     const char *p = NULL; /* 見つかった位置 */
@@ -517,7 +517,7 @@ ZTEST(cloud, test_session_publishes_timestamp)
     zassert_true((ts <= 1790000000LL) && (ts > 1789999990LL), "timestamp %lld", ts);
 }
 
-/** 時計が合っていなければ, "timestamp" を, payload に入れない */
+/** 時計が合っていなければ, "timestamp" を payload に入れない */
 ZTEST(cloud, test_session_omits_timestamp_without_clock)
 {
     zassert_equal(cloud_publish_temperature(&node, 2568U), EXIT_SUCCESS);
@@ -528,34 +528,34 @@ ZTEST(cloud, test_session_omits_timestamp_without_clock)
     zassert_is_null(strstr(published[0].payload, "timestamp"));
 }
 
-/** 複数の温度は, 順に publish して, メッセージ ID は, 1 ずつ増える */
+/** 複数の温度は順に publish して, メッセージ ID は 1 ずつ増える */
 ZTEST(cloud, test_session_publishes_in_order)
 {
     zassert_equal(cloud_publish_temperature(&node, 100U), EXIT_SUCCESS);
     zassert_equal(cloud_publish_temperature(&node, 200U), EXIT_SUCCESS);
     zassert_equal(cloud_publish_temperature(&node, 300U), EXIT_SUCCESS);
-    /* 3 回の確認 (mqtt_live) で, 接続中の処理が終わる (1 回の確認で, キューから 1 件送る) */
+    /* 3 回の確認 (mqtt_live) で接続中の処理が終わる (1 回の確認でキューから 1 件送る) */
     connect_and_run_for(3U);
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
-    /* キューに入れた順に, 送られる */
+    /* キューに入れた順に送られる */
     zassert_equal(mqtt_publish_fake.call_count, 3U);
     zassert_not_null(strstr(published[0].payload, "\"raw\":100,"));
     zassert_not_null(strstr(published[1].payload, "\"raw\":200,"));
     zassert_not_null(strstr(published[2].payload, "\"raw\":300,"));
-    /* メッセージ ID は, 1 ずつ増える */
+    /* メッセージ ID は 1 ずつ増える */
     zassert_equal(published[1].message_id, published[0].message_id + 1U);
     zassert_equal(published[2].message_id, published[1].message_id + 1U);
 }
 
-/** キューが満杯のときは, 新しい温度を捨てて, -ENOMSG */
+/** キューが満杯のときは新しい温度を捨てて, -ENOMSG */
 ZTEST(cloud, test_publish_queue_full)
 {
     unsigned int i = 0U; /* ループ用の添字 */
 
     for (i = 0U; i < QUEUE_LEN; i++) {
-        /* 期待: 満杯のキューは, 新しい温度を捨てて -ENOMSG. 残りの 16 件は, あとで送られる */
+        /* 期待: 満杯のキューは, 新しい温度を捨てて -ENOMSG. 残りの 16 件はあとで送られる */
         zassert_equal(cloud_publish_temperature(&node, (uint16_t)i), EXIT_SUCCESS);
     }
     zassert_equal(cloud_publish_temperature(&node, 999U), -ENOMSG);
@@ -574,7 +574,7 @@ ZTEST(cloud, test_session_closes_connection)
     zassert_equal(wifi_link_disconnect_fake.call_count, 1U); /* cloud_reconnect() */
 }
 
-/** 送信に失敗したら, そのエラーを返して, 接続を閉じる (失敗の直後は, 少し待つ) */
+/** 送信に失敗したら, そのエラーを返して, 接続を閉じる (失敗の直後は少し待つ) */
 ZTEST(cloud, test_session_publish_failure)
 {
     uint32_t start = k_uptime_get_32(); /* 開始時刻 [ms] */
@@ -585,13 +585,13 @@ ZTEST(cloud, test_session_publish_failure)
 
     zassert_equal(cloud_step(), -EIO);
 
-    /* 失敗の直後に, 最小の間隔だけ待つ. 接続は, 閉じる */
+    /* 失敗の直後に最小の間隔だけ待つ. 接続は閉じる */
     zassert_true((k_uptime_get_32() - start) >= (RETRY_MIN_S * 1000U));
     zassert_equal(mqtt_disconnect_fake.call_count, 1U);
     zassert_equal(mqtt_abort_fake.call_count, 1U);
 }
 
-/** トピックやペイロードが, バッファに入らなければ, -ENOSPC (publish しない) */
+/** トピックやペイロードがバッファに入らなければ, -ENOSPC (publish しない) */
 ZTEST(cloud, test_session_format_failure)
 {
     static char long_id[161]; /* 上限を超える長さのクライアント ID */
@@ -619,7 +619,7 @@ ZTEST(cloud, test_session_poll_failure)
 /** 接続中のソケットにエラーがあれば (POLLERR など), -ECONNRESET */
 ZTEST(cloud, test_session_socket_error)
 {
-    /* POLLERR, POLLHUP, POLLNVAL は, どれも, 接続が切れたとして扱う */
+    /* POLLERR, POLLHUP, POLLNVAL はどれも, 接続が切れたとして扱う */
     poll_tick.ret = 1;
     poll_tick.revents = ZSOCK_POLLERR;
     zassert_equal(cloud_step(), -ECONNRESET);
@@ -654,13 +654,13 @@ ZTEST(cloud, test_session_disconnect_event)
     poll_tick.revents = ZSOCK_POLLIN;
     set_script((const struct input_step[]){{&connack_ok, 0}, {&disconnect_evt, 0}}, 2U);
 
-    /* 期待: サーバの切断は, -ECONNRESET (すでに切れているので, DISCONNECT は送らない) */
+    /* 期待: サーバの切断は, -ECONNRESET (すでに切れているので DISCONNECT は送らない) */
     zassert_equal(cloud_step(), -ECONNRESET);
     zassert_equal(mqtt_disconnect_fake.call_count, 0U);
     zassert_equal(mqtt_abort_fake.call_count, 1U);
 }
 
-/** PUBACK と, 使わないイベントを受け取っても, 接続中の処理は, 続く */
+/** PUBACK と, 使わないイベントを受け取っても, 接続中の処理は続く */
 ZTEST(cloud, test_session_ignores_other_events)
 {
     poll_tick.ret = 1;
@@ -697,7 +697,7 @@ ZTEST(cloud, test_step_wifi_failure)
 /** 1 度も時刻を同期できていなければ, 接続しない (証明書の有効期限を確認できない) */
 ZTEST(cloud, test_step_ntp_failure_never_synced)
 {
-    /* 1 度も同期していなければ, TLS (証明書の有効期限の確認) は, 必ず失敗するので, 接続しない */
+    /* 1 度も同期していなければ, TLS (証明書の有効期限の確認) は, 必ず失敗するので接続しない */
     ntp_sync_fake.return_val = -ETIMEDOUT;
     ntp_is_synced_fake.return_val = false;
 
@@ -706,10 +706,10 @@ ZTEST(cloud, test_step_ntp_failure_never_synced)
     zassert_equal(mqtt_connect_fake.call_count, 0U);
 }
 
-/** 同期したことがあれば, 今回の時刻の同期に失敗しても, 接続する */
+/** 同期したことがあれば, 今回の時刻の同期に失敗しても接続する */
 ZTEST(cloud, test_step_ntp_failure_already_synced)
 {
-    /* 同期したことがあれば, 今回の同期に失敗しても, 接続する */
+    /* 同期したことがあれば, 今回の同期に失敗しても接続する */
     ntp_sync_fake.return_val = -ETIMEDOUT;
 
     zassert_equal(cloud_step(), 0);
@@ -734,7 +734,7 @@ ZTEST(cloud, test_step_connect_failure)
     mqtt_connect_fake.custom_fake = NULL;
     mqtt_connect_fake.return_val = -ECONNREFUSED;
 
-    /* 期待: MQTT の接続の失敗を返す (まだ接続していないので, 閉じる必要はない) */
+    /* 期待: MQTT の接続の失敗を返す (まだ接続していないので閉じる必要はない) */
     zassert_equal(cloud_step(), -ECONNREFUSED);
     zassert_equal(mqtt_input_fake.call_count, 0U);
     zassert_equal(mqtt_abort_fake.call_count, 0U);
@@ -761,12 +761,12 @@ ZTEST(cloud, test_step_connack_timeout)
     zassert_equal(mqtt_abort_fake.call_count, 1U);
 }
 
-/** CONNACK を待つ間に, poll が失敗, または, ソケットにエラーがあれば, そのエラーを返す */
+/** CONNACK を待つ間に poll が失敗, またはソケットにエラーがあれば, そのエラーを返す */
 ZTEST(cloud, test_step_connack_socket_failure)
 {
     poll_wait.ret = -1;
     poll_wait.err = ETIMEDOUT;
-    /* 期待: poll の失敗 (errno) と, ソケットのエラー (POLLERR) は, どちらも接続を閉じる */
+    /* 期待: poll の失敗 (errno) と, ソケットのエラー (POLLERR) はどちらも接続を閉じる */
     zassert_equal(cloud_step(), -ETIMEDOUT);
 
     poll_wait.ret = 1;
@@ -775,7 +775,7 @@ ZTEST(cloud, test_step_connack_socket_failure)
     zassert_equal(mqtt_abort_fake.call_count, 2U);
 }
 
-/** CONNACK を待つ間の, 受信の処理 (mqtt_input) が失敗したら, そのエラーを返す */
+/** CONNACK を待つ間の受信の処理 (mqtt_input) が失敗したら, そのエラーを返す */
 ZTEST(cloud, test_step_connack_input_failure)
 {
     set_script((const struct input_step[]){{NULL, -EIO}}, 1U);
@@ -785,7 +785,7 @@ ZTEST(cloud, test_step_connack_input_failure)
     zassert_equal(mqtt_abort_fake.call_count, 1U);
 }
 
-/** 接続に失敗するたびに, 再試行までの間隔を 2 倍にして (5, 10, 20, 40, 60 秒), 60 秒で止める */
+/** 接続に失敗するたびに再試行までの間隔を 2 倍にして (5, 10, 20, 40, 60 秒), 60 秒で止める */
 ZTEST(cloud, test_retry_backoff)
 {
     const uint32_t expected_s[] = {5U, 10U, 20U, 40U, 60U, 60U}; /* 期待する待ち時間 [s] */
@@ -795,14 +795,14 @@ ZTEST(cloud, test_retry_backoff)
     wifi_link_connect_fake.return_val = -ETIMEDOUT;
     for (i = 0U; i < ARRAY_SIZE(expected_s); i++) {
         elapsed = step_failure_duration();
-        /* 期待: 失敗のたびに, 5, 10, 20, 40, 60 秒と, 間隔が倍になって, 60 秒で止まる */
+        /* 期待: 失敗のたびに 5, 10, 20, 40, 60 秒と, 間隔が倍になって, 60 秒で止まる */
         zassert_true((elapsed >= (expected_s[i] * 1000U)) &&
                              (elapsed < ((expected_s[i] * 1000U) + TIME_MARGIN_MS)),
                      "retry %zu: %u ms", i, elapsed);
     }
 }
 
-/** 接続に成功したら, 再試行の間隔は, 最小に戻る */
+/** 接続に成功したら, 再試行の間隔は最小に戻る */
 ZTEST(cloud, test_retry_backoff_resets_on_success)
 {
     uint32_t elapsed = 0U; /* 経過時間 [ms] */
@@ -812,12 +812,12 @@ ZTEST(cloud, test_retry_backoff_resets_on_success)
     (void)step_failure_duration();
     (void)step_failure_duration();
 
-    /* 接続に成功すると, 間隔が, 最小に戻る */
+    /* 接続に成功すると, 間隔が最小に戻る */
     wifi_link_connect_fake.return_val = 0;
     connect_and_run_for(1U);
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
-    /* 次の失敗の間隔は, 20 秒ではなく, 最小の 5 秒 */
+    /* 次の失敗の間隔は 20 秒ではなく, 最小の 5 秒 */
     wifi_link_connect_fake.return_val = -ETIMEDOUT;
     elapsed = step_failure_duration();
     zassert_true(elapsed < ((RETRY_MIN_S * 1000U) + TIME_MARGIN_MS), "%u ms", elapsed);
@@ -852,10 +852,10 @@ ZTEST(cloud, test_init_wifi_failure)
     zassert_equal(cloud_init(), -ENODEV);
 }
 
-/** 初期化に成功したら, スレッドが, 接続の処理 (cloud_step) を繰り返す */
+/** 初期化に成功したら, スレッドが接続の処理 (cloud_step) を繰り返す */
 ZTEST(cloud, test_init_starts_thread)
 {
-    cfg_is_complete_fake.return_val = false; /* 設定が揃うまで, 待つ (接続しない) */
+    cfg_is_complete_fake.return_val = false; /* 設定が揃うまで待つ (接続しない) */
 
     zassert_equal(cloud_init(), EXIT_SUCCESS);
     k_msleep(100);
@@ -866,7 +866,7 @@ ZTEST(cloud, test_init_starts_thread)
     zassert_true(cfg_is_complete_fake.call_count >= 1U);
 }
 
-/** SwitchBot の値は, switchbot の階層のトピックに, 温度 (℃), 湿度, 電池残量の JSON で, publish する
+/** SwitchBot の値は, switchbot の階層のトピックに, 温度 (℃), 湿度, 電池残量の JSON で publish する
  */
 ZTEST(cloud, test_session_publishes_switchbot)
 {
@@ -886,7 +886,7 @@ ZTEST(cloud, test_session_publishes_switchbot)
     zassert_equal(published[0].qos, MQTT_QOS_1_AT_LEAST_ONCE);
 }
 
-/** Thermo ノードの温度と, SwitchBot の値は, 同じキューで, 受け取った順に送る */
+/** Thermo ノードの温度と, SwitchBot の値は, 同じキューで受け取った順に送る */
 ZTEST(cloud, test_session_publishes_mixed_in_order)
 {
     /* テスト用のサンプル */
@@ -899,7 +899,7 @@ ZTEST(cloud, test_session_publishes_mixed_in_order)
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
-    /* 期待: 種類ごとのトピックで, 順番どおり */
+    /* 期待: 種類ごとのトピックで順番どおり */
     zassert_equal(mqtt_publish_fake.call_count, 3U);
     zassert_not_null(strstr(published[0].topic, "/temperature"));
     zassert_not_null(strstr(published[1].topic, "/switchbot/"));

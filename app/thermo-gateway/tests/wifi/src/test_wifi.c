@@ -9,7 +9,7 @@
  * @brief wifi_link.c の単体テスト
  *
  * net_if と net_mgmt の関数を, FFF のモックに置き換える. 接続の要求のモック動作の中で,
- * net_mgmt のイベントのコールバック (wifi_link.c が登録したもの) を, 直接呼んで, WiFi の
+ * net_mgmt のイベントのコールバック (wifi_link.c が登録したもの) を, 直接呼んで WiFi の
  * イベントを再現する. 次を確認する.
  *  - 接続の要求のパラメータ (SSID, パスワード, セキュリティの種類)
  *  - 接続の成功, 失敗, タイムアウト
@@ -36,7 +36,7 @@ FAKE_VALUE_FUNC(int, net_mgmt_NET_REQUEST_WIFI_CONNECT, uint64_t, struct net_if 
 FAKE_VALUE_FUNC(int, net_mgmt_NET_REQUEST_WIFI_DISCONNECT, uint64_t, struct net_if *, void *,
                 size_t)
 
-/** 接続の要求の間に, 再現するイベント */
+/** 接続の要求の間に再現するイベント */
 enum scenario {
     SCENARIO_NONE,             /**< 何も起きない (タイムアウト) */
     SCENARIO_IP,               /**< IPv4 アドレスを取得する */
@@ -116,7 +116,7 @@ static int fake_connect(uint64_t request, struct net_if *iface, void *data, size
 }
 
 /**
- * 各テストの前に, モックを初期状態に戻して, コールバックを登録して, 切断した状態にする
+ * 各テストの前にモックを初期状態に戻して, コールバックを登録して, 切断した状態にする
  *
  * @param[in] fixture 使用しない
  */
@@ -136,14 +136,14 @@ static void before(void *fixture)
     zassert_equal(wifi_link_init(), EXIT_SUCCESS);
     handler = net_mgmt_add_event_callback_fake.arg0_history[0]->handler;
 
-    /* 前のテストの状態 (接続済み) を, 戻す */
+    /* 前のテストの状態 (接続済み) を戻す */
     send_event(NET_EVENT_WIFI_DISCONNECT_RESULT, NULL);
     zassert_false(wifi_link_is_up());
     RESET_FAKE(net_mgmt_NET_REQUEST_WIFI_CONNECT);
     net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.custom_fake = fake_connect;
 }
 
-/** 初期化は, WiFi のイベントと, IPv4 のイベントの, 2 つのコールバックを登録する */
+/** 初期化は WiFi のイベントと, IPv4 のイベントの 2 つのコールバックを登録する */
 ZTEST(wifi, test_init_registers_callbacks)
 {
     const struct net_mgmt_event_callback *wifi_cb =
@@ -151,7 +151,7 @@ ZTEST(wifi, test_init_registers_callbacks)
     const struct net_mgmt_event_callback *ipv4_cb =
             net_mgmt_add_event_callback_fake.arg0_history[1];
 
-    /* 期待: WiFi (接続の結果, 切断) と IPv4 (アドレスの取得) の, 2 つを, 同じ処理で登録する */
+    /* 期待: WiFi (接続の結果, 切断) と IPv4 (アドレスの取得) の 2 つを, 同じ処理で登録する */
     zassert_equal(net_mgmt_add_event_callback_fake.call_count, 2U);
     zassert_equal(wifi_cb->event_mask,
                   NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT);
@@ -180,10 +180,10 @@ ZTEST(wifi, test_connect_waits_for_ip)
     zassert_true(wifi_link_is_up());
 }
 
-/** パスワードがあれば PSK で, 空なら暗号化なしで, 接続を要求する */
+/** パスワードがあれば PSK で, 空なら暗号化なしで接続を要求する */
 ZTEST(wifi, test_connect_parameters)
 {
-    /* パスワードあり: PSK で, SSID とパスワードを, そのまま渡す */
+    /* パスワードあり: PSK で SSID とパスワードを, そのまま渡す */
     zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
     zassert_str_equal(captured_ssid, "home-ap");
     zassert_equal(captured.ssid_length, strlen("home-ap"));
@@ -193,7 +193,7 @@ ZTEST(wifi, test_connect_parameters)
     zassert_equal(captured.channel, WIFI_CHANNEL_ANY);
     zassert_equal(captured.band, WIFI_FREQ_BAND_UNKNOWN);
 
-    /* パスワードなし: 暗号化なしで要求する (先に, 切断した状態にする) */
+    /* パスワードなし: 暗号化なしで要求する (先に切断した状態にする) */
     send_event(NET_EVENT_WIFI_DISCONNECT_RESULT, NULL);
     zassert_equal(wifi_link_connect("open-ap", "", K_MSEC(100)), EXIT_SUCCESS);
     zassert_str_equal(captured_ssid, "open-ap");
@@ -201,7 +201,7 @@ ZTEST(wifi, test_connect_parameters)
     zassert_equal(captured.security, WIFI_SECURITY_TYPE_NONE);
 }
 
-/** すでに接続していれば, 新しい要求はせずに, すぐ成功する */
+/** すでに接続していれば, 新しい要求はせずにすぐ成功する */
 ZTEST(wifi, test_connect_already_up)
 {
     /* 期待: 接続済みなら, 新しい要求は出さない */
@@ -252,7 +252,7 @@ ZTEST(wifi, test_connect_timeout)
     zassert_false(wifi_link_is_up());
 }
 
-/** 失敗したあとの, 再接続は, 前の失敗の結果を引きずらない */
+/** 失敗したあとの再接続は, 前の失敗の結果を引きずらない */
 ZTEST(wifi, test_connect_after_failure)
 {
     scenario = SCENARIO_CONNECT_FAILED;
@@ -263,10 +263,10 @@ ZTEST(wifi, test_connect_after_failure)
     zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
 }
 
-/** 切断のイベントで, 接続していない状態になる. 知らないイベントは, 無視する */
+/** 切断のイベントで接続していない状態になる. 知らないイベントは無視する */
 ZTEST(wifi, test_disconnect_event_and_unknown_event)
 {
-    /* 期待: 知らないイベントは無視して, 切断のイベントで, 接続していない状態になる */
+    /* 期待: 知らないイベントは無視して, 切断のイベントで接続していない状態になる */
     zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
 
     send_event(NET_EVENT_IPV4_ADDR_DEL, NULL);
@@ -288,14 +288,14 @@ ZTEST(wifi, test_disconnect)
     zassert_equal(net_mgmt_NET_REQUEST_WIFI_DISCONNECT_fake.call_count, 1U);
 }
 
-/** 切断の要求に失敗しても, 接続していない状態にする */
+/** 切断の要求に失敗しても接続していない状態にする */
 ZTEST(wifi, test_disconnect_request_failure)
 {
     net_mgmt_NET_REQUEST_WIFI_DISCONNECT_fake.return_val = -EIO;
 
     wifi_link_disconnect();
 
-    /* 期待: 要求が失敗しても, 接続していない状態にする */
+    /* 期待: 要求が失敗しても接続していない状態にする */
     zassert_false(wifi_link_is_up());
     zassert_equal(net_mgmt_NET_REQUEST_WIFI_DISCONNECT_fake.call_count, 1U);
 }

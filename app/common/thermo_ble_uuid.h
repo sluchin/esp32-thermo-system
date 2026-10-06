@@ -11,8 +11,8 @@
  * @file
  * @brief thermo-node と thermo-gateway で共有する BLE の UUID と, 温度データの形式
  *
- * ノードは, Thermo サービス (GATT) を持ち, その中の温度の特性で, 温度を配信する.
- * ゲートウェイは, スキャン応答に Thermo サービスの UUID を持つノードに接続して,
+ * ノードは Thermo サービス (GATT) を持ち, その中の温度の特性で温度を配信する.
+ * ゲートウェイはスキャン応答に Thermo サービスの UUID を持つノードに接続して,
  * 温度の特性の通知 (notify) を購読する.
  */
 
@@ -35,7 +35,7 @@
 /**
  * 温度の特性の値の大きさ [byte]
  *
- * 値は, ADC の生値 (0 .. 4095) を, 2 byte のリトルエンディアン (uint16) で表したもの.
+ * 値は ADC の生値 (0 .. 4095) を 2 byte のリトルエンディアン (uint16) で表したもの.
  */
 #define THERMO_TEMPERATURE_SIZE 2U
 

@@ -61,14 +61,14 @@ static int resolve_server(const char *server, struct sockaddr_storage *addr, soc
  * @brief NTP サーバに問い合わせて, システム時計を合わせる
  *
  * すでに同期していて, 前回の同期から CONFIG_THERMO_NTP_RESYNC_S 秒たっていなければ,
- * 問い合わせずに, すぐ戻る.
+ * 問い合わせずにすぐ戻る.
  *
  * @param[in] server  NTP サーバのホスト名
  * @param[in] timeout 応答を待つ時間
- * @retval EXIT_SUCCESS    同期した (または, 同期済み)
+ * @retval EXIT_SUCCESS    同期した (または同期済み)
  * @retval -EHOSTUNREACH   サーバの名前を解決できなかった
  * @retval -ETIMEDOUT      時間内に, 応答がなかった
- * @retval negative        問い合わせ, または, 時計の設定の失敗 (負の errno)
+ * @retval negative        問い合わせ, または時計の設定の失敗 (負の errno)
  */
 int ntp_sync(const char *server, k_timeout_t timeout)
 {
@@ -103,10 +103,10 @@ int ntp_sync(const char *server, k_timeout_t timeout)
         return err;
     }
 
-    /* 秒だけを使う (小数部は, ミリ秒の精度が要らないので, 捨てる) */
+    /* 秒だけを使う (小数部はミリ秒の精度が要らないので, 捨てる) */
     now.tv_sec = (time_t)ts.seconds;
     now.tv_nsec = 0;
-    /* 戻り値は, 時計の種類が違うか, ナノ秒が範囲外のときだけ, 負. どちらでもないので, 見ない */
+    /* 戻り値は時計の種類が違うか, ナノ秒が範囲外のときだけ, 負. どちらでもないので見ない */
     (void)sys_clock_settime(SYS_CLOCK_REALTIME, &now);
 
     last_sync_ms = k_uptime_get();
@@ -140,7 +140,7 @@ int ntp_unix_time(int64_t *sec)
     if (!synced) {
         return -EAGAIN;
     }
-    /* 戻り値は, 時計の種類が違うときだけ, 負. 違わないので, 見ない */
+    /* 戻り値は時計の種類が違うときだけ, 負. 違わないので見ない */
     (void)sys_clock_gettime(SYS_CLOCK_REALTIME, &now);
     *sec = (int64_t)now.tv_sec;
 

@@ -9,10 +9,10 @@
 
 /**
  * @file
- * @brief AWS IoT Core への, MQTT (TLS) による温度の送信
+ * @brief AWS IoT Core への MQTT (TLS) による温度の送信
  *
- * 専用のスレッドが, WiFi と MQTT の接続を保ち (切れたら, 間隔をあけて, つなぎ直す),
- * 受信した温度を, 順に publish する. 設定 (cfg.h) が揃うまでは, 待つ.
+ * 専用のスレッドが WiFi と MQTT の接続を保ち (切れたら, 間隔をあけて, つなぎ直す),
+ * 受信した温度を順に publish する. 設定 (cfg.h) が揃うまでは, 待つ.
  */
 
 #include <zephyr/bluetooth/addr.h>
