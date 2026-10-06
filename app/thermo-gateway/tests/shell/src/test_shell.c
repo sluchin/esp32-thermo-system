@@ -127,7 +127,7 @@ static const char *run(const char *cmd, int *ret)
 }
 
 /**
- * スイートの前に, シェルが使えるようになるまで待つ
+ * スイートの前にシェルが使えるようになるまで待つ
  *
  * @return 使用しない
  */
@@ -143,7 +143,7 @@ static void *setup(void)
 }
 
 /**
- * 各テストの前に, モックと値を, 初期状態に戻す
+ * 各テストの前にモックと値を, 初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -189,7 +189,7 @@ ZTEST(thermo_shell, test_set)
     zassert_not_null(strstr(out, "ssid saved"));
 }
 
-/** 知らない項目は, -EINVAL (保存しない) */
+/** 知らない項目は-EINVAL (保存しない) */
 ZTEST(thermo_shell, test_set_unknown_item)
 {
     int ret = 0;                                             /* 戻り値 */
@@ -210,7 +210,7 @@ ZTEST(thermo_shell, test_set_failure)
     cfg_set_fake.return_val = -EINVAL;
     out = run("thermo set psk toolong", &ret);
 
-    /* 期待: 保存の失敗を, 戻り値と表示で伝える */
+    /* 期待: 保存の失敗を戻り値と表示で伝える */
     zassert_equal(ret, -EINVAL);
     zassert_not_null(strstr(out, "Failed to set 'psk' (err -22)"));
 }
@@ -227,13 +227,13 @@ ZTEST(thermo_shell, test_set_missing_argument)
     zassert_equal(cfg_set_fake.call_count, 0U);
 }
 
-/** `thermo show` は, 値を表示して, パスワードは, 伏せる (設定済みなら "********") */
+/** `thermo show` は, 値を表示して, パスワードは伏せる (設定済みなら "********") */
 ZTEST(thermo_shell, test_show)
 {
     int ret = 0;            /* 戻り値 */
     const char *out = NULL; /* シェルの出力 */
 
-    /* 準備: パスワードまで設定して, 証明書は, CA とクライアント証明書だけを登録した状態 */
+    /* 準備: パスワードまで設定して, 証明書は CA とクライアント証明書だけを登録した状態 */
     values[CFG_KEY_SSID] = "home-ap";
     values[CFG_KEY_PSK] = "secret-pass";
     values[CFG_KEY_ENDPOINT] = "example.amazonaws.com";
@@ -245,12 +245,12 @@ ZTEST(thermo_shell, test_show)
 
     zassert_equal(ret, 0);
     zassert_not_null(strstr(out, "ssid: home-ap"));
-    /* パスワードは, 表示しない */
+    /* パスワードは表示しない */
     zassert_not_null(strstr(out, "psk: ********"));
     zassert_is_null(strstr(out, "secret-pass"));
     zassert_not_null(strstr(out, "endpoint: example.amazonaws.com"));
     zassert_not_null(strstr(out, "client_id: gateway-01"));
-    /* 証明書の登録の状態と, 接続できるか (秘密鍵が, ない) */
+    /* 証明書の登録の状態と, 接続できるか (秘密鍵がない) */
     zassert_not_null(strstr(out, "ca: registered"));
     zassert_not_null(strstr(out, "cert: registered"));
     zassert_not_null(strstr(out, "key: missing"));

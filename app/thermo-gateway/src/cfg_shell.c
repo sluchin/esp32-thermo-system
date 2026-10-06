@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief 設定を入力するための, シェルのコマンド (`thermo`)
+ * @brief 設定を入力するためのシェルのコマンド (`thermo`)
  *
  * 使い方:
  * @code
@@ -58,7 +58,7 @@ static int cmd_set(const struct shell *sh, size_t argc, char **argv)
 }
 
 /**
- * `thermo show`: 設定の状態を表示する (パスワードは, 表示しない)
+ * `thermo show`: 設定の状態を表示する (パスワードは表示しない)
  *
  * @param[in] sh   シェル
  * @param[in] argc 使用しない
@@ -166,8 +166,8 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
                       3, 0),
         SHELL_CMD(show, NULL, "show the settings (the password is hidden)", cmd_show),
         /*
-         * コマンド名のハイフンは, clang-format が, 前後に空白を入れて ("save - certs"),
-         * 別の名前にしてしまうので, 整形しない
+         * コマンド名のハイフンは, clang-format が前後に空白を入れて ("save - certs"),
+         * 別の名前にしてしまうので整形しない
          */
         /* clang-format off */
         SHELL_CMD(save-certs, NULL, "save the certificates added with 'cred add'", cmd_save_certs),

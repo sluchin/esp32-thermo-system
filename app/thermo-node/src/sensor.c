@@ -51,13 +51,13 @@ int sensor_init(void)
 #ifdef HAVE_ADC
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    /* ADC のドライバが, 初期化されていること */
+    /* ADC のドライバが初期化されていること */
     if (!adc_is_ready_dt(&adc_channel)) {
         LOG_ERR("ADC controller not ready");
         return -ENODEV;
     }
 
-    /* Devicetree のチャンネルの設定 (ゲイン, 基準電圧, 分解能など) を, ADC に反映する */
+    /* Devicetree のチャンネルの設定 (ゲイン, 基準電圧, 分解能など) を ADC に反映する */
     err = adc_channel_setup_dt(&adc_channel);
     if (err < 0) {
         LOG_ERR("Could not setup ADC channel (%d)", err);
@@ -87,7 +87,7 @@ int sensor_read_temperature(uint16_t *value)
 #ifdef HAVE_ADC
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    /* 1 回だけ, 1 チャンネルを読む (生値を, そのまま value に書き込む) */
+    /* 1 回だけ, 1 チャンネルを読む (生値をそのまま value に書き込む) */
     struct adc_sequence sequence = {
         .buffer = value,
         .buffer_size = sizeof(*value),

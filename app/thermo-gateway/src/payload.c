@@ -23,12 +23,12 @@
 #define BATTERY_FIELD_SIZE   16U
 
 /**
- * アドレスを, "00:AA:01:00:00:42" の形式の文字列にする
+ * アドレスを"00:AA:01:00:00:42" の形式の文字列にする
  *
- * bt_addr_le_to_str() は, 末尾に " (public)" などが付くので, 使わない.
+ * bt_addr_le_to_str() は末尾に " (public)" などが付くので, 使わない.
  *
  * @param[out] out  出力先 (ADDR_STR_SIZE 以上)
- * @param[in]  addr アドレス (val[0] が, 下位の byte)
+ * @param[in]  addr アドレス (val[0] が下位の byte)
  */
 static void format_addr(char *out, const bt_addr_le_t *addr)
 {
@@ -39,11 +39,11 @@ static void format_addr(char *out, const bt_addr_le_t *addr)
 }
 
 /**
- * snprintf() の戻り値を, このモジュールの戻り値にする
+ * snprintf() の戻り値をこのモジュールの戻り値にする
  *
  * @param[in] written snprintf() の戻り値
  * @param[in] size    出力先のサイズ
- * @return written. 出力が切り捨てられたら -ENOSPC (snprintf() の失敗 (負の値) も, 同じ扱い)
+ * @return written. 出力が切り捨てられたら -ENOSPC (snprintf() の失敗 (負の値) も同じ扱い)
  */
 static int check_length(int written, size_t size)
 {
@@ -95,14 +95,14 @@ static void format_timestamp(char *field, size_t size, int64_t unix_s)
  *
  * 形式は `{"node":"<アドレス>","raw":<ADC の生値>,"uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX
  * 時刻 [s]>}`. UNIX 時刻がわからないとき (unix_s が負) は, "timestamp" を出力しない. 温度 (℃)
- * への変換は, していない (TODO.md を参照).
+ * への変換はしていない (TODO.md を参照).
  *
  * @param[out] buf       出力先 (NUL で終わる)
  * @param[in]  size      buf のサイズ
  * @param[in]  addr      ノードのアドレス
  * @param[in]  raw       温度 (ADC の生値)
- * @param[in]  uptime_ms 温度を受信したときの, ゲートウェイの稼働時間 [ms]
- * @param[in]  unix_s    温度を受信したときの, UNIX 時刻 [s] (負なら, わからない)
+ * @param[in]  uptime_ms 温度を受信したときのゲートウェイの稼働時間 [ms]
+ * @param[in]  unix_s    温度を受信したときの UNIX 時刻 [s] (負なら, わからない)
  * @return 文字列の長さ (NUL を除く). buf が小さければ -ENOSPC
  */
 int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr, uint16_t raw,
@@ -147,14 +147,14 @@ int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id
  * 形式は `{"node":"<アドレス>","type":"switchbot","temperature_c":<℃>,"humidity":<%>,
  * "battery":<%>,"uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX 時刻 [s]>}`. 電池残量が
  * わからないときは "battery" を, UNIX 時刻がわからないとき (unix_s が負) は "timestamp" を,
- * 出力しない. 温度は, 10 分の 1 ℃ の桁まで (例: -3.5, 23.4).
+ * 出力しない. 温度は 10 分の 1 ℃ の桁まで (例: -3.5, 23.4).
  *
  * @param[out] buf       出力先 (NUL で終わる)
  * @param[in]  size      buf のサイズ
  * @param[in]  addr      機器のアドレス
  * @param[in]  sample    温度, 湿度, 電池残量
- * @param[in]  uptime_ms 受信したときの, ゲートウェイの稼働時間 [ms]
- * @param[in]  unix_s    受信したときの, UNIX 時刻 [s] (負なら, わからない)
+ * @param[in]  uptime_ms 受信したときのゲートウェイの稼働時間 [ms]
+ * @param[in]  unix_s    受信したときの UNIX 時刻 [s] (負なら, わからない)
  * @return 文字列の長さ (NUL を除く). buf が小さければ -ENOSPC
  */
 int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
@@ -165,7 +165,7 @@ int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
     char battery[BATTERY_FIELD_SIZE] = {0};     /* 電池残量の項目 */
     char timestamp[TIMESTAMP_FIELD_SIZE] = {0}; /* 時刻の項目 */
     int temp = sample->temp_x10;                /* 温度 [℃ の 10 倍] */
-    /* 0 ℃ 未満は, 整数部が 0 でも (-0.5 など) 符号を出すため, 符号を別に出力する */
+    /* 0 ℃ 未満は整数部が 0 でも (-0.5 など) 符号を出すため, 符号を別に出力する */
     const char *sign = ((temp < 0) ? "-" : "");                         /* 符号 */
     unsigned int magnitude = (unsigned int)((temp < 0) ? -temp : temp); /* 絶対値 */
 

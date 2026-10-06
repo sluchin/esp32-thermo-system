@@ -8,9 +8,9 @@
  * @file
  * @brief main.c の単体テスト
  *
- * ble の関数を, FFF のモックに置き換えて, 次を確認する.
+ * ble の関数を FFF のモックに置き換えて, 次を確認する.
  *  - 初期化に失敗したら, 後の処理に進まず, EXIT_FAILURE を返すこと
- *  - 初期化に成功したら, 終了せずに, 稼働状況の出力を続けること (別スレッドで main を動かす)
+ *  - 初期化に成功したら, 終了せずに稼働状況の出力を続けること (別スレッドで main を動かす)
  */
 
 #include <zephyr/ztest.h>
@@ -58,7 +58,7 @@ FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, uint16_t)
 
 /**
  * 関数のアドレス (fff.call_history の要素と, 比べる)
- * (関数ポインタを, オブジェクトポインタへ, 直接キャストすることは, ISO C では許されない)
+ * (関数ポインタをオブジェクトポインタへ, 直接キャストすることは, ISO C では許されない)
  */
 #define FUNCTION_ADDRESS(f) ((void *)(uintptr_t)(f))
 
@@ -90,13 +90,13 @@ static void main_entry(void *p1, void *p2, void *p3)
     (void)thermo_gateway_main();
 }
 
-/** switchbot_accept() が, 送信する値として返す温度 [℃ の 10 倍] (テストが, 変える) */
+/** switchbot_accept() が送信する値として返す温度 [℃ の 10 倍] (テストが変える) */
 static int16_t accepted_temp_x10 = 235;
-/** cloud_publish_switchbot() に渡された値の写し (引数は, 呼び出しの後は, 無効になる) */
+/** cloud_publish_switchbot() に渡された値の写し (引数は呼び出しの後は, 無効になる) */
 static struct switchbot_sample published_sample;
 
 /**
- * switchbot_accept() のモック動作 (送信する値を返す. 戻り値は, return_val で決める)
+ * switchbot_accept() のモック動作 (送信する値を返す. 戻り値は return_val で決める)
  *
  * @param[in] addr 使用しない
  * @param[in] ad 使用しない
@@ -133,7 +133,7 @@ static int capture_switchbot(const bt_addr_le_t *addr, const struct switchbot_sa
 }
 
 /**
- * 各テストの前に, モックを初期状態に戻す
+ * 各テストの前にモックを初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -171,7 +171,7 @@ ZTEST(main_gateway, test_cloud_init_failure)
 {
     cloud_init_fake.return_val = -EIO;
 
-    /* 期待: クラウドの初期化の失敗で止まる (コールバックは, まだ設定しない) */
+    /* 期待: クラウドの初期化の失敗で止まる (コールバックはまだ設定しない) */
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
     zassert_equal(ble_init_fake.call_count, 1U);
     zassert_equal(cloud_init_fake.call_count, 1U);
@@ -184,7 +184,7 @@ ZTEST(main_gateway, test_scan_failure)
 {
     ble_scan_fake.return_val = -EALREADY;
 
-    /* 期待: スキャンの開始の失敗で, EXIT_FAILURE (コールバックは, 設定済み) */
+    /* 期待: スキャンの開始の失敗で, EXIT_FAILURE (コールバックは設定済み) */
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
     zassert_equal(ble_init_fake.call_count, 1U);
     zassert_equal(ble_scan_fake.call_count, 1U);
@@ -202,8 +202,8 @@ ZTEST(main_gateway, test_main_loop)
     zassert_equal(ble_scan_fake.call_count, 1U);
 
     /*
-     * 温度のコールバックは, スキャンを始める前に設定する.
-     * 呼び出しの順序: ble_init, cloud_init (コールバックが呼ばれる前に, 送信の準備をする),
+     * 温度のコールバックはスキャンを始める前に設定する.
+     * 呼び出しの順序: ble_init, cloud_init (コールバックが呼ばれる前に送信の準備をする),
      * set, scan
      */
     zassert_equal(ble_set_temperature_callback_fake.call_count, 1U);
@@ -216,18 +216,18 @@ ZTEST(main_gateway, test_main_loop)
     zassert_equal(fff.call_history[4], FUNCTION_ADDRESS(ble_scan));
     zassert_equal(ble_set_switchbot_callback_fake.call_count, 1U);
 
-    /* 温度のコールバックは, ノードのアドレスと温度を, クラウドの送信のキューに渡す */
+    /* 温度のコールバックはノードのアドレスと温度を, クラウドの送信のキューに渡す */
     ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_RAW);
     zassert_equal(cloud_publish_temperature_fake.call_count, 1U);
     zassert_equal(cloud_publish_temperature_fake.arg0_val, &test_addr);
     zassert_equal(cloud_publish_temperature_fake.arg1_val, TEST_RAW);
 
-    /* キューに入れられなくても (満杯など), ログに出すだけで, 問題なく戻る */
+    /* キューに入れられなくても (満杯など), ログに出すだけで問題なく戻る */
     cloud_publish_temperature_fake.return_val = -ENOMSG;
     ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_RAW);
     zassert_equal(cloud_publish_temperature_fake.call_count, 2U);
 
-    /* 何周期か待っても, 終了せず (k_thread_join() が, EBUSY を返す), 初期化を繰り返さない */
+    /* 何周期か待っても終了せず (k_thread_join() が EBUSY を返す), 初期化を繰り返さない */
     k_sleep(K_SECONDS(STATUS_INTERVAL_S * WAIT_CYCLES));
     zassert_equal(k_thread_join(&main_thread, K_NO_WAIT), -EBUSY);
     zassert_equal(ble_init_fake.call_count, 1U);
@@ -236,13 +236,13 @@ ZTEST(main_gateway, test_main_loop)
     k_thread_abort(&main_thread);
 }
 
-/** SwitchBot のコールバックは, 間引きを通った値を, クラウドの送信のキューに渡す */
+/** SwitchBot のコールバックは, 間引きを通った値をクラウドの送信のキューに渡す */
 ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
 {
     /* 広告データ */
     const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV, .temp_x10 = 235, .humidity = 55U};
 
-    /* コールバックを取り出すため, スキャンの失敗で, main() を終わらせる */
+    /* コールバックを取り出すため, スキャンの失敗で main() を終わらせる */
     ble_scan_fake.return_val = -EIO;
     zassert_equal(thermo_gateway_main(), EXIT_FAILURE);
 
@@ -250,7 +250,7 @@ ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
     accepted_temp_x10 = 235;
     ble_set_switchbot_callback_fake.arg0_val(&test_addr, &ad);
 
-    /* 期待: 間引きの結果の値 (23.5 ℃, 55 %, 電池 87 %) を, クラウドに渡す */
+    /* 期待: 間引きの結果の値 (23.5 ℃, 55 %, 電池 87 %) をクラウドに渡す */
     zassert_equal(switchbot_accept_fake.call_count, 1U);
     zassert_equal(cloud_publish_switchbot_fake.call_count, 1U);
     zassert_equal(published_sample.temp_x10, 235);
@@ -258,7 +258,7 @@ ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
     zassert_equal(published_sample.battery, 87);
 }
 
-/** 間引きで捨てられた値 (または, 機種と電池残量だけのデータ) は, クラウドに渡さない */
+/** 間引きで捨てられた値 (または機種と電池残量だけのデータ) は, クラウドに渡さない */
 ZTEST(main_gateway, test_switchbot_dropped_by_interval)
 {
     const struct switchbot_ad ad = {.kind = SWITCHBOT_INFO}; /* 広告データ */
@@ -273,7 +273,7 @@ ZTEST(main_gateway, test_switchbot_dropped_by_interval)
     zassert_equal(cloud_publish_switchbot_fake.call_count, 0U);
 }
 
-/** 0 ℃ 未満の値と, クラウドに渡せなかった (キューが満杯) 場合も, ログに出すだけで, 問題なく戻る */
+/** 0 ℃ 未満の値と, クラウドに渡せなかった (キューが満杯) 場合もログに出すだけで, 問題なく戻る */
 ZTEST(main_gateway, test_switchbot_negative_and_queue_full)
 {
     const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV}; /* 広告データ */

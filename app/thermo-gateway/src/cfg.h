@@ -11,8 +11,8 @@
  * @file
  * @brief 実行時の設定 (WiFi, AWS IoT Core のエンドポイント, 証明書) の保存と読み出し
  *
- * 設定は, Zephyr のシェル (`thermo` コマンド. cfg_shell.c) で入力して, フラッシュ (settings の
- * NVS) に保存する. TLS の証明書は, Zephyr の `cred` コマンドで, いったん RAM に登録してから,
+ * 設定は Zephyr のシェル (`thermo` コマンド. cfg_shell.c) で入力して, フラッシュ (settings の
+ * NVS) に保存する. TLS の証明書は Zephyr の `cred` コマンドで, いったん RAM に登録してから,
  * `thermo save-certs` で, フラッシュに保存する.
  */
 

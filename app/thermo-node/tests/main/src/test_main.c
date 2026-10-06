@@ -10,7 +10,7 @@
  *
  * sensor と ble の関数を, FFF のモックに置き換えて, 次を確認する.
  *  - 初期化に失敗したら, 後の処理に進まず, EXIT_FAILURE を返すこと
- *  - 初期化に成功したら, 一定間隔で, 温度を読み取り続けること (別スレッドで main を動かす)
+ *  - 初期化に成功したら, 一定間隔で温度を読み取り続けること (別スレッドで main を動かす)
  */
 
 #include <zephyr/ztest.h>
@@ -45,7 +45,7 @@ FAKE_VALUE_FUNC(int, ble_notify_temperature, uint16_t)
 #define THREAD_PRIORITY   5
 /** main.c の読み取り間隔 [秒] (SAMPLE_INTERVAL_S) */
 #define SAMPLE_INTERVAL_S 5
-/** 起動直後の, 初回の読み取りを待つ時間 [ms] */
+/** 起動直後の初回の読み取りを待つ時間 [ms] */
 #define STARTUP_WAIT_MS   100
 /** モックの温度の生値 */
 #define FAKE_TEMP_RAW     1234U
@@ -84,7 +84,7 @@ static void main_entry(void *p1, void *p2, void *p3)
 }
 
 /**
- * 各テストの前に, モックを初期状態に戻す
+ * 各テストの前にモックを初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -129,7 +129,7 @@ ZTEST(main_node, test_advertise_failure)
 {
     ble_advertise_fake.return_val = -ENOMEM;
 
-    /* 期待: アドバタイズの失敗で止まる (温度は, 読まない) */
+    /* 期待: アドバタイズの失敗で止まる (温度は読まない) */
     zassert_equal(thermo_node_main(), EXIT_FAILURE);
     zassert_equal(ble_advertise_fake.call_count, 1U);
     zassert_equal(sensor_read_temperature_fake.call_count, 0U);
@@ -150,11 +150,11 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(ble_advertise_fake.call_count, 1U);
     zassert_equal(sensor_read_temperature_fake.call_count, 1U);
 
-    /* 読み取った温度を, 通知する */
+    /* 読み取った温度を通知する */
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
     zassert_equal(ble_notify_temperature_fake.arg0_val, FAKE_TEMP_RAW);
 
-    /* 読み取り間隔だけ待つと, 2 回目の温度を読んで, 通知する (初期化は, 繰り返さない) */
+    /* 読み取り間隔だけ待つと, 2 回目の温度を読んで通知する (初期化は繰り返さない) */
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
     zassert_equal(sensor_read_temperature_fake.call_count, 2U);
     zassert_equal(ble_notify_temperature_fake.call_count, 2U);
@@ -163,7 +163,7 @@ ZTEST(main_node, test_main_loop)
     k_thread_abort(&main_thread);
 }
 
-/** 通知に失敗しても, 次の周期で, 再び温度を読んで, 通知する */
+/** 通知に失敗しても次の周期で, 再び温度を読んで通知する */
 ZTEST(main_node, test_notify_failure_retries)
 {
     sensor_read_temperature_fake.custom_fake = fake_read;
@@ -175,7 +175,7 @@ ZTEST(main_node, test_notify_failure_retries)
     /* 1 回目: 通知に失敗する */
     k_msleep(STARTUP_WAIT_MS);
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
-    /* 失敗しても止まらず, 次の周期で, 再び読み取って, 通知する */
+    /* 失敗しても止まらず, 次の周期で再び読み取って, 通知する */
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
     zassert_equal(sensor_read_temperature_fake.call_count, 2U);
     zassert_equal(ble_notify_temperature_fake.call_count, 2U);
@@ -183,7 +183,7 @@ ZTEST(main_node, test_notify_failure_retries)
     k_thread_abort(&main_thread);
 }
 
-/** 温度の読み取りに失敗しても, 次の周期で, 再び読み取る */
+/** 温度の読み取りに失敗しても次の周期で, 再び読み取る */
 ZTEST(main_node, test_read_failure_retries)
 {
     sensor_read_temperature_fake.return_val = -EIO;

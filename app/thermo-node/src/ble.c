@@ -33,7 +33,7 @@ static const struct bt_data ad[] = {
  * スキャン応答データ: Thermo サービスの UUID (128 bit)
  *
  * UUID (128 bit) は 18 byte あるので, デバイス名と合わせると, アドバタイズデータ (31 byte)
- * に入らない. ゲートウェイは, アクティブスキャンで, スキャン応答も受信して, ノードを見分ける.
+ * に入らない. ゲートウェイはアクティブスキャンで, スキャン応答も受信して, ノードを見分ける.
  */
 static const struct bt_data sd[] = {
     BT_DATA_BYTES(BT_DATA_UUID128_ALL, THERMO_UUID_SERVICE_VAL),
@@ -201,7 +201,7 @@ int ble_notify_temperature(uint16_t raw)
     LOG_HEXDUMP_DBG(&value, sizeof(value), "Notify");
     err = bt_gatt_notify(NULL, &thermo_attrs[ATTR_INDEX_TEMPERATURE_VALUE], &value, sizeof(value));
     if (err == -ENOTCONN) {
-        /* 接続しているゲートウェイがいない (値は更新したので, あとで読み取れる) */
+        /* 接続しているゲートウェイがいない (値は更新したのであとで読み取れる) */
         LOG_DBG("No connection to notify");
         return EXIT_SUCCESS;
     }

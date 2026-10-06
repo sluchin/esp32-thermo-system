@@ -11,13 +11,13 @@
  * @file
  * @brief SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズの解析と, 送信の間引き
  *
- * SwitchBot の温湿度計は, 接続せずに, アドバタイズだけで, 温度と湿度を送る.
- * 1 つの機器の情報は, 2 つのアドバタイズデータに分かれて届く.
+ * SwitchBot の温湿度計は, 接続せずにアドバタイズだけで, 温度と湿度を送る.
+ * 1 つの機器の情報は 2 つのアドバタイズデータに分かれて届く.
  *  - サービスデータ (UUID 0xFD3D): 機種と, 電池残量
  *  - 製造者データ (会社 ID 0x0969): MAC アドレスのあとに, 温度と湿度
  *
- * 並びは, SwitchBot の公開仕様 (OpenWonderLabs/SwitchBotAPI-BLE) に基づく.
- * 実機での確認は, まだ.
+ * 並びは SwitchBot の公開仕様 (OpenWonderLabs/SwitchBotAPI-BLE) に基づく.
+ * 実機での確認はまだ.
  */
 
 #include <zephyr/bluetooth/addr.h>
@@ -26,7 +26,7 @@
 
 /** 屋外用温湿度計の機種コード (サービスデータの先頭. ASCII の 'w') */
 #define SWITCHBOT_MODEL_OUTDOOR   0x77U
-/** 電池残量が, わからないことを示す値 */
+/** 電池残量がわからないことを示す値 */
 #define SWITCHBOT_BATTERY_UNKNOWN (-1)
 /** 同時に扱える機器の数 */
 #define SWITCHBOT_MAX_DEVICES     4U
