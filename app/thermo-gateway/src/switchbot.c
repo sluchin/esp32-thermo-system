@@ -53,59 +53,9 @@ struct sb_device {
 /** 機器ごとの記録 */
 static struct sb_device devices[SWITCHBOT_MAX_DEVICES];
 
-/**
- * サービスデータ (機種と電池残量) を解析する
- *
- * @param[in]  data UUID のあとから
- * @param[in]  len  data の長さ
- * @param[out] out  解析の結果
- * @return 長さが足りていれば true
- */
-static bool parse_service_data(const uint8_t *data, uint8_t len, struct switchbot_ad *out)
-{
-    if (len < SERVICE_PAYLOAD_LEN) {
-        return false;
-    }
-    out->kind = SWITCHBOT_INFO;
-    out->model = data[0] & LOW7_MASK;
-    out->battery = data[2] & LOW7_MASK;
-
-    return true;
-}
-
-/**
- * 製造者データ (温度と湿度) を解析する
- *
- * 温度は整数部 (下位 7 bit. 最上位が 1 なら 0 ℃ 以上) と, 小数部 (別の byte の下位 4 bit) から
- * 作る. 湿度は下位 7 bit.
- *
- * @param[in]  data 会社 ID のあとから
- * @param[in]  len  data の長さ
- * @param[out] out  解析の結果
- * @return 長さが足りていて, 湿度が範囲内なら true
- */
-static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct switchbot_ad *out)
-{
-    const uint8_t *env = &data[MFR_ENV_OFFSET]; /* 環境データの先頭 */
-    int16_t magnitude = 0;                      /* 温度の絶対値 [℃ の 10 倍] */
-    uint8_t humidity = 0U;                      /* 湿度 [%] */
-
-    if (len < MFR_PAYLOAD_LEN) {
-        return false;
-    }
-
-    humidity = env[2] & LOW7_MASK;
-    if (humidity > HUMIDITY_MAX) {
-        return false;
-    }
-
-    magnitude = (int16_t)(((env[1] & LOW7_MASK) * 10) + (env[0] & DECIMAL_MASK));
-    out->kind = SWITCHBOT_ENV;
-    out->temp_x10 = (((env[1] & SIGN_POSITIVE_BIT) != 0U) ? magnitude : (int16_t)-magnitude);
-    out->humidity = humidity;
-
-    return true;
-}
+static bool parse_service_data(const uint8_t *data, uint8_t len, struct switchbot_ad *out);
+static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct switchbot_ad *out);
+static struct sb_device *find_device(const bt_addr_le_t *addr);
 
 /**
  * @brief アドバタイズデータの 1 要素を解析する
@@ -129,36 +79,6 @@ bool switchbot_parse(uint8_t type, const uint8_t *data, uint8_t len, struct swit
     }
 
     return false;
-}
-
-/**
- * アドレスの機器の記録を探す (なければ, 使っていない記録を割り当てる)
- *
- * @param[in] addr 機器のアドレス
- * @return 記録. 全て使っていて, 見つからなければ NULL
- */
-static struct sb_device *find_device(const bt_addr_le_t *addr)
-{
-    struct sb_device *free_slot = NULL; /* 空いているスロット */
-    size_t i = 0U;                      /* ループ用の添字 */
-
-    for (i = 0U; i < ARRAY_SIZE(devices); i++) {
-        if (devices[i].used && bt_addr_le_eq(&devices[i].addr, addr)) {
-            return &devices[i];
-        }
-        if (!devices[i].used && (free_slot == NULL)) {
-            free_slot = &devices[i];
-        }
-    }
-
-    if (free_slot != NULL) {
-        (void)memset(free_slot, 0, sizeof(*free_slot));
-        bt_addr_le_copy(&free_slot->addr, addr);
-        free_slot->used = true;
-        free_slot->battery = SWITCHBOT_BATTERY_UNKNOWN;
-    }
-
-    return free_slot;
 }
 
 /**
@@ -217,4 +137,88 @@ bool switchbot_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad, u
 void switchbot_reset(void)
 {
     (void)memset(devices, 0, sizeof(devices));
+}
+
+/**
+ * サービスデータ (機種と電池残量) を解析する
+ *
+ * @param[in]  data UUID のあとから
+ * @param[in]  len  data の長さ
+ * @param[out] out  解析の結果
+ * @return 長さが足りていれば true
+ */
+static bool parse_service_data(const uint8_t *data, uint8_t len, struct switchbot_ad *out)
+{
+    if (len < SERVICE_PAYLOAD_LEN) {
+        return false;
+    }
+    out->kind = SWITCHBOT_INFO;
+    out->model = data[0] & LOW7_MASK;
+    out->battery = data[2] & LOW7_MASK;
+
+    return true;
+}
+
+/**
+ * 製造者データ (温度と湿度) を解析する
+ *
+ * 温度は整数部 (下位 7 bit. 最上位が 1 なら 0 ℃ 以上) と, 小数部 (別の byte の下位 4 bit) から
+ * 作る. 湿度は下位 7 bit.
+ *
+ * @param[in]  data 会社 ID のあとから
+ * @param[in]  len  data の長さ
+ * @param[out] out  解析の結果
+ * @return 長さが足りていて, 湿度が範囲内なら true
+ */
+static bool parse_manufacturer_data(const uint8_t *data, uint8_t len, struct switchbot_ad *out)
+{
+    const uint8_t *env = &data[MFR_ENV_OFFSET]; /* 環境データの先頭 */
+    int16_t magnitude = 0;                      /* 温度の絶対値 [℃ の 10 倍] */
+    uint8_t humidity = 0U;                      /* 湿度 [%] */
+
+    if (len < MFR_PAYLOAD_LEN) {
+        return false;
+    }
+
+    humidity = env[2] & LOW7_MASK;
+    if (humidity > HUMIDITY_MAX) {
+        return false;
+    }
+
+    magnitude = (int16_t)(((env[1] & LOW7_MASK) * 10) + (env[0] & DECIMAL_MASK));
+    out->kind = SWITCHBOT_ENV;
+    out->temp_x10 = (((env[1] & SIGN_POSITIVE_BIT) != 0U) ? magnitude : (int16_t)-magnitude);
+    out->humidity = humidity;
+
+    return true;
+}
+
+/**
+ * アドレスの機器の記録を探す (なければ, 使っていない記録を割り当てる)
+ *
+ * @param[in] addr 機器のアドレス
+ * @return 記録. 全て使っていて, 見つからなければ NULL
+ */
+static struct sb_device *find_device(const bt_addr_le_t *addr)
+{
+    struct sb_device *free_slot = NULL; /* 空いているスロット */
+    size_t i = 0U;                      /* ループ用の添字 */
+
+    for (i = 0U; i < ARRAY_SIZE(devices); i++) {
+        if (devices[i].used && bt_addr_le_eq(&devices[i].addr, addr)) {
+            return &devices[i];
+        }
+        if (!devices[i].used && (free_slot == NULL)) {
+            free_slot = &devices[i];
+        }
+    }
+
+    if (free_slot != NULL) {
+        (void)memset(free_slot, 0, sizeof(*free_slot));
+        bt_addr_le_copy(&free_slot->addr, addr);
+        free_slot->used = true;
+        free_slot->battery = SWITCHBOT_BATTERY_UNKNOWN;
+    }
+
+    return free_slot;
 }

@@ -29,33 +29,7 @@ static volatile bool synced;
 /** 前回の同期の時刻 (k_uptime_get() の値 [ms]) */
 static int64_t last_sync_ms;
 
-/**
- * サーバの名前を解決する
- *
- * @param[in]  server ホスト名
- * @param[out] addr   アドレスの保存先
- * @param[out] len    アドレスの長さの保存先
- * @retval EXIT_SUCCESS  成功
- * @retval -EHOSTUNREACH 名前を解決できなかった
- */
-static int resolve_server(const char *server, struct sockaddr_storage *addr, socklen_t *len)
-{
-    /* 名前解決の条件 (UDP) */
-    struct zsock_addrinfo hints = {.ai_family = AF_INET, .ai_socktype = SOCK_DGRAM};
-    struct zsock_addrinfo *res = NULL;                           /* 名前解決の結果 */
-    int err = zsock_getaddrinfo(server, NTP_PORT, &hints, &res); /* エラーコード */
-
-    if (err != 0) {
-        LOG_ERR("Resolving '%s' failed (err %d)", server, err);
-        return -EHOSTUNREACH;
-    }
-
-    (void)memcpy(addr, res->ai_addr, res->ai_addrlen);
-    *len = res->ai_addrlen;
-    zsock_freeaddrinfo(res);
-
-    return EXIT_SUCCESS;
-}
+static int resolve_server(const char *server, struct sockaddr_storage *addr, socklen_t *len);
 
 /**
  * @brief NTP サーバに問い合わせて, システム時計を合わせる
@@ -143,6 +117,34 @@ int ntp_unix_time(int64_t *sec)
     /* 戻り値は時計の種類が違うときだけ, 負. 違わないので見ない */
     (void)sys_clock_gettime(SYS_CLOCK_REALTIME, &now);
     *sec = (int64_t)now.tv_sec;
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * サーバの名前を解決する
+ *
+ * @param[in]  server ホスト名
+ * @param[out] addr   アドレスの保存先
+ * @param[out] len    アドレスの長さの保存先
+ * @retval EXIT_SUCCESS  成功
+ * @retval -EHOSTUNREACH 名前を解決できなかった
+ */
+static int resolve_server(const char *server, struct sockaddr_storage *addr, socklen_t *len)
+{
+    /* 名前解決の条件 (UDP) */
+    struct zsock_addrinfo hints = {.ai_family = AF_INET, .ai_socktype = SOCK_DGRAM};
+    struct zsock_addrinfo *res = NULL;                           /* 名前解決の結果 */
+    int err = zsock_getaddrinfo(server, NTP_PORT, &hints, &res); /* エラーコード */
+
+    if (err != 0) {
+        LOG_ERR("Resolving '%s' failed (err %d)", server, err);
+        return -EHOSTUNREACH;
+    }
+
+    (void)memcpy(addr, res->ai_addr, res->ai_addrlen);
+    *len = res->ai_addrlen;
+    zsock_freeaddrinfo(res);
 
     return EXIT_SUCCESS;
 }

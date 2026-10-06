@@ -42,25 +42,10 @@ static const struct bt_data sd[] = {
 /** 温度の特性の値 (ADC の生値). 読み取り (read) で返す */
 static uint16_t temperature_raw;
 
-/**
- * 温度の特性の読み取り (read) のコールバック
- *
- * @param[in] conn 接続
- * @param[in] attr 特性の値の属性
- * @param[out] buf 値を書き込むバッファ
- * @param[in] len バッファの大きさ
- * @param[in] offset 読み取りの開始位置
- * @return 読み取った大きさ (失敗なら, 負の ATT エラー)
- */
 static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
-                                uint16_t len, uint16_t offset)
-{
-    uint16_t value = sys_cpu_to_le16(temperature_raw); /* 温度 (リトルエンディアン) */
-
-    LOG_HEXDUMP_DBG(&value, sizeof(value), "Read response");
-
-    return bt_gatt_attr_read(conn, attr, buf, len, offset, &value, sizeof(value));
-}
+                                uint16_t len, uint16_t offset);
+static void connected(struct bt_conn *conn, uint8_t err);
+static void disconnected(struct bt_conn *conn, uint8_t reason);
 
 /**
  * Thermo サービスの属性
@@ -79,43 +64,6 @@ static struct bt_gatt_attr thermo_attrs[] = {
 
 /** Thermo サービス */
 static struct bt_gatt_service thermo_service = BT_GATT_SERVICE(thermo_attrs);
-
-/**
- * 接続のコールバック
- *
- * @param[in] conn 接続
- * @param[in] err 接続の結果 (0 なら成功)
- */
-static void connected(struct bt_conn *conn, uint8_t err)
-{
-    ARG_UNUSED(conn);
-
-    if (err != 0U) {
-        LOG_ERR("Connection failed (err 0x%02x)", err);
-        return;
-    }
-    LOG_INF("Connected");
-}
-
-/**
- * 切断のコールバック (接続が切れたら, ゲートウェイから検出されるよう, アドバタイズを再開する)
- *
- * @param[in] conn 接続
- * @param[in] reason 切断の理由
- */
-static void disconnected(struct bt_conn *conn, uint8_t reason)
-{
-    int err = EXIT_SUCCESS; /* エラーコード */
-
-    ARG_UNUSED(conn);
-
-    LOG_INF("Disconnected (reason 0x%02x)", reason);
-
-    err = ble_advertise();
-    if (err != EXIT_SUCCESS) {
-        LOG_ERR("Failed to restart advertising (err %d)", err);
-    }
-}
 
 /** 接続のコールバック */
 static struct bt_conn_cb conn_callbacks = {
@@ -212,4 +160,61 @@ int ble_notify_temperature(uint16_t raw)
     }
 
     return EXIT_SUCCESS;
+}
+
+/**
+ * 温度の特性の読み取り (read) のコールバック
+ *
+ * @param[in] conn 接続
+ * @param[in] attr 特性の値の属性
+ * @param[out] buf 値を書き込むバッファ
+ * @param[in] len バッファの大きさ
+ * @param[in] offset 読み取りの開始位置
+ * @return 読み取った大きさ (失敗なら, 負の ATT エラー)
+ */
+static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
+                                uint16_t len, uint16_t offset)
+{
+    uint16_t value = sys_cpu_to_le16(temperature_raw); /* 温度 (リトルエンディアン) */
+
+    LOG_HEXDUMP_DBG(&value, sizeof(value), "Read response");
+
+    return bt_gatt_attr_read(conn, attr, buf, len, offset, &value, sizeof(value));
+}
+
+/**
+ * 接続のコールバック
+ *
+ * @param[in] conn 接続
+ * @param[in] err 接続の結果 (0 なら成功)
+ */
+static void connected(struct bt_conn *conn, uint8_t err)
+{
+    ARG_UNUSED(conn);
+
+    if (err != 0U) {
+        LOG_ERR("Connection failed (err 0x%02x)", err);
+        return;
+    }
+    LOG_INF("Connected");
+}
+
+/**
+ * 切断のコールバック (接続が切れたら, ゲートウェイから検出されるよう, アドバタイズを再開する)
+ *
+ * @param[in] conn 接続
+ * @param[in] reason 切断の理由
+ */
+static void disconnected(struct bt_conn *conn, uint8_t reason)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    ARG_UNUSED(conn);
+
+    LOG_INF("Disconnected (reason 0x%02x)", reason);
+
+    err = ble_advertise();
+    if (err != EXIT_SUCCESS) {
+        LOG_ERR("Failed to restart advertising (err %d)", err);
+    }
 }
