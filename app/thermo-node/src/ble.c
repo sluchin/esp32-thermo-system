@@ -56,6 +56,7 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
                                 uint16_t len, uint16_t offset)
 {
     uint16_t value = sys_cpu_to_le16(temperature_raw); /* 温度 (リトルエンディアン) */
+
     LOG_HEXDUMP_DBG(&value, sizeof(value), "Read response");
 
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &value, sizeof(value));
