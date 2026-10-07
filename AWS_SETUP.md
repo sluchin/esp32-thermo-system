@@ -2,7 +2,7 @@
 
 Thermo Gateway は、BLE で受信した温度 (ADC の生値) を、WiFi と MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に送ります。このドキュメントは、AWS 側の準備と、ゲートウェイの設定の手順です。
 
-> **注意**: この機能は、単体テスト (モック) とビルドまでを確認しています。実機と AWS IoT Core には、まだつないでいません (確認する項目は [TODO.md](TODO.md))。手順の中の、`cred` コマンドの入力方法と、TLS のメモリ設定は、実機で調整が必要になるかもしれません。
+> **注意**: 実機 (XIAO ESP32C3) で、WiFi、SNTP、TLS (相互認証)、MQTT の接続まで確認しました (外付けアンテナあり)。AWS IoT Core にメッセージが届くことの確認は、[TODO.md](TODO.md) を参照してください。
 
 ## 1. 送信されるデータ
 
@@ -117,7 +117,22 @@ cred add 1 CA default strt
 - `Ctrl-C` で、`Stored N bytes.` と出れば、バッファに入っています。
 - `strt` は、文字列で、末尾に NUL を付ける指定です (mbedTLS が PEM を読むのに必要です)。
 - バッファは、`CONFIG_TLS_CREDENTIALS_SHELL_CRED_BUF_SIZE` (2048 バイト) です。PEM が、これより長いと、エラーになります。
-- シェルの受信バッファが小さい (64 バイト) ので、貼り付けの途中で、文字が欠けるかもしれません。`Stored N bytes.` の N が、PEM のサイズ (`wc -c` の値) と合うか、確認してください。
+- シェルの受信バッファが小さい (64 バイト) ので、貼り付けると、文字が欠けて、`RX ring buffer full` と出ます。貼り付けず、次のスクリプトで、PC から、ゆっくり送ってください。
+
+#### スクリプトで送る (推奨)
+
+`scripts/send-cred.sh` が、`cred buf load` から `cred add` までを、1 行を 16 文字ずつに分けて、送ります (1 つの PEM で、約 1 分かかります)。`picocom` などで、ポートを開いたままにしないでください。
+
+```bash
+scripts/send-cred.sh CA     AmazonRootCA1.pem /dev/ttyACM0
+scripts/send-cred.sh CLIENT device.pem.crt    /dev/ttyACM0
+scripts/send-cred.sh PK     private.pem.key   /dev/ttyACM0
+```
+
+- 出力の `Stored N bytes.` の N が、`wc -c <ファイル>` の値と同じか、確認してください。
+- 登録済みの種類は、先に `cred del 1 CA` (`CLIENT`、`PK`) で消します。
+- PEM の改行は、LF だけにします (JSON の `\n` は、`jq -r` で、改行に直します)。CR が混ざると、mbedTLS が読めません。
+- 証明書と秘密鍵は、リポジトリに置いたままにしません (コミットしない)。
 
 登録できたか確認します。
 
@@ -158,12 +173,24 @@ thermo apply
 |:---|:---|
 | `WiFi connection failed` | SSID とパスワードを確認する。2.4 GHz のネットワークを使う (ESP32C3 は 5 GHz に対応していない) |
 | `Resolving '...' failed` | エンドポイントの値を確認する (`thermo show`)。ネットワークが、インターネットにつながっているか確認する |
+| `MQTT connect failed (err -116)` | TLS のハンドシェイクが、時間内に終わらない。ESP32C3 は、RSA と ECDH の計算に、数秒かかる (`prj.conf` の `CONFIG_NET_SOCKETS_CONNECT_TIMEOUT` は、30000 ms)。電波が弱いときも出る (外付けアンテナを付ける) |
+| `MQTT connect failed (err -22)` | 証明書か鍵が、読めない。PEM の形式 (`CONFIG_MBEDTLS_PEM_CERTIFICATE_FORMAT`)、登録したサイズを確認する |
 | `MQTT connect failed (err -...)` | TLS のハンドシェイクの失敗。証明書の登録 (`cred list`)、ルート CA の種類 (`AmazonRootCA1.pem` か)、エンドポイントが ATS か、を確認する。メモリ不足 (`-ENOMEM` など) なら、`prj.conf` の `CONFIG_MBEDTLS_HEAP_SIZE` を増やす (RAM に余裕がないので、ほかを減らす必要がある) |
 | `MQTT CONNACK not received` / `MQTT connection refused` | ポリシーが、クライアント ID と、証明書に、合っていない。AWS IoT の「モニタリング → ログ」で、拒否の理由を確認する |
 | 接続できているが、メッセージが届かない | トピックが、ポリシーの `topic/thermo/gateway-01/*` に合っているか確認する (`client_id` を変えたら、ポリシーも変える) |
 | 接続が、何度も切れる | WiFi の電波と、BLE との干渉を確認する。ログの `MQTT connection lost (err ...)` の値を見る |
 
 失敗したときは、5 秒、10 秒、20 秒、40 秒、60 秒 (上限) の間隔で、つなぎ直します。
+
+### 5.1 TLS の設定 (実機で調整したもの)
+
+AWS IoT Core の相互認証のために、`prj.conf` に、次の設定を入れています。
+
+- `CONFIG_MBEDTLS_PEM_CERTIFICATE_FORMAT`: PEM の証明書と鍵を読む。
+- ECDHE-RSA と AES-GCM (`CONFIG_MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED` など)。AWS IoT Core の既定のポリシーは、これが必要。PSA 暗号 (`CONFIG_PSA_WANT_*`) も、あわせて有効にする (RSA の署名、SHA-256、TLS 1.2 の PRF、ECDH、GCM)。足りないと、`-0x2700` (証明書の確認の失敗) や、`-0x7F80` (鍵の導出の失敗) が出る。
+- `CONFIG_MBEDTLS_SSL_MAX_CONTENT_LEN=6144`: サーバの証明書のチェーンが、約 5 KB ある。4096 では、`-0x7100` (`requesting more data than fits`) で失敗する。
+- `CONFIG_NET_SOCKETS_CONNECT_TIMEOUT=30000`: ハンドシェイクの時間制限。
+- デバッグ: `west build ... -- -DCONFIG_NET_LOG=y -DCONFIG_NET_SOCKETS_LOG_LEVEL_ERR=y -DCONFIG_MBEDTLS_DEBUG=y -DCONFIG_MBEDTLS_LOG_LEVEL_ERR=y` で、TLS のエラーが出る。ログを全て (DBG) 出すと、スタックが足りなくなって、クラッシュすることがある。
 
 ## 6. 制限事項
 
