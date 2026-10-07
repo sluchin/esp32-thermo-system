@@ -298,7 +298,7 @@ static bool parse_ad(struct bt_data *data, void *user_data)
 }
 
 /**
- * 通知のコールバック (ノードが送った温度を受信する)
+ * 通知のコールバック (ノードが送った温度と湿度を受信する)
  *
  * @param[in] conn 接続
  * @param[in,out] params 購読のパラメータ
@@ -309,7 +309,8 @@ static bool parse_ad(struct bt_data *data, void *user_data)
 static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
                          const void *data, uint16_t length)
 {
-    uint16_t raw = 0U; /* 温度 (ADC の生値) */
+    int16_t temp_x10 = 0;      /* 温度 [℃ の 10 倍] */
+    uint16_t humidity_x10 = 0; /* 湿度 [% の 10 倍] */
 
     if (data == NULL) {
         LOG_INF("Unsubscribed");
@@ -323,9 +324,11 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
         return BT_GATT_ITER_CONTINUE;
     }
 
-    raw = sys_get_le16((const uint8_t *)data);
+    /* 温度 (int16) と湿度 (uint16) が, この順に, 2 byte ずつ, リトルエンディアンで並んでいる */
+    temp_x10 = (int16_t)sys_get_le16((const uint8_t *)data);
+    humidity_x10 = sys_get_le16((const uint8_t *)data + sizeof(uint16_t));
     if (temperature_cb != NULL) {
-        temperature_cb(bt_conn_get_dst(conn), raw);
+        temperature_cb(bt_conn_get_dst(conn), temp_x10, humidity_x10);
     }
 
     return BT_GATT_ITER_CONTINUE;

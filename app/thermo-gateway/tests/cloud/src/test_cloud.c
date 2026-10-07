@@ -471,15 +471,15 @@ ZTEST(cloud, test_step_waits_for_connack)
 /** 接続中はキューの温度をトピックとペイロードにして, QoS 1 で publish する */
 ZTEST(cloud, test_session_publishes_sample)
 {
-    zassert_equal(cloud_publish_temperature(&node, 2568U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 235, 450U), EXIT_SUCCESS);
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
-    /* トピックはクライアント ID とノードのアドレス. ペイロードはアドレス, 生値, 稼働時間 */
+    /* トピックはクライアント ID とノードのアドレス. ペイロードはアドレス, 温度, 稼働時間 */
     zassert_equal(mqtt_publish_fake.call_count, 1U);
     zassert_str_equal(published[0].topic, "thermo/gateway-01/00:AA:01:00:00:42/temperature");
     zassert_not_null(strstr(published[0].payload, "\"node\":\"00:AA:01:00:00:42\""));
-    zassert_not_null(strstr(published[0].payload, "\"raw\":2568,"));
+    zassert_not_null(strstr(published[0].payload, "\"temperature_c\":23.5,"));
     zassert_not_null(strstr(published[0].payload, "\"uptime_ms\":"));
     zassert_equal(published[0].qos, MQTT_QOS_1_AT_LEAST_ONCE);
     zassert_not_equal(published[0].message_id, 0U);
@@ -505,7 +505,7 @@ ZTEST(cloud, test_session_publishes_timestamp)
     long long ts = 0;
 
     ntp_unix_time_fake.custom_fake = fake_unix_time;
-    zassert_equal(cloud_publish_temperature(&node, 2568U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 235, 450U), EXIT_SUCCESS);
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
@@ -520,7 +520,7 @@ ZTEST(cloud, test_session_publishes_timestamp)
 /** 時計が合っていなければ, "timestamp" を payload に入れない */
 ZTEST(cloud, test_session_omits_timestamp_without_clock)
 {
-    zassert_equal(cloud_publish_temperature(&node, 2568U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 235, 450U), EXIT_SUCCESS);
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
@@ -531,9 +531,9 @@ ZTEST(cloud, test_session_omits_timestamp_without_clock)
 /** 複数の温度は順に publish して, メッセージ ID は 1 ずつ増える */
 ZTEST(cloud, test_session_publishes_in_order)
 {
-    zassert_equal(cloud_publish_temperature(&node, 100U), EXIT_SUCCESS);
-    zassert_equal(cloud_publish_temperature(&node, 200U), EXIT_SUCCESS);
-    zassert_equal(cloud_publish_temperature(&node, 300U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 100, 450U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 200, 450U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 300, 450U), EXIT_SUCCESS);
     /* 3 回の確認 (mqtt_live) で接続中の処理が終わる (1 回の確認でキューから 1 件送る) */
     connect_and_run_for(3U);
 
@@ -541,9 +541,9 @@ ZTEST(cloud, test_session_publishes_in_order)
 
     /* キューに入れた順に送られる */
     zassert_equal(mqtt_publish_fake.call_count, 3U);
-    zassert_not_null(strstr(published[0].payload, "\"raw\":100,"));
-    zassert_not_null(strstr(published[1].payload, "\"raw\":200,"));
-    zassert_not_null(strstr(published[2].payload, "\"raw\":300,"));
+    zassert_not_null(strstr(published[0].payload, "\"temperature_c\":10.0,"));
+    zassert_not_null(strstr(published[1].payload, "\"temperature_c\":20.0,"));
+    zassert_not_null(strstr(published[2].payload, "\"temperature_c\":30.0,"));
     /* メッセージ ID は 1 ずつ増える */
     zassert_equal(published[1].message_id, published[0].message_id + 1U);
     zassert_equal(published[2].message_id, published[1].message_id + 1U);
@@ -556,9 +556,9 @@ ZTEST(cloud, test_publish_queue_full)
 
     for (i = 0U; i < QUEUE_LEN; i++) {
         /* 期待: 満杯のキューは, 新しい温度を捨てて -ENOMSG. 残りの 16 件はあとで送られる */
-        zassert_equal(cloud_publish_temperature(&node, (uint16_t)i), EXIT_SUCCESS);
+        zassert_equal(cloud_publish_temperature(&node, (int16_t)i, 450U), EXIT_SUCCESS);
     }
-    zassert_equal(cloud_publish_temperature(&node, 999U), -ENOMSG);
+    zassert_equal(cloud_publish_temperature(&node, 999, 450U), -ENOMSG);
 
     drain_queue();
     zassert_equal(mqtt_publish_fake.call_count, QUEUE_LEN);
@@ -579,7 +579,7 @@ ZTEST(cloud, test_session_publish_failure)
 {
     uint32_t start = k_uptime_get_32(); /* 開始時刻 [ms] */
 
-    zassert_equal(cloud_publish_temperature(&node, 1U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 1, 450U), EXIT_SUCCESS);
     mqtt_publish_fake.custom_fake = NULL;
     mqtt_publish_fake.return_val = -EIO;
 
@@ -599,7 +599,7 @@ ZTEST(cloud, test_session_format_failure)
     (void)memset(long_id, 'x', sizeof(long_id) - 1U);
     client_id = long_id;
     /* 期待: トピックがバッファに入らなければ -ENOSPC で, publish しない */
-    zassert_equal(cloud_publish_temperature(&node, 1U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 1, 450U), EXIT_SUCCESS);
 
     zassert_equal(cloud_step(), -ENOSPC);
     zassert_equal(mqtt_publish_fake.call_count, 0U);
@@ -892,9 +892,9 @@ ZTEST(cloud, test_session_publishes_mixed_in_order)
     /* テスト用のサンプル */
     const struct switchbot_sample sample = {.temp_x10 = 235, .humidity = 55U, .battery = 87};
 
-    zassert_equal(cloud_publish_temperature(&node, 100U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 100, 450U), EXIT_SUCCESS);
     zassert_equal(cloud_publish_switchbot(&node, &sample), EXIT_SUCCESS);
-    zassert_equal(cloud_publish_temperature(&node, 300U), EXIT_SUCCESS);
+    zassert_equal(cloud_publish_temperature(&node, 300, 450U), EXIT_SUCCESS);
     connect_and_run_for(3U);
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);

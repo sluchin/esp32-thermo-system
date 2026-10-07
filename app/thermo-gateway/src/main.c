@@ -12,12 +12,14 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <stdbool.h> /* true */
+#include <stdint.h>  /* int16_t uint16_t */
 #include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE */
 
 #include "ble.h"
 #ifdef CONFIG_THERMO_CLOUD
 #include "cloud.h"
 #endif
+#include "thermo_ble_uuid.h"
 #include "thermo_log.h"
 
 LOG_MODULE_REGISTER(thermo_gateway, THERMO_LOG_LEVEL);
@@ -25,7 +27,7 @@ LOG_MODULE_REGISTER(thermo_gateway, THERMO_LOG_LEVEL);
 /** 稼働状況をログ出力する間隔 [s] */
 #define STATUS_INTERVAL_S 10
 
-static void on_temperature(const bt_addr_le_t *addr, uint16_t raw);
+static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10);
 static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad);
 
 /**
@@ -87,25 +89,35 @@ int main(void)
 }
 
 /**
- * 温度を受信したときのコールバック (ログに出力して, AWS IoT Core への送信のキューに入れる)
+ * 温度と湿度を受信したときのコールバック (ログに出力して, AWS IoT Core への送信のキューに入れる)
  *
  * Bluetooth のスレッドから呼ばれる.
  *
- * @param[in] addr 温度を送ったノードのアドレス
- * @param[in] raw 温度 (ADC の生値)
+ * @param[in] addr         値を送ったノードのアドレス
+ * @param[in] temp_x10     温度 [℃ の 10 倍]
+ * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
  */
-static void on_temperature(const bt_addr_le_t *addr, uint16_t raw)
+static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10)
 {
     char addr_str[BT_ADDR_LE_STR_LEN] = {0}; /* アドレスの文字列 */
+    int temp = temp_x10;                     /* 温度 [℃ の 10 倍] */
+    /* 0 ℃ 未満は整数部が 0 でも (-0.5 など) 符号を出すため, 符号を別に出力する */
+    const char *sign = ((temp < 0) ? "-" : "");                         /* 符号 */
+    unsigned int magnitude = (unsigned int)((temp < 0) ? -temp : temp); /* 絶対値 */
 #ifdef CONFIG_THERMO_CLOUD
     int ret = EXIT_SUCCESS; /* 戻り値 */
 #endif
 
     (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
-    LOG_INF("Temperature from %s: %u (raw ADC value)", addr_str, raw);
+    if (humidity_x10 == THERMO_HUMIDITY_NONE) {
+        LOG_INF("Temperature from %s: %s%u.%u C", addr_str, sign, magnitude / 10U, magnitude % 10U);
+    } else {
+        LOG_INF("Temperature from %s: %s%u.%u C, humidity: %u.%u %%", addr_str, sign,
+                magnitude / 10U, magnitude % 10U, humidity_x10 / 10U, humidity_x10 % 10U);
+    }
 
 #ifdef CONFIG_THERMO_CLOUD
-    ret = cloud_publish_temperature(addr, raw);
+    ret = cloud_publish_temperature(addr, temp_x10, humidity_x10);
     if (ret != EXIT_SUCCESS) {
         LOG_WRN("The temperature was not queued for AWS IoT Core (err %d)", ret);
     }

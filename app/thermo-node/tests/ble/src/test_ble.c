@@ -32,15 +32,17 @@
 DEFINE_FFF_GLOBALS
 
 /** 期待するデバイス名 (CMakeLists.txt で定義) */
-#define EXPECTED_NAME "Thermo-Node"
+#define EXPECTED_NAME     "Thermo-Node"
 /** アドバタイズデータの数 (フラグ, 名前) */
-#define AD_COUNT      2U
+#define AD_COUNT          2U
 /** GATT サービスの属性の数 (サービス, 特性の宣言, 特性の値, CCC) */
-#define ATTR_COUNT    4U
+#define ATTR_COUNT        4U
 /** 特性の値の属性の位置 */
-#define ATTR_VALUE    2U
-/** テストで使う温度の生値 */
-#define TEST_RAW      0x04D2U
+#define ATTR_VALUE        2U
+/** テストで使う温度 [℃ の 10 倍] (-3.5 ℃. 下位 byte が 0xDD, 上位 byte が 0xFF) */
+#define TEST_TEMP_X10     (-35)
+/** テストで使う湿度 [% の 10 倍] (45.0 %. 下位 byte が 0xC2, 上位 byte が 0x01) */
+#define TEST_HUMIDITY_X10 450U
 
 /* FAKE_*: FFF のモック (実物の代わりの関数. 呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, bt_enable, bt_ready_cb_t)
@@ -296,7 +298,8 @@ ZTEST(ble_node, test_service_attributes)
     zassert_equal(BT_UUID_16(attrs[3].uuid)->val, BT_UUID_GATT_CCC_VAL);
 }
 
-/** 温度の特性の読み取り (read) は最後に更新した温度を, 2 byte のリトルエンディアンで返す */
+/** 温度の特性の読み取り (read) は最後に更新した温度と湿度を, 2 byte ずつのリトルエンディアンで返す
+ */
 ZTEST(ble_node, test_read_temperature)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -304,37 +307,50 @@ ZTEST(ble_node, test_read_temperature)
     uint8_t buf[THERMO_TEMPERATURE_SIZE] = {0};                     /* 出力バッファ */
     ssize_t len = 0;                                                /* 長さ [バイト] */
 
-    /* 0 に更新したあとは, 0 (温度は ble.c の static 変数なので, 前のテストの値が残っている) */
-    zassert_equal(ble_notify_temperature(0U), EXIT_SUCCESS);
+    /* 0 に更新したあとは, 0 (値は ble.c の static 変数なので, 前のテストの値が残っている) */
+    zassert_equal(ble_notify_temperature(0, 0U), EXIT_SUCCESS);
     len = attr->read(NULL, attr, buf, sizeof(buf), 0);
     zassert_equal(len, THERMO_TEMPERATURE_SIZE);
     zassert_equal(buf[0], 0U);
     zassert_equal(buf[1], 0U);
+    zassert_equal(buf[2], 0U);
+    zassert_equal(buf[3], 0U);
 
-    /* 更新したあと (通知する相手がいなくても値は更新される) */
+    /* 更新したあと (通知する相手がいなくても値は更新される). 負の温度は 2 の補数 */
     bt_gatt_notify_cb_fake.return_val = -ENOTCONN;
-    zassert_equal(ble_notify_temperature(TEST_RAW), EXIT_SUCCESS);
+    zassert_equal(ble_notify_temperature(TEST_TEMP_X10, TEST_HUMIDITY_X10), EXIT_SUCCESS);
     len = attr->read(NULL, attr, buf, sizeof(buf), 0);
     zassert_equal(len, THERMO_TEMPERATURE_SIZE);
-    zassert_equal(buf[0], (uint8_t)(TEST_RAW & 0xFFU), "low byte");
-    zassert_equal(buf[1], (uint8_t)(TEST_RAW >> 8), "high byte");
+    zassert_equal(buf[0], 0xDDU, "temperature low byte");
+    zassert_equal(buf[1], 0xFFU, "temperature high byte");
+    zassert_equal(buf[2], 0xC2U, "humidity low byte");
+    zassert_equal(buf[3], 0x01U, "humidity high byte");
+
+    /* 湿度がないときは, 湿度が 0xFFFF */
+    zassert_equal(ble_notify_temperature(TEST_TEMP_X10, THERMO_HUMIDITY_NONE), EXIT_SUCCESS);
+    len = attr->read(NULL, attr, buf, sizeof(buf), 0);
+    zassert_equal(len, THERMO_TEMPERATURE_SIZE);
+    zassert_equal(buf[2], 0xFFU);
+    zassert_equal(buf[3], 0xFFU);
 
     /* 範囲外の位置からの読み取りは, エラー */
-    zassert_true(attr->read(NULL, attr, buf, sizeof(buf), 3) < 0);
+    zassert_true(attr->read(NULL, attr, buf, sizeof(buf), 5) < 0);
 }
 
-/** ble_notify_temperature() は特性の値の属性に温度 (リトルエンディアン) を通知する */
+/** ble_notify_temperature() は特性の値の属性に温度と湿度 (リトルエンディアン) を通知する */
 ZTEST(ble_node, test_notify_success)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
 
-    /* 期待: 温度の特性の値にリトルエンディアンの 2 byte で, 通知する */
-    zassert_equal(ble_notify_temperature(TEST_RAW), EXIT_SUCCESS);
+    /* 期待: 温度の特性の値に, 温度と湿度を, リトルエンディアンの 4 byte で, 通知する */
+    zassert_equal(ble_notify_temperature(TEST_TEMP_X10, TEST_HUMIDITY_X10), EXIT_SUCCESS);
     zassert_equal(bt_gatt_notify_cb_fake.call_count, 1U);
     zassert_equal(notified.attr, &service->attrs[ATTR_VALUE]);
     zassert_equal(notified.len, THERMO_TEMPERATURE_SIZE);
-    zassert_equal(notified.data[0], (uint8_t)(TEST_RAW & 0xFFU));
-    zassert_equal(notified.data[1], (uint8_t)(TEST_RAW >> 8));
+    zassert_equal(notified.data[0], 0xDDU);
+    zassert_equal(notified.data[1], 0xFFU);
+    zassert_equal(notified.data[2], 0xC2U);
+    zassert_equal(notified.data[3], 0x01U);
 }
 
 /** 接続しているゲートウェイがいなくても (ENOTCONN), 成功を返す */
@@ -344,7 +360,7 @@ ZTEST(ble_node, test_notify_not_connected)
     bt_gatt_notify_cb_fake.return_val = -ENOTCONN;
 
     /* 期待: 接続している相手がいなければ (-ENOTCONN), 成功として扱う */
-    zassert_equal(ble_notify_temperature(TEST_RAW), EXIT_SUCCESS);
+    zassert_equal(ble_notify_temperature(TEST_TEMP_X10, TEST_HUMIDITY_X10), EXIT_SUCCESS);
     zassert_equal(bt_gatt_notify_cb_fake.call_count, 1U);
 }
 
@@ -355,7 +371,7 @@ ZTEST(ble_node, test_notify_failure)
     bt_gatt_notify_cb_fake.return_val = -EIO;
 
     /* 期待: ほかの失敗はそのエラーを返す */
-    zassert_equal(ble_notify_temperature(TEST_RAW), -EIO);
+    zassert_equal(ble_notify_temperature(TEST_TEMP_X10, TEST_HUMIDITY_X10), -EIO);
 }
 
 /** ble_advertise() は接続可能なアドバタイズを, フラグと名前のデータ付きで始める */

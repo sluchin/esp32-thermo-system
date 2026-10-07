@@ -9,7 +9,7 @@
 
 /**
  * @file
- * @brief thermo-node と thermo-gateway で共有する BLE の UUID と, 温度データの形式
+ * @brief thermo-node と thermo-gateway で共有する BLE の UUID と, 温度と湿度のデータの形式
  *
  * ノードは Thermo サービス (GATT) を持ち, その中の温度の特性で温度を配信する.
  * ゲートウェイはスキャン応答に Thermo サービスの UUID を持つノードに接続して,
@@ -35,8 +35,12 @@
 /**
  * 温度の特性の値の大きさ [byte]
  *
- * 値は ADC の生値 (0 .. 4095) を 2 byte のリトルエンディアン (uint16) で表したもの.
+ * 値は, 温度 (int16. 10 分の 1 ℃ の単位. 例: 23.5 ℃ は 235) と, 湿度 (uint16. 10 分の 1 % の
+ * 単位. 例: 45.0 % は 450) を, それぞれ 2 byte のリトルエンディアンで, この順に並べたもの.
  */
-#define THERMO_TEMPERATURE_SIZE 2U
+#define THERMO_TEMPERATURE_SIZE 4U
+
+/** 湿度を測れない (センサに湿度がない) ことを示す値 (湿度の uint16 の最大値) */
+#define THERMO_HUMIDITY_NONE 0xFFFFU
 
 #endif /* THERMO_BLE_UUID_H */

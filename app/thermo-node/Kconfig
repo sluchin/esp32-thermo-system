@@ -5,4 +5,21 @@ config SIMULATOR
 	help
 	  Use simulated sensor data and log simulator mode at startup.
 
+config THERMO_ADC_MV_PER_DEG
+	int "ADC temperature sensor: millivolts per degree Celsius"
+	default 10
+	range 1 1000
+	help
+	  Used only when the temperature is read from an ADC channel
+	  (io-channels of zephyr,user). The default is for LM35
+	  (10 mV per degree Celsius).
+
+config THERMO_ADC_OFFSET_MV
+	int "ADC temperature sensor: voltage at 0 degrees Celsius [mV]"
+	default 0
+	range -2000 2000
+	help
+	  Used only when the temperature is read from an ADC channel.
+	  The default is for LM35 (0 mV at 0 degrees Celsius).
+
 source "Kconfig.zephyr"
