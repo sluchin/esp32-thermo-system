@@ -46,6 +46,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
    - `coverage` ジョブ: `coverage-thermo-node` / `coverage-thermo-gateway` (行と分岐のカバレッジが 100% であること)。
    - `analyze` ジョブ: `analyze-thermo-node` / `analyze-thermo-gateway` (静的解析。指摘があれば失敗する)。
    - `lint` ジョブ: `format-thermo` (整形の確認) / `lint-thermo` (checkpatch.pl) / `whitespace-thermo` (行末の空白の確認)。指摘があれば失敗する。
+   - `cleanup` ジョブ: 3 日より前の実行 (ログと artifact) を、push のたびに削除する (`gh api` で、実行を削除する。権限は `actions: write`)。artifact は、`retention-days: 3` で、3 日で期限が切れる。保存する期間を変えるときは、`build.yml` の `KEEP_DAYS` と、全ての `retention-days` を、そろえて変える。
    - Docker イメージは、レイヤーを GitHub Actions のキャッシュに保存する (`.github/actions/docker-image`)。ビルドコンテキストは `west.yml` だけなので、`Dockerfile` か `west.yml` を変えたときだけ、イメージを作り直す。
 3. PR マージ前に、`build` / `test` / `analyze` / `lint` の全ジョブの成功を確認。
 
