@@ -4,7 +4,8 @@
 
 - [x] **SwitchBot 屋外用温湿度計の、実機での確認**: 屋外用温湿度計 (Outdoor Meter) で、温度・湿度・電池残量が、SwitchBot のアプリの値と、合うことを確認した。他の SwitchBot の機種 (Meter、Meter Plus など) は、機種コードごとに並びが違うので、未対応。
 - [x] **AWS IoT Core への送信の、実機での確認**: 実機 (XIAO ESP32C3、外付けアンテナあり) で、WiFi、SNTP、TLS (相互認証)、MQTT の接続を確認して、SwitchBot の値が、10 秒ごとに、MQTT テストクライアントに届くことを確認した。手順は [AWS_SETUP.md](AWS_SETUP.md)。TLS の設定 (PEM、ECDHE-RSA、AES-GCM、PSA、バッファ 6144、時間制限 30 秒) は、[AWS_SETUP.md](AWS_SETUP.md) の 5.1。
-  - [ ] 残り: WiFi と BLE を同時に動かして、Thermo ノードの温度 (GATT の通知) が、欠けないか。外付けアンテナなしでは、WiFi が不安定 (アンテナは必須)。長時間 (数時間) 動かして、再接続とメモリ (`CONFIG_MBEDTLS_HEAP_SIZE`) を確認する。
+  - [ ] 残り: 長時間 (数時間) 動かして、再接続とメモリ (`CONFIG_MBEDTLS_HEAP_SIZE`) を確認する。(外付けアンテナなしでは、WiFi が不安定なので、アンテナは必須)
+- [ ] **Thermo ノードの実機での確認** (ノードの実機がないので、未着手。いまの実機での確認は、SwitchBot の受信と、AWS IoT Core への送信だけ): ADC の読取、BLE の配信、ゲートウェイの GATT 接続と通知の受信、ノードの温度の AWS IoT Core への送信 ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)、WiFi と BLE の同時動作で温度が欠けないか。
 - [ ] `native_sim` で、クラウドへの送信 (ローカルの Mosquitto など) を確認する。いまの `native_sim` は、`CONFIG_THERMO_CLOUD=n`。
 - [ ] **アドバタイズ方式** (BLE): ノードが、温度 (ADC の生値) を、アドバタイズデータ (製造者固有データ) に載せて送り、ゲートウェイは、接続せずに、スキャンだけで受信する。(2026-10-04)
   - 目的: 台数の制限をなくす。GATT 接続は、同時に接続できる台数に、上限がある (`ESP32_BT_CTLR_LE_MAX_CONN` は、既定で 3、設定できる範囲は 1〜9。WiFi と TLS を同時に動かすと、実際は 3〜5 台が目安)。
