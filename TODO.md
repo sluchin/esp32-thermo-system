@@ -5,14 +5,14 @@
 - [x] **SwitchBot 屋外用温湿度計の、実機での確認**: 屋外用温湿度計 (Outdoor Meter) で、温度・湿度・電池残量が、SwitchBot のアプリの値と、合うことを確認した。他の SwitchBot の機種 (Meter、Meter Plus など) は、機種コードごとに並びが違うので、未対応。
 - [x] **AWS IoT Core への送信の、実機での確認**: 実機 (XIAO ESP32C3、外付けアンテナあり) で、WiFi、SNTP、TLS (相互認証)、MQTT の接続を確認して、SwitchBot の値が、10 秒ごとに、MQTT テストクライアントに届くことを確認した。手順は [AWS_SETUP.md](AWS_SETUP.md)。TLS の設定 (PEM、ECDHE-RSA、AES-GCM、PSA、バッファ 6144、時間制限 30 秒) は、[AWS_SETUP.md](AWS_SETUP.md) の 5.1。
   - [ ] 残り: 長時間 (数時間) 動かして、再接続とメモリ (`CONFIG_MBEDTLS_HEAP_SIZE`) を確認する。(外付けアンテナなしでは、WiFi が不安定なので、アンテナは必須)
-- [ ] **Thermo ノードの実機での確認** (ノードの実機がないので、未着手。いまの実機での確認は、SwitchBot の受信と、AWS IoT Core への送信だけ): DHT11 の読取 (配線は [SETUP.md](SETUP.md))、BLE の配信、ゲートウェイの GATT 接続と通知の受信、ノードの温度の AWS IoT Core への送信 ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)、WiFi と BLE の同時動作で温度が欠けないか。
+- [ ] **Thermo ノードの実機での確認** (ノードの実機がないので、未着手。いまの実機での確認は、SwitchBot の受信と、AWS IoT Core への送信だけ): DHT11 の読取 (配線は [SETUP.md](SETUP.md)。D7)、BLE の配信、ゲートウェイの GATT 接続と通知の受信、ノードの温度の AWS IoT Core への送信 ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)、WiFi と BLE の同時動作で温度が欠けないか。
 - [ ] `native_sim` で、クラウドへの送信 (ローカルの Mosquitto など) を確認する。いまの `native_sim` は、`CONFIG_THERMO_CLOUD=n`。
 - [ ] **アドバタイズ方式** (BLE): ノードが、温度と湿度を、アドバタイズデータ (製造者固有データ) に載せて送り、ゲートウェイは、接続せずに、スキャンだけで受信する。(2026-10-04)
   - 目的: 台数の制限をなくす。GATT 接続は、同時に接続できる台数に、上限がある (`ESP32_BT_CTLR_LE_MAX_CONN` は、既定で 3、設定できる範囲は 1〜9。WiFi と TLS を同時に動かすと、実際は 3〜5 台が目安)。
   - まずは GATT 接続 + 通知で実装した。アドバタイズ方式は、あとで実装して、CMake のオプション (例: `-DTHERMO_BLE_MODE=gatt|advertising`) で、GATT 方式と切り替えられるようにする。
   - 注意点: アドバタイズは、届く保証がなく、盗聴やなりすましに弱い。連番 (欠落の検出) や、認証コード (なりすまし対策) を、ペイロードに入れるか検討する。
   - 切り替えるときの設計: ノードの `ble.c` と、ゲートウェイの `ble.c` を、方式ごとのファイルに分けて、同じヘッダ (`ble.h`) の関数 (`ble_init()` など) と、温度を受け取るコールバックを、共通にする。MQTT 側 (ゲートウェイ) は、方式に依存しない。
-- [x] **温湿度センサ (DHT11)**: ノードは、Zephyr のセンサ API で、DHT11 を読む (`app/thermo-node/boards/xiao_esp32c3.overlay`。D1 (GPIO3))。BLE の通知は、温度 (int16、0.1 ℃) と湿度 (uint16、0.1 %) の 4 バイトで、AWS には `temperature_c` と `humidity` を送る。単体テストは、偽のセンサで確認している。(実機での確認は、上の項目)
+- [x] **温湿度センサ (DHT11)**: ノードは、Zephyr のセンサ API で、DHT11 を読む (`app/thermo-node/boards/xiao_esp32c3.overlay`。D7 (GPIO20))。BLE の通知は、温度 (int16、0.1 ℃) と湿度 (uint16、0.1 %) の 4 バイトで、AWS には `temperature_c` と `humidity` を送る。単体テストは、偽のセンサで確認している。(実機での確認は、上の項目)
 - [ ] **ADC のアナログセンサ** (LM35 など) に替えるときの、実機での確認: 実装は、ある (オーバーレイの `thermo-sensor` を消して、`zephyr,user` の `io-channels` を書く。換算は `CONFIG_THERMO_ADC_MV_PER_DEG` と `CONFIG_THERMO_ADC_OFFSET_MV`。ADC エミュレータの単体テストで確認している)。センサを買ったら、実機で、換算の値を、確認する。
 - [ ] 実機の Bluetooth アダプタを使う `native_sim` の実行 (`--bt-dev=hciN`) を、docker compose のサービスにする。(`run-sim` は、仮想コントローラ `btvirt` で動く)
 - [ ] ビルドとテストの確認: 標準ヘッダとローカル変数の行末コメントを足した変更を、Docker と Zephyr の環境で、ビルドして、単体テストを実行する。(コメントだけの変更だが、未確認)。BLE の送受信の `LOG_HEXDUMP_DBG` の追加も、ビルドして、単体テストを実行して、確認する。
