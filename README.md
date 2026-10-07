@@ -124,7 +124,8 @@ west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-si
 
 ### デバッグログ
 
-`LOG_DBG` と `LOG_HEXDUMP_DBG` (BLE で送受信したデータの 16 進ダンプ) は、通常のビルドでは、コードごと消えます。有効にするときは、cmake のオプション `THERMO_DEBUG_LOG` を `ON` にして、ビルドします (`CONFIG_LOG_DEFAULT_LEVEL=4` になります)。
+`LOG_DBG` と `LOG_HEXDUMP_DBG` (BLE で送受信したデータの 16 進ダンプ) は、通常のビルドでは、コードごと消えます。有効にするときは、cmake のオプション `THERMO_DEBUG_LOG` を `ON` にして、ビルドします。
+アプリのソース (`app/thermo-*/src/`) だけに、`THERMO_LOG_LEVEL=4` (DBG) が付きます (`app/common/thermo_log.h`)。Zephyr のモジュール (Bluetooth、ネットワーク、mbedTLS など) は、`CONFIG_LOG_DEFAULT_LEVEL` (3) のままです。全体を DBG にすると、ログの量が多すぎて、スタックが足りなくなり、動かなくなるためです。Zephyr のモジュールのログが必要なときは、`-DCONFIG_NET_LOG=y -DCONFIG_NET_SOCKETS_LOG_LEVEL_ERR=y` などを、個別に足してください ([AWS_SETUP.md](AWS_SETUP.md) の 5.1 を参照)。
 
 ```bash
 # Docker: 環境変数 THERMO_DEBUG_LOG を ON にして、build-* のサービスを実行する (既定は OFF)
@@ -136,6 +137,8 @@ west build -p always -b xiao_esp32c3 app/thermo-node -- -DTHERMO_DEBUG_LOG=ON
 ```
 
 gateway がスキャンで受け取る広告データの 16 進ダンプは、大量に届くので、50 要素に 1 回だけ出します (`app/thermo-gateway/src/ble.c` の `ADV_HEXDUMP_EVERY`。`THERMO_DEBUG_LOG=ON` のときだけ有効)。
+
+ログの読み方 (16 進ダンプの見方、SwitchBot の受信から AWS への送信までの流れ) は、[DEBUG_LOG.md](DEBUG_LOG.md) を参照してください。
 
 設定を切り替えるときは、前のビルドが残っていると、反映されないことがあるので、ビルドのディレクトリ (`build/thermo-node` など) を削除してから、ビルドし直します (west は `-p always`)。
 
@@ -153,16 +156,31 @@ scripts/flash.sh gateway /dev/ttyACM0
 ## 機能
 
 ### Thermo Node
+> **実機での確認は、まだしていません** (Thermo ノードの実機がありません)。単体テスト (ADC エミュレータ、FFF のモック) と、`native_sim` のシミュレーションだけで確認しています。
+
 - ADC による温度センサ読取
 - BLE GATT サービスで温度データ配信
 - ログ出力（UART シリアルコンソール）
 
 ### Thermo Gateway
-- BLE スキャンで周辺ノードを検出して、GATT で接続し、温度 (ADC の生値) の通知を受信 (最大 3 台)
+- BLE スキャンで周辺ノードを検出して、GATT で接続し、温度 (ADC の生値) の通知を受信 (最大 3 台。ノードの実機がないので、実機では未確認)
 - SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズ (接続しない) を受信して、温度 (℃)・湿度・電池残量を、10 秒に 1 回、AWS IoT Core に送信
-- WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md))
+- WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](AWS_GRAPH.md))
 - WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存
 - デバッグシェル対応
+
+### 実機での動作確認の状況
+
+実機 (XIAO ESP32C3) は、Thermo Gateway の 1 台だけです。Thermo ノードの実機がないので、**確認できているのは、SwitchBot の受信と、AWS IoT Core への送信まで**です。
+
+| 項目 | 実機での確認 |
+|:---|:---|
+| SwitchBot 屋外用温湿度計の受信 (温度・湿度・電池残量) | 済み (SwitchBot のアプリの値と一致) |
+| WiFi、SNTP、TLS (相互認証)、MQTT で AWS IoT Core に接続 | 済み (外付けアンテナあり) |
+| SwitchBot の値が AWS IoT Core に届く (10 秒に 1 回) | 済み |
+| Thermo ノード (ADC の読取、BLE の配信) | **未確認** (実機がない) |
+| ゲートウェイが、ノードに GATT で接続して、温度を受信する | **未確認** (実機がない) |
+| ノードの温度が AWS IoT Core に届く | **未確認** (実機がない) |
 
 ## 対応ハードウェア
 

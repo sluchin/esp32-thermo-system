@@ -20,6 +20,8 @@ INPUT                  = README.md \
                          SIMULATION.md \
                          NATIVE_SIM_IMPLEMENTATION.md \
                          AWS_SETUP.md \
+                         DEBUG_LOG.md \
+                         AWS_GRAPH.md \
                          CODING_STYLE.md \
                          MISRA.md \
                          TODO.md \
@@ -31,6 +33,7 @@ FILE_PATTERNS          = *.c \
                          *.md
 RECURSIVE              = YES
 USE_MDFILE_AS_MAINPAGE = README.md
+IMAGE_PATH              = assets
 ENABLE_PREPROCESSING   = YES
 # ビルド構成 (Kconfig) と、Zephyr のマクロ (関数に見えてしまうもの) の扱い
 PREDEFINED             = CONFIG_THERMO_CLOUD \
