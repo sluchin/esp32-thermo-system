@@ -79,7 +79,7 @@ Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と 
 ### 例外 3: コミットメッセージの形式
 
 - **Zephyr**: `subsystem: summary` の形式で、`Signed-off-by:` を付ける。
-- **このプロジェクト**: 件名は、Zephyr と同じ `prefix: 要約` の形式 (prefix の一覧は、 `.claude/CLAUDE.md` のコミットガイドライン)。英語で書き、本文は `- ` で始まる箇条書き。`Signed-off-by:` や、`Co-Authored-By:` などの帰属行は付けない。
+- **このプロジェクト**: 件名は、Conventional Commits の `type(scope): description` の形式 (Zephyr の `subsystem: summary` ではなく、一般的な流儀にそろえる。type の一覧は、 `.claude/CLAUDE.md` のコミットガイドライン)。英語で書き、本文は `- ` で始まる箇条書き。`Signed-off-by:` や、`Co-Authored-By:` などの帰属行は付けない。
 
 ### 例外 4: 関数の戻り値に、名前付き定数を使う
 
