@@ -25,8 +25,9 @@
 #include "ntp.h"
 #include "payload.h"
 #include "wifi_link.h"
+#include "thermo_log.h"
 
-LOG_MODULE_REGISTER(thermo_cloud);
+LOG_MODULE_REGISTER(thermo_cloud, THERMO_LOG_LEVEL);
 
 /** AWS IoT Core の MQTT (TLS, クライアント証明書による相互認証) のポート */
 #define BROKER_PORT        "8883"
@@ -465,6 +466,9 @@ static int publish_sample(const struct sample *s)
     param.message_id = message_id;
     param.dup_flag = 0U;
     param.retain_flag = 0U;
+
+    LOG_DBG("MQTT publish (id %u, QoS 1) to %s", message_id, topic);
+    LOG_HEXDUMP_DBG(payload, (uint32_t)payload_len, "MQTT publish payload");
 
     return mqtt_publish(&client, &param);
 }

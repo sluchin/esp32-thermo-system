@@ -20,8 +20,9 @@
 
 #include "ble.h"
 #include "thermo_ble_uuid.h"
+#include "thermo_log.h"
 
-LOG_MODULE_REGISTER(ble_thermo_node);
+LOG_MODULE_REGISTER(ble_thermo_node, THERMO_LOG_LEVEL);
 
 /** アドバタイズデータ: フラグ (LE 一般発見可能, BR/EDR 非対応) とデバイス名 */
 static const struct bt_data ad[] = {

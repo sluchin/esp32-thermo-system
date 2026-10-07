@@ -18,8 +18,9 @@
 #include <string.h> /* strlen */
 
 #include "wifi_link.h"
+#include "thermo_log.h"
 
-LOG_MODULE_REGISTER(thermo_wifi);
+LOG_MODULE_REGISTER(thermo_wifi, THERMO_LOG_LEVEL);
 
 /** WiFi のイベント (接続の結果, 切断) のコールバック */
 static struct net_mgmt_event_callback wifi_cb;

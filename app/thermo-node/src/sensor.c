@@ -23,8 +23,9 @@
 /** 実機の ADC を使うビルドであることを示す (ADC のコードを有効にする) */
 #define HAVE_ADC 1
 #endif
+#include "thermo_log.h"
 
-LOG_MODULE_REGISTER(sensor_thermo_node);
+LOG_MODULE_REGISTER(sensor_thermo_node, THERMO_LOG_LEVEL);
 
 #ifndef HAVE_ADC
 /** 12 bit ADC の生値の取り得る範囲 (0 .. 4095). シミュレーション値の生成に使用する */

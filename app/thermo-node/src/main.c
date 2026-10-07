@@ -17,8 +17,9 @@
 
 #include "ble.h"
 #include "sensor.h"
+#include "thermo_log.h"
 
-LOG_MODULE_REGISTER(thermo_node);
+LOG_MODULE_REGISTER(thermo_node, THERMO_LOG_LEVEL);
 
 /** 温度を測定する間隔 [s] */
 #define SAMPLE_INTERVAL_S 5

@@ -1,11 +1,9 @@
 cmake_minimum_required(VERSION 3.20.0)
 
-# デバッグログ (LOG_DBG と LOG_HEXDUMP_DBG) を有効にする (CONFIG_LOG_DEFAULT_LEVEL=4).
+# デバッグログ (LOG_DBG と LOG_HEXDUMP_DBG) を有効にする. アプリのソースだけに, THERMO_LOG_LEVEL=4 (DBG) を付ける
+# (Zephyr のモジュールは, 既定のレベルのまま. 全体を DBG にすると, ログの量が多すぎて, 動かなくなる).
 # 例: west build -b xiao_esp32c3 app/thermo-gateway -- -DTHERMO_DEBUG_LOG=ON
-option(THERMO_DEBUG_LOG "Enable the debug logs (CONFIG_LOG_DEFAULT_LEVEL=4)" OFF)
-if(THERMO_DEBUG_LOG)
-  list(APPEND EXTRA_CONF_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../debug-log.conf)
-endif()
+option(THERMO_DEBUG_LOG "Enable the debug logs of the application" OFF)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
@@ -26,6 +24,9 @@ target_sources_ifdef(CONFIG_THERMO_CLOUD app PRIVATE
 
 # thermo-node と thermo-gateway で共有する, BLE の UUID の定義 (app/common/)
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+if(THERMO_DEBUG_LOG)
+  target_compile_definitions(app PRIVATE THERMO_LOG_LEVEL=4)
+endif()
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)
