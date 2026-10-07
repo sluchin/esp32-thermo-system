@@ -438,9 +438,175 @@ aws cloudwatch put-dashboard --dashboard-name thermo \
 
 ## 7. これから
 
-### 7.1 アラーム (しきい値を超えたら、通知する)
+### 7.1 アラーム: 温度が 30 ℃ を超えたら、メールで通知する
 
-CloudWatch のアラームを、メトリクスに付けられます (例: 温度が 30 ℃ を超えたら、メールを送る)。通知先 (SNS のトピック) を、作る必要があります。コンソールの「CloudWatch → アラーム → アラームの作成」から、できます。ゲートウェイが、止まったことの検出 (データが来ない) は、アラームの「欠測データの処理」を、「不良 (しきい値違反)」にします。
+CloudWatch の「アラーム」は、メトリクスの値が、しきい値を超えたときに、通知を送る仕組みです。ここでは、`ED:2E:C4:46:3B:11_temperature_c` の、5 分の平均が **30 ℃ を超えたら、メールを送る**例を、説明します。
+
+> **コンソールの手順は、画面で確認しました** (画像は、アカウント ID、メールアドレスを塗りつぶしてあります。クリックすると、元の大きさで開きます)。**CLI の手順は、まだ、確認していません**。メールアドレスは、`you@example.com` と書いてあります。自分のものに、置き換えてください。
+
+構成は、次のとおりです。
+
+```
+メトリクス (温度) ──> アラーム (30 ℃ を超えたら ALARM) ──> SNS トピック ──> メール
+```
+
+- **SNS** (Simple Notification Service): 通知を、メールなどに、配る仕組みです。「トピック」(通知の宛先のまとまり) を作って、メールアドレスを「サブスクリプション」(購読) として、登録します。
+- アラームの状態は、`OK` (しきい値の範囲内)、`ALARM` (しきい値を超えた)、`データ不足` (値が、まだ届いていない) の 3 つです。状態が変わったときに、通知が、届きます。
+
+#### 手順 1: SNS のトピックを作って、メールを登録する
+
+**CLI の場合** (CloudShell など)
+
+```bash
+# トピックを作る (出力の TopicArn を控える)
+aws sns create-topic --name thermo-alarm
+
+# メールアドレスを登録する (TopicArn は、上の出力の値)
+aws sns subscribe \
+  --topic-arn arn:aws:sns:ap-northeast-1:ACCOUNT_ID:thermo-alarm \
+  --protocol email \
+  --notification-endpoint you@example.com
+```
+
+**コンソールの場合**
+
+1. 画面上部の検索欄に「**SNS**」と入力して、「Simple Notification Service」を開きます。リージョンは、東京です。トップ画面の「トピック名」に `thermo-alarm` を入力して、「次のステップ」を押します。
+
+<a href="assets/aws-sns-01-top.png"><img src="assets/aws-sns-01-top.png" width="640" alt="SNS のトップ画面 (トピック名の入力)"></a>
+
+2. 「トピックの作成」の画面です。タイプは「**スタンダード**」、名前は `thermo-alarm` のまま、ほかは既定の値で、画面の下の「トピックの作成」を押します。
+
+<a href="assets/aws-sns-02-create-topic.png"><img src="assets/aws-sns-02-create-topic.png" width="640" alt="トピックの作成"></a>
+
+3. トピックができます。「サブスクリプション」のタブの「**サブスクリプションの作成**」を押します。
+
+<a href="assets/aws-sns-03-topic-created.png"><img src="assets/aws-sns-03-topic-created.png" width="640" alt="トピックができた"></a>
+
+4. 「トピック ARN」は、そのままです。プロトコルは「**E メール**」、エンドポイントに、通知を受け取る自分のメールアドレスを入れて、画面の下の「サブスクリプションの作成」を押します。
+
+<a href="assets/aws-sns-04-create-subscription.png"><img src="assets/aws-sns-04-create-subscription.png" width="640" alt="サブスクリプションの作成 (プロトコルとエンドポイント)"></a>
+
+5. サブスクリプションができます。ステータスは「**保留中の確認**」です。このままでは、通知は、届きません。次の「確認」を行ってください。
+
+<a href="assets/aws-sns-05-pending.png"><img src="assets/aws-sns-05-pending.png" width="640" alt="サブスクリプション (保留中の確認)"></a>
+
+**どちらの場合も、確認が必要です。** 登録したメールアドレスに、件名「AWS Notification - Subscription Confirmation」のメールが届きます。**メールの中の「Confirm subscription」(購読を承認) を押してください**。押さないと、通知が、届きません (迷惑メールのフォルダも、確認してください)。承認すると、SNS の画面の、サブスクリプションの状態が、「確認済み」になります。
+
+<a href="assets/aws-sns-06-confirmed.png"><img src="assets/aws-sns-06-confirmed.png" width="640" alt="サブスクリプション (確認済み)"></a>
+
+
+#### 手順 2: アラームを作る
+
+**CLI の場合**
+
+```bash
+aws cloudwatch put-metric-alarm \
+  --alarm-name thermo-temperature-high \
+  --alarm-description "The temperature of the SwitchBot is higher than 30 C" \
+  --namespace Thermo \
+  --metric-name "ED:2E:C4:46:3B:11_temperature_c" \
+  --statistic Average --period 300 \
+  --evaluation-periods 1 --datapoints-to-alarm 1 \
+  --threshold 30 --comparison-operator GreaterThanThreshold \
+  --treat-missing-data notBreaching \
+  --alarm-actions arn:aws:sns:ap-northeast-1:ACCOUNT_ID:thermo-alarm \
+  --ok-actions arn:aws:sns:ap-northeast-1:ACCOUNT_ID:thermo-alarm
+```
+
+| オプション | 意味 |
+|:---|:---|
+| `--statistic Average --period 300` | 5 分 (300 秒) の平均を、評価する |
+| `--evaluation-periods 1 --datapoints-to-alarm 1` | 5 分の平均が、1 回でも、しきい値を超えたら、ALARM にする。誤報を減らしたいときは、`--evaluation-periods 3 --datapoints-to-alarm 3` (15 分続いたら) のようにする |
+| `--threshold 30 --comparison-operator GreaterThanThreshold` | 30 ℃ **より大きい**とき |
+| `--treat-missing-data notBreaching` | データが来ないときは、しきい値を超えていないと、みなす (ALARM にしない) |
+| `--alarm-actions` | ALARM になったときに、通知する SNS トピック |
+| `--ok-actions` | ALARM から OK に、戻ったときに、通知する (省略すると、戻りの通知は、来ない) |
+
+**コンソールの場合**
+
+1. 「CloudWatch → アラーム」を開いて、「アラームの作成」を押します。
+
+<a href="assets/aws-alarm-01-list-empty.png"><img src="assets/aws-alarm-01-list-empty.png" width="640" alt="アラームの一覧 (まだ、ない)"></a>
+
+2. 「メトリクスと条件の指定」の画面です。データソースは「メトリクス」、タイプは「クラシック」のまま、「**メトリクスの選択**」を押します。
+
+<a href="assets/aws-alarm-02-create.png"><img src="assets/aws-alarm-02-create.png" width="640" alt="メトリクスと条件の指定"></a>
+
+3. 「カスタム名前空間」の「**Thermo**」を押して、「ディメンションなしのメトリクス」を押します。
+
+<a href="assets/aws-alarm-03-select-metric.png"><img src="assets/aws-alarm-03-select-metric.png" width="640" alt="メトリクスの選択 (名前空間)"></a>
+
+4. 一覧から、`ED:2E:C4:46:3B:11_temperature_c` の、チェックボックスを押して、画面の右下の「メトリクスの選択」を押します (ダッシュボードのグラフを作ったときと、同じ選び方です)。
+
+<a href="assets/aws-alarm-04-metric-picked.png"><img src="assets/aws-alarm-04-metric-picked.png" width="640" alt="メトリクスの選択 (温度)"></a>
+
+5. 統計は「**平均値**」、期間は「**5 分**」にします。右の「条件」で、しきい値の種類は「**静的**」、条件は「**より大きい**」、「... よりも」に `30` を入れます。下のプレビューに、30 の赤い線が、出ます。
+
+<a href="assets/aws-alarm-05-threshold.png"><img src="assets/aws-alarm-05-threshold.png" width="640" alt="統計、期間、しきい値"></a>
+
+6. 画面の下の「**その他の設定**」を開きます。「アラームを実行するデータポイント」は `1 / 1`、「欠落データの処理」は「**欠落データを適正 (しきい値を超えていない) として処理**」にします。「次へ」を押します。
+
+<a href="assets/aws-alarm-06-other-settings.png"><img src="assets/aws-alarm-06-other-settings.png" width="640" alt="その他の設定"></a>
+
+7. 「アクションの設定」の画面です。アラーム状態トリガーは「**アラーム状態**」、「次の SNS トピックに通知を送信」は「**既存の SNS トピックを選択**」にして、「通知の送信先」に `thermo-alarm` を選びます。選ぶと、登録したメールアドレスが、出ます。「次へ」を押します。
+
+<a href="assets/aws-alarm-07-actions.png"><img src="assets/aws-alarm-07-actions.png" width="640" alt="アクションの設定 (SNS トピック)"></a>
+
+8. アラーム名に `thermo-temperature-high` を入れて、「次へ」を押します (説明は、空で構いません)。
+
+<a href="assets/aws-alarm-08-name.png"><img src="assets/aws-alarm-08-name.png" width="640" alt="アラーム名"></a>
+
+9. 「プレビューと作成」で、メトリクス (`ED:2E:C4:46:3B:11_temperature_c`、平均値、5 分)、条件 (30 より大きい)、データポイント (1 / 1)、アクション (`thermo-alarm` に通知) を確認して、画面の下の「**アラームの作成**」を押します。
+
+<a href="assets/aws-alarm-09-review.png"><img src="assets/aws-alarm-09-review.png" width="640" alt="プレビューと作成"></a>
+
+10. アラームが、できます。作った直後の状態は「**データ不足**」です。数分たつと、「OK」(30 ℃ 以下) に、変わります。
+
+<a href="assets/aws-alarm-10-created.png"><img src="assets/aws-alarm-10-created.png" width="640" alt="アラームができた (データ不足)"></a>
+
+- 「アラーム状態トリガー」を、1 つしか選んでいないので、`OK` に戻ったときの通知は、届きません。戻りも通知したいときは、7 の画面の「通知の追加」を押して、トリガーを「OK」にして、同じトピックを選びます (CLI の `--ok-actions` と同じです)。
+
+#### 手順 3: 通知を試す
+
+30 ℃ まで、温度を上げなくても、アラームの状態を、手で、ALARM にして、メールが届くか、試せます。
+
+```bash
+aws cloudwatch set-alarm-state \
+  --alarm-name thermo-temperature-high \
+  --state-value ALARM --state-reason "test"
+```
+
+- 数秒から数分で、件名「ALARM: "thermo-temperature-high" in Asia Pacific (Tokyo)」のメールが、届きます。
+
+<a href="assets/aws-alarm-11-mail.png"><img src="assets/aws-alarm-11-mail.png" width="640" alt="届いたアラームのメール (個人情報は、塗りつぶし)"></a>
+
+メールには、次のことが、書いてあります (上の画像は、実際に届いたメールです)。
+
+| 項目 | 内容 |
+|:---|:---|
+| `State Change` | `OK -> ALARM` (状態が、OK から ALARM に、変わった) |
+| `Reason for State Change` | `test` (`--state-reason` に書いた文字) |
+| `Threshold` | `GreaterThanThreshold 30.0` を、300 秒の期間の中で、1 回 (しきい値より、大きいとき) |
+| `Monitored Metric` | 名前空間 `Thermo`、メトリクス `ED:2E:C4:46:3B:11_temperature_c`、平均、300 秒、`TreatMissingData: notBreaching` |
+| `State Change Actions` | `ALARM` のときだけ、`thermo-alarm` に通知 (`OK` は、空) |
+
+> **このメールを、人に見せたり、公開したりしないでください。** アカウント ID と、**購読を解除するリンク** (メールの末尾) が、入っています。リンクを知っている人は、通知の購読を、解除できます。この文書の画像は、これらを塗りつぶしてあります。
+- 状態は、次の評価 (最長 5 分) で、実際の値に、戻ります。戻ると、`OK` のメールが、来ます (`--ok-actions` を付けたとき)。
+- コンソールでは、アラームの画面の「アクション」→「テスト」(または、状態の変更) で、同じことができます。
+
+アラームの状態は、「CloudWatch → アラーム」で、見られます。ダッシュボードに、アラームの状態を、載せることもできます (ウィジェットの追加で、データ型「アラーム」を選びます)。
+
+#### 変えるとき
+
+| やりたいこと | 変える場所 |
+|:---|:---|
+| 寒いとき (例: 5 ℃ を下回ったら) | `--threshold 5 --comparison-operator LessThanThreshold` |
+| ゲートウェイが止まったこと (データが来ない) | `--treat-missing-data breaching` にして、`--period 300 --evaluation-periods 3` のようにする (15 分、データが来ないと、ALARM) |
+| 電池残量が少ないとき | メトリクス `ED:2E:C4:46:3B:11_battery`、`--threshold 20 --comparison-operator LessThanThreshold`、`--period 3600` |
+| 通知を止める | アラームを削除する (`aws cloudwatch delete-alarms --alarm-names thermo-temperature-high`)、または、アクションを無効にする (`aws cloudwatch disable-alarm-actions --alarm-names thermo-temperature-high`) |
+| 送り先を増やす | SNS のトピックに、メールアドレスを、もう 1 つ登録する (手順 1)。登録した人は、それぞれ、承認が必要 |
+
+料金は、アラーム 1 つあたり月に数十円以下、メールの通知は、月 1,000 件まで無料の目安です (リージョンと時期で、変わります。最新の料金表で、確認してください)。
 
 ### 7.2 Thermo ノードの温度
 
@@ -462,6 +628,8 @@ CloudWatch のアラームを、メトリクスに付けられます (例: 温�
 | `list-metrics` が、空 | 数分待つ。リージョンが、ルールを作ったところと、同じか (`--region` を付ける) |
 | ルールが、動かない | 「IoT Core → ルール」で、ルールが「有効」か。「IoT Core → 設定 → ログ」で、ログを有効にして、CloudWatch Logs の `AWSIotLogsV2` で、エラーを確認する |
 | 権限のエラー (`AccessDenied`) | ロールの信頼ポリシーが、`iot.amazonaws.com` か。権限ポリシーの名前空間が、`Thermo` か |
+| アラームのメールが、届かない | SNS のサブスクリプションが「確認済み」か (確認メールの承認)。迷惑メールのフォルダ。アラームの「アクション」に、`thermo-alarm` が入っているか。リージョンが、東京か |
+| アラームの状態が、ずっと「データ不足」 | メトリクス名が、正しいか (空白、MAC アドレス)。ゲートウェイが、AWS に送信しているか。ルールが、動いているか (5 章) |
 | メトリクス名の先頭に、空白がある (`" ED:..."`) | ルールのアクションの、メトリクス名の先頭の空白を、消す (4.4 の手順 3)。古い名前のメトリクスは、残るが、新しい値は入らなくなる |
 | 電池残量だけ、ない | メッセージに、`battery` が入っているか (残量が不明なときは、入りません) |
 | 値が、1 分ごとにしか、変わらない | CloudWatch の最小の期間は、1 分です。正常です |
