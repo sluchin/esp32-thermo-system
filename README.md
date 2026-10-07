@@ -156,14 +156,14 @@ scripts/flash.sh gateway /dev/ttyACM0
 ## 機能
 
 ### Thermo Node
-> **実機での確認は、まだしていません** (Thermo ノードの実機がありません)。単体テスト (ADC エミュレータ、FFF のモック) と、`native_sim` のシミュレーションだけで確認しています。
+> **実機での確認は、まだしていません** (Thermo ノードの実機がありません)。単体テスト (偽のセンサ、ADC エミュレータ、FFF のモック) と、`native_sim` のシミュレーションだけで確認しています。
 
-- ADC による温度センサ読取
-- BLE GATT サービスで温度データ配信
+- 温湿度センサ (DHT11) の読取 (Zephyr のセンサ API。配線は [SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
+- BLE GATT サービスで、温度と湿度のデータを配信
 - ログ出力（UART シリアルコンソール）
 
 ### Thermo Gateway
-- BLE スキャンで周辺ノードを検出して、GATT で接続し、温度 (ADC の生値) の通知を受信 (最大 3 台。ノードの実機がないので、実機では未確認)
+- BLE スキャンで周辺ノードを検出して、GATT で接続し、温度と湿度の通知を受信 (最大 3 台。ノードの実機がないので、実機では未確認)
 - SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズ (接続しない) を受信して、温度 (℃)・湿度・電池残量を、10 秒に 1 回、AWS IoT Core に送信
 - WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](AWS_GRAPH.md))
 - WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存
@@ -178,7 +178,7 @@ scripts/flash.sh gateway /dev/ttyACM0
 | SwitchBot 屋外用温湿度計の受信 (温度・湿度・電池残量) | 済み (SwitchBot のアプリの値と一致) |
 | WiFi、SNTP、TLS (相互認証)、MQTT で AWS IoT Core に接続 | 済み (外付けアンテナあり) |
 | SwitchBot の値が AWS IoT Core に届く (10 秒に 1 回) | 済み |
-| Thermo ノード (ADC の読取、BLE の配信) | **未確認** (実機がない) |
+| Thermo ノード (DHT11 の読取、BLE の配信) | **未確認** (実機が、届き次第、確認する) |
 | ゲートウェイが、ノードに GATT で接続して、温度を受信する | **未確認** (実機がない) |
 | ノードの温度が AWS IoT Core に届く | **未確認** (実機がない) |
 

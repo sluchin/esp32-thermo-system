@@ -26,7 +26,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 ## プロジェクト構成
 
 - `app/`: アプリケーションソース
-  - `thermo-node/`: センサノード。ADC で温度を読み取り BLE で配信。
+  - `thermo-node/`: センサノード。DHT11 (または ADC) で温度と湿度を読み取り BLE で配信。
   - `thermo-gateway/`: ゲートウェイ。周辺ノードをスキャンしデータを集約。
 - `west.yml`: West マニフェストファイル。
 - `docker-compose.yml` / `Dockerfile`: 開発環境定義。
@@ -77,7 +77,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 - カバレッジ: `docker compose run --rm coverage-thermo-node` / `docker compose run --rm coverage-thermo-gateway` (`app/thermo-*/src` の行と分岐が 100% でなければ失敗する。分岐は `LOG_*` と `LOG_HEXDUMP_*` マクロの内部を除く)。テストを追加・変更したら、実行して、100% を保つ。
 - 実行: `docker compose run --rm test-thermo-node` / `docker compose run --rm test-thermo-gateway` (全てのテストを実行する。結果は、コンテナの `/tmp` に出力する)
 - 配置: `app/<アプリ>/tests/<対象>/`。1 ディレクトリが 1 つのテストアプリ (`CMakeLists.txt` `prj.conf` `testcase.yaml` `src/test_*.c`)。twister が、`testcase.yaml` を探して、自動で実行する。
-  - `sensor` (thermo-node): `sensor.c`。ADC エミュレータ (`zephyr,adc-emul`。入力電圧とエラーを、テストから設定する) を使う実機用の経路と、シミュレーション値の経路の、2 つの構成 (`TEST_MODE=adc` / `simulator`)。
+  - `sensor` (thermo-node): `sensor.c`。5 つの構成 (`TEST_MODE`): `sensor_api` (偽のセンサ `vnd,test-sensor`。DHT11 などの、センサ API の経路。値とエラーを、テストから設定する)、`adc` (ADC エミュレータ `zephyr,adc-emul`。入力電圧とエラーを、テストから設定する)、`adc_setup_error` / `adc_convert_error` (ADC の設定と換算の失敗)、`simulator` (シミュレーション値)。
   - `ble` (両方): `ble.c`。Bluetooth スタックは使わず、`bt_enable()` `bt_le_adv_start()` `bt_le_scan_start()` を、FFF のモックにして、引数と、エラーの伝わり方を確認する。
   - `switchbot` (thermo-gateway): `switchbot.c`。SwitchBot 屋外用温湿度計のアドバタイズの解析 (サービスデータと製造者データ) と、機器ごとの記録と、送信の間引き (間隔、カウンタの一周、機器の数の上限)。Zephyr の関数を呼ばないので、モックは使わない。
   - `payload` / `cfg` / `shell` / `wifi` / `cloud` (thermo-gateway): AWS IoT Core への送信 (`payload.c` `cfg.c` `cfg_shell.c` `wifi_link.c` `cloud.c`)。settings、TLS の認証情報、net_mgmt、MQTT ライブラリ、ソケットは、FFF のモックにして、接続の手順と各段階の失敗、再試行の間隔、設定の保存と読み込みを確認する。シェルは、ダミーのバックエンドで実行する。`cloud` は、`cloud_step()` を直接呼ぶ。
@@ -86,7 +86,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
   - テストにも、`app/warnings.txt` の警告オプションを付ける (`include(.../warnings.cmake)`)。モックが、関数を再宣言するため、`-Wredundant-decls` だけは外している。
   - ソースを足したり、関数を変えたりしたら、対応するテストを足す (正常系と、エラーの伝わり方)。
   - テストの名前は、`test_<対象の関数名>_<条件>` (`test_init_failure` など)。
-  - 実機 (ESP32C3) での動作確認は、別に必要 (ADC の実際の値、BLE の通信、WiFi と AWS IoT Core との TLS の接続は、単体テストでは確認できない)。
+  - 実機 (ESP32C3) での動作確認は、別に必要 (DHT11 の実際の値、BLE の通信、WiFi と AWS IoT Core との TLS の接続は、単体テストでは確認できない)。
 
 ## コミットガイドライン
 

@@ -66,11 +66,11 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 ```
 *** Booting Zephyr OS build v3.x.x ***
 [00:00:00.000,000] <inf> thermo_node: Thermo Node started (SIMULATOR MODE)
-[00:00:00.001,000] <inf> sensor_thermo_node: Simulated ADC sensor initialized
+[00:00:00.001,000] <wrn> sensor_thermo_node: No sensor in device tree, using simulated values
 [00:00:00.002,000] <inf> ble_thermo_node: Bluetooth initialized
 [00:00:00.003,000] <inf> ble_thermo_node: Advertising started
-[00:00:05.004,000] <inf> thermo_node: Temperature: 2847 (raw ADC value)
-[00:00:10.005,000] <inf> thermo_node: Temperature: 1923 (raw ADC value)
+[00:00:05.004,000] <inf> thermo_node: Temperature: 28.4 C, humidity: 61.7 %
+[00:00:10.005,000] <inf> thermo_node: Temperature: 19.2 C, humidity: 47.3 %
 ...
 ```
 
@@ -78,8 +78,8 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 
 ### 温度センサー
 
-- **シミュレーション時**: 0～4095 のランダムな値を返す（12ビット ADC の範囲）
-- **実機時**: 実際のADCから温度データを読取
+- **シミュレーション時**: 温度 (10.0〜49.9 ℃) と湿度 (30.0〜89.9 %) のランダムな値を返す
+- **実機時**: Devicetree で選んだセンサから読み取る (DHT11 などのセンサ API、または ADC。[SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)
 
 ### BLE（Bluetooth Low Energy）
 
@@ -146,7 +146,7 @@ native_sim ボード用の device tree overlay。
 
 ### ビルドエラー
 
-「ADC not configured」というエラーが出る場合：
+「No sensor in device tree」という警告は、シミュレーション値を使うときの、正常なログです。ビルドエラーが出る場合：
 
 - 実機用 `prj.conf` と シミュレーション用 `prj-native_sim.conf` が正しく分離されているか確認
 - `-DCONF_FILE=` オプションが正しく指定されているか確認

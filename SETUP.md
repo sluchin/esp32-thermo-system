@@ -254,6 +254,40 @@ pipx install esptool
    scripts/flash.sh gateway /dev/ttyACM0
    ```
 
+## Thermo ノードのセンサ
+
+Thermo ノードは、温度と湿度を、センサから読みます。どのセンサを使うかは、**Devicetree** で決めます (コードは、変えません)。
+
+| 優先 | Devicetree の設定 | センサ |
+|:---|:---|:---|
+| 1 | alias `thermo-sensor` のセンサのノードがある | Zephyr のセンサ API で読む。DHT11 など。温度と湿度 |
+| 2 | `zephyr,user` に `io-channels` がある | ADC を読んで、温度に換算する (アナログの温度センサ。湿度はなし) |
+| 3 | どちらもない (`native_sim` など) | 乱数のシミュレーション値 |
+
+### DHT11 の配線 (既定)
+
+3 ピンの DHT11 モジュール (基板の印字: `+` `out` `-`) を、XIAO ESP32C3 の、次のピンにつなぎます。
+
+| DHT11 モジュール | 役割 | XIAO ESP32C3 |
+|:---|:---|:---|
+| `+` | 電源 | `3V3` (3.3 V) |
+| `out` | データ (信号線) | `D1` (GPIO3) |
+| `-` | グランド | `GND` |
+
+- 基板に、プルアップ抵抗が、付いているので、追加の部品は、要りません。
+- 設定は、`app/thermo-node/boards/xiao_esp32c3.overlay` です (`dio-gpios = <&xiao_d 1 ...>`)。別のピンにつなぐときは、この `1` (D1) を、変えます。
+- DHT11 は、温度 0〜50 ℃ (1 ℃ きざみ、誤差 ±2 ℃)、湿度 20〜95 % (1 % きざみ、誤差 ±5 %) です。読み取りは、1 秒以上、あけます (ノードは、5 秒ごと)。
+- DHT22 (AM2303) を使うときは、overlay の `dht11` のノードに、`dht22;` を足します。
+
+### ADC のアナログセンサ (LM35 など) に替える
+
+1. `app/thermo-node/boards/xiao_esp32c3.overlay` の、`aliases` の `thermo-sensor` と、`dht11` のノードを、消します。
+2. `zephyr,user` に、`io-channels` と、ADC のチャンネルの設定を、書きます (例は、`app/thermo-node/tests/sensor/adc.overlay`)。
+3. `prj.conf` に、温度への換算を、書きます。
+   - `CONFIG_THERMO_ADC_MV_PER_DEG`: 1 ℃ あたりの電圧 [mV] (既定 10。LM35 の値)
+   - `CONFIG_THERMO_ADC_OFFSET_MV`: 0 ℃ のときの電圧 [mV] (既定 0。LM35 の値)
+4. ビルドディレクトリを、消して、ビルドし直します (`rm -rf build/thermo-node`。overlay の追加は、既存のビルドでは、反映されません)。
+
 ## シリアルモニター
 
 ```bash

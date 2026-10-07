@@ -610,7 +610,7 @@ aws cloudwatch set-alarm-state \
 
 ### 7.2 Thermo ノードの温度
 
-ノードの値は、ADC の生値 (`raw`、0〜4095) で、℃ に変換していません ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)。ルールの SQL で、変換式を書いて、グラフにできます (センサの型番が決まってから、決めます)。ノードの実機がないので、この手順では、扱いません。
+ノードの値は、`temperature_c` と `humidity` (DHT11 のとき) です ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)。トピックは、`thermo/CLIENT_ID/NODE_ADDRESS/temperature` なので、SwitchBot のルール (4 章) の SQL の、`FROM` を、`thermo/+/+/temperature` にした、別のルールを作ると、同じ手順で、グラフにできます (メトリクス名の、`${topic(4)}` の位置は、同じ 4 番目のアドレスです)。ノードの実機で、値が届くのを確認していないので、この手順では、詳しくは、扱いません。
 
 ### 7.3 細かいデータを残す・分析する
 

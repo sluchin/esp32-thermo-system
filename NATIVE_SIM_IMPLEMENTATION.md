@@ -11,9 +11,9 @@ Zephyr の `native_sim` ボードを使用したシミュレーション環境�
 **ファイル**: `app/thermo-node/src/sensor.c`
 
 - `CONFIG_SIMULATOR` フラグで実装を切り替え
-- **実機モード**: 実際のADCハードウェアから温度データを読取
-- **シミュレーションモード**: `sys_rand32_get()` でランダムな温度値（0-4095）を生成
-- デバイスツリーの存在確認で ADC デバイスの可用性を判定
+- **実機モード**: Devicetree で選んだセンサ (センサ API の DHT11 など、または ADC) から、温度と湿度を読取
+- **シミュレーションモード**: `sys_rand32_get()` でランダムな温度 (10.0〜49.9 ℃) と湿度 (30.0〜89.9 %) を生成
+- デバイスツリーの存在確認 (alias `thermo-sensor`、`zephyr,user` の `io-channels`) で、センサの可用性を判定
 
 ### 2. Thermo Node メインアプリケーション
 
@@ -110,7 +110,7 @@ west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -
   ↓
 CONFIG_SIMULATOR が定義される
   ↓
-sensor.c: ADC コード無視、ランダム値生成に切り替え
+sensor.c: センサと ADC のコードを無視、ランダム値生成に切り替え
 main.c: CONFIG_SIMULATOR ログ出力
   ↓
 build/thermo-node-sim/zephyr/zephyr.exe 生成
