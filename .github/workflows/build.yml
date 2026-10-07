@@ -7,6 +7,7 @@ name: CI
 #   docs   : Doxygen のドキュメント. 警告があれば失敗する. ドキュメントとログを artifact に保存する
 #   analyze: 静的解析 (gcc -fanalyzer). 指摘があれば失敗する. ログを artifact に保存する
 #   lint   : 整形の確認 (clang-format), Zephyr の checkpatch.pl, 行末の空白の確認. 指摘があれば失敗する. ログを artifact に保存する
+#   cleanup: 3 日より前の実行 (ログと artifact) を, push のたびに削除する. artifact は, 3 日で期限が切れる (retention-days)
 # イメージは, レイヤーを GitHub Actions のキャッシュに保存する (.github/actions/docker-image).
 
 on:
@@ -59,6 +60,7 @@ jobs:
             build/*/zephyr/zephyr.exe
             build.log
           if-no-files-found: warn
+          retention-days: 3
 
   test:
     name: Unit tests (${{ matrix.service }})
@@ -91,6 +93,7 @@ jobs:
           name: ${{ matrix.artifact }}_log
           path: ${{ runner.temp }}/test.log
           if-no-files-found: warn
+          retention-days: 3
 
   coverage:
     name: Coverage (${{ matrix.service }})
@@ -123,6 +126,7 @@ jobs:
           name: ${{ matrix.artifact }}_log
           path: ${{ runner.temp }}/coverage.log
           if-no-files-found: warn
+          retention-days: 3
 
   docs:
     name: Documentation
@@ -147,6 +151,7 @@ jobs:
           name: docs
           path: docs/
           if-no-files-found: error
+          retention-days: 3
 
       - name: Upload the documentation log
         uses: actions/upload-artifact@v4
@@ -155,6 +160,7 @@ jobs:
           name: docs_log
           path: ${{ runner.temp }}/docs.log
           if-no-files-found: warn
+          retention-days: 3
 
       - name: Upload the documentation for GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -215,6 +221,7 @@ jobs:
           name: ${{ matrix.artifact }}_log
           path: ${{ runner.temp }}/analyze.log
           if-no-files-found: warn
+          retention-days: 3
 
   lint:
     name: Format and lint (${{ matrix.service }})
@@ -249,3 +256,26 @@ jobs:
           name: ${{ matrix.artifact }}_log
           path: ${{ runner.temp }}/lint.log
           if-no-files-found: warn
+          retention-days: 3
+
+  # 3 日より前の実行 (ログと artifact) を削除する. 実行中のものは, 3 日より前に始まっていても, 削除できないので, 無視する
+  cleanup:
+    name: Delete the old runs
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      KEEP_DAYS: 3
+
+    steps:
+      - name: Delete the runs older than KEEP_DAYS
+        run: |
+          cutoff="$(date -u -d "${KEEP_DAYS} days ago" +%Y-%m-%dT%H:%M:%SZ)"
+          echo "Deleting the runs created before ${cutoff}"
+          gh api --paginate -X GET "repos/${GITHUB_REPOSITORY}/actions/runs" \
+            -f per_page=100 -f created="<${cutoff}" --jq '.workflow_runs[].id' |
+            while read -r id; do
+              echo "Delete the run ${id}"
+              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/runs/${id}" || true
+            done
