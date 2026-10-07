@@ -137,8 +137,9 @@ native_sim ボード用の device tree overlay。
    docker compose run --rm build-thermo-gateway
 
    # フラッシング
-   ./flash.sh thermo-node
-   ./flash.sh thermo-gateway
+   # 2 台つないでいるときは, 台ごとにポートが違う (PORT で指定する)
+   scripts/flash.sh node /dev/ttyACM0
+   scripts/flash.sh gateway /dev/ttyACM1
    ```
 
 ## トラブルシューティング

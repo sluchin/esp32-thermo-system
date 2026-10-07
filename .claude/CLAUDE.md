@@ -18,7 +18,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 - クリーンビルド: `west build -p always -b xiao_esp32c3 app/<app-name>`
 
 ### フラッシング
-- `esptool -p /dev/ttyACM0 write-flash 0x0 build/thermo-gateway/zephyr/zephyr.bin` (Node は `build/thermo-node/...`。`./flash.sh <node|gateway|all> [PORT]` でもよい)
+- `esptool -p /dev/ttyACM0 write-flash 0x0 build/thermo-gateway/zephyr/zephyr.bin` (Node は `build/thermo-node/...`。`scripts/flash.sh <node|gateway> [PORT]` でもよい)
 
 ### シリアルモニター
 - `picocom -b 115200 /dev/ttyACM0`
