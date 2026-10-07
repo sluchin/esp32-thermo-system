@@ -67,7 +67,7 @@ BUILD_ASSERT(PAYLOAD_SIZE >= 156U, "The payload buffer is too small");
 
 /** 送信を待つ値の種類 */
 enum sample_kind {
-    SAMPLE_THERMO,   /**< Thermo ノードの温度 (ADC の生値) */
+    SAMPLE_THERMO,   /**< Thermo ノードの温度と湿度 */
     SAMPLE_SWITCHBOT /**< SwitchBot の温湿度計の値 */
 };
 
@@ -76,7 +76,8 @@ struct sample {
     enum sample_kind kind;             /**< 値の種類 */
     bt_addr_le_t addr;                 /**< 送ってきた機器のアドレス */
     uint32_t uptime_ms;                /**< 受信したときのゲートウェイの稼働時間 [ms] */
-    uint16_t raw;                      /**< 温度 (ADC の生値. SAMPLE_THERMO のとき) */
+    int16_t temp_x10;                  /**< 温度 [℃ の 10 倍] (SAMPLE_THERMO のとき) */
+    uint16_t humidity_x10;             /**< 湿度 [% の 10 倍] (SAMPLE_THERMO のとき) */
     struct switchbot_sample switchbot; /**< SwitchBot の値 (SAMPLE_SWITCHBOT のとき) */
 };
 
@@ -211,19 +212,23 @@ void cloud_stop(void)
 }
 
 /**
- * @brief 温度を送信のキューに入れる (待たずにすぐ戻る)
+ * @brief 温度と湿度を送信のキューに入れる (待たずにすぐ戻る)
  *
- * Bluetooth のスレッドから呼べる. キューが満杯のときは, 新しい温度を捨てる.
+ * Bluetooth のスレッドから呼べる. キューが満杯のときは, 新しい値を捨てる.
  *
- * @param[in] addr 温度を送ったノードのアドレス
- * @param[in] raw  温度 (ADC の生値)
+ * @param[in] addr         温度を送ったノードのアドレス
+ * @param[in] temp_x10     温度 [℃ の 10 倍]
+ * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
  * @retval EXIT_SUCCESS 成功
- * @retval -ENOMSG      キューが満杯で, 温度を捨てた
+ * @retval -ENOMSG      キューが満杯で, 値を捨てた
  */
-int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw)
+int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10)
 {
-    struct sample s = {
-        .kind = SAMPLE_THERMO, .addr = *addr, .raw = raw, .uptime_ms = k_uptime_get_32()};
+    struct sample s = {.kind = SAMPLE_THERMO,
+                       .addr = *addr,
+                       .temp_x10 = temp_x10,
+                       .humidity_x10 = humidity_x10,
+                       .uptime_ms = k_uptime_get_32()};
 
     return enqueue_sample(&s);
 }
@@ -447,8 +452,8 @@ static int publish_sample(const struct sample *s)
                                                s->uptime_ms, unix_s);
     } else {
         topic_len = payload_format_topic(topic, sizeof(topic), client_id, &s->addr);
-        payload_len = payload_format_temperature(payload, sizeof(payload), &s->addr, s->raw,
-                                                 s->uptime_ms, unix_s);
+        payload_len = payload_format_temperature(payload, sizeof(payload), &s->addr, s->temp_x10,
+                                                 s->humidity_x10, s->uptime_ms, unix_s);
     }
 
     /* ペイロードは必ずバッファに入る. トピックは長いクライアント ID で, 入らないことがある */

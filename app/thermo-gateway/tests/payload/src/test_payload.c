@@ -13,9 +13,11 @@
 
 #include <zephyr/ztest.h>
 #include <errno.h>  /* ENOSPC */
+#include <stdint.h> /* INT16_MAX INT16_MIN UINT32_MAX */
 #include <string.h> /* strlen strstr */
 
 #include "payload.h"
+#include "thermo_ble_uuid.h"
 
 /** テストのノードのアドレス (表示は 00:AA:01:00:00:42. val[0] が下位の byte) */
 static const bt_addr_le_t node = {
@@ -28,9 +30,13 @@ static const bt_addr_le_t node = {
 /** 期待する SwitchBot のトピック */
 #define EXPECTED_SB_TOPIC "thermo/gateway-01/switchbot/00:AA:01:00:00:42"
 /** 期待する SwitchBot のペイロードの前半 (温度の前まで) */
-#define SB_PAYLOAD_HEAD  "{\"node\":\"00:AA:01:00:00:42\",\"type\":\"switchbot\",\"temperature_c\":"
+#define SB_PAYLOAD_HEAD "{\"node\":\"00:AA:01:00:00:42\",\"type\":\"switchbot\",\"temperature_c\":"
+/** 期待するペイロードの前半 (稼働時間の前まで. 23.5 ℃, 45.0 %) */
+#define EXPECTED_PAYLOAD_HEAD                                                                      \
+    "{\"node\":\"00:AA:01:00:00:42\",\"type\":\"thermo\",\"temperature_c\":23.5,"                  \
+    "\"humidity\":45.0,"
 /** 期待するペイロード */
-#define EXPECTED_PAYLOAD "{\"node\":\"00:AA:01:00:00:42\",\"raw\":2568,\"uptime_ms\":123456}"
+#define EXPECTED_PAYLOAD EXPECTED_PAYLOAD_HEAD "\"uptime_ms\":123456}"
 
 /** トピックはクライアント ID と, ノードのアドレスから作る */
 ZTEST(payload, test_topic)
@@ -64,28 +70,59 @@ ZTEST(payload, test_topic_no_space)
     zassert_equal(payload_format_topic(buf, sizeof(buf), "gateway-01", &node), -ENOSPC);
 }
 
-/** ペイロードはアドレス, 生値, 稼働時間の JSON */
+/** ペイロードはアドレス, 温度, 湿度, 稼働時間の JSON */
 ZTEST(payload, test_payload)
 {
-    char buf[96] = {0}; /* 出力バッファ */
+    char buf[160] = {0}; /* 出力バッファ */
     /* 書き込んだ長さ [バイト] */
-    int len = payload_format_temperature(buf, sizeof(buf), &node, 2568U, 123456U, -1);
+    int len = payload_format_temperature(buf, sizeof(buf), &node, 235, 450U, 123456U, -1);
 
-    /* 期待: アドレス, 生値, 稼働時間を持つ JSON になる */
+    /* 期待: アドレス, 種類, 温度 (23.5 ℃), 湿度 (45.0 %), 稼働時間を持つ JSON になる */
     zassert_equal(len, (int)strlen(EXPECTED_PAYLOAD));
     zassert_str_equal(buf, EXPECTED_PAYLOAD);
 }
 
-/** 値が最大 (生値 65535, 稼働時間 4294967295) でも, そのまま出力する */
+/** 0 ℃ 未満の温度には, 符号を付ける (-0.5 のように, 整数部が 0 でも) */
+ZTEST(payload, test_payload_negative_temperature)
+{
+    char buf[160] = {0}; /* 出力バッファ */
+
+    /* 期待: -3.5 ℃ は "-3.5", -0.5 ℃ は "-0.5", 0 ℃ は "0.0" */
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, -35, 450U, 1U, -1) > 0);
+    zassert_not_null(strstr(buf, "\"temperature_c\":-3.5,"));
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, -5, 450U, 1U, -1) > 0);
+    zassert_not_null(strstr(buf, "\"temperature_c\":-0.5,"));
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 0, 450U, 1U, -1) > 0);
+    zassert_not_null(strstr(buf, "\"temperature_c\":0.0,"));
+}
+
+/** 湿度がないとき (THERMO_HUMIDITY_NONE) は, "humidity" を出力しない */
+ZTEST(payload, test_payload_without_humidity)
+{
+    char buf[160] = {0}; /* 出力バッファ */
+
+    /* 期待: 温度は出力して, 湿度の項目は, ない */
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, THERMO_HUMIDITY_NONE,
+                                            123456U, -1) > 0);
+    zassert_str_equal(buf, "{\"node\":\"00:AA:01:00:00:42\",\"type\":\"thermo\","
+                           "\"temperature_c\":23.5,\"uptime_ms\":123456}");
+}
+
+/** 値が最大 (温度 3276.7, 湿度 6553.4, 稼働時間 4294967295) でも, そのまま出力する */
 ZTEST(payload, test_payload_max_values)
 {
-    char buf[96] = {0}; /* 出力バッファ */
+    char buf[160] = {0}; /* 出力バッファ */
 
-    /* 期待: 生値と稼働時間が最大でも, 桁を切らずに出力する */
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, UINT16_MAX, UINT32_MAX, -1) >
-                 0);
-    zassert_not_null(strstr(buf, "\"raw\":65535,"));
+    /* 期待: 最大の値でも, 桁を切らずに出力する */
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, INT16_MAX, 0xFFFEU, UINT32_MAX,
+                                            -1) > 0);
+    zassert_not_null(strstr(buf, "\"temperature_c\":3276.7,"));
+    zassert_not_null(strstr(buf, "\"humidity\":6553.4,"));
     zassert_not_null(strstr(buf, "\"uptime_ms\":4294967295}"));
+
+    /* 温度が最小 (-3276.8) でも, 符号付きの絶対値で出力する */
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, INT16_MIN, 0U, 1U, -1) > 0);
+    zassert_not_null(strstr(buf, "\"temperature_c\":-3276.8,"));
 }
 
 /** バッファが足りなければ, ペイロードは -ENOSPC (途中で切れた JSON を返さない) */
@@ -94,7 +131,8 @@ ZTEST(payload, test_payload_no_space)
     char buf[sizeof(EXPECTED_PAYLOAD) - 1U] = {0}; /* 出力バッファ */
 
     /* 期待: 足りなければ -ENOSPC (途中で切れた JSON を返さない) */
-    zassert_equal(payload_format_temperature(buf, sizeof(buf), &node, 2568U, 123456U, -1), -ENOSPC);
+    zassert_equal(payload_format_temperature(buf, sizeof(buf), &node, 235, 450U, 123456U, -1),
+                  -ENOSPC);
 }
 
 /** SwitchBot のトピックは, クライアント ID と, 機器のアドレスから作る (switchbot の階層を挟む) */
@@ -198,20 +236,19 @@ ZTEST(payload, test_switchbot_payload_no_space)
 /** UNIX 時刻があれば, "timestamp" を末尾に出力する */
 ZTEST(payload, test_payload_timestamp)
 {
-    char buf[96] = {0}; /* 出力バッファ */
+    char buf[160] = {0}; /* 出力バッファ */
 
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 2568U, 123456U, 1790000000) >
-                 0);
-    zassert_str_equal(buf, "{\"node\":\"00:AA:01:00:00:42\",\"raw\":2568,"
-                           "\"uptime_ms\":123456,\"timestamp\":1790000000}");
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, 450U, 123456U,
+                                            1790000000) > 0);
+    zassert_str_equal(buf, EXPECTED_PAYLOAD_HEAD "\"uptime_ms\":123456,\"timestamp\":1790000000}");
 }
 
 /** UNIX 時刻が 0 (1970 年) でも出力する (出力しないのは負のときだけ) */
 ZTEST(payload, test_payload_timestamp_zero)
 {
-    char buf[96] = {0}; /* 出力バッファ */
+    char buf[160] = {0}; /* 出力バッファ */
 
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 1U, 1U, 0) > 0);
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 1, 1U, 1U, 0) > 0);
     zassert_not_null(strstr(buf, "\"uptime_ms\":1,\"timestamp\":0}"));
 }
 

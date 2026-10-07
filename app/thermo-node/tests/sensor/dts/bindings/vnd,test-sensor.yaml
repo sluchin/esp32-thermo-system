@@ -1,0 +1,6 @@
+# thermo-node の単体テスト用の, 偽のセンサ (値と, エラーは, テストから設定する)
+description: Fake sensor for the unit test of thermo-node
+
+compatible: "vnd,test-sensor"
+
+include: base.yaml

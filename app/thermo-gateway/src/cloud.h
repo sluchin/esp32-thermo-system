@@ -16,13 +16,13 @@
  */
 
 #include <zephyr/bluetooth/addr.h>
-#include <stdint.h> /* uint16_t */
+#include <stdint.h> /* int16_t uint16_t */
 
 #include "switchbot.h"
 
 int cloud_init(void);
 
-int cloud_publish_temperature(const bt_addr_le_t *addr, uint16_t raw);
+int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10);
 
 int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sample *sample);
 

@@ -16,15 +16,14 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/adc/adc_emul.h>
 #include <errno.h>  /* EIO ENODEV */
-#include <stdint.h> /* uint32_t uint16_t */
+#include <stdint.h> /* uint32_t int16_t uint16_t */
 #include <stdlib.h> /* EXIT_SUCCESS */
 
 #include "sensor.h"
+#include "thermo_ble_uuid.h"
 
 /** エミュレータの基準電圧 [mV] (adc.overlay の ref-internal-mv) */
 #define REF_MV  3300U
-/** 12 bit ADC の生値の最大 */
-#define RAW_MAX 4095U
 /** チャンネル番号 */
 #define CHANNEL 0U
 
@@ -80,65 +79,71 @@ ZTEST(sensor_adc, test_init_not_ready)
     state->initialized = true;
 }
 
-/** 入力が 0 mV のとき, 生値は 0 */
+/** 入力が 0 mV のとき, 温度は 0 ℃, 湿度はなし */
 ZTEST(sensor_adc, test_read_zero)
 {
-    uint16_t value = 1U; /* 値 */
+    int16_t temp = 1;      /* 温度 (初期値の 1 が上書きされる) */
+    uint16_t humidity = 0; /* 湿度 */
 
-    /* 期待: 入力 0 mV の生値は 0 (初期値の 1 が上書きされる) */
+    /* 期待: 入力 0 mV は 0 ℃. ADC は湿度を測れない */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
-    zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
-    zassert_equal(value, 0U);
+    zassert_equal(sensor_read(&temp, &humidity), EXIT_SUCCESS);
+    zassert_equal(temp, 0);
+    zassert_equal(humidity, THERMO_HUMIDITY_NONE);
 }
 
-/** 入力が基準電圧のとき, 生値は 12 bit の最大 (4095) */
+/** 入力が基準電圧のとき, 電圧に直して, 温度 (10 mV で 1 ℃) にする */
 ZTEST(sensor_adc, test_read_full_scale)
 {
-    uint16_t value = 0U; /* 値 */
+    int16_t temp = 0;      /* 温度 */
+    uint16_t humidity = 0; /* 湿度 */
 
-    /* 期待: 基準電圧と同じ入力で 12 bit の最大値 */
+    /* 期待: 3300 mV は 330.0 ℃ (3300. 換算で切り捨てるので, 誤差は 2 まで) */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, REF_MV), 0);
-    zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
-    zassert_equal(value, RAW_MAX, "value=%u", value);
+    zassert_equal(sensor_read(&temp, &humidity), EXIT_SUCCESS);
+    zassert_within(temp, (int16_t)REF_MV, 2, "temp=%d", temp);
 }
 
-/** 入力が基準電圧の半分のとき, 生値は最大のほぼ半分 */
+/** 入力が基準電圧の半分のとき, 温度はほぼ半分 */
 ZTEST(sensor_adc, test_read_half_scale)
 {
-    uint16_t value = 0U; /* 値 */
+    int16_t temp = 0;      /* 温度 */
+    uint16_t humidity = 0; /* 湿度 */
 
-    /* 期待: 基準電圧の半分の入力で, 最大値のほぼ半分 (誤差は 2 まで) */
+    /* 期待: 基準電圧の半分 (1650 mV) の入力で, 1650 のほぼ半分 (誤差は 2 まで) */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, REF_MV / 2U), 0);
-    zassert_equal(sensor_read_temperature(&value), EXIT_SUCCESS);
-    zassert_within(value, RAW_MAX / 2U, 2U, "value=%u", value);
+    zassert_equal(sensor_read(&temp, &humidity), EXIT_SUCCESS);
+    zassert_within(temp, (int16_t)(REF_MV / 2U), 2, "temp=%d", temp);
 }
 
-/** 電圧が高いほど, 生値も大きい */
+/** 電圧が高いほど, 温度も高い */
 ZTEST(sensor_adc, test_read_monotonic)
 {
-    uint16_t low = 0U;  /* 低い側の値 */
-    uint16_t high = 0U; /* 高い側の値 */
+    int16_t low = 0;       /* 低い側の温度 */
+    int16_t high = 0;      /* 高い側の温度 */
+    uint16_t humidity = 0; /* 湿度 */
 
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     /* 低い電圧 (500 mV) と, 高い電圧 (2500 mV) を順に読む */
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, 500U), 0);
-    zassert_equal(sensor_read_temperature(&low), EXIT_SUCCESS);
+    zassert_equal(sensor_read(&low, &humidity), EXIT_SUCCESS);
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, 2500U), 0);
-    zassert_equal(sensor_read_temperature(&high), EXIT_SUCCESS);
-    zassert_true(low < high, "low=%u high=%u", low, high);
+    zassert_equal(sensor_read(&high, &humidity), EXIT_SUCCESS);
+    zassert_true(low < high, "low=%d high=%d", low, high);
 }
 
 /** ADC の読み取りに失敗したら, そのエラーコードを返す */
 ZTEST(sensor_adc, test_read_failure)
 {
-    uint16_t value = 0U; /* 値 */
+    int16_t temp = 0;      /* 温度 */
+    uint16_t humidity = 0; /* 湿度 */
 
     /* 期待: ADC の読み取りの失敗 (-EIO) をそのまま返す */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     zassert_equal(adc_emul_value_func_set(adc_dev, CHANNEL, failing_input, NULL), 0);
-    zassert_equal(sensor_read_temperature(&value), -EIO);
+    zassert_equal(sensor_read(&temp, &humidity), -EIO);
 }
 
 ZTEST_SUITE(sensor_adc, NULL, NULL, before, NULL, NULL);
