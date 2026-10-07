@@ -24,8 +24,9 @@
 
 #include "ble.h"
 #include "thermo_ble_uuid.h"
+#include "thermo_log.h"
 
-LOG_MODULE_REGISTER(ble_thermo_gateway);
+LOG_MODULE_REGISTER(ble_thermo_gateway, THERMO_LOG_LEVEL);
 
 /** スキャン間隔 [ms] */
 #define SCAN_INTERVAL_MS  100
@@ -95,7 +96,7 @@ struct scan_result {
     struct switchbot_ad switchbot; /**< SwitchBot の温湿度計のデータ (has_switchbot のとき) */
 };
 
-#if (CONFIG_LOG_DEFAULT_LEVEL >= 4) /* 4: LOG_LEVEL_DBG (#if では, 列挙子を使えない) */
+#if (THERMO_LOG_LEVEL >= 4) /* 4: LOG_LEVEL_DBG (#if では, 列挙子を使えない) */
 /** アドバタイズデータの 16 進ダンプを出す間隔 (要素の数. この回数に 1 回だけ出す) */
 #define ADV_HEXDUMP_EVERY 50U
 
@@ -287,6 +288,8 @@ static bool parse_ad(struct bt_data *data, void *user_data)
     }
 
     if (switchbot_parse(data->type, data->data, data->data_len, &result->switchbot)) {
+        LOG_DBG("SwitchBot advertising data (AD type 0x%02X)", data->type);
+        LOG_HEXDUMP_DBG(data->data, data->data_len, "SwitchBot advertising data");
         result->has_switchbot = true;
         return false;
     }

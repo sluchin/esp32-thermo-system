@@ -18,8 +18,9 @@
 #include <string.h> /* memcpy */
 
 #include "ntp.h"
+#include "thermo_log.h"
 
-LOG_MODULE_REGISTER(thermo_ntp);
+LOG_MODULE_REGISTER(thermo_ntp, THERMO_LOG_LEVEL);
 
 /** NTP のポート */
 #define NTP_PORT "123"

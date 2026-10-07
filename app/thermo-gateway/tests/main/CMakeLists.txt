@@ -6,7 +6,8 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(thermo_gateway_main_test)
 
-target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src)
+target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src
+                           ${CMAKE_CURRENT_LIST_DIR}/../../../common)
 # AWS IoT Core への送信 (cloud の関数は, FFF のモック). CONFIG_THERMO_CLOUD は, アプリの Kconfig が
 # 定義するが, このテストは, アプリの Kconfig を使わないので, ここで定義する.
 target_compile_definitions(app PRIVATE CONFIG_THERMO_CLOUD=1)

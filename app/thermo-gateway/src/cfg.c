@@ -18,8 +18,9 @@
 #include <string.h> /* strcmp strlen memcpy */
 
 #include "cfg.h"
+#include "thermo_log.h"
 
-LOG_MODULE_REGISTER(thermo_cfg);
+LOG_MODULE_REGISTER(thermo_cfg, THERMO_LOG_LEVEL);
 
 /** settings のこのアプリの項目のルート ("thermo/ssid" のように使う) */
 #define SETTINGS_ROOT      "thermo"

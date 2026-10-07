@@ -22,7 +22,8 @@ endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(thermo_node_sensor_test)
 
-target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src)
+target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src
+                           ${CMAKE_CURRENT_LIST_DIR}/../../../common)
 target_sources(app PRIVATE
   src/test_sensor_${TEST_MODE}.c
   ${CMAKE_CURRENT_LIST_DIR}/../../src/sensor.c)

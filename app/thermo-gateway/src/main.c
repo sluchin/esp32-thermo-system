@@ -18,8 +18,9 @@
 #ifdef CONFIG_THERMO_CLOUD
 #include "cloud.h"
 #endif
+#include "thermo_log.h"
 
-LOG_MODULE_REGISTER(thermo_gateway);
+LOG_MODULE_REGISTER(thermo_gateway, THERMO_LOG_LEVEL);
 
 /** 稼働状況をログ出力する間隔 [s] */
 #define STATUS_INTERVAL_S 10
