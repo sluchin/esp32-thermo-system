@@ -100,14 +100,14 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 
 ## 設定ファイル
 
-### `app/thermo-node/prj-native_sim.conf`
+### app/thermo-node/prj-native_sim.conf
 
 native_sim 用の Zephyr プロジェクト設定：
 
 - `CONFIG_SIMULATOR=y` - シミュレーターモードを有効化
 - `CONFIG_TEST_RANDOM_GENERATOR=y` - ランダム数生成を有効化
 
-### `app/thermo-node/boards/native_sim.overlay`
+### app/thermo-node/boards/native_sim.overlay
 
 native_sim ボード用の device tree overlay。
 
