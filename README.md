@@ -169,6 +169,10 @@ scripts/flash.sh gateway /dev/ttyACM0
 - WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存
 - デバッグシェル対応
 
+AWS IoT Core に届いた SwitchBot のデータを、CloudWatch のダッシュボードに表示した例です (左から、湿度、温度、電池残量。画像をクリックすると、拡大します)。
+
+<a href="assets/aws-dashboard-thermo.png"><img src="assets/aws-dashboard-thermo.png" width="800" alt="CloudWatch のダッシュボード thermo (湿度、温度、電池残量のグラフ)"></a>
+
 ### 実機での動作確認の状況
 
 実機 (XIAO ESP32C3) は、Thermo Gateway の 1 台だけです。Thermo ノードの実機がないので、**確認できているのは、SwitchBot の受信と、AWS IoT Core への送信まで**です。
