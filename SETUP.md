@@ -250,8 +250,8 @@ pipx install esptool
    # Thermo Gateway
    esptool -p /dev/ttyACM0 write-flash 0x0 build/thermo-gateway/zephyr/zephyr.bin
 
-   # スクリプト (TARGET は node / gateway / all)
-   ./flash.sh gateway /dev/ttyACM0
+   # スクリプト (TARGET は node / gateway。2 台つなぐときは、台ごとに PORT を指定する)
+   scripts/flash.sh gateway /dev/ttyACM0
    ```
 
 ## シリアルモニター

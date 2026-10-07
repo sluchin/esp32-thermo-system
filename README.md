@@ -146,8 +146,8 @@ gateway がスキャンで受け取る広告データの 16 進ダンプは、�
 # XIAO ESP32C3 は USB を内蔵しているので、ポートは /dev/ttyACM0 (macOS は /dev/tty.usbmodem*)
 esptool -p /dev/ttyACM0 write-flash 0x0 build/thermo-gateway/zephyr/zephyr.bin
 
-# スクリプト (TARGET は node / gateway / all。PORT の既定値は /dev/ttyACM0)
-./flash.sh gateway /dev/ttyACM0
+# スクリプト (TARGET は node / gateway。PORT の既定値は /dev/ttyACM0。2 台つなぐときは、台ごとに PORT を指定する)
+scripts/flash.sh gateway /dev/ttyACM0
 ```
 
 ## 機能
