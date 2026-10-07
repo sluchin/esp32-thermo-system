@@ -1,6 +1,6 @@
 # AWS IoT Core への接続の設定
 
-Thermo Gateway は、BLE で受信した温度 (ADC の生値) を、WiFi と MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に送ります。このドキュメントは、AWS 側の準備と、ゲートウェイの設定の手順です。
+Thermo Gateway は、BLE で受信した温度と湿度を、WiFi と MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に送ります。このドキュメントは、AWS 側の準備と、ゲートウェイの設定の手順です。
 
 > **注意**: 実機 (XIAO ESP32C3、外付けアンテナあり) で確認したのは、**SwitchBot の値の送信** (1.2) までです。WiFi、SNTP、TLS (相互認証)、MQTT の接続と、AWS IoT Core にメッセージが届くことを、確認しました。Thermo ノードの実機がないので、ノードの温度の送信 (1.1) は、単体テストだけで、実機では未確認です ([TODO.md](TODO.md))。
 
@@ -15,9 +15,9 @@ Thermo Gateway は、BLE で受信した温度 (ADC の生値) を、WiFi と MQ
 | 項目 | 内容 |
 |:---|:---|
 | トピック | `thermo/CLIENT_ID/NODE_ADDRESS/temperature` (例: `thermo/gateway-01/00:AA:01:00:00:42/temperature`) |
-| ペイロード | `{"node":"00:AA:01:00:00:42","raw":2568,"uptime_ms":123456,"timestamp":1790000000}` |
+| ペイロード | `{"node":"00:AA:01:00:00:42","type":"thermo","temperature_c":23.5,"humidity":45.0,"uptime_ms":123456,"timestamp":1790000000}` |
 
-- `raw` は、ノードの ADC の生値 (0〜4095) です。温度 (℃) への変換は、していません。
+- `temperature_c` は温度 [℃]、`humidity` は湿度 [%] で、どちらも、10 分の 1 の桁までです。湿度を測れないセンサ (ADC のアナログセンサなど) のときは、`humidity` を、出力しません。SwitchBot と、同じキー名です (`type` は、`thermo`)。
 - `uptime_ms` は、ゲートウェイが温度を受信したときの、ゲートウェイの稼働時間です。
 - `timestamp` は、受信したときの UNIX 時刻 [s] です (SwitchBot も同じ)。SNTP で時計が合っているときだけ入ります (MQTT に接続する前に、必ず合わせるので、通常は入ります)。
 
@@ -30,7 +30,7 @@ Thermo Gateway は、BLE で受信した温度 (ADC の生値) を、WiFi と MQ
 | トピック | `thermo/CLIENT_ID/switchbot/DEVICE_ADDRESS` (例: `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56`) |
 | ペイロード | `{"node":"B0:E9:FE:12:34:56","type":"switchbot","temperature_c":23.5,"humidity":55,"battery":87,"uptime_ms":123456,"timestamp":1790000000}` |
 
-- 温度は、機器が変換した ℃ です (Thermo ノードの `raw` とは違います)。電池残量がわからないときは、`battery` を出力しません。
+- 温度は、機器が変換した ℃ です。電池残量がわからないときは、`battery` を出力しません。
 - ポリシーの `topic/thermo/gateway-01/*` に、このトピックも含まれます (変更は、不要です)。
 - 10 秒に 1 回だと、1 台で 1 日に 8,640 件、1 か月に約 26 万件です。AWS IoT Core は、メッセージの件数で課金されます (料金は、リージョンごとの料金表で確認してください)。間隔は、`prj.conf` の `CONFIG_THERMO_SWITCHBOT_INTERVAL_MS` (ミリ秒) で変えられます (Kconfig の既定値は 1000)。
 - アドバタイズの並びは、SwitchBot の公開仕様に基づいています。実機 (屋外用温湿度計) で、温度・湿度・電池残量が、SwitchBot のアプリの表示と一致することと、AWS IoT Core に届くことを確認しました。屋外用温湿度計の機種コードと、温度の位置が違う機種では、値が出ません。
@@ -168,7 +168,7 @@ thermo apply
 ```
 <inf> thermo_wifi: WiFi connected (IPv4 address acquired)
 <inf> thermo_cloud: Connected to AWS IoT Core
-<inf> thermo_gateway: Temperature from 00:AA:01:00:00:42 (public): 2568 (raw ADC value)
+<inf> thermo_gateway: Temperature from 00:AA:01:00:00:42 (public): 23.5 C, humidity: 45.0 %
 ```
 
 ## 5. うまくいかないとき
