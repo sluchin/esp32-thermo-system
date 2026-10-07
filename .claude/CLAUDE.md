@@ -91,16 +91,20 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 ## コミットガイドライン
 
 - コミットメッセージは英語で記述
-- **件名の先頭に、変更の対象を表す prefix を付ける**: `prefix: 要約` の形式 (Zephyr と同じ)。要約は、命令形で、大文字から始める (例: `thermo-gateway: Fix the TLS handshake timeout`)。prefix は、次のどれか。
-  - `thermo-gateway` / `thermo-node`: そのアプリだけの変更 (ソース、テスト、`prj.conf`、`CMakeLists.txt`)
-  - `app`: 両方のアプリにまたがる変更、共通のコード (`app/common/`)、`app/` 全体の設定
-  - `style`: 整形、コーディング規約を、ソース全体に適用する変更 (`.clang-format`、規約に合わせた書き換え)
-  - `docs`: 文書だけの変更 (`*.md`、`Doxyfile`、`assets/`)
-  - `ci`: `.github/` の変更
-  - `docker`: `Dockerfile`、`docker-compose.yml` の変更
-  - `scripts`: `scripts/` の変更
-  - `repo`: リポジトリ全体の変更 (最初のコミットなど)
-  - 複数の対象にまたがるときは、変更の中心になる対象の prefix にする
+- **件名は、Conventional Commits の形式で書く**: `type(scope): description`。scope (括弧を含む) は、省略できる。description は、英語で、命令形 (例: `fix(thermo-gateway): Fix the TLS handshake timeout`)。
+  - type は、次のどれか。
+    - `feat`: 機能の追加
+    - `fix`: バグの修正
+    - `docs`: 文書とコメントだけの変更 (`*.md`、`Doxyfile`、`assets/`、Doxygen コメント)
+    - `style`: 整形、コーディング規約の適用 (動作を変えない)
+    - `refactor`: 動作を変えない、書き換え
+    - `test`: テストだけの変更
+    - `build`: ビルドと、開発環境 (`CMakeLists.txt`、`Dockerfile`、`docker-compose.yml`、`west.yml`) の変更
+    - `ci`: CI (`.github/`、CI で実行する確認のスクリプト) の変更
+    - `chore`: そのほかの雑務 (最初のコミット、 `.gitignore` など)
+  - scope は、変更の場所: `thermo-gateway` / `thermo-node` (そのアプリだけ)、`app` (両方のアプリ、共通のコード)、`docker`、`scripts`。
+  - 互換性を壊す変更は、type (または scope) の直後に、感嘆符を付ける (Conventional Commits の仕様のとおり)。
+  - 複数の type にまたがるときは、変更の中心になる type にする。
 - 件名のあとに空行を 1 行入れて、本文を書く。本文はダッシュ/ハイフンで始まる箇条書き（例: `- Fix bug in parser`）
 - コミットメッセージに `Co-Authored-By` または Claude 帰属行を含めない
 - **rebase したあとの push は、`git push --force-with-lease --force-if-includes origin <ブランチ名>` で行う** (`--force` は使わない。リモートに、手元に取り込んでいないコミットがあれば、push は失敗する)。ユーザーに依頼されたときだけ、push する。
