@@ -160,6 +160,7 @@ scripts/flash.sh gateway /dev/ttyACM0
 
 - 温湿度センサ (DHT11) の読取 (Zephyr のセンサ API。配線は [SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
 - BLE GATT サービスで、温度と湿度のデータを配信
+- 拡張ボードの OLED に、温度と湿度を表示 (設定は [SETUP.md](SETUP.md) の「OLED の表示」。`THERMO_DISPLAY=n` でビルドすると、外せます)
 - ログ出力（UART シリアルコンソール）
 
 ### Thermo Gateway
@@ -182,7 +183,7 @@ AWS IoT Core に届いた SwitchBot のデータを、CloudWatch のダッシュ
 | SwitchBot 屋外用温湿度計の受信 (温度・湿度・電池残量) | 済み (SwitchBot のアプリの値と一致) |
 | WiFi、SNTP、TLS (相互認証)、MQTT で AWS IoT Core に接続 | 済み (外付けアンテナあり) |
 | SwitchBot の値が AWS IoT Core に届く (10 秒に 1 回) | 済み |
-| Thermo ノード (DHT11 の読取、BLE の配信) | **未確認** (実機が、届き次第、確認する) |
+| Thermo ノード (DHT11 の読取、BLE の配信、OLED の表示) | **未確認** (実機が、届き次第、確認する) |
 | ゲートウェイが、ノードに GATT で接続して、温度を受信する | **未確認** (実機がない) |
 | ノードの温度が AWS IoT Core に届く | **未確認** (実機がない) |
 

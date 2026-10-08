@@ -1,0 +1,6 @@
+# thermo-node の単体テスト用の, 偽の表示装置 (画素の形式の設定と, 表示の開始の戻り値は, テストから設定する)
+description: Fake display for the unit test of thermo-node
+
+compatible: "vnd,test-display"
+
+include: base.yaml

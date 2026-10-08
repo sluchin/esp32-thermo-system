@@ -8,9 +8,10 @@
  * @file
  * @brief main.c の単体テスト
  *
- * sensor と ble の関数を, FFF のモックに置き換えて, 次を確認する.
+ * sensor と ble と oled の関数を, FFF のモックに置き換えて, 次を確認する.
  *  - 初期化に失敗したら, 後の処理に進まず, EXIT_FAILURE を返すこと
  *  - 初期化に成功したら, 一定間隔で温度を読み取り続けること (別スレッドで main を動かす)
+ *  - OLED の初期化や表示に失敗しても, 測定と通知を続けること
  */
 
 #include <zephyr/ztest.h>
@@ -21,6 +22,7 @@
 #include <stdlib.h> /* EXIT_FAILURE */
 
 #include "ble.h"
+#include "oled.h"
 #include "sensor.h"
 #include "thermo_ble_uuid.h"
 
@@ -39,6 +41,8 @@ FAKE_VALUE_FUNC(int, sensor_read, int16_t *, uint16_t *)
 FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_advertise)
 FAKE_VALUE_FUNC(int, ble_notify_temperature, int16_t, uint16_t)
+FAKE_VALUE_FUNC(int, oled_init)
+FAKE_VALUE_FUNC(int, oled_show_sample, int16_t, uint16_t)
 
 /** メインループのスレッドのスタックサイズ */
 #define STACK_SIZE        2048
@@ -110,6 +114,8 @@ static void before(void *fixture)
     RESET_FAKE(ble_init);
     RESET_FAKE(ble_advertise);
     RESET_FAKE(ble_notify_temperature);
+    RESET_FAKE(oled_init);
+    RESET_FAKE(oled_show_sample);
     FFF_RESET_HISTORY();
 }
 
@@ -147,6 +153,8 @@ ZTEST(main_node, test_advertise_failure)
     zassert_equal(thermo_node_main(), EXIT_FAILURE);
     zassert_equal(ble_advertise_fake.call_count, 1U);
     zassert_equal(sensor_read_fake.call_count, 0U);
+    /* OLED は, アドバタイズの開始のあとに, 初期化する */
+    zassert_equal(oled_init_fake.call_count, 0U);
 }
 
 /** 初期化に成功したら, 初期化を 1 回ずつ行い, 一定間隔で温度を読み続ける */
@@ -163,6 +171,12 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(ble_init_fake.call_count, 1U);
     zassert_equal(ble_advertise_fake.call_count, 1U);
     zassert_equal(sensor_read_fake.call_count, 1U);
+    zassert_equal(oled_init_fake.call_count, 1U);
+
+    /* 読み取った温度と湿度を OLED に表示する */
+    zassert_equal(oled_show_sample_fake.call_count, 1U);
+    zassert_equal(oled_show_sample_fake.arg0_history[0], FAKE_TEMP_1_X10);
+    zassert_equal(oled_show_sample_fake.arg1_history[0], FAKE_HUMIDITY_1);
 
     /* 読み取った温度を通知する */
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
@@ -175,7 +189,11 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(ble_notify_temperature_fake.call_count, 2U);
     zassert_equal(ble_notify_temperature_fake.arg0_history[1], FAKE_TEMP_2_X10);
     zassert_equal(ble_notify_temperature_fake.arg1_history[1], THERMO_HUMIDITY_NONE);
+    zassert_equal(oled_show_sample_fake.call_count, 2U);
+    zassert_equal(oled_show_sample_fake.arg0_history[1], FAKE_TEMP_2_X10);
+    zassert_equal(oled_show_sample_fake.arg1_history[1], THERMO_HUMIDITY_NONE);
     zassert_equal(sensor_init_fake.call_count, 1U);
+    zassert_equal(oled_init_fake.call_count, 1U);
 
     k_thread_abort(&main_thread);
 }
@@ -215,6 +233,48 @@ ZTEST(main_node, test_read_failure_retries)
 
     /* 読み取りに失敗したときは, 通知しない */
     zassert_equal(ble_notify_temperature_fake.call_count, 0U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** OLED の初期化に失敗しても, 表示だけを諦めて, 測定と通知を続ける */
+ZTEST(main_node, test_oled_init_failure_continues)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    oled_init_fake.return_val = -ENODEV;
+
+    k_thread_create(&main_thread, main_stack, K_THREAD_STACK_SIZEOF(main_stack), main_entry, NULL,
+                    NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(oled_init_fake.call_count, 1U);
+    zassert_equal(sensor_read_fake.call_count, 1U);
+    zassert_equal(ble_notify_temperature_fake.call_count, 1U);
+    k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
+    zassert_equal(ble_notify_temperature_fake.call_count, 2U);
+
+    /* 初期化に失敗した OLED には, 表示しない */
+    zassert_equal(oled_show_sample_fake.call_count, 0U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** OLED の表示に失敗しても, 通知を続けて, 次の周期で再び表示する */
+ZTEST(main_node, test_oled_show_failure_retries)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    oled_show_sample_fake.return_val = -EIO;
+
+    k_thread_create(&main_thread, main_stack, K_THREAD_STACK_SIZEOF(main_stack), main_entry, NULL,
+                    NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(oled_show_sample_fake.call_count, 1U);
+    /* 表示に失敗しても, 通知する */
+    zassert_equal(ble_notify_temperature_fake.call_count, 1U);
+    k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
+    zassert_equal(oled_show_sample_fake.call_count, 2U);
+    zassert_equal(ble_notify_temperature_fake.call_count, 2U);
 
     k_thread_abort(&main_thread);
 }

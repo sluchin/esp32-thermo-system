@@ -22,4 +22,15 @@ config THERMO_ADC_OFFSET_MV
 	  Used only when the temperature is read from an ADC channel.
 	  The default is for LM35 (0 mV at 0 degrees Celsius).
 
+config THERMO_DISPLAY
+	bool "Show the temperature and the humidity on the OLED display"
+	default y if $(dt_alias_enabled,thermo-display)
+	select DISPLAY
+	select CHARACTER_FRAMEBUFFER
+	help
+	  Show the measured values on the OLED display (SSD1306, 128x64) of
+	  the Seeed Studio XIAO expansion board (Devicetree alias
+	  thermo-display). The default is y when the alias exists.
+	  Set n (-DCONFIG_THERMO_DISPLAY=n) to build without the display.
+
 source "Kconfig.zephyr"

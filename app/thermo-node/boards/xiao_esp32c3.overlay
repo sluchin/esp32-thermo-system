@@ -12,17 +12,41 @@
  * 消して, zephyr,user に io-channels を書く (ADC のチャンネルの設定も要る. 例は
  * app/thermo-node/tests/sensor/adc.overlay). 温度への換算は, CONFIG_THERMO_ADC_MV_PER_DEG と
  * CONFIG_THERMO_ADC_OFFSET_MV で設定する (prj.conf).
+ *
+ * OLED (拡張ボードの SSD1306. I2C のアドレスは 0x3C. D4 が SDA, D5 が SCL) は, alias
+ * thermo-display で使う. 使わないときは, CONFIG_THERMO_DISPLAY=n でビルドする (prj.conf または
+ * -DCONFIG_THERMO_DISPLAY=n). ノードの設定は, Zephyr の seeed_xiao_expansion_board のシールドと
+ * 同じ (シールドは, SD カードの SPI も有効にするので, 使わない).
  */
 #include <zephyr/dt-bindings/gpio/gpio.h>
 
 / {
 	aliases {
 		thermo-sensor = &dht11;
+		thermo-display = &ssd1306_128x64;
 	};
 
 	dht11: dht11 {
 		compatible = "aosong,dht";
 		status = "okay";
 		dio-gpios = <&xiao_d 7 (GPIO_PULL_UP | GPIO_ACTIVE_HIGH)>;
+	};
+};
+
+&xiao_i2c {
+	status = "okay";
+
+	ssd1306_128x64: ssd1306@3c {
+		compatible = "solomon,ssd1306fb";
+		reg = <0x3c>;
+		width = <128>;
+		height = <64>;
+		segment-offset = <0>;
+		page-offset = <0>;
+		display-offset = <0>;
+		multiplex-ratio = <63>;
+		segment-remap;
+		com-invdir;
+		prechargep = <0x22>;
 	};
 };
