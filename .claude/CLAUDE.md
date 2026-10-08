@@ -22,6 +22,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 ### シリアルモニター
 - `picocom -b 115200 /dev/ttyACM0`
+- Thermo ノードのシェルには、ファイルシステムのコマンド `fs` がある (`CONFIG_FILE_SYSTEM_SHELL=y`。`SETUP.md` の「ファイルシステムのシェル」)。`fs rm` と `fs write` も使えるので、ログの書き込み中には、実行しない。
 
 ## プロジェクト構成
 
@@ -53,6 +54,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 ### コード修正時のルール
 
 - コードを修正したら、必ず Thermo Node と Thermo Gateway の両方をビルドする (`docker compose run --rm build-thermo-node` / `docker compose run --rm build-thermo-gateway`)。`native_sim` に関わる変更は、`build-thermo-node-sim` / `build-thermo-gateway-sim` も実行する。
+  - Devicetree (`*.overlay`) と Kconfig のインデントは、空白 4 つ (Zephyr のタブ 8 ではない。`CODING_STYLE.md` の例外 1。Kconfig の `help` の本文は、`help` より、空白 2 つ深くする)。新しい overlay と Kconfig も、タブを使わない。
   - ビルド出力に警告を出さない。警告やエラーが出たら修正し、出なくなるまで繰り返す。
   - 使用しているライブラリのヘッダが警告を出すときは、そのヘッダの `#include` を `#pragma GCC diagnostic push` / `ignored "-W..."` / `pop` で囲む。ただし、Zephyr のヘッダは、マクロがアプリ側のコードに展開されるため、この方法では抑えきれない (試したところ、970 件が残った)。そのため、`app/warnings.cmake` で、Zephyr の include ディレクトリをシステムヘッダとして扱う。
   - 整形と lint: コードを修正したら、`docker compose run --rm format-thermo-fix` で整形して、`docker compose run --rm lint-thermo` (Zephyr の checkpatch.pl) と、`docker compose run --rm whitespace-thermo` (全てのテキストファイルの行末の空白の確認) を実行する。`docker compose run --rm format-thermo` は、整形が必要なら失敗する (確認だけ)。詳細は、`CODING_STYLE.md`。

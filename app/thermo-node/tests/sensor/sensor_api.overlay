@@ -1,11 +1,11 @@
 /* 偽のセンサ (vnd,test-sensor) を, alias thermo-sensor に接続する */
 / {
-	aliases {
-		thermo-sensor = &test_sensor;
-	};
+    aliases {
+        thermo-sensor = &test_sensor;
+    };
 
-	test_sensor: test-sensor {
-		compatible = "vnd,test-sensor";
-		status = "okay";
-	};
+    test_sensor: test-sensor {
+        compatible = "vnd,test-sensor";
+        status = "okay";
+    };
 };

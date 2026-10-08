@@ -1,11 +1,11 @@
 /* 偽の表示装置 (vnd,test-display) を, alias thermo-display に接続する */
 / {
-	aliases {
-		thermo-display = &test_display;
-	};
+    aliases {
+        thermo-display = &test_display;
+    };
 
-	test_display: test-display {
-		compatible = "vnd,test-display";
-		status = "okay";
-	};
+    test_display: test-display {
+        compatible = "vnd,test-display";
+        status = "okay";
+    };
 };
