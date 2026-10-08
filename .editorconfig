@@ -1,6 +1,6 @@
 # EditorConfig: https://editorconfig.org/
 #
-# Zephyr (v4.3.0) の .editorconfig に, C / C++ / Perl のインデントだけを, 空白 4 つに変えたもの (CODING_STYLE.md を参照).
+# Zephyr (v4.3.0) の .editorconfig に, C / C++ / Perl / Devicetree / Kconfig のインデントだけを, 空白 4 つに変えたもの (CODING_STYLE.md を参照).
 
 # top-most EditorConfig file
 root = true
@@ -79,10 +79,10 @@ indent_size = 2
 indent_style = tab
 indent_size = 8
 
-# Device tree
+# Device tree (Zephyr は, タブ 8. このプロジェクトは, 空白 4 つ)
 [*.{dts,dtsi,overlay}]
-indent_style = tab
-indent_size = 8
+indent_style = space
+indent_size = 4
 
 # Git commit messages
 [COMMIT_EDITMSG]
@@ -92,7 +92,7 @@ max_line_length = 75
 [{*.patch,*.diff}]
 trim_trailing_whitespace = false
 
-# Kconfig
+# Kconfig (Zephyr は, タブ 8. このプロジェクトは, 空白 4 つ)
 [Kconfig*]
-indent_style = tab
-indent_size = 8
+indent_style = space
+indent_size = 4

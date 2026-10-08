@@ -1,69 +1,69 @@
 mainmenu "Thermo application"
 
 config SIMULATOR
-	bool "Build in simulator mode"
-	help
-	  Use simulated sensor data and log simulator mode at startup.
+    bool "Build in simulator mode"
+    help
+      Use simulated sensor data and log simulator mode at startup.
 
 config THERMO_ADC_MV_PER_DEG
-	int "ADC temperature sensor: millivolts per degree Celsius"
-	default 10
-	range 1 1000
-	help
-	  Used only when the temperature is read from an ADC channel
-	  (io-channels of zephyr,user). The default is for LM35
-	  (10 mV per degree Celsius).
+    int "ADC temperature sensor: millivolts per degree Celsius"
+    default 10
+    range 1 1000
+    help
+      Used only when the temperature is read from an ADC channel
+      (io-channels of zephyr,user). The default is for LM35
+      (10 mV per degree Celsius).
 
 config THERMO_ADC_OFFSET_MV
-	int "ADC temperature sensor: voltage at 0 degrees Celsius [mV]"
-	default 0
-	range -2000 2000
-	help
-	  Used only when the temperature is read from an ADC channel.
-	  The default is for LM35 (0 mV at 0 degrees Celsius).
+    int "ADC temperature sensor: voltage at 0 degrees Celsius [mV]"
+    default 0
+    range -2000 2000
+    help
+      Used only when the temperature is read from an ADC channel.
+      The default is for LM35 (0 mV at 0 degrees Celsius).
 
 config THERMO_DISPLAY
-	bool "Show the temperature and the humidity on the OLED display"
-	default y if $(dt_alias_enabled,thermo-display)
-	select DISPLAY
-	select CHARACTER_FRAMEBUFFER
-	help
-	  Show the measured values on the OLED display (SSD1306, 128x64) of
-	  the Seeed Studio XIAO expansion board (Devicetree alias
-	  thermo-display). The default is y when the alias exists.
-	  Set n (-DCONFIG_THERMO_DISPLAY=n) to build without the display.
+    bool "Show the temperature and the humidity on the OLED display"
+    default y if $(dt_alias_enabled,thermo-display)
+    select DISPLAY
+    select CHARACTER_FRAMEBUFFER
+    help
+      Show the measured values on the OLED display (SSD1306, 128x64) of
+      the Seeed Studio XIAO expansion board (Devicetree alias
+      thermo-display). The default is y when the alias exists.
+      Set n (-DCONFIG_THERMO_DISPLAY=n) to build without the display.
 
 config THERMO_RTC
-	bool "Keep the time with the RTC (PCF8563) of the expansion board"
-	default y if $(dt_alias_enabled,thermo-rtc)
-	select I2C
-	help
-	  Read the time from the RTC (PCF8563, Devicetree alias thermo-rtc)
-	  and show it on the OLED display. The registers are accessed
-	  directly through I2C (the RTC driver of Zephyr v4.3 does not
-	  handle the month and the year as the chip does). The default is
-	  y when the alias exists. Set n (-DCONFIG_THERMO_RTC=n) to build
-	  without the RTC.
+    bool "Keep the time with the RTC (PCF8563) of the expansion board"
+    default y if $(dt_alias_enabled,thermo-rtc)
+    select I2C
+    help
+      Read the time from the RTC (PCF8563, Devicetree alias thermo-rtc)
+      and show it on the OLED display. The registers are accessed
+      directly through I2C (the RTC driver of Zephyr v4.3 does not
+      handle the month and the year as the chip does). The default is
+      y when the alias exists. Set n (-DCONFIG_THERMO_RTC=n) to build
+      without the RTC.
 
 config THERMO_UTC_OFFSET_MIN
-	int "Offset of the local time from UTC [minutes]"
-	default 540
-	range -720 840
-	depends on THERMO_RTC
-	help
-	  The RTC keeps UTC. The OLED display shows the local time, which is
-	  UTC plus this offset. The default is 540 (UTC+9, Japan Standard
-	  Time).
+    int "Offset of the local time from UTC [minutes]"
+    default 540
+    range -720 840
+    depends on THERMO_RTC
+    help
+      The RTC keeps UTC. The OLED display shows the local time, which is
+      UTC plus this offset. The default is 540 (UTC+9, Japan Standard
+      Time).
 
 config THERMO_GRAPH_STEP_S
-	int "Time per point of the graph on the OLED display [seconds]"
-	default 30
-	range 5 600
-	depends on THERMO_DISPLAY
-	help
-	  The graph pages of the OLED display (temperature and humidity)
-	  show the last 128 points, one point per this time (the average of
-	  the measurements in the time). The default 30 shows the last 64
-	  minutes. 60 shows 2 hours and 8 minutes.
+    int "Time per point of the graph on the OLED display [seconds]"
+    default 30
+    range 5 600
+    depends on THERMO_DISPLAY
+    help
+      The graph pages of the OLED display (temperature and humidity)
+      show the last 128 points, one point per this time (the average of
+      the measurements in the time). The default 30 shows the last 64
+      minutes. 60 shows 2 hours and 8 minutes.
 
 source "Kconfig.zephyr"

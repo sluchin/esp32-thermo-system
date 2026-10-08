@@ -4,12 +4,12 @@
  * -ENOTSUP で失敗する
  */
 / {
-	zephyr,user {
-		io-channels = <&adc0 0>;
-	};
+    zephyr,user {
+        io-channels = <&adc0 0>;
+    };
 };
 
 &adc0 {
-	status = "okay";
-	ref-internal-mv = <3300>;
+    status = "okay";
+    ref-internal-mv = <3300>;
 };

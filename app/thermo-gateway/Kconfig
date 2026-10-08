@@ -1,39 +1,39 @@
 mainmenu "Thermo application"
 
 config SIMULATOR
-	bool "Build in simulator mode"
-	help
-	  Use simulated sensor data and log simulator mode at startup.
+    bool "Build in simulator mode"
+    help
+      Use simulated sensor data and log simulator mode at startup.
 
 config THERMO_CLOUD
-	bool "Send temperatures to AWS IoT Core over WiFi and MQTT"
-	default y
-	help
-	  Connect to WiFi and publish the temperatures received from the nodes
-	  to AWS IoT Core with MQTT over TLS. The settings (WiFi, endpoint,
-	  certificates) are entered with the "thermo" shell command.
-	  Disable it for builds without a network (native_sim).
+    bool "Send temperatures to AWS IoT Core over WiFi and MQTT"
+    default y
+    help
+      Connect to WiFi and publish the temperatures received from the nodes
+      to AWS IoT Core with MQTT over TLS. The settings (WiFi, endpoint,
+      certificates) are entered with the "thermo" shell command.
+      Disable it for builds without a network (native_sim).
 
 config THERMO_SWITCHBOT_INTERVAL_MS
-	int "Minimum interval between two reports of one SwitchBot device [ms]"
-	default 1000
-	help
-	  The SwitchBot Outdoor Meter broadcasts its temperature in every
-	  advertisement. A reading of one device is reported at most once
-	  in this interval.
+    int "Minimum interval between two reports of one SwitchBot device [ms]"
+    default 1000
+    help
+      The SwitchBot Outdoor Meter broadcasts its temperature in every
+      advertisement. A reading of one device is reported at most once
+      in this interval.
 
 config THERMO_NTP_SERVER
-	string "NTP server host name"
-	default "pool.ntp.org"
-	help
-	  The gateway sets its clock from this server with SNTP after the
-	  WiFi connection is up.
+    string "NTP server host name"
+    default "pool.ntp.org"
+    help
+      The gateway sets its clock from this server with SNTP after the
+      WiFi connection is up.
 
 config THERMO_NTP_RESYNC_S
-	int "Minimum interval between two time synchronizations [s]"
-	default 3600
-	help
-	  After a successful synchronization, the next one is skipped until
-	  this many seconds have passed (it is tried at each WiFi connection).
+    int "Minimum interval between two time synchronizations [s]"
+    default 3600
+    help
+      After a successful synchronization, the next one is skipped until
+      this many seconds have passed (it is tried at each WiFi connection).
 
 source "Kconfig.zephyr"

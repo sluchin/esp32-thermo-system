@@ -2,22 +2,22 @@
 
 /* 偽の GPIO コントローラ (vnd,test-gpio) の 3 番ピンに, ボタン (押すと 0) をつなぎ, alias thermo-button に接続する */
 / {
-	aliases {
-		thermo-button = &test_button;
-	};
+    aliases {
+        thermo-button = &test_button;
+    };
 
-	test_gpio: test-gpio {
-		compatible = "vnd,test-gpio";
-		status = "okay";
-		gpio-controller;
-		#gpio-cells = <2>;
-	};
+    test_gpio: test-gpio {
+        compatible = "vnd,test-gpio";
+        status = "okay";
+        gpio-controller;
+        #gpio-cells = <2>;
+    };
 
-	buttons {
-		compatible = "gpio-keys";
+    buttons {
+        compatible = "gpio-keys";
 
-		test_button: button_0 {
-			gpios = <&test_gpio 3 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
-		};
-	};
+        test_button: button_0 {
+            gpios = <&test_gpio 3 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+        };
+    };
 };
