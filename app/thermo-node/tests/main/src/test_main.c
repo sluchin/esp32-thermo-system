@@ -11,7 +11,8 @@
  * sensor と ble と node_time と oled の関数を, FFF のモックに置き換えて, 次を確認する.
  *  - 初期化に失敗したら, 後の処理に進まず, EXIT_FAILURE を返すこと
  *  - 初期化に成功したら, 一定間隔で温度を読み取り続けること (別スレッドで main を動かす)
- *  - OLED の表示と時刻を, 1 秒ごとに更新すること
+ *  - OLED の表示と時刻を, 1 秒ごとに更新すること (グラフの履歴に, 測定値を加えること)
+ *  - ボタンを押すと, ページを切り替えて (最後の次は, 最初に戻る), すぐに表示し直すこと
  *  - OLED や RTC の初期化に失敗しても, 表示と時刻を諦めるだけで, 測定と通知を続けること
  */
 
@@ -25,6 +26,8 @@
 #include <string.h>  /* memset */
 
 #include "ble.h"
+#include "button.h"
+#include "history.h"
 #include "node_time.h"
 #include "oled.h"
 #include "sensor.h"
@@ -47,6 +50,9 @@ FAKE_VALUE_FUNC(int, ble_advertise)
 FAKE_VALUE_FUNC(int, ble_notify_temperature, int16_t, uint16_t)
 FAKE_VOID_FUNC(ble_set_time_callback, ble_time_cb_t)
 FAKE_VALUE_FUNC(int, node_time_set, int64_t)
+FAKE_VALUE_FUNC(int, button_init)
+FAKE_VALUE_FUNC(bool, button_pressed)
+FAKE_VOID_FUNC(history_add, struct history *, int16_t, int64_t, int64_t)
 FAKE_VALUE_FUNC(int, oled_init)
 FAKE_VALUE_FUNC(int, oled_show, const struct oled_view *)
 FAKE_VALUE_FUNC(int, node_time_init)
@@ -82,6 +88,14 @@ FAKE_VALUE_FUNC(int, node_time_get, struct node_datetime *)
 #define FAKE_HUMIDITY_1   450U
 /** モックの 2 回目以降の温度 [℃ の 10 倍] (23.5 ℃) */
 #define FAKE_TEMP_2_X10   235
+
+/** ボタンを押したことにする呼び出しの数の上限 */
+#define PRESS_COUNT 3U
+
+/** 押されたことにする button_pressed() の呼び出しの回数 (0 は, 使わない) */
+static unsigned int press_at[PRESS_COUNT];
+
+static bool fake_pressed(void);
 
 /** oled_show() に渡された表示内容 (呼ばれた順) */
 static struct oled_view shown[SHOWN_MAX];
@@ -184,6 +198,9 @@ static void before(void *fixture)
     RESET_FAKE(ble_notify_temperature);
     RESET_FAKE(ble_set_time_callback);
     RESET_FAKE(node_time_set);
+    RESET_FAKE(button_init);
+    RESET_FAKE(button_pressed);
+    RESET_FAKE(history_add);
     RESET_FAKE(oled_init);
     RESET_FAKE(oled_show);
     RESET_FAKE(node_time_init);
@@ -191,6 +208,8 @@ static void before(void *fixture)
     FFF_RESET_HISTORY();
     oled_show_fake.custom_fake = fake_show;
     node_time_get_fake.custom_fake = fake_time_get;
+    (void)memset(press_at, 0, sizeof(press_at));
+    button_pressed_fake.custom_fake = fake_pressed;
     (void)memset(shown, 0, sizeof(shown));
     (void)memset(shown_time, 0, sizeof(shown_time));
 }
@@ -262,6 +281,18 @@ ZTEST(main_node, test_main_loop)
     zassert_true(shown_time[0].valid);
     zassert_equal(shown_time[0].hour, FAKE_HOUR);
 
+    /* 測定値を, グラフの履歴に加える (温度と湿度. 区切りの長さは, 30 秒) */
+    zassert_equal(button_init_fake.call_count, 1U);
+    zassert_equal(history_add_fake.call_count, 2U);
+    zassert_equal(history_add_fake.arg1_history[0], FAKE_TEMP_1_X10);
+    /* 稼働時間は, テストの開始から進んでいるので, 1 回目の測定の時間との差で調べる */
+    zassert_equal(history_add_fake.arg2_history[1], history_add_fake.arg2_history[0]);
+    zassert_equal(history_add_fake.arg3_history[0], 30000);
+    zassert_equal(history_add_fake.arg1_history[1], (int16_t)FAKE_HUMIDITY_1);
+    zassert_not_null(shown[0].temp_history);
+    zassert_not_null(shown[0].humidity_history);
+    zassert_not_equal(shown[0].temp_history, shown[0].humidity_history);
+
     /* 読み取った温度を通知する */
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
     zassert_equal(ble_notify_temperature_fake.arg0_history[0], FAKE_TEMP_1_X10);
@@ -278,6 +309,12 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(node_time_get_fake.call_count, 6U);
     zassert_equal(shown[5].temp_x10, FAKE_TEMP_2_X10);
     zassert_equal(shown[5].humidity_x10, THERMO_HUMIDITY_NONE);
+    /* 2 回目は, 湿度がないので, 温度だけを履歴に加える */
+    zassert_equal(history_add_fake.call_count, 3U);
+    zassert_equal(history_add_fake.arg1_history[2], FAKE_TEMP_2_X10);
+    /* 測定の間隔は, 5 秒の格子に合わせる (待ちの丸めで, 格子の直後 (100 ms 以内) になる) */
+    zassert_within(history_add_fake.arg2_history[2] - history_add_fake.arg2_history[0],
+                   SAMPLE_INTERVAL_S * 1000, 100);
     zassert_equal(sensor_init_fake.call_count, 1U);
     zassert_equal(node_time_init_fake.call_count, 1U);
     zassert_equal(oled_init_fake.call_count, 1U);
@@ -333,6 +370,25 @@ ZTEST(main_node, test_time_callback_registered)
     zassert_equal(thermo_node_main(), EXIT_FAILURE);
     zassert_equal(ble_set_time_callback_fake.call_count, 1U);
     zassert_equal(ble_set_time_callback_fake.arg0_val, node_time_set);
+}
+
+/**
+ * button_pressed() のモック動作 (設定した回数目の呼び出しで, 押されたことにする)
+ *
+ * @return 押された呼び出しなら true
+ */
+static bool fake_pressed(void)
+{
+    unsigned int call = button_pressed_fake.call_count; /* 今回の呼び出しの回数 (1 始まり) */
+    unsigned int i = 0U;                                /* ループ用の添字 */
+
+    for (i = 0U; i < PRESS_COUNT; i++) {
+        if (call == press_at[i]) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -449,6 +505,58 @@ ZTEST(main_node, test_time_unset)
     zassert_equal(oled_show_fake.call_count, 1U);
     zassert_not_null(shown[0].time);
     zassert_false(shown_time[0].valid);
+
+    k_thread_abort(&main_thread);
+}
+
+/** ボタンを押すと, 次のページにして, 1 秒を待たずに表示し直す */
+ZTEST(main_node, test_button_switches_page)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    press_at[0] = 3U; /* 3 回目の呼び出し (100 ms) で押される */
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS + 60);
+    zassert_equal(oled_show_fake.call_count, 2U);
+    zassert_equal(shown[0].page, OLED_PAGE_NOW);
+    zassert_equal(shown[1].page, OLED_PAGE_TEMP_GRAPH);
+
+    k_thread_abort(&main_thread);
+}
+
+/** ボタンを続けて押すと, ページが順に進み, 最後の次は, 最初に戻る */
+ZTEST(main_node, test_button_page_wraps_around)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    press_at[0] = 2U;
+    press_at[1] = 4U;
+    press_at[2] = 6U;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS + 300);
+    zassert_equal(shown[1].page, OLED_PAGE_TEMP_GRAPH);
+    zassert_equal(shown[2].page, OLED_PAGE_HUMIDITY_GRAPH);
+    zassert_equal(shown[3].page, OLED_PAGE_NOW);
+
+    k_thread_abort(&main_thread);
+}
+
+/** ボタンの初期化に失敗したら, ボタンは調べず (ページは切り替えず), 測定と表示は続ける */
+ZTEST(main_node, test_button_init_failure_continues)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    button_init_fake.return_val = -ENODEV;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS + 300);
+    zassert_equal(button_init_fake.call_count, 1U);
+    zassert_equal(button_pressed_fake.call_count, 0U);
+    zassert_equal(oled_show_fake.call_count, 1U);
+    zassert_equal(shown[0].page, OLED_PAGE_NOW);
+    zassert_equal(ble_notify_temperature_fake.call_count, 1U);
 
     k_thread_abort(&main_thread);
 }

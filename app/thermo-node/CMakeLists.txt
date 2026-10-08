@@ -19,7 +19,7 @@ if(THERMO_DEBUG_LOG)
 endif()
 target_sources(app PRIVATE src/sensor.c)
 # OLED (CONFIG_THERMO_DISPLAY=n のときは, ビルドしない)
-target_sources_ifdef(CONFIG_THERMO_DISPLAY app PRIVATE src/oled.c)
+target_sources_ifdef(CONFIG_THERMO_DISPLAY app PRIVATE src/oled.c src/history.c src/button.c)
 # RTC の時刻 (CONFIG_THERMO_RTC=n のときは, ビルドしない)
 target_sources_ifdef(CONFIG_THERMO_RTC app PRIVATE src/node_time.c)
 

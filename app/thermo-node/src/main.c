@@ -20,6 +20,8 @@
 #include "node_time.h"
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
+#include "button.h"
+#include "history.h"
 #include "oled.h"
 #endif
 #include "sensor.h"
@@ -32,20 +34,31 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10);
 
 static int measure(int16_t *temp_x10, uint16_t *humidity_x10);
 
-/** 温度を測定する間隔 [s] */
-#define SAMPLE_INTERVAL_S 5U
+static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_ms);
 
-/** メインループの周期 [s] (OLED の時刻を, 1 秒ごとに更新する) */
-#define TICK_S 1U
+/** 温度を測定する間隔 [ms] */
+#define SAMPLE_INTERVAL_MS 5000
+
+/** OLED と時刻を更新する間隔 [ms] (時刻の秒を, 1 秒ごとに更新する) */
+#define REDRAW_INTERVAL_MS 1000
+
+/** メインループの周期 [ms] (ボタンを調べる間隔. ボタンのチャタリングを無視する時間にもなる) */
+#define TICK_MS 50
+
+#ifdef CONFIG_THERMO_DISPLAY
+/** グラフの 1 点の時間 [ms] (CONFIG_THERMO_GRAPH_STEP_S) */
+#define GRAPH_STEP_MS ((int64_t)CONFIG_THERMO_GRAPH_STEP_S * 1000)
+#endif
 
 /**
  * @brief ノードのメイン関数
  *
- * センサと BLE を初期化してアドバタイズを開始し, その後は 1 秒ごとのループで, 一定間隔
- * (SAMPLE_INTERVAL_S) で温度を読み取って, ログ出力して, 接続しているゲートウェイへ通知
+ * センサと BLE を初期化してアドバタイズを開始し, その後は 50 ms ごとのループで, 一定間隔
+ * (SAMPLE_INTERVAL_MS) で温度を読み取って, ログ出力して, 接続しているゲートウェイへ通知
  * (GATT の notify) する. ゲートウェイから時刻を受け取ったら (GATT の write), RTC に設定する
  * (CONFIG_THERMO_RTC). OLED があれば (CONFIG_THERMO_DISPLAY), 温度, 湿度, 時刻を, 1 秒ごとに
- * 表示する. 時刻は, RTC (CONFIG_THERMO_RTC) から読む. OLED と RTC の初期化に失敗しても, 表示と
+ * 表示して, 温度と湿度の履歴 (グラフ) を覚える. ボタンを押すと, ページを切り替えて, すぐに
+ * 表示し直す. 時刻は, RTC (CONFIG_THERMO_RTC) から読む. OLED と RTC の初期化に失敗しても, 表示と
  * 時刻を諦めるだけで, 測定と通知は続ける.
  *
  * @retval EXIT_FAILURE 初期化またはアドバタイズ開始に失敗した場合
@@ -53,17 +66,23 @@ static int measure(int16_t *temp_x10, uint16_t *humidity_x10);
  */
 int main(void)
 {
-    int ret = EXIT_SUCCESS;                     /* 戻り値 */
-    unsigned int elapsed_s = SAMPLE_INTERVAL_S; /* 前回の測定からの経過 [s] (初回は, すぐ測る) */
-    int16_t temp_x10 = 0;                       /* 温度 [℃ の 10 倍] */
-    uint16_t humidity_x10 = 0;                  /* 湿度 [% の 10 倍] */
+    int ret = EXIT_SUCCESS;            /* 戻り値 */
+    int64_t start_ms = k_uptime_get(); /* ループを始めた稼働時間 [ms] */
+    int64_t next_sample_ms = 0;        /* 次に測る稼働時間 [ms] (初回は, すぐ測る) */
+    int64_t next_redraw_ms = 0;        /* 次に表示を更新する稼働時間 [ms] */
+    int64_t now_ms = 0;                /* 今の稼働時間 [ms] */
+    int16_t temp_x10 = 0;              /* 温度 [℃ の 10 倍] */
+    uint16_t humidity_x10 = 0;         /* 湿度 [% の 10 倍] */
 #ifdef CONFIG_THERMO_RTC
     struct node_datetime datetime = {0}; /* RTC のローカルタイム */
     bool rtc_ready = false;              /* RTC を使えるか */
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
-    struct oled_view view = {0}; /* OLED に表示する内容 */
-    bool display_ready = false;  /* OLED を使えるか */
+    struct history temp_history = {0};     /* 温度の履歴 */
+    struct history humidity_history = {0}; /* 湿度の履歴 */
+    struct oled_view view = {0};           /* OLED に表示する内容 */
+    bool display_ready = false;            /* OLED を使えるか */
+    bool button_ready = false;             /* ボタンを使えるか */
 #endif
 
 /* ビルド構成に応じて起動ログを切り替える */
@@ -115,12 +134,23 @@ int main(void)
     if (!display_ready) {
         LOG_ERR("Failed to initialize the OLED (err %d), continuing without it", ret);
     }
+
+    /* ボタンを初期化する (失敗しても, 画面を切り替えられないだけ) */
+    ret = button_init();
+    button_ready = (ret == EXIT_SUCCESS);
+    if (!button_ready) {
+        LOG_ERR("Failed to initialize the button (err %d), the page is not switched", ret);
+    }
+    view.temp_history = &temp_history;
+    view.humidity_history = &humidity_history;
 #endif
 
-    /* 1 秒ごとに, 一定間隔で温度と湿度を測って, 時刻を表示する */
+    /* 50 ms ごとに, ボタンを調べて, 一定間隔で温度と湿度を測り, 1 秒ごとに時刻を表示する */
     while (true) {
-        if (elapsed_s >= SAMPLE_INTERVAL_S) {
-            elapsed_s = 0U;
+        now_ms = k_uptime_get();
+
+        if (now_ms >= next_sample_ms) {
+            next_sample_ms = next_grid_ms(start_ms, now_ms, SAMPLE_INTERVAL_MS);
             ret = measure(&temp_x10, &humidity_x10);
 #ifdef CONFIG_THERMO_DISPLAY
             /* 読み取りに失敗したときは, 前回の値を表示し続ける */
@@ -128,32 +158,45 @@ int main(void)
                 view.has_sample = true;
                 view.temp_x10 = temp_x10;
                 view.humidity_x10 = humidity_x10;
+                history_add(&temp_history, temp_x10, now_ms, GRAPH_STEP_MS);
+                if (humidity_x10 != THERMO_HUMIDITY_NONE) {
+                    history_add(&humidity_history, (int16_t)humidity_x10, now_ms, GRAPH_STEP_MS);
+                }
             }
 #endif
         }
 
+#ifdef CONFIG_THERMO_DISPLAY
+        /* ボタンが押されたら, 次のページにして, すぐに表示し直す */
+        if (button_ready && button_pressed()) {
+            view.page = (view.page + 1U) % OLED_PAGE_COUNT;
+            next_redraw_ms = now_ms;
+        }
+#endif
+
+        if (now_ms >= next_redraw_ms) {
+            next_redraw_ms = next_grid_ms(start_ms, now_ms, REDRAW_INTERVAL_MS);
 #ifdef CONFIG_THERMO_RTC
-        if (rtc_ready) {
-            /* 未設定や読み取りの失敗のときは, datetime.valid が false (時刻なしと表示する) */
-            (void)node_time_get(&datetime);
+            if (rtc_ready) {
+                /* 未設定や読み取りの失敗のときは, datetime.valid が false (時刻なしと表示する) */
+                (void)node_time_get(&datetime);
 #ifdef CONFIG_THERMO_DISPLAY
-            view.time = &datetime;
+                view.time = &datetime;
 #endif
-        }
-#endif
-
-#ifdef CONFIG_THERMO_DISPLAY
-        /* OLED に表示する (失敗しても次回に再試行する) */
-        if (display_ready) {
-            ret = oled_show(&view);
-            if (ret != EXIT_SUCCESS) {
-                LOG_ERR("Failed to show on the OLED (err %d)", ret);
             }
-        }
 #endif
+#ifdef CONFIG_THERMO_DISPLAY
+            /* OLED に表示する (失敗しても次回に再試行する) */
+            if (display_ready) {
+                ret = oled_show(&view);
+                if (ret != EXIT_SUCCESS) {
+                    LOG_ERR("Failed to show on the OLED (err %d)", ret);
+                }
+            }
+#endif
+        }
 
-        (void)k_sleep(K_SECONDS(TICK_S));
-        elapsed_s += TICK_S;
+        (void)k_msleep(TICK_MS);
     }
 }
 
@@ -212,4 +255,21 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10)
         LOG_INF("Temperature: %s%u.%u C, humidity: %u.%u %%", sign, magnitude / 10U,
                 magnitude % 10U, humidity_x10 / 10U, humidity_x10 % 10U);
     }
+}
+
+/**
+ * 一定の間隔の格子の, 次の時刻を求める
+ *
+ * 待ちは, カーネルのティックの丸めで, 少し長くなる. 「今 + 間隔」で次を決めると, 遅れが
+ * 積もるので, ループを始めた時刻から, 間隔ごとの格子に合わせる.
+ *
+ * @param[in] start_ms    格子の始まりの稼働時間 [ms]
+ * @param[in] now_ms      今の稼働時間 [ms] (start_ms 以上)
+ * @param[in] interval_ms 間隔 [ms] (1 以上)
+ *
+ * @return 今より後の, 格子の最初の稼働時間 [ms]
+ */
+static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_ms)
+{
+    return start_ms + ((((now_ms - start_ms) / interval_ms) + 1) * interval_ms);
 }

@@ -1,0 +1,14 @@
+# thermo-node の単体テスト用の, 偽の GPIO コントローラ (ピンの入力の値は, テストから設定する)
+description: Fake GPIO controller for the unit test of thermo-node
+
+compatible: "vnd,test-gpio"
+
+include: [gpio-controller.yaml, base.yaml]
+
+properties:
+  "#gpio-cells":
+    const: 2
+
+gpio-cells:
+  - pin
+  - flags
