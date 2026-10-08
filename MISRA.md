@@ -11,7 +11,7 @@
 本ソフトウェアは、ESP32C3 (Seeed Studio XIAO ESP32C3) 上で動作する Zephyr RTOS ベースの BLE ファームウェアです。
 
 - `thermo-node`: DHT11 (または ADC) で温度と湿度を読み取り、BLE でアドバタイズする。
-- `thermo-gateway`: BLE のアドバタイズをスキャンし、周辺ノードを検出する。
+- `thermo-gateway`: BLE のアドバタイズをスキャンし、周辺ノード (と SwitchBot の温湿度計) のデータを集める。設定すると、WiFi と NTP で時刻を合わせ、MQTT (TLS) で AWS IoT Core に送る。
 
 ### 対象範囲
 
@@ -49,10 +49,12 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 | 1 | Rule 1.2 | Advisory | 言語拡張 (GNU 拡張) の使用 | Zephyr API のマクロ (`LOG_*`, `BT_DATA*`, `K_SECONDS`, `BIT`, `ARRAY_SIZE`, `ADC_DT_SPEC_GET`) |
 | 2 | Dir 4.9 | Advisory | 関数形式マクロの使用 | Zephyr API のマクロ (上記と同じ) |
 | 3 | Rule 20.7, 20.10, 20.12 | Required / Advisory | マクロ引数の括弧、`#` / `##` 演算子、マクロ引数の展開 | `LOG_MODULE_REGISTER`, Devicetree マクロ (`DT_*`) |
-| 4 | Rule 11.3 | Required | オブジェクトポインタの型のキャスト | `BT_DATA` が文字列を `uint8_t *` として扱う (`app/thermo-node/src/ble.c`) |
+| 4 | Rule 11.3 | Required | オブジェクトポインタの型のキャスト | `BT_DATA` が文字列を `uint8_t *` として扱う (`app/thermo-node/src/ble.c`)。API の引数の型に合わせる文字列と配列のキャスト (`cloud.c`, `wifi_link.c`, `ble.c`) |
 | 5 | Rule 15.5 | Advisory | 早期リターン (単一終了点規則の例外) | エラー時の `return err;` (`ble.c`, `sensor.c`, `main.c`) |
 | 6 | Rule 14.3 | Required | 不変な制御式 (`while (true)`) | ファームウェアの無限ループ (`main.c`) |
 | 7 | Rule 15.6 | Required | 制御構文の本体を `{}` で囲まない (本体が 1 文のとき) | 1 文の `if` / `else` / `for` / `while` (`CODING_STYLE.md` の例外 5) |
+| 8 | Rule 18.4 | Advisory | ポインタへの整数の加算 | 通知データの 2 つ目の値の位置 (`app/thermo-gateway/src/ble.c`) |
+| 9 | Rule 22.8 - 22.10 | Required | `errno` の参照 | ソケットの `poll()` の失敗の原因 (`app/thermo-gateway/src/cloud.c`) |
 
 ---
 
@@ -73,7 +75,8 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 - **理由 (Rationale)**:
   - ログ、BLE データ、時間、Devicetree の API は、Zephyr がマクロで提供しています。ログは、モジュール名やログレベルの情報を、コンパイル時に処理する必要があります。
 - **安全対策 (Mitigation)**:
-  - アプリ独自の関数形式マクロは、定義しません。独自の定数は、`#define` の名前付き定数 (引数なし) にします。
+  - アプリ独自の関数形式マクロは、原則として、定義しません。独自の定数は、`#define` の名前付き定数 (引数なし) にします。
+  - 唯一の例外は、`app/thermo-gateway/src/ble.c` の `adv_hexdump()` です。デバッグログが有効なときは `static` 関数で、無効なときは、何もしないマクロ (`do {} while (0)`) になります。マクロの引数は、展開しません。
 
 ### 例外 3: マクロ引数の括弧、# / ## 演算子
 - **該当ルール**: MISRA C:2012 Rule 20.7 (Required), Rule 20.10 (Advisory), Rule 20.12 (Required)
@@ -87,10 +90,10 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
   - 「オブジェクトへのポインタを、別の型のオブジェクトへのポインタにキャストしてはならない」
 - **理由 (Rationale)**:
   - `BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, ...)` は、マクロの内側で、文字列リテラル (`char`) を `(const uint8_t *)` にキャストします (`app/thermo-node/src/ble.c`)。
+  - thermo-gateway では、MQTT ライブラリ (`cloud.c`) と WiFi の API (`wifi_link.c`) が、文字列を `uint8_t` のポインタで受け取ります。また、GATT の通知のデータ (`void *`) は、`sys_get_le16()` に渡すために、`const uint8_t *` にします (`ble.c`)。
 - **安全対策 (Mitigation)**:
-  - データの長さは、`sizeof(CONFIG_BT_DEVICE_NAME) - 1U` で、コンパイル時に決めます。
-  - アプリのコードでは、ポインタ型の明示的なキャストを、書きません。
-
+  - データの長さは、`sizeof(CONFIG_BT_DEVICE_NAME) - 1U` や `strlen()` で決めます。
+  - キャストは、API の引数の型に合わせるときだけに限り、`char` の文字列と `uint8_t` のバイト列の間で行います。`const` は、外しません。
 ### 例外 5: 早期リターン (単一終了点規則の例外)
 - **該当ルール**: MISRA C:2012 Rule 15.5 (Advisory)
   - 「関数は末尾に単一の終了点を持つべきである」
@@ -111,6 +114,34 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
   - 無限ループの後ろには、到達しないコード (`return` など) を書きません (Rule 2.1)。
   - 各周回で `k_sleep()` により、他のスレッドに実行を譲ります。
 
+### 例外 7: 1 文の本体に {} を付けない
+- **該当ルール**: MISRA C:2012 Rule 15.6 (Required)
+  - 「`if` / `else` / `for` / `while` / `do` の本体は、複合文でなければならない」
+- **理由 (Rationale)**:
+  - 本体が 1 文のとき、`{}` を付けない書き方を許す (`CODING_STYLE.md` の例外 5)。短い条件の処理が、読みやすくなる。
+- **安全対策 (Mitigation)**:
+  - 本体が 2 文以上のときは、必ず `{}` を付ける。
+  - 本体は、次の行に、インデントして書く (1 行に続けない。`AllowShortIfStatementsOnASingleLine: false` と `AllowShortLoopsOnASingleLine: false` で、整形が確認する)。
+  - `-Wall` に含まれる `-Wmisleading-indentation` で、インデントと本体の範囲の食い違い (`goto fail` の誤りなど) を検出する。
+
+### 例外 8: ポインタへの整数の加算
+- **該当ルール**: MISRA C:2012 Rule 18.4 (Advisory)
+  - 「`+`、`-`、`+=`、`-=` 演算子を、ポインタ型の式に適用してはならない」
+- **理由 (Rationale)**:
+  - GATT の通知のデータには、温度 (2 byte) と湿度 (2 byte) が続けて並んでいます。湿度の位置は、先頭のポインタに、温度のサイズを足して求めます (`app/thermo-gateway/src/ble.c`)。
+- **安全対策 (Mitigation)**:
+  - 足す前に、通知の長さが `THERMO_TEMPERATURE_SIZE` (4 byte) と等しいことを確認します。足した先から読むのは、2 byte だけです。
+  - 足す値は、`sizeof(uint16_t)` の名前付きの式で、マジックナンバーを使いません。
+
+### 例外 9: errno の参照
+- **該当ルール**: MISRA C:2012 Rule 22.8, 22.9, 22.10 (Required)
+  - 「`errno` を使う関数の呼び出しの前に、`errno` を 0 にし、呼び出しの後に、`errno` を検査しなければならない」
+- **理由 (Rationale)**:
+  - ソケットの `poll()` は、失敗したことを `-1` で返し、原因を `errno` に入れます。呼び出し元へ、原因 (負の `errno` 値) を伝えるために、参照します (`poll_input()`。`app/thermo-gateway/src/cloud.c`)。
+- **安全対策 (Mitigation)**:
+  - 戻り値が負のとき (失敗が確定したとき) だけ、`errno` を参照します。直後に、`-errno` を返し、保持しません。
+  - ほかの場所では、`errno` を参照しません (`errno.h` は、`EINVAL` などの定数のために含めます)。
+
 ---
 
 ## 4. 例外としていないもの (参考)
@@ -128,15 +159,3 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 | `exit()` / `atexit()` | Rule 21.8 | `main()` の戻り値で、終了状態を返す |
 | 可変長引数 (`<stdarg.h>`) | Rule 17.1 | アプリ独自の可変長引数の関数は、定義しない |
 | 浮動小数点数 | Rule 14.1 | 温度と湿度は、10 倍の整数 (0.1 ℃、0.1 % の単位) で扱う |
-| ポインタ演算 | Rule 18.4 | |
-| `errno` の参照 | Rule 22.8 - 22.10 | エラーは、戻り値 (負の `errno` 値) で返す |
-
-### 例外 7: 1 文の本体に {} を付けない
-- **該当ルール**: MISRA C:2012 Rule 15.6 (Required)
-  - 「`if` / `else` / `for` / `while` / `do` の本体は、複合文でなければならない」
-- **理由 (Rationale)**:
-  - 本体が 1 文のとき、`{}` を付けない書き方を許す (`CODING_STYLE.md` の例外 5)。短い条件の処理が、読みやすくなる。
-- **安全対策 (Mitigation)**:
-  - 本体が 2 文以上のときは、必ず `{}` を付ける。
-  - 本体は、次の行に、インデントして書く (1 行に続けない。`AllowShortIfStatementsOnASingleLine: false` と `AllowShortLoopsOnASingleLine: false` で、整形が確認する)。
-  - `-Wall` に含まれる `-Wmisleading-indentation` で、インデントと本体の範囲の食い違い (`goto fail` の誤りなど) を検出する。

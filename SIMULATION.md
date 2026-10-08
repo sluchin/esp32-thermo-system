@@ -168,4 +168,4 @@ native_sim ボード用の device tree overlay。
 ## リファレンス
 
 - [Zephyr native_sim Documentation](https://docs.zephyrproject.org/latest/boards/native/native_sim/doc/index.html)
-- [Zephyr Simulation Environment](https://docs.zephyrproject.org/latest/develop/testing/index.html)
+- [Zephyr Testing](https://docs.zephyrproject.org/latest/develop/test/index.html)
