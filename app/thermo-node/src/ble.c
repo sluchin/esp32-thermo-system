@@ -14,8 +14,8 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
-#include <errno.h>  /* ENOTCONN */
-#include <stdint.h> /* uint16_t uint8_t */
+#include <errno.h>  /* ENOTCONN ERANGE */
+#include <stdint.h> /* uint16_t uint8_t uint32_t int64_t */
 #include <stdlib.h> /* EXIT_SUCCESS */
 
 #include "ble.h"
@@ -45,6 +45,14 @@ static int16_t latest_temp_x10;
 /** 最後に通知した湿度 [% の 10 倍]. 通知の前は, 湿度なし. 読み取り (read) で返す */
 static uint16_t latest_humidity_x10 = THERMO_HUMIDITY_NONE;
 
+#ifdef CONFIG_THERMO_RTC
+/** ゲートウェイから時刻を受け取ったときのコールバック (NULL なら, 書き込みを拒否する) */
+static ble_time_cb_t time_cb;
+
+static ssize_t write_time(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
+                          uint16_t len, uint16_t offset, uint8_t flags);
+#endif
+
 static void pack_value(uint8_t *out, int16_t temp_x10, uint16_t humidity_x10);
 static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
                                 uint16_t len, uint16_t offset);
@@ -54,13 +62,18 @@ static void disconnected(struct bt_conn *conn, uint8_t reason);
 /**
  * Thermo サービスの属性
  *
- * 0: サービス, 1: 特性の宣言, 2: 特性の値 (温度), 3: CCC (通知の設定)
+ * 0: サービス, 1: 特性の宣言, 2: 特性の値 (温度), 3: CCC (通知の設定),
+ * (CONFIG_THERMO_RTC のとき) 4: 特性の宣言, 5: 特性の値 (時刻. 書き込みだけ)
  */
 static struct bt_gatt_attr thermo_attrs[] = {
     BT_GATT_PRIMARY_SERVICE(THERMO_UUID_SERVICE),
     BT_GATT_CHARACTERISTIC(THERMO_UUID_TEMPERATURE, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
                            BT_GATT_PERM_READ, read_temperature, NULL, NULL),
     BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+#ifdef CONFIG_THERMO_RTC
+    BT_GATT_CHARACTERISTIC(THERMO_UUID_TIME, BT_GATT_CHRC_WRITE, BT_GATT_PERM_WRITE, NULL,
+                           write_time, NULL),
+#endif
 };
 
 /** 温度の特性の値の属性の位置 (thermo_attrs) */
@@ -169,6 +182,18 @@ int ble_notify_temperature(int16_t temp_x10, uint16_t humidity_x10)
     return EXIT_SUCCESS;
 }
 
+#ifdef CONFIG_THERMO_RTC
+/**
+ * @brief ゲートウェイから時刻を受け取ったときのコールバックを登録する
+ *
+ * @param[in] cb コールバック (NULL なら, 時刻の書き込みを拒否する)
+ */
+void ble_set_time_callback(ble_time_cb_t cb)
+{
+    time_cb = cb;
+}
+#endif
+
 /**
  * 温度の特性の読み取り (read) のコールバック
  *
@@ -189,6 +214,59 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
 
     return bt_gatt_attr_read(conn, attr, buf, len, offset, value, sizeof(value));
 }
+
+#ifdef CONFIG_THERMO_RTC
+/**
+ * 時刻の特性の書き込み (write) のコールバック (ゲートウェイが送った UTC の時刻を, 設定する)
+ *
+ * Bluetooth のスレッドから呼ばれる. 値は, UTC の UNIX 時刻 [s] (uint32, リトルエンディアン).
+ * 認証はしないので, 近くの BLE 機器は, 誰でも書き込める (表示する時刻だけに影響する).
+ *
+ * @param[in] conn   接続
+ * @param[in] attr   特性の値の属性
+ * @param[in] buf    書き込まれた値
+ * @param[in] len    値の大きさ
+ * @param[in] offset 書き込みの開始位置
+ * @param[in] flags  書き込みのフラグ
+ *
+ * @return 書き込んだ大きさ (失敗なら, 負の ATT エラー)
+ */
+static ssize_t write_time(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
+                          uint16_t len, uint16_t offset, uint8_t flags)
+{
+    uint32_t unix_s = 0U;   /* 受け取った UTC の UNIX 時刻 [s] */
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    ARG_UNUSED(conn);
+    ARG_UNUSED(attr);
+    ARG_UNUSED(flags);
+
+    if (offset != 0U) {
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+    }
+    if (len != THERMO_TIME_SIZE) {
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
+    }
+    if (time_cb == NULL) {
+        return BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED);
+    }
+
+    unix_s = sys_get_le32((const uint8_t *)buf);
+    err = time_cb((int64_t)unix_s);
+    if (err == -ERANGE) {
+        LOG_WRN("The time from the gateway is out of range (%u)", unix_s);
+        return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+    }
+    if (err != EXIT_SUCCESS) {
+        LOG_ERR("Could not set the time (err %d)", err);
+        return BT_GATT_ERR(BT_ATT_ERR_UNLIKELY);
+    }
+
+    LOG_INF("Time set by the gateway (UNIX time %u)", unix_s);
+
+    return (ssize_t)len;
+}
+#endif
 
 /**
  * 温度と湿度の特性の値 (THERMO_TEMPERATURE_SIZE バイト) を作る

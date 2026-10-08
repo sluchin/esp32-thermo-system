@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief thermo-gateway の BLE 実装 (ノードのスキャンと接続, GATT での温度の受信)
+ * @brief thermo-gateway の BLE 実装 (ノードのスキャンと接続, GATT での温度の受信と時刻の書き込み)
  */
 
 #include <zephyr/bluetooth/bluetooth.h>
@@ -16,9 +16,9 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
-#include <errno.h>   /* EALREADY EBUSY */
+#include <errno.h>   /* EALREADY EBUSY EAGAIN */
 #include <stdbool.h> /* bool true false */
-#include <stdint.h>  /* uint8_t uint16_t int8_t */
+#include <stdint.h>  /* uint8_t uint16_t int8_t int64_t */
 #include <stdlib.h>  /* EXIT_SUCCESS */
 #include <string.h>  /* memset memcmp */
 
@@ -39,11 +39,24 @@ LOG_MODULE_REGISTER(ble_thermo_gateway, THERMO_LOG_LEVEL);
 /** スキャンを止められなかったときに, 接続を始め直す最大の回数 */
 #define CONNECT_RETRY_MAX 10U
 
+/** 時刻を書き込む必要があるかを確かめる間隔 [s] (同期の前や, 書き込みの見送りのあとの待ち) */
+#define TIME_CHECK_S  10
+/** 時刻を書き込み直す間隔 [s] (ノードの RTC のずれを直す) */
+#define TIME_RESYNC_S 3600
+/** 時刻の書き込みに失敗したときに, やり直すまでの間隔 [s] */
+#define TIME_RETRY_S  60
+
 /** 接続しているノード 1 台ぶんの状態 */
 struct node {
     struct bt_conn *conn;                      /**< 接続 (使っていなければ NULL) */
     struct bt_gatt_discover_params discover;   /**< サービスの探索のパラメータ */
     struct bt_gatt_subscribe_params subscribe; /**< 通知の購読のパラメータ */
+    struct bt_gatt_write_params write;         /**< 時刻の書き込みのパラメータ */
+    uint16_t service_start;                    /**< サービスの中の, 最初の属性のハンドル */
+    uint16_t service_end;                      /**< サービスの最後の属性のハンドル */
+    uint16_t time_handle;                      /**< 時刻の特性の値のハンドル (0 なら, 特性がない) */
+    int64_t time_due_ms;                       /**< 次に時刻を書き込む時刻 (稼働時間 [ms]) */
+    uint8_t time_buf[THERMO_TIME_SIZE];        /**< 書き込む時刻 (UTC の UNIX 時刻. uint32 LE) */
 };
 
 /** 接続しているノード */
@@ -53,6 +66,8 @@ static struct node nodes[MAX_NODES];
 static const struct bt_uuid_128 service_uuid = BT_UUID_INIT_128(THERMO_UUID_SERVICE_VAL);
 /** 温度の特性の UUID */
 static const struct bt_uuid_128 temperature_uuid = BT_UUID_INIT_128(THERMO_UUID_TEMPERATURE_VAL);
+/** 時刻の特性の UUID */
+static const struct bt_uuid_128 time_uuid = BT_UUID_INIT_128(THERMO_UUID_TIME_VAL);
 /** CCC (通知の設定) の UUID */
 static const struct bt_uuid_16 ccc_uuid = BT_UUID_INIT_16(BT_UUID_GATT_CCC_VAL);
 
@@ -63,6 +78,8 @@ static const uint8_t service_uuid_val[] = {THERMO_UUID_SERVICE_VAL};
 static ble_temperature_cb_t temperature_cb;
 /** SwitchBot のアドバタイズを受信したときのコールバック */
 static ble_switchbot_cb_t switchbot_cb;
+/** ノードに書き込む時刻を得る関数 (NULL なら, 時刻を書き込まない) */
+static ble_time_source_t time_source;
 
 /** 接続を始めるノードのアドレス (スキャンのコールバックが記録する) */
 static bt_addr_le_t pending_addr;
@@ -80,6 +97,11 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
                          const void *data, uint16_t length);
 static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                            struct bt_gatt_discover_params *params);
+static uint8_t time_discover_cb(const struct bt_gatt_attr *attr, struct node *node);
+static void start_time_discovery(struct bt_conn *conn, struct node *node);
+static void write_time(struct node *node, int64_t unix_s, int64_t now_ms);
+static void write_time_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_params *params);
+static void time_work_handler(struct k_work *work);
 static void connected(struct bt_conn *conn, uint8_t err);
 static void disconnected(struct bt_conn *conn, uint8_t reason);
 static void connect_work_handler(struct k_work *work);
@@ -88,6 +110,8 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 
 /** 接続を始める処理 (システムのワークキューで実行する) */
 static K_WORK_DELAYABLE_DEFINE(connect_work, connect_work_handler);
+/** ノードに時刻を書き込む処理 (システムのワークキューで実行する) */
+static K_WORK_DELAYABLE_DEFINE(time_work, time_work_handler);
 
 /** アドバタイズデータ (スキャン応答を含む) を解析した結果 */
 struct scan_result {
@@ -178,6 +202,21 @@ void ble_set_temperature_callback(ble_temperature_cb_t cb)
 void ble_set_switchbot_callback(ble_switchbot_cb_t cb)
 {
     switchbot_cb = cb;
+}
+
+/**
+ * @brief ノードに書き込む時刻を得る関数を設定する
+ *
+ * ノードの時刻の特性を見つけたら, この関数で得た UTC の UNIX 時刻を, ノードに書き込む
+ * (ノードは, RTC を合わせる). 関数が失敗している間 (まだ SNTP で同期していない) は, 書き込みを
+ * 見送って, TIME_CHECK_S ごとに確かめる. 書き込んだあとも, TIME_RESYNC_S ごとに, 書き込み直す.
+ * ble_scan() の前に設定しておくこと. NULL で解除する (時刻は書き込まない).
+ *
+ * @param[in] source 時刻を得る関数
+ */
+void ble_set_time_source(ble_time_source_t source)
+{
+    time_source = source;
 }
 
 /**
@@ -351,6 +390,11 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
     const struct bt_gatt_service_val *service = NULL;                /* GATT サービス */
     int err = EXIT_SUCCESS;                                          /* エラーコード */
 
+    /* 時刻の特性の探索 (ノードに時刻の特性がなくても, 温度の受信は続ける) */
+    if (params->uuid == &time_uuid.uuid) {
+        return time_discover_cb(attr, node);
+    }
+
     if (attr == NULL) {
         LOG_ERR("Thermo service not found");
         err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
@@ -363,6 +407,8 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
     if (params->type == BT_GATT_DISCOVER_PRIMARY) {
         /* 次はサービスの中から, 温度の特性を探す */
         service = (const struct bt_gatt_service_val *)attr->user_data;
+        node->service_start = (uint16_t)(attr->handle + 1U);
+        node->service_end = service->end_handle;
         params->uuid = &temperature_uuid.uuid;
         params->start_handle = (uint16_t)(attr->handle + 1U);
         params->end_handle = service->end_handle;
@@ -386,6 +432,7 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
         }
         if (err == EXIT_SUCCESS) {
             LOG_INF("Subscribed to the temperature");
+            start_time_discovery(conn, node);
         }
     }
 
@@ -398,6 +445,143 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
     }
 
     return BT_GATT_ITER_STOP;
+}
+
+/**
+ * 時刻の特性の探索のコールバック (見つかったら, すぐに, 時刻を書き込む処理を動かす)
+ *
+ * @param[in]     attr 見つかった属性 (NULL なら, 探索が終わった. ノードに, 時刻の特性がない)
+ * @param[in,out] node 対象のノード
+ *
+ * @return BT_GATT_ITER_STOP (探索を続けない)
+ */
+static uint8_t time_discover_cb(const struct bt_gatt_attr *attr, struct node *node)
+{
+    if (attr == NULL) {
+        LOG_WRN("Time characteristic not found, the time is not sent to the node");
+        return BT_GATT_ITER_STOP;
+    }
+
+    node->time_handle = bt_gatt_attr_value_handle(attr);
+    node->time_due_ms = 0;
+    (void)k_work_reschedule(&time_work, K_NO_WAIT);
+    LOG_INF("Time characteristic found");
+
+    return BT_GATT_ITER_STOP;
+}
+
+/**
+ * 時刻の特性の探索を始める (購読のあとで呼ぶ)
+ *
+ * 時刻の特性は, 必須ではないので, 始められなくても, 接続は切らない (温度の受信は続ける).
+ *
+ * @param[in]     conn 接続
+ * @param[in,out] node 対象のノード (サービスの範囲を記録済みであること)
+ */
+static void start_time_discovery(struct bt_conn *conn, struct node *node)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    if (time_source == NULL) {
+        return;
+    }
+
+    node->discover.uuid = &time_uuid.uuid;
+    node->discover.start_handle = node->service_start;
+    node->discover.end_handle = node->service_end;
+    node->discover.type = BT_GATT_DISCOVER_CHARACTERISTIC;
+    err = bt_gatt_discover(conn, &node->discover);
+    if (err != 0) {
+        LOG_WRN("Could not start the discovery of the time characteristic (err %d)", err);
+    }
+}
+
+/**
+ * ノードの時刻の特性に, 時刻を書き込む (応答つきの書き込み)
+ *
+ * 次に書き込む時刻は, 成功したと見て, TIME_RESYNC_S 後にする. 始められなかったときと, ノードが
+ * 拒否したとき (write_time_cb()) は, TIME_RETRY_S 後にする.
+ *
+ * @param[in,out] node    対象のノード (時刻の特性を見つけていること)
+ * @param[in]     unix_s  書き込む UTC の UNIX 時刻 [s]
+ * @param[in]     now_ms  今の稼働時間 [ms]
+ */
+static void write_time(struct node *node, int64_t unix_s, int64_t now_ms)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    sys_put_le32((uint32_t)unix_s, node->time_buf);
+    node->write.handle = node->time_handle;
+    node->write.offset = 0U;
+    node->write.data = node->time_buf;
+    node->write.length = sizeof(node->time_buf);
+    node->write.func = write_time_cb;
+    node->time_due_ms = now_ms + ((int64_t)TIME_RESYNC_S * MSEC_PER_SEC);
+
+    err = bt_gatt_write(node->conn, &node->write);
+    if (err != 0) {
+        LOG_WRN("Could not write the time to the node (err %d)", err);
+        node->time_due_ms = now_ms + ((int64_t)TIME_RETRY_S * MSEC_PER_SEC);
+    }
+}
+
+/**
+ * 時刻の書き込みの応答のコールバック (ノードが拒否したら, 少し待って, やり直す)
+ *
+ * @param[in]     conn   接続 (使用しない)
+ * @param[in]     err    ATT のエラー (0 なら, 成功)
+ * @param[in,out] params 書き込みのパラメータ
+ */
+static void write_time_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_params *params)
+{
+    struct node *node = CONTAINER_OF(params, struct node, write); /* 対象のノード */
+
+    ARG_UNUSED(conn);
+
+    if (err != 0U) {
+        LOG_WRN("The node rejected the time (ATT err 0x%02x)", err);
+        node->time_due_ms = k_uptime_get() + ((int64_t)TIME_RETRY_S * MSEC_PER_SEC);
+        return;
+    }
+
+    LOG_INF("Time written to the node");
+}
+
+/**
+ * ノードに時刻を書き込む処理 (システムのワークキューで実行する)
+ *
+ * 時刻の特性を見つけたノードに, 書き込む時刻になっていれば, 書き込む. 時刻がまだわからない
+ * (SNTP で同期していない) ときは, 見送る. 該当するノードがある間は, TIME_CHECK_S ごとに,
+ * 自分を, もう一度動かす (ノードがいなくなったら, 止まる).
+ *
+ * @param[in] work 使用しない
+ */
+static void time_work_handler(struct k_work *work)
+{
+    int64_t unix_s = 0;              /* 書き込む UTC の UNIX 時刻 [s] */
+    int64_t now_ms = k_uptime_get(); /* 今の稼働時間 [ms] */
+    int source_err = -EAGAIN;        /* 時刻を得る関数の結果 */
+    bool waiting = false;            /* 時刻を書き込む対象のノードがあるか */
+    unsigned int i = 0U;             /* ループ用の添字 */
+
+    ARG_UNUSED(work);
+
+    if (time_source != NULL) {
+        source_err = time_source(&unix_s);
+    }
+
+    for (i = 0U; i < MAX_NODES; i++) {
+        if ((nodes[i].conn != NULL) && (nodes[i].time_handle != 0U)) {
+            waiting = true;
+            if ((source_err == EXIT_SUCCESS) && (now_ms >= nodes[i].time_due_ms)) {
+                write_time(&nodes[i], unix_s, now_ms);
+            }
+        }
+    }
+
+    if (waiting) {
+        (void)k_work_reschedule(&time_work, K_SECONDS(TIME_CHECK_S));
+    }
 }
 
 /**

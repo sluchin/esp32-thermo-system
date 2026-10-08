@@ -45,6 +45,8 @@ FAKE_VALUE_FUNC(int, sensor_read, int16_t *, uint16_t *)
 FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_advertise)
 FAKE_VALUE_FUNC(int, ble_notify_temperature, int16_t, uint16_t)
+FAKE_VOID_FUNC(ble_set_time_callback, ble_time_cb_t)
+FAKE_VALUE_FUNC(int, node_time_set, int64_t)
 FAKE_VALUE_FUNC(int, oled_init)
 FAKE_VALUE_FUNC(int, oled_show, const struct oled_view *)
 FAKE_VALUE_FUNC(int, node_time_init)
@@ -180,6 +182,8 @@ static void before(void *fixture)
     RESET_FAKE(ble_init);
     RESET_FAKE(ble_advertise);
     RESET_FAKE(ble_notify_temperature);
+    RESET_FAKE(ble_set_time_callback);
+    RESET_FAKE(node_time_set);
     RESET_FAKE(oled_init);
     RESET_FAKE(oled_show);
     RESET_FAKE(node_time_init);
@@ -225,6 +229,8 @@ ZTEST(main_node, test_advertise_failure)
     zassert_equal(thermo_node_main(), EXIT_FAILURE);
     zassert_equal(ble_advertise_fake.call_count, 1U);
     zassert_equal(sensor_read_fake.call_count, 0U);
+    /* 時刻を受け取るコールバックは, アドバタイズの開始の前に, 登録する */
+    zassert_equal(ble_set_time_callback_fake.call_count, 1U);
     /* RTC と OLED は, アドバタイズの開始のあとに, 初期化する */
     zassert_equal(node_time_init_fake.call_count, 0U);
     zassert_equal(oled_init_fake.call_count, 0U);
@@ -316,6 +322,17 @@ ZTEST(main_node, test_read_failure_retries)
     zassert_equal(ble_notify_temperature_fake.call_count, 0U);
 
     k_thread_abort(&main_thread);
+}
+
+/** ゲートウェイから受け取った時刻を RTC に設定する関数 (node_time_set) を, BLE に登録する */
+ZTEST(main_node, test_time_callback_registered)
+{
+    /* アドバタイズの開始で止めて (戻ってこない無限ループに入らず), 登録だけを確かめる */
+    ble_advertise_fake.return_val = -ENOMEM;
+
+    zassert_equal(thermo_node_main(), EXIT_FAILURE);
+    zassert_equal(ble_set_time_callback_fake.call_count, 1U);
+    zassert_equal(ble_set_time_callback_fake.arg0_val, node_time_set);
 }
 
 /**

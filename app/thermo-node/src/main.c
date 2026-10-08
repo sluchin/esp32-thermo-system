@@ -43,7 +43,8 @@ static int measure(int16_t *temp_x10, uint16_t *humidity_x10);
  *
  * センサと BLE を初期化してアドバタイズを開始し, その後は 1 秒ごとのループで, 一定間隔
  * (SAMPLE_INTERVAL_S) で温度を読み取って, ログ出力して, 接続しているゲートウェイへ通知
- * (GATT の notify) する. OLED があれば (CONFIG_THERMO_DISPLAY), 温度, 湿度, 時刻を, 1 秒ごとに
+ * (GATT の notify) する. ゲートウェイから時刻を受け取ったら (GATT の write), RTC に設定する
+ * (CONFIG_THERMO_RTC). OLED があれば (CONFIG_THERMO_DISPLAY), 温度, 湿度, 時刻を, 1 秒ごとに
  * 表示する. 時刻は, RTC (CONFIG_THERMO_RTC) から読む. OLED と RTC の初期化に失敗しても, 表示と
  * 時刻を諦めるだけで, 測定と通知は続ける.
  *
@@ -85,6 +86,11 @@ int main(void)
         LOG_ERR("Failed to initialize BLE");
         return EXIT_FAILURE;
     }
+
+#ifdef CONFIG_THERMO_RTC
+    /* ゲートウェイが SNTP で得た時刻を書き込んできたら, RTC に設定する */
+    ble_set_time_callback(node_time_set);
+#endif
 
     /* ゲートウェイから検出されるようアドバタイズを開始する */
     ret = ble_advertise();

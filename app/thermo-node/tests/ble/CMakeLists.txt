@@ -13,6 +13,8 @@ target_sources(app PRIVATE
 # CONFIG_BT_DEVICE_NAME は, Bluetooth を有効にしたときだけ, Kconfig が定義する.
 # ここでは Bluetooth スタックを使わないので, 自分で定義する.
 target_compile_definitions(app PRIVATE "CONFIG_BT_DEVICE_NAME=\"Thermo-Node\"")
+# CONFIG_THERMO_RTC は, 時刻の特性 (ゲートウェイから受け取る時刻) を有効にする (アプリの Kconfig が定義する)
+target_compile_definitions(app PRIVATE CONFIG_THERMO_RTC=1)
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_LIST_DIR}/../../../warnings.cmake)

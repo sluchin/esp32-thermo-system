@@ -18,6 +18,7 @@
 #include "ble.h"
 #ifdef CONFIG_THERMO_CLOUD
 #include "cloud.h"
+#include "ntp.h"
 #endif
 #include "thermo_ble_uuid.h"
 #include "thermo_log.h"
@@ -35,6 +36,7 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
  *
  * BLE を初期化して, (CONFIG_THERMO_CLOUD が有効なら) AWS IoT Core への送信を開始して,
  * 周辺ノードのスキャンを開始し (見つけたノードには, 接続して, 温度の通知を購読する.
+ * (CONFIG_THERMO_CLOUD が有効なら) SNTP で同期した時刻を, ノードに書き込む.
  * SwitchBot の温湿度計は, 接続せずにアドバタイズの値を受け取る),
  * その後は定期的に稼働状況を出力する.
  *
@@ -70,6 +72,11 @@ int main(void)
 
     /* 温度を受信したら, ログに出力する (クラウドが有効なら, 送信のキューにも入れる) */
     ble_set_temperature_callback(on_temperature);
+
+#ifdef CONFIG_THERMO_CLOUD
+    /* SNTP で同期した時刻を, 接続したノードに書き込む (ノードの RTC を合わせる) */
+    ble_set_time_source(ntp_unix_time);
+#endif
 
     /* SwitchBot の温湿度計 (接続しない) の値も同じ流れで扱う */
     ble_set_switchbot_callback(on_switchbot);

@@ -9,11 +9,11 @@
 
 /**
  * @file
- * @brief thermo-gateway の BLE 制御 (ノードのスキャンと接続, GATT での温度の受信)
+ * @brief thermo-gateway の BLE 制御 (ノードのスキャンと接続, GATT での温度の受信と時刻の書き込み)
  */
 
 #include <zephyr/bluetooth/addr.h>
-#include <stdint.h> /* int16_t uint16_t */
+#include <stdint.h> /* int16_t uint16_t int64_t */
 
 #include "switchbot.h"
 
@@ -41,11 +41,25 @@ typedef void (*ble_temperature_cb_t)(const bt_addr_le_t *addr, int16_t temp_x10,
  */
 typedef void (*ble_switchbot_cb_t)(const bt_addr_le_t *addr, const struct switchbot_ad *ad);
 
+/**
+ * @brief ノードに書き込む時刻を得る関数の型
+ *
+ * システムの時計が合っているとき (SNTP で同期したあと) だけ, 時刻を返す.
+ *
+ * @param[out] unix_s UTC の UNIX 時刻 [s] の格納先
+ *
+ * @retval EXIT_SUCCESS 時刻を返した
+ * @retval negative     時刻がわからない (まだ同期していない. 書き込みを見送る)
+ */
+typedef int (*ble_time_source_t)(int64_t *unix_s);
+
 int ble_init(void);
 
 void ble_set_temperature_callback(ble_temperature_cb_t cb);
 
 void ble_set_switchbot_callback(ble_switchbot_cb_t cb);
+
+void ble_set_time_source(ble_time_source_t source);
 
 int ble_scan(void);
 
