@@ -18,6 +18,8 @@ if(THERMO_DEBUG_LOG)
   target_compile_definitions(app PRIVATE THERMO_LOG_LEVEL=4)
 endif()
 target_sources(app PRIVATE src/sensor.c)
+# OLED (CONFIG_THERMO_DISPLAY=n のときは, ビルドしない)
+target_sources_ifdef(CONFIG_THERMO_DISPLAY app PRIVATE src/oled.c)
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)

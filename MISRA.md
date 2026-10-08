@@ -151,7 +151,7 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 | 機能 | MISRA C:2012 | 備考 |
 |:---|:---|:---|
 | `goto` | Rule 15.1 | エラー処理は、早期リターンで行う (リソースを確保しないため) |
-| 動的メモリ (`malloc` / `free`) | Rule 21.3 | 静的確保のみ。使う場合は、確保結果を検査し、解放後に `NULL` を代入する (`CODING_STYLE.md`) |
+| 動的メモリ (`malloc` / `free`) | Rule 21.3 | 静的確保のみ。使う場合は、確保結果を検査し、解放後に `NULL` を代入する (`CODING_STYLE.md`)。ただし、OLED の CFB (Zephyr のライブラリ) は、初期化のときに 1 回だけ、`k_malloc` でフレームバッファ (1 KB) を確保する (アプリのコードは、`malloc` を使わない。確保できなければ、`cfb_framebuffer_init()` が失敗して、表示だけを諦める) |
 | 再帰呼び出し | Rule 17.2 | |
 | 標準入出力 (`<stdio.h>`) | Rule 21.6 | ログは Zephyr Logging API |
 | 未定義マクロを `#if` の値として評価 | Rule 20.9 | `CONFIG_SIMULATOR` は `#ifdef` で、Devicetree は `DT_NODE_HAS_PROP` (0 か 1 に展開される) で判定する |

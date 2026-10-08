@@ -303,6 +303,25 @@ Thermo ノードは、温度と湿度を、センサから読みます。どの�
    - `CONFIG_THERMO_ADC_OFFSET_MV`: 0 ℃ のときの電圧 [mV] (既定 0。LM35 の値)
 4. ビルドディレクトリを、消して、ビルドし直します (`rm -rf build/thermo-node`。overlay の追加は、既存のビルドでは、反映されません)。
 
+### OLED の表示 (拡張ボード)
+
+拡張ボードの OLED (SSD1306、128 x 64 ドット) に、温度と湿度を表示します。ノードの、XIAO ESP32C3 を、拡張ボードに差せば、配線は、要りません (OLED は、ボードの I2C。D4 が SDA、D5 が SCL。アドレスは `0x3C`)。
+
+- 表示は、1 行目が温度 (`Temp 23.5 C`)、2 行目が湿度 (`Humi 45.0 %`) です。湿度を測れないとき (ADC のセンサ) は、`Humi --.- %` と表示します。測定のたびに (5 秒ごと)、更新します。
+- OLED の初期化に失敗しても (OLED がない、接触不良など)、ログに `Failed to initialize the OLED` を出して、表示だけを諦めます。測定と BLE の通知は、続きます。
+- 設定は、Zephyr の `seeed_xiao_expansion_board` のシールドと、同じです (`app/thermo-node/boards/xiao_esp32c3.overlay`)。シールドは、SD カードの SPI も有効にするので、使わずに、OLED のノードだけを、書いています。
+- **実機での確認は、まだです** (表示の向きや、コントラストは、実機で確認します)。
+
+OLED を使わないときは、`CONFIG_THERMO_DISPLAY=n` で、ビルドします (OLED、CFB、I2C のコードが、ビルドから外れます)。Devicetree の alias `thermo-display` があるとき (`xiao_esp32c3`) の既定は、`y` です。
+
+```bash
+# Docker: 環境変数 THERMO_DISPLAY を n にして、ビルドする (既定は y)
+THERMO_DISPLAY=n docker compose run --rm build-thermo-node
+
+# West
+west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_THERMO_DISPLAY=n
+```
+
 ## シリアルモニター
 
 ```bash

@@ -16,6 +16,9 @@
 #include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE */
 
 #include "ble.h"
+#ifdef CONFIG_THERMO_DISPLAY
+#include "oled.h"
+#endif
 #include "sensor.h"
 #include "thermo_ble_uuid.h"
 #include "thermo_log.h"
@@ -31,7 +34,9 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10);
  * @brief ノードのメイン関数
  *
  * センサと BLE を初期化してアドバタイズを開始し, その後は一定間隔で温度を読み取って,
- * ログ出力して, 接続しているゲートウェイへ通知 (GATT の notify) する.
+ * ログ出力して, 接続しているゲートウェイへ通知 (GATT の notify) する. OLED があれば
+ * (CONFIG_THERMO_DISPLAY), 温度と湿度を表示する. OLED の初期化に失敗しても, 表示しないだけで,
+ * 測定と通知は続ける.
  *
  * @retval EXIT_FAILURE 初期化またはアドバタイズ開始に失敗した場合
  *                      (正常時はループから戻らない)
@@ -39,6 +44,9 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10);
 int main(void)
 {
     int ret = EXIT_SUCCESS; /* 戻り値 */
+#ifdef CONFIG_THERMO_DISPLAY
+    bool display_ready = false; /* OLED を使えるか */
+#endif
 
 /* ビルド構成に応じて起動ログを切り替える */
 #ifdef CONFIG_SIMULATOR
@@ -68,6 +76,15 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+#ifdef CONFIG_THERMO_DISPLAY
+    /* OLED を初期化する (失敗しても, 表示しないだけで, 測定と通知は続ける) */
+    ret = oled_init();
+    display_ready = (ret == EXIT_SUCCESS);
+    if (!display_ready) {
+        LOG_ERR("Failed to initialize the OLED (err %d), continuing without it", ret);
+    }
+#endif
+
     /* 一定間隔で温度と湿度を読み取ってログ出力する */
     while (true) {
         int16_t temp_x10 = 0;      /* 温度 [℃ の 10 倍] */
@@ -78,6 +95,16 @@ int main(void)
         /* 読み取りに失敗した場合は今回の値を捨てて次回に再試行する */
         if (read_ret == EXIT_SUCCESS) {
             log_sample(temp_x10, humidity_x10);
+
+#ifdef CONFIG_THERMO_DISPLAY
+            /* OLED に表示する (失敗しても次回に再試行する) */
+            if (display_ready) {
+                read_ret = oled_show_sample(temp_x10, humidity_x10);
+                if (read_ret != EXIT_SUCCESS) {
+                    LOG_ERR("Failed to show the sample on the OLED (err %d)", read_ret);
+                }
+            }
+#endif
 
             /* 接続しているゲートウェイへ通知する (失敗しても次回に再試行する) */
             read_ret = ble_notify_temperature(temp_x10, humidity_x10);

@@ -7,7 +7,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 ### ビルド (Docker 推奨)
 - `docker compose run` には、必ず `--rm` を付ける (終わったコンテナを、残さないため)。
-- Thermo Node ビルド: `docker compose run --rm build-thermo-node`
+- Thermo Node ビルド: `docker compose run --rm build-thermo-node` (OLED を外すときは、`THERMO_DISPLAY=n` を付ける。`SETUP.md` の「OLED の表示」)
 - Thermo Gateway ビルド: `docker compose run --rm build-thermo-gateway`
 - 開発シェル: `docker compose run --rm dev`
 
@@ -26,7 +26,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 ## プロジェクト構成
 
 - `app/`: アプリケーションソース
-  - `thermo-node/`: センサノード。DHT11 (または ADC) で温度と湿度を読み取り BLE で配信。
+  - `thermo-node/`: センサノード。DHT11 (または ADC) で温度と湿度を読み取り BLE で配信し、拡張ボードの OLED に表示する。
   - `thermo-gateway/`: ゲートウェイ。周辺ノードをスキャンしデータを集約。
 - `west.yml`: West マニフェストファイル。
 - `docker-compose.yml` / `Dockerfile`: 開発環境定義。
@@ -78,10 +78,11 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 - 実行: `docker compose run --rm test-thermo-node` / `docker compose run --rm test-thermo-gateway` (全てのテストを実行する。結果は、コンテナの `/tmp` に出力する)
 - 配置: `app/<アプリ>/tests/<対象>/`。1 ディレクトリが 1 つのテストアプリ (`CMakeLists.txt` `prj.conf` `testcase.yaml` `src/test_*.c`)。twister が、`testcase.yaml` を探して、自動で実行する。
   - `sensor` (thermo-node): `sensor.c`。5 つの構成 (`TEST_MODE`): `sensor_api` (偽のセンサ `vnd,test-sensor`。DHT11 などの、センサ API の経路。値とエラーを、テストから設定する)、`adc` (ADC エミュレータ `zephyr,adc-emul`。入力電圧とエラーを、テストから設定する)、`adc_setup_error` / `adc_convert_error` (ADC の設定と換算の失敗)、`simulator` (シミュレーション値)。
+  - `oled` (thermo-node): `oled.c`。表示装置は、偽のもの (`vnd,test-display`) に置き換えて、CFB (文字のフレームバッファ) の関数は、FFF のモックにする。初期化の各段階の失敗と、描く文字列と位置 (負の温度、湿度なし) を確認する。`CONFIG_DISPLAY=y` にすると、native_sim の SDL の表示も有効になり、終了時に落ちることがあるので、`CONFIG_SDL_DISPLAY=n` にしている。
   - `ble` (両方): `ble.c`。Bluetooth スタックは使わず、`bt_enable()` `bt_le_adv_start()` `bt_le_scan_start()` を、FFF のモックにして、引数と、エラーの伝わり方を確認する。
   - `switchbot` (thermo-gateway): `switchbot.c`。SwitchBot 屋外用温湿度計のアドバタイズの解析 (サービスデータと製造者データ) と、機器ごとの記録と、送信の間引き (間隔、カウンタの一周、機器の数の上限)。Zephyr の関数を呼ばないので、モックは使わない。
   - `payload` / `cfg` / `shell` / `wifi` / `cloud` (thermo-gateway): AWS IoT Core への送信 (`payload.c` `cfg.c` `cfg_shell.c` `wifi_link.c` `cloud.c`)。settings、TLS の認証情報、net_mgmt、MQTT ライブラリ、ソケットは、FFF のモックにして、接続の手順と各段階の失敗、再試行の間隔、設定の保存と読み込みを確認する。シェルは、ダミーのバックエンドで実行する。`cloud` は、`cloud_step()` を直接呼ぶ。
-  - `main` (両方): `main.c`。`ble` と `sensor` (gateway は、`ble` と `cloud`) の関数を、FFF のモックにして、初期化に失敗したときに `EXIT_FAILURE` を返すことと、メインループ (別スレッドで動かす) が動き続けることを確認する。`main.c` の `main()` は、テストの `main()` と名前が同じなので、`CMakeLists.txt` で名前を変える。
+  - `main` (両方): `main.c`。`ble` と `sensor` (node は、`oled` も。gateway は、`ble` と `cloud`) の関数を、FFF のモックにして、初期化に失敗したときに `EXIT_FAILURE` を返すことと、メインループ (別スレッドで動かす) が動き続けることを確認する (node は、OLED の初期化と表示に失敗しても、続けること)。`main.c` の `main()` は、テストの `main()` と名前が同じなので、`CMakeLists.txt` で名前を変える。
 - 規約:
   - テストにも、`app/warnings.txt` の警告オプションを付ける (`include(.../warnings.cmake)`)。モックが、関数を再宣言するため、`-Wredundant-decls` だけは外している。
   - ソースを足したり、関数を変えたりしたら、対応するテストを足す (正常系と、エラーの伝わり方)。
