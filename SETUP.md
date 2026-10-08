@@ -303,23 +303,38 @@ Thermo ノードは、温度と湿度を、センサから読みます。どの�
    - `CONFIG_THERMO_ADC_OFFSET_MV`: 0 ℃ のときの電圧 [mV] (既定 0。LM35 の値)
 4. ビルドディレクトリを、消して、ビルドし直します (`rm -rf build/thermo-node`。overlay の追加は、既存のビルドでは、反映されません)。
 
-### OLED の表示 (拡張ボード)
+### OLED の表示と時刻 (拡張ボード)
 
-拡張ボードの OLED (SSD1306、128 x 64 ドット) に、温度と湿度を表示します。ノードの、XIAO ESP32C3 を、拡張ボードに差せば、配線は、要りません (OLED は、ボードの I2C。D4 が SDA、D5 が SCL。アドレスは `0x3C`)。
+拡張ボードの OLED (SSD1306、128 x 64 ドット) に、温度、湿度、日付、時刻を表示します。ノードの、XIAO ESP32C3 を、拡張ボードに差せば、配線は、要りません (OLED と RTC は、ボードの I2C。D4 が SDA、D5 が SCL。OLED のアドレスは `0x3C`、RTC のアドレスは `0x51`)。
 
-- 表示は、1 行目が温度 (`Temp 23.5 C`)、2 行目が湿度 (`Humi 45.0 %`) です。湿度を測れないとき (ADC のセンサ) は、`Humi --.- %` と表示します。測定のたびに (5 秒ごと)、更新します。
-- OLED の初期化に失敗しても (OLED がない、接触不良など)、ログに `Failed to initialize the OLED` を出して、表示だけを諦めます。測定と BLE の通知は、続きます。
-- 設定は、Zephyr の `seeed_xiao_expansion_board` のシールドと、同じです (`app/thermo-node/boards/xiao_esp32c3.overlay`)。シールドは、SD カードの SPI も有効にするので、使わずに、OLED のノードだけを、書いています。
-- **実機での確認は、まだです** (表示の向きや、コントラストは、実機で確認します)。
+```
+Temp 23.5 C
+Humi 45.0 %
+2026-10-08
+14:05:09
+```
 
-OLED を使わないときは、`CONFIG_THERMO_DISPLAY=n` で、ビルドします (OLED、CFB、I2C のコードが、ビルドから外れます)。Devicetree の alias `thermo-display` があるとき (`xiao_esp32c3`) の既定は、`y` です。
+- 温度と湿度は、測定のたびに (5 秒ごと) 更新します。湿度を測れないとき (ADC のセンサ) は、`Humi --.- %` です。測定値がまだないときは、`Temp --.- C` と `Humi --.- %` です。
+- 日付と時刻は、1 秒ごとに、更新します。RTC (PCF8563) の時刻を読んで、ローカルタイムにします。RTC は UTC を保持します。ローカルタイムは、UTC に `CONFIG_THERMO_UTC_OFFSET_MIN` (既定は 540 分 = UTC+9。日本標準時) を足した値です。
+- **RTC の時刻が、まだ設定されていないとき** (最初の電源投入、または、電池が切れたあと) は、`----/--/--` と `--:--:--` を表示します。時刻は、ゲートウェイから受け取って設定する予定です (TODO.md の「段階 3」。まだ、実装していません)。
+- 電源を切っても、時刻を保つには、拡張ボードの RTC 用の電池 (ボタン電池) が、必要です。電池の型は、ボードの資料で、確認してください。
+- OLED の初期化に失敗しても (OLED がない、接触不良など)、ログに `Failed to initialize the OLED` を出して、表示だけを諦めます。RTC の初期化に失敗したときも、`Failed to initialize the RTC` を出して、時刻の行を出さないだけです。どちらも、測定と BLE の通知は、続きます。
+- OLED と RTC の設定は、Zephyr の `seeed_xiao_expansion_board` のシールドと、同じです (`app/thermo-node/boards/xiao_esp32c3.overlay`)。シールドは、SD カードの SPI も有効にするので、使わずに、OLED と RTC のノードだけを、書いています。
+- RTC は、Zephyr の RTC ドライバ (v4.3.0) を使わずに、I2C で、PCF8563 のレジスタを、直接読み書きします。Zephyr のドライバは、月 (0 から 11 の検証で、12 月を設定できない) と年 (1900 年からの年数を、そのまま BCD にする) の扱いが、チップと合っていないためです (`app/thermo-node/src/node_time.c`)。
+- **実機での確認は、まだです** (表示の向き、コントラスト、I2C のアドレス、RTC の読み書きは、実機で確認します)。
+
+OLED と RTC は、ビルドのオプションで、別々に外せます。Devicetree の alias (`thermo-display`、`thermo-rtc`) があるとき (`xiao_esp32c3`) の既定は、どちらも `y` です。
+
+- `CONFIG_THERMO_DISPLAY=n`: OLED、CFB、表示のコードが、ビルドから外れます。
+- `CONFIG_THERMO_RTC=n`: RTC と時刻のコードが、ビルドから外れます (OLED には、日付と時刻の行が、出ません)。
 
 ```bash
-# Docker: 環境変数 THERMO_DISPLAY を n にして、ビルドする (既定は y)
+# Docker: 環境変数 THERMO_DISPLAY と THERMO_RTC を n にして、ビルドする (既定は y)
 THERMO_DISPLAY=n docker compose run --rm build-thermo-node
+THERMO_RTC=n docker compose run --rm build-thermo-node
 
 # West
-west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_THERMO_DISPLAY=n
+west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_THERMO_DISPLAY=n -DCONFIG_THERMO_RTC=n
 ```
 
 ## シリアルモニター

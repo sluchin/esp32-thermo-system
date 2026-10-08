@@ -20,6 +20,8 @@ endif()
 target_sources(app PRIVATE src/sensor.c)
 # OLED (CONFIG_THERMO_DISPLAY=n のときは, ビルドしない)
 target_sources_ifdef(CONFIG_THERMO_DISPLAY app PRIVATE src/oled.c)
+# RTC の時刻 (CONFIG_THERMO_RTC=n のときは, ビルドしない)
+target_sources_ifdef(CONFIG_THERMO_RTC app PRIVATE src/node_time.c)
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)

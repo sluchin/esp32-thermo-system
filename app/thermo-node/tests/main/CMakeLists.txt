@@ -12,9 +12,10 @@ target_sources(app PRIVATE
   src/test_main.c
   ${CMAKE_CURRENT_LIST_DIR}/../../src/main.c)
 # 名前を変えた main() は, ヘッダに宣言がないので, その警告は出さない.
-# CONFIG_THERMO_DISPLAY は, OLED の初期化と表示 (oled.h の関数. モック) を, 有効にする
+# CONFIG_THERMO_DISPLAY と CONFIG_THERMO_RTC は, OLED の初期化と表示 (oled.h の関数) と, RTC の時刻
+# (node_time.h の関数) を, 有効にする (どちらもモック)
 set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/../../src/main.c PROPERTIES
-  COMPILE_DEFINITIONS "main=thermo_node_main;CONFIG_THERMO_DISPLAY=1"
+  COMPILE_DEFINITIONS "main=thermo_node_main;CONFIG_THERMO_DISPLAY=1;CONFIG_THERMO_RTC=1"
   COMPILE_OPTIONS "-Wno-missing-prototypes;-Wno-missing-declarations")
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する

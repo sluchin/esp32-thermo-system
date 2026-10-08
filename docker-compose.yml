@@ -10,7 +10,7 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DCONFIG_THERMO_DISPLAY=${THERMO_DISPLAY:-y} -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    command: west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DCONFIG_THERMO_DISPLAY=${THERMO_DISPLAY:-y} -DCONFIG_THERMO_RTC=${THERMO_RTC:-y} -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
     environment:
       - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
