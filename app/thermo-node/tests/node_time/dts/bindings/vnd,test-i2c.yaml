@@ -1,0 +1,6 @@
+# thermo-node の単体テスト用の, 偽の I2C コントローラ (PCF8563 のレジスタを持つ)
+description: Fake I2C controller for the unit test of thermo-node
+
+compatible: "vnd,test-i2c"
+
+include: i2c-controller.yaml

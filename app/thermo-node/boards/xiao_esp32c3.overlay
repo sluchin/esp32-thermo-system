@@ -17,6 +17,10 @@
  * thermo-display で使う. 使わないときは, CONFIG_THERMO_DISPLAY=n でビルドする (prj.conf または
  * -DCONFIG_THERMO_DISPLAY=n). ノードの設定は, Zephyr の seeed_xiao_expansion_board のシールドと
  * 同じ (シールドは, SD カードの SPI も有効にするので, 使わない).
+ *
+ * RTC (拡張ボードの PCF8563. I2C のアドレスは 0x51) は, alias thermo-rtc で使う. Zephyr の RTC
+ * ドライバは, 月と年の扱いがチップと合わないので使わず (CONFIG_RTC は, 有効にしない), アプリが,
+ * I2C で, レジスタを直接読み書きする. 使わないときは, CONFIG_THERMO_RTC=n でビルドする.
  */
 #include <zephyr/dt-bindings/gpio/gpio.h>
 
@@ -24,6 +28,7 @@
 	aliases {
 		thermo-sensor = &dht11;
 		thermo-display = &ssd1306_128x64;
+		thermo-rtc = &pcf8563_rtc;
 	};
 
 	dht11: dht11 {
@@ -48,5 +53,11 @@
 		segment-remap;
 		com-invdir;
 		prechargep = <0x22>;
+	};
+
+	pcf8563_rtc: pcf8563@51 {
+		compatible = "nxp,pcf8563";
+		reg = <0x51>;
+		status = "okay";
 	};
 };

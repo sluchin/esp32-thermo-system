@@ -1,0 +1,8 @@
+# thermo-node の単体テスト: node_time.c (偽の I2C コントローラで、PCF8563 のレジスタの読み書き、時刻の変換、通信の失敗を確認する).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-thermo-node).
+tests:
+  thermo_node.node_time:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - thermo_node
