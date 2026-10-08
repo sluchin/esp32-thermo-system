@@ -11,7 +11,8 @@ target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src
                            ${CMAKE_CURRENT_LIST_DIR}/../../../common)
 target_sources(app PRIVATE
   src/test_oled.c
-  ${CMAKE_CURRENT_LIST_DIR}/../../src/oled.c)
+  ${CMAKE_CURRENT_LIST_DIR}/../../src/oled.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../src/history.c)
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_LIST_DIR}/../../../warnings.cmake)

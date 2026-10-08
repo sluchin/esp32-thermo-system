@@ -55,4 +55,15 @@ config THERMO_UTC_OFFSET_MIN
 	  UTC plus this offset. The default is 540 (UTC+9, Japan Standard
 	  Time).
 
+config THERMO_GRAPH_STEP_S
+	int "Time per point of the graph on the OLED display [seconds]"
+	default 30
+	range 5 600
+	depends on THERMO_DISPLAY
+	help
+	  The graph pages of the OLED display (temperature and humidity)
+	  show the last 128 points, one point per this time (the average of
+	  the measurements in the time). The default 30 shows the last 64
+	  minutes. 60 shows 2 hours and 8 minutes.
+
 source "Kconfig.zephyr"

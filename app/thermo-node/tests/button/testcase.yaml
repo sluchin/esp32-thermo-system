@@ -1,0 +1,8 @@
+# thermo-node の単体テスト: button.c (偽の GPIO で、初期化の失敗と、押された動作の検出 (押し続けても 1 回) を確認する).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-thermo-node).
+tests:
+  thermo_node.button:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - thermo_node

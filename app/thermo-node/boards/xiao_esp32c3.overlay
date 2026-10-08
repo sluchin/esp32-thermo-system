@@ -18,6 +18,9 @@
  * -DCONFIG_THERMO_DISPLAY=n). ノードの設定は, Zephyr の seeed_xiao_expansion_board のシールドと
  * 同じ (シールドは, SD カードの SPI も有効にするので, 使わない).
  *
+ * ボタン (拡張ボードのユーザボタン. D1 = GPIO3. 押すと, 0 になる) は, alias thermo-button で使い,
+ * OLED の画面を切り替える (CONFIG_THERMO_DISPLAY=n のときは, 使わない).
+ *
  * RTC (拡張ボードの PCF8563. I2C のアドレスは 0x51) は, alias thermo-rtc で使う. Zephyr の RTC
  * ドライバは, 月と年の扱いがチップと合わないので使わず (CONFIG_RTC は, 有効にしない), アプリが,
  * I2C で, レジスタを直接読み書きする. 使わないときは, CONFIG_THERMO_RTC=n でビルドする.
@@ -29,6 +32,15 @@
 		thermo-sensor = &dht11;
 		thermo-display = &ssd1306_128x64;
 		thermo-rtc = &pcf8563_rtc;
+		thermo-button = &thermo_button;
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+
+		thermo_button: button_0 {
+			gpios = <&xiao_d 1 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		};
 	};
 
 	dht11: dht11 {
