@@ -15,7 +15,7 @@
 - [x] **温湿度センサ (DHT11)**: ノードは、Zephyr のセンサ API で、DHT11 を読む (`app/thermo-node/boards/xiao_esp32c3.overlay`。D7 (GPIO20))。BLE の通知は、温度 (int16、0.1 ℃) と湿度 (uint16、0.1 %) の 4 バイトで、AWS には `temperature_c` と `humidity` を送る。単体テストは、偽のセンサで確認している。(実機での確認は、上の項目)
 - [ ] **OLED の表示と RTC の時刻** (拡張ボードの SSD1306 と PCF8563): 温度、湿度、日付、時刻の表示は、実装した (`app/thermo-node/src/oled.c` と `node_time.c`。`THERMO_DISPLAY=n` と `THERMO_RTC=n` で、別々に外せる。単体テストは `tests/oled` と `tests/node_time`)。RTC は、Zephyr のドライバの月と年の扱いが、チップと合わないので、I2C で、レジスタを直接読み書きする。実機で、表示の向きと、コントラストと、I2C のアドレス (OLED が `0x3C`、RTC が `0x51`)、RTC の読み書き (特に、世紀のビットと、電圧低下のビット) を、確認する。残りの段階:
   - [x] 段階 2: 拡張ボードの RTC (PCF8563) の時刻を、OLED に表示する (日本標準時)。時刻の設定は、段階 3 (`node_time_set()` は、実装済みで、単体テストがある。アプリからは、まだ呼んでいない)。
-  - [ ] 段階 3: ゲートウェイが SNTP で取得した時刻を、BLE の GATT で、ノードに書き込み、ノードが RTC に設定する (ノードに WiFi は載せない)。
+  - [x] 段階 3: ゲートウェイが SNTP で取得した時刻を、BLE の GATT で、ノードに書き込み、ノードが RTC に設定する (ノードに WiFi は載せない)。ノードは、時刻の特性 (`9F3C1A02-...`、書き込み専用) を持ち、ゲートウェイは、接続したノードに、1 時間ごとに書き込む (`ble.c`)。単体テストで確認している。実機では、未確認 (ゲートウェイが SNTP で同期してから、ノードの時刻が合うまでの流れ、1 時間後の書き直し、ノードの再接続のあとの再設定)。
   - [ ] 将来: ノードが、WiFi で、直接、NTP の時刻を取得する案 (ゲートウェイと同じ仕組みを、ノードにも載せる。WiFi と BLE の同時動作の確認が要る)。
 - [ ] **ADC のアナログセンサ** (LM35 など) に替えるときの、実機での確認: 実装は、ある (オーバーレイの `thermo-sensor` を消して、`zephyr,user` の `io-channels` を書く。換算は `CONFIG_THERMO_ADC_MV_PER_DEG` と `CONFIG_THERMO_ADC_OFFSET_MV`。ADC エミュレータの単体テストで確認している)。センサを買ったら、実機で、換算の値を、確認する。
 - [ ] 実機の Bluetooth アダプタを使う `native_sim` の実行 (`--bt-dev=hciN`) を、docker compose のサービスにする。(`run-sim` は、仮想コントローラ `btvirt` で動く)

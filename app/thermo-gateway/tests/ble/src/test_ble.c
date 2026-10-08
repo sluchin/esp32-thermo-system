@@ -23,7 +23,8 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
-#include <errno.h>   /* EIO EALREADY ENOMEM EBUSY */
+#include <zephyr/sys/byteorder.h>
+#include <errno.h>   /* EIO EALREADY ENOMEM EBUSY EAGAIN */
 #include <stdbool.h> /* bool */
 #include <stdlib.h>  /* EXIT_SUCCESS */
 #include <string.h>  /* memcpy memset memcmp */
@@ -82,6 +83,7 @@ FAKE_VALUE_FUNC(int, bt_conn_disconnect, struct bt_conn *, uint8_t)
 FAKE_VALUE_FUNC(const bt_addr_le_t *, bt_conn_get_dst, const struct bt_conn *)
 FAKE_VALUE_FUNC(int, bt_gatt_discover, struct bt_conn *, struct bt_gatt_discover_params *)
 FAKE_VALUE_FUNC(int, bt_gatt_subscribe, struct bt_conn *, struct bt_gatt_subscribe_params *)
+FAKE_VALUE_FUNC(int, bt_gatt_write, struct bt_conn *, struct bt_gatt_write_params *)
 FAKE_VALUE_FUNC(uint16_t, bt_gatt_attr_value_handle, const struct bt_gatt_attr *)
 FAKE_VOID_FUNC(bt_data_parse, struct net_buf_simple *, data_cb_t, void *)
 
@@ -89,6 +91,8 @@ FAKE_VOID_FUNC(bt_data_parse, struct net_buf_simple *, data_cb_t, void *)
 static const uint8_t service_uuid[] = {THERMO_UUID_SERVICE_VAL};
 /** 温度の特性の UUID (128 bit) */
 static const uint8_t temperature_uuid[] = {THERMO_UUID_TEMPERATURE_VAL};
+/** 時刻の特性の UUID (128 bit) */
+static const uint8_t time_uuid[] = {THERMO_UUID_TIME_VAL};
 
 /** ノードのアドレス (A, B, C) */
 static const bt_addr_le_t node_addr[] = {
@@ -99,6 +103,22 @@ static const bt_addr_le_t node_addr[] = {
 
 /** ダミーの接続 (struct bt_conn の中身は, ここでは使わない. アドレスで見分ける) */
 static char conn_storage[CONN_COUNT];
+
+/** テストで使う UTC の UNIX 時刻 [s] (2026-10-08 05:00:00 UTC) */
+#define TEST_UNIX_TIME    1791435600LL
+/** 時刻の特性の値のハンドル (テストで使う) */
+#define TIME_VALUE_HANDLE 0x0016U
+/** ble.c の TIME_CHECK_S (時刻を書き込む必要があるかを確かめる間隔 [s]) */
+#define TIME_CHECK_S      10
+/** ble.c の TIME_RESYNC_S (時刻を書き込み直す間隔 [s]) */
+#define TIME_RESYNC_S     3600
+/** ble.c の TIME_RETRY_S (時刻の書き込みに失敗したときに, やり直すまでの間隔 [s]) */
+#define TIME_RETRY_S      60
+
+/** 時刻を得る関数が返す値 */
+static int time_source_ret;
+/** 時刻を得る関数が返す UTC の UNIX 時刻 [s] */
+static int64_t time_source_unix_s;
 
 /** 次に bt_conn_le_create() が返す, ダミーの接続の番号 */
 static unsigned int next_conn;
@@ -366,6 +386,7 @@ static void before(void *fixture)
     RESET_FAKE(bt_conn_get_dst);
     RESET_FAKE(bt_gatt_discover);
     RESET_FAKE(bt_gatt_subscribe);
+    RESET_FAKE(bt_gatt_write);
     RESET_FAKE(bt_gatt_attr_value_handle);
     RESET_FAKE(bt_data_parse);
     FFF_RESET_HISTORY();
@@ -378,6 +399,9 @@ static void before(void *fixture)
     (void)memset(&switchbot_received, 0, sizeof(switchbot_received));
     ble_set_temperature_callback(NULL);
     ble_set_switchbot_callback(NULL);
+    ble_set_time_source(NULL);
+    time_source_ret = EXIT_SUCCESS;
+    time_source_unix_s = TEST_UNIX_TIME;
 }
 
 /**
@@ -1108,6 +1132,285 @@ ZTEST(ble_gateway, test_scan_thermo_node_is_not_switchbot)
 
     zassert_equal(switchbot_received.count, 0U);
     zassert_equal(bt_conn_le_create_fake.call_count, 1U);
+}
+
+/**
+ * 時刻を得る関数 (設定した値を返す)
+ *
+ * @param[out] unix_s UTC の UNIX 時刻 [s]
+ * @return time_source_ret (成功のときだけ, 時刻を書く)
+ */
+static int fake_time_source(int64_t *unix_s)
+{
+    if (time_source_ret == EXIT_SUCCESS) {
+        *unix_s = time_source_unix_s;
+    }
+
+    return time_source_ret;
+}
+
+/**
+ * ノード (アドレス index) に接続して, 温度の通知を購読するところまで, 探索を進める
+ *
+ * @param[in] scan_cb スキャンのコールバック (start_scanning() が返したもの)
+ * @param[in] index   ノードのアドレスの番号
+ * @return 探索のパラメータ (購読のあとは, 時刻の特性の探索に使われる)
+ */
+static struct bt_gatt_discover_params *subscribe_node(scan_cb_ptr_t scan_cb, unsigned int index)
+{
+    struct bt_gatt_discover_params *params = NULL;                    /* ディスカバリのパラメータ */
+    struct bt_gatt_service_val service_val = {.end_handle = 0x0030U}; /* GATT サービスの値 */
+    struct bt_gatt_attr service_attr = {.handle = 0x0010U,
+                                        .user_data = &service_val}; /* サービスの属性 */
+    struct bt_gatt_attr chrc_attr = {.handle = 0x0012U};            /* 温度の特性の属性 */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014U};             /* CCC ディスクリプタの属性 */
+
+    find_node(scan_cb, index);
+    conn_cb->connected(conn_of(index), 0U);
+    params = bt_gatt_discover_fake.arg1_val;
+    (void)params->func(conn_of(index), &service_attr, params);
+    bt_gatt_attr_value_handle_fake.return_val = 0x0013U;
+    (void)params->func(conn_of(index), &chrc_attr, params);
+    (void)params->func(conn_of(index), &ccc_attr, params);
+
+    return params;
+}
+
+/**
+ * スキャンを始めて, ノード (アドレス index) の温度の通知を購読するところまで, 探索を進める
+ *
+ * @param[in] index ノードのアドレスの番号
+ * @return 探索のパラメータ (購読のあとは, 時刻の特性の探索に使われる)
+ */
+static struct bt_gatt_discover_params *connect_and_subscribe(unsigned int index)
+{
+    return subscribe_node(start_scanning(), index);
+}
+
+/**
+ * 時刻の特性が見つかったことにして, 時刻を書き込む処理を動かす
+ *
+ * @param[in] index  ノードのアドレスの番号
+ * @param[in] params 探索のパラメータ (connect_and_subscribe() が返したもの)
+ */
+static void find_time_characteristic(unsigned int index, struct bt_gatt_discover_params *params)
+{
+    struct bt_gatt_attr time_attr = {.handle = 0x0015U}; /* 時刻の特性の属性 */
+
+    bt_gatt_attr_value_handle_fake.return_val = TIME_VALUE_HANDLE;
+    zassert_equal(params->func(conn_of(index), &time_attr, params), BT_GATT_ITER_STOP);
+    k_msleep(WORK_WAIT_MS); /* 書き込みはワークキューで行う */
+}
+
+/** 時刻を得る関数があれば, 購読のあとに, 時刻の特性を, サービスの範囲の中から探す */
+ZTEST(ble_gateway, test_time_discovery_starts_after_subscribe)
+{
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    params = connect_and_subscribe(0U);
+
+    /* 期待: 4 回目の探索 (サービス, 温度, CCC のあと) が, 時刻の特性を, サービスの範囲で探す */
+    zassert_equal(bt_gatt_discover_fake.call_count, 4U);
+    zassert_equal(params->type, BT_GATT_DISCOVER_CHARACTERISTIC);
+    zassert_true(memcmp(BT_UUID_128(params->uuid)->val, time_uuid, sizeof(time_uuid)) == 0);
+    zassert_equal(params->start_handle, 0x0011U);
+    zassert_equal(params->end_handle, 0x0030U);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 0U);
+}
+
+/** 時刻を得る関数がなければ, 時刻の特性は探さない */
+ZTEST(ble_gateway, test_time_discovery_skipped_without_source)
+{
+    (void)connect_and_subscribe(0U);
+
+    zassert_equal(bt_gatt_discover_fake.call_count, 3U);
+}
+
+/** 時刻の特性の探索を始められなくても, 接続は切らない (温度の受信は続ける) */
+ZTEST(ble_gateway, test_time_discovery_start_failure_keeps_connection)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();      /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+    struct bt_gatt_service_val service_val = {.end_handle = 0x0030U}; /* GATT サービスの値 */
+    struct bt_gatt_attr service_attr = {.handle = 0x0010U,
+                                        .user_data = &service_val}; /* サービスの属性 */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014U};             /* CCC ディスクリプタの属性 */
+
+    ble_set_time_source(fake_time_source);
+    find_node(scan_cb, 0U);
+    conn_cb->connected(conn_of(0U), 0U);
+    params = bt_gatt_discover_fake.arg1_val;
+    (void)params->func(conn_of(0U), &service_attr, params);
+
+    /* CCC が見つかって, 購読できたが, 時刻の特性の探索を始められない */
+    params->type = BT_GATT_DISCOVER_DESCRIPTOR;
+    bt_gatt_discover_fake.return_val = -ENOMEM;
+    (void)params->func(conn_of(0U), &ccc_attr, params);
+    zassert_equal(bt_gatt_subscribe_fake.call_count, 1U);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 0U);
+}
+
+/** ノードに時刻の特性がなければ (古いファームウェア), 警告を出すだけで, 接続は切らない */
+ZTEST(ble_gateway, test_time_characteristic_not_found_is_ignored)
+{
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    params = connect_and_subscribe(0U);
+
+    zassert_equal(params->func(conn_of(0U), NULL, params), BT_GATT_ITER_STOP);
+    k_msleep(WORK_WAIT_MS);
+    zassert_equal(bt_conn_disconnect_fake.call_count, 0U);
+    zassert_equal(bt_gatt_write_fake.call_count, 0U);
+}
+
+/** 時刻の特性が見つかったら, すぐに, 時刻 (uint32 リトルエンディアン) を書き込む */
+ZTEST(ble_gateway, test_time_characteristic_found_writes_time)
+{
+    struct bt_gatt_discover_params *params = NULL;   /* ディスカバリのパラメータ */
+    const struct bt_gatt_write_params *write = NULL; /* 書き込みのパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    params = connect_and_subscribe(0U);
+    find_time_characteristic(0U, params);
+
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+    zassert_equal(bt_gatt_write_fake.arg0_val, conn_of(0U));
+    write = bt_gatt_write_fake.arg1_val;
+    zassert_equal(write->handle, TIME_VALUE_HANDLE);
+    zassert_equal(write->offset, 0U);
+    zassert_equal(write->length, THERMO_TIME_SIZE);
+    zassert_equal(sys_get_le32((const uint8_t *)write->data), (uint32_t)TEST_UNIX_TIME);
+    zassert_not_null(write->func);
+}
+
+/** SNTP の同期がまだなら (時刻がわからない), 書き込みを見送って, 同期したら書き込む */
+ZTEST(ble_gateway, test_time_write_waits_for_sync)
+{
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    time_source_ret = -EAGAIN;
+    params = connect_and_subscribe(0U);
+    find_time_characteristic(0U, params);
+    zassert_equal(bt_gatt_write_fake.call_count, 0U);
+
+    /* 同期できない間は, 見送り続ける */
+    k_sleep(K_SECONDS(TIME_CHECK_S * 2));
+    zassert_equal(bt_gatt_write_fake.call_count, 0U);
+
+    /* 同期したら, 次の確認で書き込む */
+    time_source_ret = EXIT_SUCCESS;
+    k_sleep(K_SECONDS(TIME_CHECK_S + 1));
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+}
+
+/** 書き込んだあと, TIME_RESYNC_S ごとに, 時刻を書き込み直す */
+ZTEST(ble_gateway, test_time_write_resyncs_periodically)
+{
+    struct bt_gatt_discover_params *params = NULL;   /* ディスカバリのパラメータ */
+    const struct bt_gatt_write_params *write = NULL; /* 書き込みのパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    params = connect_and_subscribe(0U);
+    find_time_characteristic(0U, params);
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+
+    /* 書き込みが成功した (ATT のエラーなし). 間隔の前には, 書き込まない */
+    write = bt_gatt_write_fake.arg1_val;
+    write->func(conn_of(0U), 0U, bt_gatt_write_fake.arg1_val);
+    k_sleep(K_SECONDS(TIME_RESYNC_S - TIME_CHECK_S * 3));
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+
+    /* 間隔がたったら, もう一度書き込む */
+    k_sleep(K_SECONDS(TIME_CHECK_S * 4));
+    zassert_equal(bt_gatt_write_fake.call_count, 2U);
+}
+
+/** ノードが書き込みを拒否したら (ATT のエラー), TIME_RETRY_S 後に, 書き込み直す */
+ZTEST(ble_gateway, test_time_write_rejected_retries)
+{
+    struct bt_gatt_discover_params *params = NULL;   /* ディスカバリのパラメータ */
+    const struct bt_gatt_write_params *write = NULL; /* 書き込みのパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    params = connect_and_subscribe(0U);
+    find_time_characteristic(0U, params);
+
+    write = bt_gatt_write_fake.arg1_val;
+    write->func(conn_of(0U), BT_ATT_ERR_VALUE_NOT_ALLOWED, bt_gatt_write_fake.arg1_val);
+    k_sleep(K_SECONDS(TIME_RETRY_S / 2));
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+
+    k_sleep(K_SECONDS(TIME_RETRY_S));
+    zassert_equal(bt_gatt_write_fake.call_count, 2U);
+}
+
+/** 書き込みを始められなかったら (bt_gatt_write() の失敗), TIME_RETRY_S 後に, 書き込み直す */
+ZTEST(ble_gateway, test_time_write_start_failure_retries)
+{
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    bt_gatt_write_fake.return_val = -ENOMEM;
+    params = connect_and_subscribe(0U);
+    find_time_characteristic(0U, params);
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+
+    k_sleep(K_SECONDS(TIME_RETRY_S / 2));
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+
+    bt_gatt_write_fake.return_val = 0;
+    k_sleep(K_SECONDS(TIME_RETRY_S));
+    zassert_equal(bt_gatt_write_fake.call_count, 2U);
+}
+
+/** ノードが切断されたら, 時刻の書き込みは, 止まる */
+ZTEST(ble_gateway, test_time_write_stops_after_disconnect)
+{
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    params = connect_and_subscribe(0U);
+    find_time_characteristic(0U, params);
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+
+    conn_cb->disconnected(conn_of(0U), 0U);
+    k_sleep(K_SECONDS(TIME_RESYNC_S + TIME_CHECK_S));
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+}
+
+/** 時刻を得る関数が取り消されたら (NULL), 書き込みを見送る */
+ZTEST(ble_gateway, test_time_write_skipped_without_source)
+{
+    struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    params = connect_and_subscribe(0U);
+    ble_set_time_source(NULL);
+    find_time_characteristic(0U, params);
+
+    zassert_equal(bt_gatt_write_fake.call_count, 0U);
+}
+
+/** 時刻の特性をまだ見つけていないノードがあっても (接続中), そのノードには, 書き込まない */
+ZTEST(ble_gateway, test_time_write_skips_node_without_time_characteristic)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();       /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params0 = NULL; /* 1 台目の探索のパラメータ */
+
+    ble_set_time_source(fake_time_source);
+    params0 = subscribe_node(scan_cb, 0U);
+    find_time_characteristic(0U, params0);
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
+
+    /* 2 台目は, 接続して, 購読したが, 時刻の特性は, まだ見つかっていない */
+    (void)subscribe_node(scan_cb, 1U);
+    k_sleep(K_SECONDS(TIME_CHECK_S + 1));
+
+    /* 期待: 1 台目は, 書き込む時刻になっていない. 2 台目には, 書き込まない */
+    zassert_equal(bt_gatt_write_fake.call_count, 1U);
 }
 
 ZTEST_SUITE(ble_gateway, NULL, NULL, before, after, NULL);

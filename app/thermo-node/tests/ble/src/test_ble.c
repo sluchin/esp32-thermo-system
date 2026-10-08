@@ -35,8 +35,13 @@ DEFINE_FFF_GLOBALS
 #define EXPECTED_NAME     "Thermo-Node"
 /** アドバタイズデータの数 (フラグ, 名前) */
 #define AD_COUNT          2U
-/** GATT サービスの属性の数 (サービス, 特性の宣言, 特性の値, CCC) */
-#define ATTR_COUNT        4U
+/** GATT サービスの属性の数 (サービス, 特性の宣言, 特性の値, CCC, 時刻の特性の宣言, 時刻の特性の値)
+ */
+#define ATTR_COUNT        6U
+/** 時刻の特性の宣言の属性の位置 */
+#define ATTR_TIME_DECL    4U
+/** 時刻の特性の値の属性の位置 */
+#define ATTR_TIME_VALUE   5U
 /** 特性の値の属性の位置 */
 #define ATTR_VALUE        2U
 /** テストで使う温度 [℃ の 10 倍] (-3.5 ℃. 下位 byte が 0xDD, 上位 byte が 0xFF) */
@@ -67,6 +72,8 @@ FAKE_VALUE_FUNC(ssize_t, bt_gatt_attr_write_ccc, struct bt_conn *, const struct 
 static const uint8_t service_uuid[] = {THERMO_UUID_SERVICE_VAL};
 /** 温度の特性の UUID (128 bit) */
 static const uint8_t temperature_uuid[] = {THERMO_UUID_TEMPERATURE_VAL};
+/** 時刻の特性の UUID (128 bit) */
+static const uint8_t time_uuid[] = {THERMO_UUID_TIME_VAL};
 
 /** bt_le_adv_start() の引数 (呼び出しの後は引数の指す先が無効になるので, 写しを残す) */
 static struct {
@@ -199,6 +206,44 @@ static const struct bt_gatt_service *init_and_get_service(void)
     return bt_gatt_service_register_fake.arg0_val;
 }
 
+/** 時刻のコールバックが受け取った値 */
+static struct {
+    unsigned int count; /**< 呼ばれた回数 */
+    int64_t unix_s;     /**< 受け取った UTC の UNIX 時刻 [s] */
+    int ret;            /**< コールバックが返す値 */
+} time_received;
+
+/**
+ * 時刻のコールバック (受け取った時刻を記録して, 設定した値を返す)
+ *
+ * @param[in] unix_s UTC の UNIX 時刻 [s]
+ * @return time_received.ret
+ */
+static int on_time(int64_t unix_s)
+{
+    time_received.count++;
+    time_received.unix_s = unix_s;
+
+    return time_received.ret;
+}
+
+/**
+ * 時刻の特性に, 値を書き込む (write)
+ *
+ * @param[in] service ble_init() で登録されたサービス
+ * @param[in] value   書き込む値
+ * @param[in] len     値の大きさ
+ * @param[in] offset  書き込みの開始位置
+ * @return 書き込んだ大きさ (失敗なら, 負の ATT エラー)
+ */
+static ssize_t write_time_attr(const struct bt_gatt_service *service, const uint8_t *value,
+                               uint16_t len, uint16_t offset)
+{
+    const struct bt_gatt_attr *attr = &service->attrs[ATTR_TIME_VALUE]; /* 時刻の値の属性 */
+
+    return attr->write(NULL, attr, value, len, offset, 0U);
+}
+
 /**
  * 各テストの前にモックを初期状態に戻す
  *
@@ -222,6 +267,8 @@ static void before(void *fixture)
     (void)memset(&notified, 0, sizeof(notified));
     bt_gatt_attr_read_fake.custom_fake = fake_attr_read;
     bt_gatt_notify_cb_fake.custom_fake = capture_notify;
+    ble_set_time_callback(NULL);
+    (void)memset(&time_received, 0, sizeof(time_received));
 }
 
 /** ble_init() は bt_enable(NULL) を呼んで GATT サービスと, 接続のコールバックを登録する */
@@ -439,6 +486,105 @@ ZTEST(ble_node, test_disconnected_restarts_advertising)
     bt_le_adv_start_fake.return_val = -ENOMEM;
     cb->disconnected(NULL, 0x13U);
     zassert_equal(bt_le_adv_start_fake.call_count, 2U);
+}
+
+/** 時刻の特性は, 書き込み (write) だけを許可する (読み取りと通知は, できない) */
+ZTEST(ble_node, test_time_attributes)
+{
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
+    const struct bt_gatt_attr *attrs = service->attrs;              /* サービスの属性の配列 */
+    /* キャラクタリスティックの定義 */
+    const struct bt_gatt_chrc *chrc = (const struct bt_gatt_chrc *)attrs[ATTR_TIME_DECL].user_data;
+
+    zassert_equal(service->attr_count, ATTR_COUNT);
+    zassert_equal(BT_UUID_16(attrs[ATTR_TIME_DECL].uuid)->val, BT_UUID_GATT_CHRC_VAL);
+    zassert_equal(chrc->properties, BT_GATT_CHRC_WRITE);
+    zassert_true(uuid128_equals(chrc->uuid, time_uuid));
+    zassert_true(uuid128_equals(attrs[ATTR_TIME_VALUE].uuid, time_uuid));
+    zassert_equal(attrs[ATTR_TIME_VALUE].perm, BT_GATT_PERM_WRITE);
+    zassert_is_null(attrs[ATTR_TIME_VALUE].read);
+    zassert_not_null(attrs[ATTR_TIME_VALUE].write);
+}
+
+/** 時刻の書き込みは, uint32 のリトルエンディアンの UTC の UNIX 時刻を, コールバックに渡す */
+ZTEST(ble_node, test_write_time_success)
+{
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
+    /* 2026-10-08 05:00:00 UTC (1791435600 = 0x6AC72350) */
+    const uint8_t value[THERMO_TIME_SIZE] = {0x50U, 0x23U, 0xC7U, 0x6AU};
+
+    ble_set_time_callback(on_time);
+    time_received.ret = EXIT_SUCCESS;
+
+    /* 期待: 4 byte 書き込めて, コールバックが, 時刻を受け取る */
+    zassert_equal(write_time_attr(service, value, sizeof(value), 0U), THERMO_TIME_SIZE);
+    zassert_equal(time_received.count, 1U);
+    zassert_equal(time_received.unix_s, 1791435600LL);
+}
+
+/** コールバックが登録されていなければ, 時刻の書き込みを拒否する */
+ZTEST(ble_node, test_write_time_without_callback)
+{
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
+    const uint8_t value[THERMO_TIME_SIZE] = {0x50U, 0x23U, 0xC7U, 0x6AU};
+
+    zassert_equal(write_time_attr(service, value, sizeof(value), 0U),
+                  BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED));
+}
+
+/** 大きさが 4 byte でない書き込みは, 拒否して, コールバックを呼ばない */
+ZTEST(ble_node, test_write_time_bad_length)
+{
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
+    const uint8_t value[THERMO_TIME_SIZE + 1U] = {0};
+
+    ble_set_time_callback(on_time);
+
+    zassert_equal(write_time_attr(service, value, THERMO_TIME_SIZE - 1U, 0U),
+                  BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN));
+    zassert_equal(write_time_attr(service, value, THERMO_TIME_SIZE + 1U, 0U),
+                  BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN));
+    zassert_equal(time_received.count, 0U);
+}
+
+/** 先頭でない位置からの書き込みは, 拒否して, コールバックを呼ばない */
+ZTEST(ble_node, test_write_time_bad_offset)
+{
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
+    const uint8_t value[THERMO_TIME_SIZE] = {0};
+
+    ble_set_time_callback(on_time);
+
+    zassert_equal(write_time_attr(service, value, sizeof(value), 1U),
+                  BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET));
+    zassert_equal(time_received.count, 0U);
+}
+
+/** 設定できない範囲の時刻 (-ERANGE) は, 値が許されないというエラーで拒否する */
+ZTEST(ble_node, test_write_time_out_of_range)
+{
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
+    const uint8_t value[THERMO_TIME_SIZE] = {0};
+
+    ble_set_time_callback(on_time);
+    time_received.ret = -ERANGE;
+
+    zassert_equal(write_time_attr(service, value, sizeof(value), 0U),
+                  BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED));
+    zassert_equal(time_received.count, 1U);
+}
+
+/** 時刻を設定できなかったとき (RTC の通信の失敗など) は, 原因不明のエラーで拒否する */
+ZTEST(ble_node, test_write_time_failure)
+{
+    const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
+    const uint8_t value[THERMO_TIME_SIZE] = {0};
+
+    ble_set_time_callback(on_time);
+    time_received.ret = -EIO;
+
+    zassert_equal(write_time_attr(service, value, sizeof(value), 0U),
+                  BT_GATT_ERR(BT_ATT_ERR_UNLIKELY));
 }
 
 ZTEST_SUITE(ble_node, NULL, NULL, before, NULL, NULL);

@@ -160,13 +160,14 @@ scripts/flash.sh gateway /dev/ttyACM0
 
 - 温湿度センサ (DHT11) の読取 (Zephyr のセンサ API。配線は [SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
 - BLE GATT サービスで、温度と湿度のデータを配信
-- 拡張ボードの OLED に、温度、湿度、日付、時刻を表示。時刻は、拡張ボードの RTC (PCF8563) から読みます (設定は [SETUP.md](SETUP.md) の「OLED の表示と時刻」。`THERMO_DISPLAY=n` と `THERMO_RTC=n` で、別々に外せます)
+- 拡張ボードの OLED に、温度、湿度、日付、時刻を表示。時刻は、拡張ボードの RTC (PCF8563) から読みます (RTC は、ゲートウェイから BLE で受け取った時刻に合わせます) (設定は [SETUP.md](SETUP.md) の「OLED の表示と時刻」。`THERMO_DISPLAY=n` と `THERMO_RTC=n` で、別々に外せます)
 - ログ出力（UART シリアルコンソール）
 
 ### Thermo Gateway
 - BLE スキャンで周辺ノードを検出して、GATT で接続し、温度と湿度の通知を受信 (最大 3 台。ノードの実機がないので、実機では未確認)
 - SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズ (接続しない) を受信して、温度 (℃)・湿度・電池残量を、10 秒に 1 回、AWS IoT Core に送信
 - WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](AWS_GRAPH.md))
+- SNTP で同期した時刻を、接続したノードに BLE (GATT の書き込み) で渡して、ノードの RTC を合わせる (1 時間ごと。[SETUP.md](SETUP.md) の「ゲートウェイからの時刻の同期」)
 - WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存
 - デバッグシェル対応
 

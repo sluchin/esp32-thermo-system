@@ -13,7 +13,8 @@
  *
  * ノードは Thermo サービス (GATT) を持ち, その中の温度の特性で温度を配信する.
  * ゲートウェイはスキャン応答に Thermo サービスの UUID を持つノードに接続して,
- * 温度の特性の通知 (notify) を購読する.
+ * 温度の特性の通知 (notify) を購読する. ゲートウェイは, SNTP で得た時刻を, 時刻の特性に
+ * 書き込んで, ノードの RTC を合わせる (ノードが RTC を持つときだけ, この特性がある).
  */
 
 #include <zephyr/bluetooth/uuid.h>
@@ -26,11 +27,17 @@
 #define THERMO_UUID_TEMPERATURE_VAL                                                                \
     BT_UUID_128_ENCODE(0x9F3C1A01, 0x7B6E, 0x4C3A, 0x9D5E, 0x2A6F0B1C8D01)
 
+/** 時刻の特性の UUID (128 bit) の値 */
+#define THERMO_UUID_TIME_VAL BT_UUID_128_ENCODE(0x9F3C1A02, 0x7B6E, 0x4C3A, 0x9D5E, 0x2A6F0B1C8D01)
+
 /** Thermo サービスの UUID */
 #define THERMO_UUID_SERVICE BT_UUID_DECLARE_128(THERMO_UUID_SERVICE_VAL)
 
 /** 温度の特性の UUID */
 #define THERMO_UUID_TEMPERATURE BT_UUID_DECLARE_128(THERMO_UUID_TEMPERATURE_VAL)
+
+/** 時刻の特性の UUID */
+#define THERMO_UUID_TIME BT_UUID_DECLARE_128(THERMO_UUID_TIME_VAL)
 
 /**
  * 温度の特性の値の大きさ [byte]
@@ -39,6 +46,14 @@
  * 単位. 例: 45.0 % は 450) を, それぞれ 2 byte のリトルエンディアンで, この順に並べたもの.
  */
 #define THERMO_TEMPERATURE_SIZE 4U
+
+/**
+ * 時刻の特性の値の大きさ [byte]
+ *
+ * ゲートウェイが, ノードに書き込む (write). 値は, UTC の UNIX 時刻 [s] を, uint32 の
+ * リトルエンディアンで並べたもの (2106 年まで). ノードは, この値を RTC に設定する.
+ */
+#define THERMO_TIME_SIZE 4U
 
 /** 湿度を測れない (センサに湿度がない) ことを示す値 (湿度の uint16 の最大値) */
 #define THERMO_HUMIDITY_NONE 0xFFFFU

@@ -23,6 +23,7 @@
 
 #include "ble.h"
 #include "cloud.h"
+#include "ntp.h"
 #include "switchbot.h"
 #include "thermo_ble_uuid.h"
 
@@ -40,6 +41,8 @@ FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_scan)
 FAKE_VOID_FUNC(ble_set_temperature_callback, ble_temperature_cb_t)
 FAKE_VOID_FUNC(ble_set_switchbot_callback, ble_switchbot_cb_t)
+FAKE_VOID_FUNC(ble_set_time_source, ble_time_source_t)
+FAKE_VALUE_FUNC(int, ntp_unix_time, int64_t *)
 FAKE_VALUE_FUNC(bool, switchbot_accept, const bt_addr_le_t *, const struct switchbot_ad *, uint32_t,
                 struct switchbot_sample *)
 FAKE_VALUE_FUNC(int, cloud_publish_switchbot, const bt_addr_le_t *, const struct switchbot_sample *)
@@ -147,6 +150,8 @@ static void before(void *fixture)
     RESET_FAKE(ble_scan);
     RESET_FAKE(ble_set_temperature_callback);
     RESET_FAKE(ble_set_switchbot_callback);
+    RESET_FAKE(ble_set_time_source);
+    RESET_FAKE(ntp_unix_time);
     RESET_FAKE(switchbot_accept);
     RESET_FAKE(cloud_publish_switchbot);
     RESET_FAKE(cloud_init);
@@ -207,7 +212,7 @@ ZTEST(main_gateway, test_main_loop)
     /*
      * 温度のコールバックはスキャンを始める前に設定する.
      * 呼び出しの順序: ble_init, cloud_init (コールバックが呼ばれる前に送信の準備をする),
-     * set, scan
+     * set (温度), set (時刻), set (SwitchBot), scan
      */
     zassert_equal(ble_set_temperature_callback_fake.call_count, 1U);
     zassert_not_null(ble_set_temperature_callback_fake.arg0_val);
@@ -215,9 +220,14 @@ ZTEST(main_gateway, test_main_loop)
     zassert_equal(fff.call_history[0], FUNCTION_ADDRESS(ble_init));
     zassert_equal(fff.call_history[1], FUNCTION_ADDRESS(cloud_init));
     zassert_equal(fff.call_history[2], FUNCTION_ADDRESS(ble_set_temperature_callback));
-    zassert_equal(fff.call_history[3], FUNCTION_ADDRESS(ble_set_switchbot_callback));
-    zassert_equal(fff.call_history[4], FUNCTION_ADDRESS(ble_scan));
+    zassert_equal(fff.call_history[3], FUNCTION_ADDRESS(ble_set_time_source));
+    zassert_equal(fff.call_history[4], FUNCTION_ADDRESS(ble_set_switchbot_callback));
+    zassert_equal(fff.call_history[5], FUNCTION_ADDRESS(ble_scan));
     zassert_equal(ble_set_switchbot_callback_fake.call_count, 1U);
+
+    /* ノードに書き込む時刻は, SNTP で同期したシステム時計 (ntp_unix_time) から得る */
+    zassert_equal(ble_set_time_source_fake.call_count, 1U);
+    zassert_equal(ble_set_time_source_fake.arg0_val, ntp_unix_time);
 
     /* 温度のコールバックは, ノードのアドレスと温度と湿度を, クラウドの送信のキューに渡す */
     ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_TEMP_X10, TEST_HUMIDITY_X10);
