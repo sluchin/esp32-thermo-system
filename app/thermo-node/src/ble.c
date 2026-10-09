@@ -14,7 +14,7 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
-#include <errno.h>  /* ENOTCONN ERANGE */
+#include <errno.h>  /* ENOTCONN ERANGE EALREADY */
 #include <stdint.h> /* uint16_t uint8_t uint32_t int64_t */
 #include <stdlib.h> /* EXIT_SUCCESS */
 
@@ -58,6 +58,7 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
                                 uint16_t len, uint16_t offset);
 static void connected(struct bt_conn *conn, uint8_t err);
 static void disconnected(struct bt_conn *conn, uint8_t reason);
+static void recycled(void);
 
 /**
  * Thermo サービスの属性
@@ -86,6 +87,7 @@ static struct bt_gatt_service thermo_service = BT_GATT_SERVICE(thermo_attrs);
 static struct bt_conn_cb conn_callbacks = {
     .connected = connected,
     .disconnected = disconnected,
+    .recycled = recycled,
 };
 
 /**
@@ -299,21 +301,33 @@ static void connected(struct bt_conn *conn, uint8_t err)
 }
 
 /**
- * 切断のコールバック (接続が切れたら, ゲートウェイから検出されるよう, アドバタイズを再開する)
+ * 切断のコールバック (切断の理由を, ログに出す)
+ *
+ * このコールバックの中では, まだ, スタックが, 接続のオブジェクトを持っているので, 接続可能な
+ * アドバタイズを始めると, 空きがなく, -ENOMEM で失敗することがある (Zephyr の仕様). アドバタイズの
+ * 再開は, 接続のオブジェクトが, 解放されたあとに呼ばれる recycled() で行う.
  *
  * @param[in] conn 接続
  * @param[in] reason 切断の理由
  */
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
-    int err = EXIT_SUCCESS; /* エラーコード */
-
     ARG_UNUSED(conn);
 
     LOG_INF("Disconnected (reason 0x%02x)", reason);
+}
+
+/**
+ * 接続のオブジェクトが解放されたときのコールバック (ゲートウェイから検出されるよう,
+ * アドバタイズを再開する)
+ */
+static void recycled(void)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
 
     err = ble_advertise();
-    if (err != EXIT_SUCCESS) {
+    /* すでにアドバタイズしている (EALREADY) ときは, 何もしなくてよい */
+    if ((err != EXIT_SUCCESS) && (err != -EALREADY)) {
         LOG_ERR("Failed to restart advertising (err %d)", err);
     }
 }

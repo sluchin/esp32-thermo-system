@@ -471,21 +471,40 @@ ZTEST(ble_node, test_connected_callback)
     zassert_equal(bt_le_adv_start_fake.call_count, 0U);
 }
 
-/** 切断のコールバック: 接続が切れたら, アドバタイズを再開する */
-ZTEST(ble_node, test_disconnected_restarts_advertising)
+/** 切断のコールバックでは, アドバタイズを始めない (接続のオブジェクトが, まだ解放されていないため)
+ */
+ZTEST(ble_node, test_disconnected_does_not_advertise)
 {
     struct bt_conn_cb *cb = NULL; /* コールバックの登録情報 */
 
     zassert_equal(ble_init(), EXIT_SUCCESS);
     cb = bt_conn_cb_register_fake.arg0_val;
 
-    cb->disconnected(NULL, 0x13U);
+    cb->disconnected(NULL, 0x08U);
+    zassert_equal(bt_le_adv_start_fake.call_count, 0U);
+}
+
+/** 接続のオブジェクトが解放されたら, アドバタイズを再開する (失敗しても, ログを出すだけ) */
+ZTEST(ble_node, test_recycled_restarts_advertising)
+{
+    struct bt_conn_cb *cb = NULL; /* コールバックの登録情報 */
+
+    zassert_equal(ble_init(), EXIT_SUCCESS);
+    cb = bt_conn_cb_register_fake.arg0_val;
+    zassert_not_null(cb->recycled);
+
+    cb->recycled();
     zassert_equal(bt_le_adv_start_fake.call_count, 1U);
 
     /* アドバタイズの再開に失敗しても, ログを出すだけ */
     bt_le_adv_start_fake.return_val = -ENOMEM;
-    cb->disconnected(NULL, 0x13U);
+    cb->recycled();
     zassert_equal(bt_le_adv_start_fake.call_count, 2U);
+
+    /* すでにアドバタイズしているとき (EALREADY) は, エラーにしない */
+    bt_le_adv_start_fake.return_val = -EALREADY;
+    cb->recycled();
+    zassert_equal(bt_le_adv_start_fake.call_count, 3U);
 }
 
 /** 時刻の特性は, 書き込み (write) だけを許可する (読み取りと通知は, できない) */
