@@ -395,25 +395,31 @@ ZTEST(oled, test_show_no_sample)
     zassert_str_equal(printed[1], "Humi --.- %");
 }
 
-/** 設定済みの日時は, 3 行目に日付, 4 行目に時刻を描く */
+/** 設定済みの日時は, 1 行目に日付, 2 行目に時刻, その下に, 温度と湿度を描く */
 ZTEST(oled, test_show_time)
 {
     zassert_equal(show_with_time(&time_valid), EXIT_SUCCESS);
     zassert_equal(cfb_print_fake.call_count, 4U);
-    zassert_str_equal(printed[2], "2026-10-08");
+    zassert_str_equal(printed[0], "2026-10-08");
+    zassert_equal(cfb_print_fake.arg3_history[0], 0U);
+    zassert_str_equal(printed[1], "14:05:09");
+    zassert_equal(cfb_print_fake.arg3_history[1], LINE_HEIGHT);
+    zassert_str_equal(printed[2], "Temp 23.5 C");
     zassert_equal(cfb_print_fake.arg3_history[2], 2U * LINE_HEIGHT);
-    zassert_str_equal(printed[3], "14:05:09");
+    zassert_str_equal(printed[3], "Humi 45.0 %");
     zassert_equal(cfb_print_fake.arg3_history[3], 3U * LINE_HEIGHT);
     zassert_equal(cfb_framebuffer_finalize_fake.call_count, 1U);
 }
 
-/** 未設定の日時 (valid が false) は, 日付と時刻を --- で描く */
+/** 未設定の日時 (valid が false) は, 日付と時刻を --- で描く (温度と湿度は, その下) */
 ZTEST(oled, test_show_time_unset)
 {
     zassert_equal(show_with_time(&time_unset), EXIT_SUCCESS);
     zassert_equal(cfb_print_fake.call_count, 4U);
-    zassert_str_equal(printed[2], "----/--/--");
-    zassert_str_equal(printed[3], "--:--:--");
+    zassert_str_equal(printed[0], "----/--/--");
+    zassert_str_equal(printed[1], "--:--:--");
+    zassert_str_equal(printed[2], "Temp 23.5 C");
+    zassert_str_equal(printed[3], "Humi 45.0 %");
 }
 
 /** フレームバッファの消去に失敗したら (初期化していないときなど), その値を返し, 何も描かない */
