@@ -27,7 +27,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 ## プロジェクト構成
 
 - `app/`: アプリケーションソース
-  - `thermo-node/`: センサノード。DHT11 (または ADC) で温度と湿度を読み取り BLE で配信し、拡張ボードの OLED に、温度、湿度、日時を表示する (日時は、拡張ボードの RTC)。
+  - `thermo-node/`: センサノード。DHT11 (または ADC) で温度と湿度を読み取り BLE で配信し、拡張ボードの OLED に、温度、湿度、日時を表示する (日時は、拡張ボードの RTC。PCF8563 のドライバは、`drivers/rtc_pcf8563.c`)。
   - `thermo-gateway/`: ゲートウェイ。周辺ノードをスキャンしデータを集約。
 - `west.yml`: West マニフェストファイル。
 - `docker-compose.yml` / `Dockerfile`: 開発環境定義。
@@ -76,14 +76,15 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 単体テストは、Zephyr のテストフレームワーク Ztest (`zephyr/ztest.h`) と、モックの FFF (`zephyr/fff.h`) で書く。`native_sim` (ホスト上) で実行し、Zephyr のテストランナー twister が実行する。
 
-- カバレッジ: `docker compose run --rm coverage-thermo-node` / `docker compose run --rm coverage-thermo-gateway` (`app/thermo-*/src` の行と分岐が 100% でなければ失敗する。分岐は `LOG_*` と `LOG_HEXDUMP_*` マクロの内部を除く)。テストを追加・変更したら、実行して、100% を保つ。
+- カバレッジ: `docker compose run --rm coverage-thermo-node` / `docker compose run --rm coverage-thermo-gateway` (`app/thermo-*/src` と `app/thermo-node/drivers` の行と分岐が 100% でなければ失敗する。分岐は `LOG_*` と `LOG_HEXDUMP_*` マクロの内部を除く)。テストを追加・変更したら、実行して、100% を保つ。
 - 実行: `docker compose run --rm test-thermo-node` / `docker compose run --rm test-thermo-gateway` (全てのテストを実行する。結果は、コンテナの `/tmp` に出力する)
 - 配置: `app/<アプリ>/tests/<対象>/`。1 ディレクトリが 1 つのテストアプリ (`CMakeLists.txt` `prj.conf` `testcase.yaml` `src/test_*.c`)。twister が、`testcase.yaml` を探して、自動で実行する。
   - `sensor` (thermo-node): `sensor.c`。5 つの構成 (`TEST_MODE`): `sensor_api` (偽のセンサ `vnd,test-sensor`。DHT11 などの、センサ API の経路。値とエラーを、テストから設定する)、`adc` (ADC エミュレータ `zephyr,adc-emul`。入力電圧とエラーを、テストから設定する)、`adc_setup_error` / `adc_convert_error` (ADC の設定と換算の失敗)、`simulator` (シミュレーション値)。
   - `oled` (thermo-node): `oled.c`。表示装置は、偽のもの (`vnd,test-display`) に置き換えて、CFB (文字のフレームバッファ) の関数は、FFF のモックにする。初期化の各段階の失敗と、描く文字列と位置 (負の温度、測定値なし、湿度なし、日時あり、日時が未設定) と、グラフのページ (最小と最大、折れ線の座標、履歴なし、点が 1 つ、縦軸の最小の幅、描画の失敗) を確認する。`CONFIG_DISPLAY=y` にすると、native_sim の SDL の表示も有効になり、終了時に落ちることがあるので、`CONFIG_SDL_DISPLAY=n` にしている。
   - `history` (thermo-node): `history.c`。測定値の区切りごとの平均、リングバッファ (満杯で古い点を上書き)、古い順の取り出し (今の区切りの平均を含む)、取り出す数の制限、負の平均の切り捨て。関数だけなので、モックはない。
   - `button` (thermo-node): `button.c`。GPIO のコントローラを、偽のもの (`vnd,test-gpio`) に置き換える。初期化の失敗と、押された動作の検出 (押し続けても 1 回、起動のときに押されていても数えない)。
-  - `node_time` (thermo-node): `node_time.c`。I2C のコントローラを、偽のもの (`vnd,test-i2c`) に置き換えて、PCF8563 のレジスタ (BCD) を模擬する。UTC からローカルタイムへの変換 (日付と年の繰り上がり、うるう日)、時刻が未設定 (電圧低下のビット)、範囲外のレジスタの値、時刻の設定 (BCD、曜日、範囲)、通信の失敗を確認する。
+  - `node_time` (thermo-node): `node_time.c`。RTC のデバイスを、偽のもの (`vnd,test-rtc`。時刻 (`rtc_time`) と、読み書きの結果を、テストから設定する) に置き換える。UTC からローカルタイムへの変換 (日付と年の繰り上がり、うるう日)、UNIX 時刻から `rtc_time` (月は 0 から 11、年は 1900 年からの年数、曜日) への換算、時刻が未設定 (`-ENODATA`)、範囲外の時刻の設定、RTC の失敗を確認する。
+  - `rtc_pcf8563` (thermo-node): `drivers/rtc_pcf8563.c` (PCF8563 の RTC ドライバ。compatible は `thermo,pcf8563`)。I2C のコントローラを、偽のもの (`vnd,test-i2c`) に置き換えて、PCF8563 のレジスタ (BCD) を模擬する。レジスタと `rtc_time` の換算 (12 月、2099 年、世紀のビットの無視、曜日)、時刻が未設定 (電圧低下のビット)、範囲外のレジスタの値、時刻の設定 (BCD、範囲外は `-EINVAL`)、通信の失敗、初期化 (I2C のバスが使えない) を確認する。
   - `ble` (両方): `ble.c`。Bluetooth スタックは使わず、`bt_enable()` `bt_le_adv_start()` `bt_le_scan_start()` を、FFF のモックにして、引数と、エラーの伝わり方を確認する。時刻の同期も含む: ノードは、時刻の特性の書き込み (長さ、位置、コールバックの結果の ATT エラー)、ゲートウェイは、時刻の特性の探索と書き込み (SNTP の同期待ち、1 時間ごとの書き直し、拒否と失敗のあとのやり直し、切断で止まること。仮想時間で進める)。
   - `switchbot` (thermo-gateway): `switchbot.c`。SwitchBot 屋外用温湿度計のアドバタイズの解析 (サービスデータと製造者データ) と、機器ごとの記録と、送信の間引き (間隔、カウンタの一周、機器の数の上限)。Zephyr の関数を呼ばないので、モックは使わない。
   - `payload` / `cfg` / `shell` / `wifi` / `cloud` (thermo-gateway): AWS IoT Core への送信 (`payload.c` `cfg.c` `cfg_shell.c` `wifi_link.c` `cloud.c`)。settings、TLS の認証情報、net_mgmt、MQTT ライブラリ、ソケットは、FFF のモックにして、接続の手順と各段階の失敗、再試行の間隔、設定の保存と読み込みを確認する。シェルは、ダミーのバックエンドで実行する。`cloud` は、`cloud_step()` を直接呼ぶ。

@@ -1,7 +1,6 @@
 # thermo-node の node_time.c の単体テスト (Ztest).
-# I2C のコントローラを, 偽のもの (vnd,test-i2c. app.overlay) に置き換える. 偽のコントローラは,
-# PCF8563 のレジスタ (16 バイト) を持って, アドレスの設定と, 連続した読み書きに応える. 通信の失敗は,
-# テストから設定する. アプリの Kconfig (CONFIG_THERMO_UTC_OFFSET_MIN) を使う.
+# RTC のデバイスは, 偽のもの (vnd,test-rtc. app.overlay) に置き換える. 偽の RTC は, 時刻 (rtc_time) を
+# 持って, 読み書きの結果は, テストから設定する. アプリの Kconfig (CONFIG_THERMO_UTC_OFFSET_MIN) を使う.
 cmake_minimum_required(VERSION 3.20.0)
 
 # アプリの Kconfig を使う

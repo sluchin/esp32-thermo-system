@@ -1,0 +1,15 @@
+/* 偽の I2C コントローラ (vnd,test-i2c) に, PCF8563 (0x51) をつなぐ */
+/ {
+    test_i2c: test-i2c {
+        compatible = "vnd,test-i2c";
+        status = "okay";
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        test_rtc: pcf8563@51 {
+            compatible = "thermo,pcf8563";
+            reg = <0x51>;
+            status = "okay";
+        };
+    };
+};

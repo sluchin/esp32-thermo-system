@@ -1,19 +1,11 @@
-/* 偽の I2C コントローラ (vnd,test-i2c) に, PCF8563 (0x51) をつなぎ, alias thermo-rtc に接続する */
+/* 偽の RTC (vnd,test-rtc) を, alias thermo-rtc に接続する */
 / {
     aliases {
         thermo-rtc = &test_rtc;
     };
 
-    test_i2c: test-i2c {
-        compatible = "vnd,test-i2c";
+    test_rtc: test-rtc {
+        compatible = "vnd,test-rtc";
         status = "okay";
-        #address-cells = <1>;
-        #size-cells = <0>;
-
-        test_rtc: pcf8563@51 {
-            compatible = "nxp,pcf8563";
-            reg = <0x51>;
-            status = "okay";
-        };
     };
 };

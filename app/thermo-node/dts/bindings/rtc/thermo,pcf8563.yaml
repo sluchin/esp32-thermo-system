@@ -1,0 +1,13 @@
+# Copyright (c) 2026 Tetsuya Higashi
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+description: |
+  NXP PCF8563 RTC (the driver of thermo-node: app/thermo-node/drivers/rtc_pcf8563.c).
+  It is not nxp,pcf8563 because the RTC driver of Zephyr v4.3 does not handle
+  the month and the year as the chip does.
+
+compatible: "thermo,pcf8563"
+
+include:
+  - name: rtc-device.yaml
+  - name: i2c-device.yaml
