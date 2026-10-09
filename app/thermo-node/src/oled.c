@@ -32,18 +32,20 @@ LOG_MODULE_REGISTER(oled_thermo_node, THERMO_LOG_LEVEL);
 #define OLED_FONT_INDEX          0U
 /** 1 行の高さ [ドット] (フォントの高さ) */
 #define OLED_LINE_HEIGHT         16U
-/** 温度の行の位置 (上から) [行] */
-#define OLED_ROW_TEMP            0U
-/** 湿度の行の位置 (上から) [行] */
-#define OLED_ROW_HUMIDITY        1U
 /** 日付の行の位置 (上から) [行] */
-#define OLED_ROW_DATE            2U
+#define OLED_ROW_DATE            0U
 /** 時刻の行の位置 (上から) [行] */
-#define OLED_ROW_TIME            3U
-/** 表示する行の数 (画面の高さ 64 ドット / 16 ドット) */
-#define OLED_ROWS                4U
-/** 日時を表示しないときの行の数 (温度と湿度) */
+#define OLED_ROW_TIME            1U
+/** 日付と時刻の行の数 (温度と湿度の行は, その下) */
+#define OLED_ROWS_DATETIME       2U
+/** 温度の行の位置 (日付と時刻の行の下から) [行] */
+#define OLED_ROW_TEMP            0U
+/** 湿度の行の位置 (日付と時刻の行の下から) [行] */
+#define OLED_ROW_HUMIDITY        1U
+/** 温度と湿度の行の数 */
 #define OLED_ROWS_SAMPLE         2U
+/** 表示する行の最大数 (画面の高さ 64 ドット / 16 ドット) */
+#define OLED_ROWS                4U
 /** 1 行の文字列の大きさ [バイト] (幅 128 ドット / 10 ドット = 12 文字 + 終端. 余裕を持たせる) */
 #define OLED_LINE_SIZE           24U
 /** 数値の文字列 (10 分の 1 の単位を, 小数点付きにしたもの. 最長は -3276.8) の大きさ [バイト] */
@@ -133,8 +135,8 @@ int oled_init(void)
 /**
  * @brief 指定したページを OLED に表示する
  *
- * 現在値のページ (OLED_PAGE_NOW) は, 1 行目に温度 (例: Temp 23.5 C), 2 行目に湿度
- * (例: Humi 45.0 %), 3 行目に日付 (例: 2026-10-08), 4 行目に時刻 (例: 14:05:09) を表示する.
+ * 現在値のページ (OLED_PAGE_NOW) は, 1 行目に日付 (例: 2026-10-08), 2 行目に時刻
+ * (例: 14:05:09), 3 行目に温度 (例: Temp 23.5 C), 4 行目に湿度 (例: Humi 45.0 %) を表示する.
  * 測定値がないとき, 湿度を測れないとき (THERMO_HUMIDITY_NONE), 時刻が未設定のときは, その値を
  * --.- (日付と時刻は, ---- と --) にする. 日時が NULL のときは, 日付と時刻の行を出さない.
  * グラフのページ (OLED_PAGE_TEMP_GRAPH, OLED_PAGE_HUMIDITY_GRAPH) は, 1 行目に, 履歴の最小と
@@ -327,39 +329,40 @@ static int draw_line(const char *text, uint16_t row)
 static unsigned int format_lines(const struct oled_view *view, char lines[][OLED_LINE_SIZE])
 {
     char temp_text[OLED_NUM_SIZE] = {0}; /* 温度の文字列 (例: -3.5) */
+    unsigned int first = 0U;             /* 温度の行の位置 (日付と時刻があれば, その下) */
+
+    /* 日付と時刻は, 一番上 */
+    if (view->time != NULL) {
+        if (view->time->valid) {
+            (void)snprintf(lines[OLED_ROW_DATE], OLED_LINE_SIZE, "%04u-%02u-%02u",
+                           (unsigned int)view->time->year, (unsigned int)view->time->month,
+                           (unsigned int)view->time->day);
+            (void)snprintf(lines[OLED_ROW_TIME], OLED_LINE_SIZE, "%02u:%02u:%02u",
+                           (unsigned int)view->time->hour, (unsigned int)view->time->minute,
+                           (unsigned int)view->time->second);
+        } else {
+            (void)snprintf(lines[OLED_ROW_DATE], OLED_LINE_SIZE, "----/--/--");
+            (void)snprintf(lines[OLED_ROW_TIME], OLED_LINE_SIZE, "--:--:--");
+        }
+        first = OLED_ROWS_DATETIME;
+    }
 
     if (view->has_sample) {
         format_x10(temp_text, sizeof(temp_text), view->temp_x10);
-        (void)snprintf(lines[OLED_ROW_TEMP], OLED_LINE_SIZE, "Temp %s C", temp_text);
+        (void)snprintf(lines[first + OLED_ROW_TEMP], OLED_LINE_SIZE, "Temp %s C", temp_text);
     } else {
-        (void)snprintf(lines[OLED_ROW_TEMP], OLED_LINE_SIZE, "Temp --.- C");
+        (void)snprintf(lines[first + OLED_ROW_TEMP], OLED_LINE_SIZE, "Temp --.- C");
     }
 
     if (view->has_sample && (view->humidity_x10 != THERMO_HUMIDITY_NONE)) {
-        (void)snprintf(lines[OLED_ROW_HUMIDITY], OLED_LINE_SIZE, "Humi %u.%u %%",
+        (void)snprintf(lines[first + OLED_ROW_HUMIDITY], OLED_LINE_SIZE, "Humi %u.%u %%",
                        view->humidity_x10 / OLED_X10_DIVISOR,
                        view->humidity_x10 % OLED_X10_DIVISOR);
     } else {
-        (void)snprintf(lines[OLED_ROW_HUMIDITY], OLED_LINE_SIZE, "Humi --.- %%");
+        (void)snprintf(lines[first + OLED_ROW_HUMIDITY], OLED_LINE_SIZE, "Humi --.- %%");
     }
 
-    if (view->time == NULL) {
-        return OLED_ROWS_SAMPLE;
-    }
-
-    if (view->time->valid) {
-        (void)snprintf(lines[OLED_ROW_DATE], OLED_LINE_SIZE, "%04u-%02u-%02u",
-                       (unsigned int)view->time->year, (unsigned int)view->time->month,
-                       (unsigned int)view->time->day);
-        (void)snprintf(lines[OLED_ROW_TIME], OLED_LINE_SIZE, "%02u:%02u:%02u",
-                       (unsigned int)view->time->hour, (unsigned int)view->time->minute,
-                       (unsigned int)view->time->second);
-    } else {
-        (void)snprintf(lines[OLED_ROW_DATE], OLED_LINE_SIZE, "----/--/--");
-        (void)snprintf(lines[OLED_ROW_TIME], OLED_LINE_SIZE, "--:--:--");
-    }
-
-    return OLED_ROWS;
+    return first + OLED_ROWS_SAMPLE;
 }
 
 /**
