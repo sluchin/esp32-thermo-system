@@ -30,7 +30,16 @@
 
 LOG_MODULE_REGISTER(thermo_node, THERMO_LOG_LEVEL);
 
+/** 任意の機器 (RTC, OLED, ボタン) を使えるか. 初期化に失敗した機器は, 一定間隔で, 再試行する */
+struct optional_devices {
+    bool rtc_ready;     /**< RTC を使えるか */
+    bool display_ready; /**< OLED を使えるか */
+    bool button_ready;  /**< ボタンを使えるか */
+};
+
 static void log_sample(int16_t temp_x10, uint16_t humidity_x10);
+
+static void init_optional(struct optional_devices *devs);
 
 static int measure(int16_t *temp_x10, uint16_t *humidity_x10);
 
@@ -41,6 +50,12 @@ static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_m
 
 /** OLED と時刻を更新する間隔 [ms] (時刻の秒を, 1 秒ごとに更新する) */
 #define REDRAW_INTERVAL_MS 1000
+
+/** 任意の機器の初期化に失敗したときに, やり直す間隔 [s] */
+#define RETRY_INTERVAL_S 60
+
+/** 任意の機器の初期化に失敗したときに, やり直す間隔 [ms] */
+#define RETRY_INTERVAL_MS (RETRY_INTERVAL_S * 1000)
 
 /** メインループの周期 [ms] (ボタンを調べる間隔. ボタンのチャタリングを無視する時間にもなる) */
 #define TICK_MS 50
@@ -58,8 +73,9 @@ static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_m
  * (GATT の notify) する. ゲートウェイから時刻を受け取ったら (GATT の write), RTC に設定する
  * (CONFIG_THERMO_RTC). OLED があれば (CONFIG_THERMO_DISPLAY), 温度, 湿度, 時刻を, 1 秒ごとに
  * 表示して, 温度と湿度の履歴 (グラフ) を覚える. ボタンを押すと, ページを切り替えて, すぐに
- * 表示し直す. 時刻は, RTC (CONFIG_THERMO_RTC) から読む. OLED と RTC の初期化に失敗しても, 表示と
- * 時刻を諦めるだけで, 測定と通知は続ける.
+ * 表示し直す. 時刻は, RTC (CONFIG_THERMO_RTC) から読む. OLED と RTC とボタンの初期化に失敗しても,
+ * 表示と時刻を諦めるだけで, 測定と通知は続ける (起動時の一時的な失敗から復帰するため,
+ * RETRY_INTERVAL_MS ごとに, 初期化をやり直す).
  *
  * @retval EXIT_FAILURE 初期化またはアドバタイズ開始に失敗した場合
  *                      (正常時はループから戻らない)
@@ -70,19 +86,18 @@ int main(void)
     int64_t start_ms = k_uptime_get(); /* ループを始めた稼働時間 [ms] */
     int64_t next_sample_ms = 0;        /* 次に測る稼働時間 [ms] (初回は, すぐ測る) */
     int64_t next_redraw_ms = 0;        /* 次に表示を更新する稼働時間 [ms] */
-    int64_t now_ms = 0;                /* 今の稼働時間 [ms] */
-    int16_t temp_x10 = 0;              /* 温度 [℃ の 10 倍] */
-    uint16_t humidity_x10 = 0;         /* 湿度 [% の 10 倍] */
+    int64_t next_retry_ms = start_ms + RETRY_INTERVAL_MS; /* 次に初期化をやり直す稼働時間 [ms] */
+    int64_t now_ms = 0;                                   /* 今の稼働時間 [ms] */
+    int16_t temp_x10 = 0;                                 /* 温度 [℃ の 10 倍] */
+    uint16_t humidity_x10 = 0;                            /* 湿度 [% の 10 倍] */
+    struct optional_devices devs = {0};                   /* 任意の機器を使えるか */
 #ifdef CONFIG_THERMO_RTC
     struct node_datetime datetime = {0}; /* RTC のローカルタイム */
-    bool rtc_ready = false;              /* RTC を使えるか */
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
     struct history temp_history = {0};     /* 温度の履歴 */
     struct history humidity_history = {0}; /* 湿度の履歴 */
     struct oled_view view = {0};           /* OLED に表示する内容 */
-    bool display_ready = false;            /* OLED を使えるか */
-    bool button_ready = false;             /* ボタンを使えるか */
 #endif
 
 /* ビルド構成に応じて起動ログを切り替える */
@@ -118,29 +133,9 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-#ifdef CONFIG_THERMO_RTC
-    /* RTC を初期化する (失敗しても, 時刻を諦めるだけで, 測定と通知は続ける) */
-    ret = node_time_init();
-    rtc_ready = (ret == EXIT_SUCCESS);
-    if (!rtc_ready) {
-        LOG_ERR("Failed to initialize the RTC (err %d), continuing without the time", ret);
-    }
-#endif
-
+    /* RTC と OLED とボタンを初期化する (失敗しても, 測定と通知は続ける) */
+    init_optional(&devs);
 #ifdef CONFIG_THERMO_DISPLAY
-    /* OLED を初期化する (失敗しても, 表示を諦めるだけで, 測定と通知は続ける) */
-    ret = oled_init();
-    display_ready = (ret == EXIT_SUCCESS);
-    if (!display_ready) {
-        LOG_ERR("Failed to initialize the OLED (err %d), continuing without it", ret);
-    }
-
-    /* ボタンを初期化する (失敗しても, 画面を切り替えられないだけ) */
-    ret = button_init();
-    button_ready = (ret == EXIT_SUCCESS);
-    if (!button_ready) {
-        LOG_ERR("Failed to initialize the button (err %d), the page is not switched", ret);
-    }
     view.temp_history = &temp_history;
     view.humidity_history = &humidity_history;
 #endif
@@ -168,16 +163,22 @@ int main(void)
 
 #ifdef CONFIG_THERMO_DISPLAY
         /* ボタンが押されたら, 次のページにして, すぐに表示し直す */
-        if (button_ready && button_pressed()) {
+        if (devs.button_ready && button_pressed()) {
             view.page = (view.page + 1U) % OLED_PAGE_COUNT;
             next_redraw_ms = now_ms;
         }
 #endif
 
+        /* 初期化に失敗した機器を, やり直す (起動のときの, 一時的な失敗から, 復帰する) */
+        if (now_ms >= next_retry_ms) {
+            next_retry_ms = next_grid_ms(start_ms, now_ms, RETRY_INTERVAL_MS);
+            init_optional(&devs);
+        }
+
         if (now_ms >= next_redraw_ms) {
             next_redraw_ms = next_grid_ms(start_ms, now_ms, REDRAW_INTERVAL_MS);
 #ifdef CONFIG_THERMO_RTC
-            if (rtc_ready) {
+            if (devs.rtc_ready) {
                 /* 未設定や読み取りの失敗のときは, datetime.valid が false (時刻なしと表示する) */
                 (void)node_time_get(&datetime);
 #ifdef CONFIG_THERMO_DISPLAY
@@ -187,7 +188,7 @@ int main(void)
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
             /* OLED に表示する (失敗しても次回に再試行する) */
-            if (display_ready) {
+            if (devs.display_ready) {
                 ret = oled_show(&view);
                 if (ret != EXIT_SUCCESS) {
                     LOG_ERR("Failed to show on the OLED (err %d)", ret);
@@ -198,6 +199,59 @@ int main(void)
 
         (void)k_msleep(TICK_MS);
     }
+}
+
+/**
+ * 任意の機器 (RTC, OLED, ボタン) のうち, まだ使えない機器を初期化する
+ *
+ * 起動のときに呼んで, 失敗した機器は, RETRY_INTERVAL_MS ごとに, もう一度呼ぶ. 失敗しても,
+ * その機器を 使えないだけで, 測定と通知は続ける. 使えるようになった機器は, 呼ばない.
+ *
+ * @param[in,out] devs 任意の機器を使えるか (初期化に成功した機器を, true にする)
+ */
+static void init_optional(struct optional_devices *devs)
+{
+#ifdef CONFIG_THERMO_RTC
+    int rtc_ret = EXIT_SUCCESS; /* RTC の初期化の戻り値 */
+#endif
+#ifdef CONFIG_THERMO_DISPLAY
+    int display_ret = EXIT_SUCCESS; /* OLED の初期化の戻り値 */
+    int button_ret = EXIT_SUCCESS;  /* ボタンの初期化の戻り値 */
+#endif
+
+    ARG_UNUSED(devs);
+
+#ifdef CONFIG_THERMO_RTC
+    if (!devs->rtc_ready) {
+        rtc_ret = node_time_init();
+        devs->rtc_ready = (rtc_ret == EXIT_SUCCESS);
+        if (!devs->rtc_ready) {
+            LOG_ERR("Failed to initialize the RTC (err %d), no time (retry in %d s)", rtc_ret,
+                    RETRY_INTERVAL_S);
+        }
+    }
+#endif
+
+#ifdef CONFIG_THERMO_DISPLAY
+    if (!devs->display_ready) {
+        display_ret = oled_init();
+        devs->display_ready = (display_ret == EXIT_SUCCESS);
+        if (!devs->display_ready) {
+            LOG_ERR("Failed to initialize the OLED (err %d), no display (retry in %d s)",
+                    display_ret, RETRY_INTERVAL_S);
+        }
+    }
+
+    if (!devs->button_ready) {
+        button_ret = button_init();
+        devs->button_ready = (button_ret == EXIT_SUCCESS);
+        if (!devs->button_ready) {
+            LOG_ERR("Failed to initialize the button (err %d), the page is not switched "
+                    "(retry in %d s)",
+                    button_ret, RETRY_INTERVAL_S);
+        }
+    }
+#endif
 }
 
 /**

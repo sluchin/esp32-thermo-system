@@ -14,6 +14,7 @@
  *  - OLED の表示と時刻を, 1 秒ごとに更新すること (グラフの履歴に, 測定値を加えること)
  *  - ボタンを押すと, ページを切り替えて (最後の次は, 最初に戻る), すぐに表示し直すこと
  *  - OLED や RTC の初期化に失敗しても, 表示と時刻を諦めるだけで, 測定と通知を続けること
+ *  - 初期化に失敗した機器を, 一定間隔でやり直して, 復帰すること (成功した機器は, やり直さない)
  */
 
 #include <zephyr/ztest.h>
@@ -557,6 +558,71 @@ ZTEST(main_node, test_button_init_failure_continues)
     zassert_equal(oled_show_fake.call_count, 1U);
     zassert_equal(shown[0].page, OLED_PAGE_NOW);
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** main.c の RETRY_INTERVAL_S (初期化をやり直す間隔 [秒]) */
+#define RETRY_INTERVAL_S 60
+
+/** 起動のときに初期化に失敗した RTC と OLED とボタンは, 60 秒後にやり直して, 使えるようになる */
+ZTEST(main_node, test_optional_devices_recover_by_retry)
+{
+    static int fail_then_ok[] = {-EIO, 0};
+
+    sensor_read_fake.custom_fake = fake_read;
+    SET_RETURN_SEQ(node_time_init, fail_then_ok, ARRAY_SIZE(fail_then_ok));
+    SET_RETURN_SEQ(oled_init, fail_then_ok, ARRAY_SIZE(fail_then_ok));
+    SET_RETURN_SEQ(button_init, fail_then_ok, ARRAY_SIZE(fail_then_ok));
+
+    start_main();
+
+    /* 起動のとき: 3 つとも失敗して, 時刻も, 表示も, ボタンもない. 測定と通知は, 続く */
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(node_time_init_fake.call_count, 1U);
+    zassert_equal(oled_init_fake.call_count, 1U);
+    zassert_equal(button_init_fake.call_count, 1U);
+    zassert_equal(node_time_get_fake.call_count, 0U);
+    zassert_equal(oled_show_fake.call_count, 0U);
+    zassert_equal(button_pressed_fake.call_count, 0U);
+    zassert_equal(ble_notify_temperature_fake.call_count, 1U);
+
+    /* 60 秒後: やり直して, 3 つとも成功する. 時刻と表示とボタンが, 使えるようになる */
+    k_sleep(K_SECONDS(RETRY_INTERVAL_S + 2));
+    zassert_equal(node_time_init_fake.call_count, 2U);
+    zassert_equal(oled_init_fake.call_count, 2U);
+    zassert_equal(button_init_fake.call_count, 2U);
+    zassert_true(node_time_get_fake.call_count > 0U);
+    zassert_true(oled_show_fake.call_count > 0U);
+    zassert_true(button_pressed_fake.call_count > 0U);
+    zassert_not_null(shown[0].time);
+
+    /* 使えるようになったあとは, やり直さない */
+    k_sleep(K_SECONDS(RETRY_INTERVAL_S * 2));
+    zassert_equal(node_time_init_fake.call_count, 2U);
+    zassert_equal(oled_init_fake.call_count, 2U);
+    zassert_equal(button_init_fake.call_count, 2U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 初期化に失敗し続ける機器は, 60 秒ごとに, やり直し続ける */
+ZTEST(main_node, test_optional_devices_keep_retrying)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_init_fake.return_val = -EIO;
+    oled_init_fake.return_val = -ENODEV;
+    button_init_fake.return_val = -ENODEV;
+
+    start_main();
+
+    /* 起動のときと, 60 秒後と, 120 秒後の, 3 回 */
+    k_msleep(STARTUP_WAIT_MS);
+    k_sleep(K_SECONDS(RETRY_INTERVAL_S * 2));
+    zassert_equal(node_time_init_fake.call_count, 3U);
+    zassert_equal(oled_init_fake.call_count, 3U);
+    zassert_equal(button_init_fake.call_count, 3U);
+    zassert_equal(oled_show_fake.call_count, 0U);
 
     k_thread_abort(&main_thread);
 }
