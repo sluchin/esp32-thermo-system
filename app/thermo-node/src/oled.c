@@ -83,6 +83,7 @@ static int draw_line(const char *text, uint16_t row);
  *
  * 画素の形式を設定して, 文字のフレームバッファを初期化し, 画面を消して, 表示を始める.
  * 失敗したときは, 表示しないだけで, ノードのほかの動作は続けられる (呼び出し側で判断する).
+ * 失敗したあとに, もう一度呼んでもよい (確保したフレームバッファは, 解放してからやり直す).
  *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODEV      OLED が利用可能でない
@@ -102,6 +103,9 @@ int oled_init(void)
         LOG_ERR("Could not set the pixel format of the OLED (%d)", err);
         return err;
     }
+
+    /* やり直しのときに, 前のフレームバッファを解放する (cfb_framebuffer_init() は, 解放しない) */
+    cfb_framebuffer_deinit(oled_dev);
 
     err = cfb_framebuffer_init(oled_dev);
     if (err != 0) {

@@ -40,6 +40,7 @@
 DEFINE_FFF_GLOBALS
 
 /* FAKE_*: FFF のモック (実物の代わりの関数. 呼ばれた回数と引数を記録する) */
+FAKE_VOID_FUNC(cfb_framebuffer_deinit, const struct device *)
 FAKE_VALUE_FUNC(int, cfb_framebuffer_init, const struct device *)
 FAKE_VALUE_FUNC(int, cfb_framebuffer_set_font, const struct device *, uint8_t)
 FAKE_VALUE_FUNC(int, cfb_framebuffer_clear, const struct device *, bool)
@@ -216,6 +217,7 @@ static void before(void *fixture)
     struct device_state *state = fake_dev->state; /* 表示装置の状態 */
 
     ARG_UNUSED(fixture);
+    RESET_FAKE(cfb_framebuffer_deinit);
     RESET_FAKE(cfb_framebuffer_init);
     RESET_FAKE(cfb_framebuffer_set_font);
     RESET_FAKE(cfb_framebuffer_clear);
@@ -244,6 +246,8 @@ ZTEST(oled, test_init_success)
     /* 期待: 成功して, 各段階を 1 回ずつ行う */
     zassert_equal(oled_init(), EXIT_SUCCESS);
     zassert_equal(pixel_format_set, PIXEL_FORMAT_MONO10);
+    /* やり直しのときに, 前のフレームバッファを解放するため, 初期化の前に, 解放する */
+    zassert_equal(cfb_framebuffer_deinit_fake.call_count, 1U);
     zassert_equal(cfb_framebuffer_init_fake.call_count, 1U);
     zassert_equal(cfb_framebuffer_set_font_fake.call_count, 1U);
     zassert_equal(cfb_framebuffer_set_font_fake.arg1_val, 0U);
