@@ -20,8 +20,9 @@ endif()
 target_sources(app PRIVATE src/sensor.c)
 # OLED (CONFIG_THERMO_DISPLAY=n のときは, ビルドしない)
 target_sources_ifdef(CONFIG_THERMO_DISPLAY app PRIVATE src/oled.c src/history.c src/button.c)
-# RTC の時刻 (CONFIG_THERMO_RTC=n のときは, ビルドしない)
-target_sources_ifdef(CONFIG_THERMO_RTC app PRIVATE src/node_time.c)
+# RTC の時刻と, PCF8563 のドライバ (CONFIG_THERMO_RTC=n のときは, ビルドしない). binding は,
+# dts/bindings/rtc/thermo,pcf8563.yaml (アプリのディレクトリは, Devicetree のルートになる)
+target_sources_ifdef(CONFIG_THERMO_RTC app PRIVATE src/node_time.c drivers/rtc_pcf8563.c)
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)

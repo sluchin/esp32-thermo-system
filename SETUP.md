@@ -325,7 +325,7 @@ Humi 45.0 %
 - 電源を切っても、時刻を保つには、拡張ボードの RTC 用の電池 (ボタン電池) が、必要です。電池の型は、ボードの資料で、確認してください。
 - OLED の初期化に失敗しても (OLED がない、接触不良など)、ログに `Failed to initialize the OLED` を出して、表示だけを諦めます。RTC の初期化に失敗したときも、`Failed to initialize the RTC` を出して、時刻の行を出さないだけです。どちらも、測定と BLE の通知は、続きます。
 - OLED と RTC の設定は、Zephyr の `seeed_xiao_expansion_board` のシールドと、同じです (`app/thermo-node/boards/xiao_esp32c3.overlay`)。シールドは、SD カードの SPI も有効にするので、使わずに、OLED と RTC のノードだけを、書いています。
-- RTC は、Zephyr の RTC ドライバ (v4.3.0) を使わずに、I2C で、PCF8563 のレジスタを、直接読み書きします。Zephyr のドライバは、月 (0 から 11 の検証で、12 月を設定できない) と年 (1900 年からの年数を、そのまま BCD にする) の扱いが、チップと合っていないためです (`app/thermo-node/src/node_time.c`)。
+- RTC は、Zephyr の RTC ドライバ (v4.3.0 の `nxp,pcf8563`) を使わずに、このアプリのドライバ (`app/thermo-node/drivers/rtc_pcf8563.c`。Devicetree の compatible は `thermo,pcf8563`。binding は `app/thermo-node/dts/bindings/rtc/thermo,pcf8563.yaml`) を使います。Zephyr のドライバは、月 (0 から 11 の検証で、12 月を設定できない) と年 (1900 年からの年数を、そのまま BCD にする) の扱いが、チップと合っていないためです。このドライバは、Zephyr の RTC API (`rtc_set_time()` と `rtc_get_time()`) だけを実装します (アラームと割り込みは、ありません)。`node_time.c` は、この API で時刻を読み書きして、UNIX 時刻の換算と、ローカルタイムへの変換をします。
 - **実機での確認は、まだです** (表示の向き、コントラスト、I2C のアドレス、RTC の読み書きは、実機で確認します)。
 
 #### ゲートウェイからの時刻の同期

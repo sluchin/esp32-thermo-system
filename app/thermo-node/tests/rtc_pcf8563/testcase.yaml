@@ -1,0 +1,8 @@
+# thermo-node の単体テスト: drivers/rtc_pcf8563.c (偽の I2C コントローラで、PCF8563 のレジスタ (BCD) の読み書き、範囲の検証、通信の失敗を確認する).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-thermo-node).
+tests:
+  thermo_node.rtc_pcf8563:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - thermo_node

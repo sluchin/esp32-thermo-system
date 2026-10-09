@@ -22,8 +22,9 @@
  * OLED の画面を切り替える (CONFIG_THERMO_DISPLAY=n のときは, 使わない).
  *
  * RTC (拡張ボードの PCF8563. I2C のアドレスは 0x51) は, alias thermo-rtc で使う. Zephyr の RTC
- * ドライバは, 月と年の扱いがチップと合わないので使わず (CONFIG_RTC は, 有効にしない), アプリが,
- * I2C で, レジスタを直接読み書きする. 使わないときは, CONFIG_THERMO_RTC=n でビルドする.
+ * ドライバ (nxp,pcf8563) は, 月と年の扱いがチップと合わないので使わず, このアプリのドライバ
+ * (drivers/rtc_pcf8563.c. compatible は thermo,pcf8563) を使う. 使わないときは,
+ * CONFIG_THERMO_RTC=n でビルドする.
  */
 #include <zephyr/dt-bindings/gpio/gpio.h>
 
@@ -68,7 +69,7 @@
     };
 
     pcf8563_rtc: pcf8563@51 {
-        compatible = "nxp,pcf8563";
+        compatible = "thermo,pcf8563";
         reg = <0x51>;
         status = "okay";
     };

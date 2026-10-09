@@ -153,6 +153,7 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 | `goto` | Rule 15.1 | エラー処理は、早期リターンで行う (リソースを確保しないため) |
 | 日付の計算 (`node_time.c`) の小さな数 | (マジックナンバーを使わない規約。`CODING_STYLE.md`) | `days_from_civil()` と `civil_from_days()` は、グレゴリオ暦の日付と日数の変換 (H. Hinnant のアルゴリズム) で、式の中の小さな数 (2, 3, 5, 9, 12 など) は、月の並びの規則そのもの。名前を付けると、かえって読めなくなるので、付けない。大きな定数 (日数、年数) には、名前を付けている。単体テストで、日付の繰り上がりとうるう日を確認している |
 | 動的メモリ (`malloc` / `free`) | Rule 21.3 | 静的確保のみ。使う場合は、確保結果を検査し、解放後に `NULL` を代入する (`CODING_STYLE.md`)。ただし、OLED の CFB (Zephyr のライブラリ) は、初期化のときに 1 回だけ、`k_malloc` でフレームバッファ (1 KB) を確保する (アプリのコードは、`malloc` を使わない。確保できなければ、`cfb_framebuffer_init()` が失敗して、表示だけを諦める) |
+| デバイスの定義 (`rtc_pcf8563.c` の `DEVICE_DT_INST_DEFINE()`) | (`-Wpedantic`: 柔軟配列メンバーの初期化) | Zephyr のマクロの展開に含まれる (アプリのコードではない)。`DT_INST_FOREACH_STATUS_OKAY()` の行だけを、`#pragma GCC diagnostic` で囲んで、警告を止める |
 | 再帰呼び出し | Rule 17.2 | |
 | 標準入出力 (`<stdio.h>`) | Rule 21.6 | ログは Zephyr Logging API |
 | 未定義マクロを `#if` の値として評価 | Rule 20.9 | `CONFIG_SIMULATOR` は `#ifdef` で、Devicetree は `DT_NODE_HAS_PROP` (0 か 1 に展開される) で判定する |

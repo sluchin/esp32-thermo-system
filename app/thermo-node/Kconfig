@@ -37,13 +37,14 @@ config THERMO_RTC
     bool "Keep the time with the RTC (PCF8563) of the expansion board"
     default y if $(dt_alias_enabled,thermo-rtc)
     select I2C
+    select RTC
     help
       Read the time from the RTC (PCF8563, Devicetree alias thermo-rtc)
-      and show it on the OLED display. The registers are accessed
-      directly through I2C (the RTC driver of Zephyr v4.3 does not
-      handle the month and the year as the chip does). The default is
-      y when the alias exists. Set n (-DCONFIG_THERMO_RTC=n) to build
-      without the RTC.
+      and show it on the OLED display. The RTC driver of this
+      application (drivers/rtc_pcf8563.c, compatible thermo,pcf8563) is
+      used, because the driver of Zephyr v4.3 does not handle the month
+      and the year as the chip does. The default is y when the alias
+      exists. Set n (-DCONFIG_THERMO_RTC=n) to build without the RTC.
 
 config THERMO_UTC_OFFSET_MIN
     int "Offset of the local time from UTC [minutes]"
