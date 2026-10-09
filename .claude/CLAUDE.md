@@ -10,6 +10,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 - Thermo Node ビルド: `docker compose run --rm build-thermo-node` (OLED と RTC を外すときは、`THERMO_DISPLAY=n` と `THERMO_RTC=n` を付ける。`SETUP.md` の「OLED の表示と時刻」)
 - Thermo Gateway ビルド: `docker compose run --rm build-thermo-gateway`
 - 開発シェル: `docker compose run --rm dev`
+- クリーン: `docker compose run --rm clean` (`build/` と `docs/` を消す。ビルドの不具合を疑うときに、最初からやり直す)
 
 ### ビルド (ローカル West)
 - ワークスペース初期化: `west init -l . && west update`
@@ -22,6 +23,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 ### シリアルモニター
 - `picocom -b 115200 /dev/ttyACM0`
+- 起動のログ (リセットのたびに USB が切れる) を見るとき: `while true; do picocom -b 115200 /dev/ttyACM0 --noinit --noreset; sleep 0.3; done`
 - Thermo ノードのシェルには、ファイルシステムのコマンド `fs` がある (`CONFIG_FILE_SYSTEM_SHELL=y`。`SETUP.md` の「ファイルシステムのシェル」)。`fs rm` と `fs write` も使えるので、ログの書き込み中には、実行しない。
 
 ## プロジェクト構成

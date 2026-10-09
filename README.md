@@ -65,6 +65,9 @@ docker compose run --rm build-thermo-gateway-sim
 
 # インタラクティブ開発シェル
 docker compose run --rm dev
+
+# 生成物 (build/ と docs/) を全て消す (次のビルドは、最初からやり直す)
+docker compose run --rm clean
 ```
 
 ### 単体テストと静的解析
@@ -230,6 +233,9 @@ git push --force-with-lease --force-if-includes origin <ブランチ名>
 
 ```bash
 picocom -b 115200 /dev/ttyACM0
+
+# リセットのたびに USB が切れるので, 起動のログを見るときは, つなぎ直しを繰り返す
+while true; do picocom -b 115200 /dev/ttyACM0 --noinit --noreset; sleep 0.3; done
 ```
 
 ### Zephyr ログレベル

@@ -105,6 +105,9 @@ docker compose run --rm build-thermo-gateway-sim
 
 # インタラクティブ開発シェル
 docker compose run --rm dev
+
+# 生成物 (build/ と docs/) を全て消す (次のビルドは、最初からやり直す)
+docker compose run --rm clean
 ```
 
 ### Docker セットアップの利点
@@ -323,7 +326,8 @@ Humi 45.0 %
 - 日付と時刻は、1 秒ごとに、更新します。RTC (PCF8563) の時刻を読んで、ローカルタイムにします。RTC は UTC を保持します。ローカルタイムは、UTC に `CONFIG_THERMO_UTC_OFFSET_MIN` (既定は 540 分 = UTC+9。日本標準時) を足した値です。
 - **RTC の時刻が、まだ設定されていないとき** (最初の電源投入、または、電池が切れたあと) は、`----/--/--` と `--:--:--` を表示します。時刻は、ゲートウェイから受け取ります (次の「ゲートウェイからの時刻の同期」)。
 - 電源を切っても、時刻を保つには、拡張ボードの RTC 用の電池 (ボタン電池) が、必要です。電池の型は、ボードの資料で、確認してください。
-- OLED の初期化に失敗しても (OLED がない、接触不良など)、ログに `Failed to initialize the OLED` を出して、表示だけを諦めます。RTC の初期化に失敗したときも、`Failed to initialize the RTC` を出して、時刻の行を出さないだけです。どちらも、測定と BLE の通知は、続きます。
+- OLED の初期化に失敗しても (OLED がない、接触不良など)、ログに `Failed to initialize the OLED` を出して、表示だけを諦めます。RTC の初期化に失敗したときも、`Failed to initialize the RTC` を出して、時刻の行を出しません。ボタンも、同じです。どれも、測定と BLE の通知は、続きます。
+- 初期化に失敗した RTC、OLED、ボタンは、**60 秒ごとに、初期化をやり直します** (起動のときの、一時的な失敗 (電源の立ち上がりや、接触の瞬断) から、リセットなしで、復帰するため)。使えるようになったログは、`RTC initialized`、`OLED initialized`、`Button initialized` です。
 - OLED と RTC の設定は、Zephyr の `seeed_xiao_expansion_board` のシールドと、同じです (`app/thermo-node/boards/xiao_esp32c3.overlay`)。シールドは、SD カードの SPI も有効にするので、使わずに、OLED と RTC のノードだけを、書いています。
 - RTC は、Zephyr の RTC ドライバ (v4.3.0 の `nxp,pcf8563`) を使わずに、このアプリのドライバ (`app/thermo-node/drivers/rtc_pcf8563.c`。Devicetree の compatible は `thermo,pcf8563`。binding は `app/thermo-node/dts/bindings/rtc/thermo,pcf8563.yaml`) を使います。Zephyr のドライバは、月 (0 から 11 の検証で、12 月を設定できない) と年 (1900 年からの年数を、そのまま BCD にする) の扱いが、チップと合っていないためです。このドライバは、Zephyr の RTC API (`rtc_set_time()` と `rtc_get_time()`) だけを実装します (アラームと割り込みは、ありません)。`node_time.c` は、この API で時刻を読み書きして、UNIX 時刻の換算と、ローカルタイムへの変換をします。
 - **実機での確認は、まだです** (表示の向き、コントラスト、I2C のアドレス、RTC の読み書きは、実機で確認します)。
@@ -353,6 +357,21 @@ THERMO_RTC=n docker compose run --rm build-thermo-node
 west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_THERMO_DISPLAY=n -DCONFIG_THERMO_RTC=n
 ```
 
+### DHT11 の読み取りの失敗と、割り込みを止める設定 (実験用)
+
+`Could not fetch the sensor (-5)` が、ときどき出るときは、BLE などの割り込みが、DHT11 の読み取り (マイクロ秒単位のタイミング) を乱している可能性があります。Zephyr のドライバは、1 つの信号が 100 マイクロ秒を超えると、何も表示せずに、`-EIO` を返します (デバッグビルドでも、`Invalid checksum` は、データが乱れたときだけ出ます)。割り込みの影響かを、確かめるには、読み取りの間 (約 22 ミリ秒)、割り込みを止める設定 (`CONFIG_DHT_LOCK_IRQS`) を、有効にしてビルドします。
+
+```bash
+# Docker: 環境変数 THERMO_DHT_LOCK_IRQS を y にして、ビルドする (既定は n)
+THERMO_DHT_LOCK_IRQS=y docker compose run --rm build-thermo-node
+
+# West
+west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_DHT_LOCK_IRQS=y
+```
+
+- エラーが、出なくなれば、割り込みの影響です (配線の問題ではありません)。
+- 割り込みを止めている間は、BLE の処理も止まります。接続が切れやすくならないか (`Disconnected` が、増えないか) を、あわせて確認してください。
+
 ## シリアルモニター
 
 ```bash
@@ -365,6 +384,18 @@ screen /dev/ttyACM0 115200
 # minicom
 minicom -D /dev/ttyACM0 -b 115200
 ```
+
+### 起動のログを見る (リセットのたびに、つなぎ直す)
+
+XIAO ESP32C3 の USB は、リセットや書き込みのたびに、一度切れて、また、つながります。そのため、picocom は、リセットのときに、終了してしまい、起動のログ (初期化の成功と失敗) を、見逃します。次のように、つなぎ直しを、自動で繰り返すと、起動のログが、見えます。
+
+```bash
+while true; do picocom -b 115200 /dev/ttyACM0 --noinit --noreset; sleep 0.3; done
+```
+
+- `--noinit` と `--noreset` は、picocom が、接続のときに、モデムの初期化と、リセットを、しないための指定です。
+- 終了するときは、Ctrl-A、Ctrl-X で、picocom を終了したあと、すぐに Ctrl-C で、ループを止めます。
+- 2 台 (ノードとゲートウェイ) を、同時につなぐときは、`/dev/ttyACM0` と `/dev/ttyACM1` を、別の端末で開きます。
 
 ### ファイルシステムのシェル (Thermo ノード)
 

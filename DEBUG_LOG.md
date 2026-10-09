@@ -219,7 +219,22 @@ grep -E "<wrn>|<err>" debug.log
 | SwitchBot を受信できているか | `parse_ad: SwitchBot advertising data` が、約 2 秒ごとに出ているか |
 | 値が正しく解析できているか | 16 進ダンプを 4.2、4.3 の表で読んで、`<inf> thermo_gateway: SwitchBot ...` の値と比べる |
 | AWS に送信できているか | `MQTT publish` のあと、約 1 秒以内に、同じ id の `Publish acknowledged` が出ているか |
+| ノードの DHT11 が読めているか | `Could not fetch the sensor (-5)` が出ていないか (下の「DHT11 の読み取りの失敗」) |
 | 接続が切れていないか | `<wrn>` の `Connection failed`、`MQTT connection lost`、`Send queue is full` が出ていないか |
 
 - `Send queue is full, the value was dropped` が出ているのは、AWS に接続できていないときです。
 - `Publish acknowledged` が、`MQTT publish` に対して、出ないときは、メッセージが届いていません。AWS 側のポリシー (`iot:Publish` の対象のトピック) を、確認してください ([AWS_SETUP.md](AWS_SETUP.md) の 5)。
+
+### DHT11 の読み取りの失敗
+
+ノードの `Could not fetch the sensor (-5)` は、ドライバが、DHT11 から、正しいデータを得られなかったことを示します (`-5` は、`-EIO`)。Zephyr のドライバは、失敗の種類を、ほとんど、ログに出しません。
+
+- データを 40 ビット全て受け取ったあとの、**チェックサムの不一致**だけが、デバッグビルド (`THERMO_DEBUG_LOG=ON`) の DBG ログ (`Invalid checksum in fetched sample`) に出ます。
+- 応答を待つ途中や、ビットの読み取りの途中で、**1 つの信号が 100 マイクロ秒を超えた**ときは、何も表示せずに、`-EIO` を返します。これには、センサの応答がない場合 (配線、接触、電源) と、**割り込みが、読み取りを止めた場合 (BLE など) の、両方**が含まれます。
+
+| ログ | 意味と、対策 |
+|:---|:---|
+| `<dbg> DHT: dht_sample_fetch: Invalid checksum in fetched sample` が、`Could not fetch` の前に出る | センサは応答したが、データが乱れた。BLE の割り込みなどが、読み取りを乱している可能性が高い |
+| `Could not fetch` だけで、`Invalid checksum` が出ない | 時間切れ。配線 (`out` が D7、`+` が 3V3、`-` が GND)、ジャンパーの接触、センサの電源、`dio-gpios` の極性 (`GPIO_ACTIVE_LOW`) の問題か、割り込みによる遅れ |
+
+見分けるには、割り込みを止める設定を、有効にして、試します ([SETUP.md](SETUP.md) の「DHT11 の読み取りの失敗と、割り込みを止める設定」)。エラーが出なくなれば、割り込みの影響です。
