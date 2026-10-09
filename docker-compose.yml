@@ -10,7 +10,7 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DCONFIG_THERMO_DISPLAY=${THERMO_DISPLAY:-y} -DCONFIG_THERMO_RTC=${THERMO_RTC:-y} -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    command: west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DCONFIG_THERMO_DISPLAY=${THERMO_DISPLAY:-y} -DCONFIG_THERMO_RTC=${THERMO_RTC:-y} -DCONFIG_DHT_LOCK_IRQS=${THERMO_DHT_LOCK_IRQS:-n} -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
     environment:
       - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
@@ -250,3 +250,15 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
     command: /bin/bash
+
+  # 生成物 (build/ と docs/) を、全て消す。次のビルドは、最初からやり直す。
+  # どちらも .gitignore に入っていて、ビルドとドキュメントの生成で、作り直せる。
+  # (root で作ったものは、消せない。UID と GID をエクスポートしていないときは、sudo で消す)
+  clean:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: sh -c "rm -rf build docs && echo 'Removed build/ and docs/'"
+
