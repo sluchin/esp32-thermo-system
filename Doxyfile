@@ -22,6 +22,7 @@ INPUT                  = README.md \
                          AWS_SETUP.md \
                          DEBUG_LOG.md \
                          AWS_GRAPH.md \
+                         AWS_DYNAMODB.md \
                          CODING_STYLE.md \
                          MISRA.md \
                          TODO.md \
