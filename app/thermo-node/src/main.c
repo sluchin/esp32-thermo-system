@@ -16,6 +16,12 @@
 #include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE */
 
 #include "ble.h"
+#if defined(CONFIG_THERMO_BOOT_SCREEN) || defined(CONFIG_THERMO_BUZZER)
+#include "boot_assets.h"
+#endif
+#ifdef CONFIG_THERMO_BUZZER
+#include "buzzer.h"
+#endif
 #ifdef CONFIG_THERMO_RTC
 #include "node_time.h"
 #endif
@@ -35,11 +41,14 @@ struct optional_devices {
     bool rtc_ready;     /**< RTC を使えるか */
     bool display_ready; /**< OLED を使えるか */
     bool button_ready;  /**< ボタンを使えるか */
+    bool buzzer_ready;  /**< ブザーを使えるか */
 };
 
 static void log_sample(int16_t temp_x10, uint16_t humidity_x10);
 
 static void init_optional(struct optional_devices *devs);
+
+static void boot_sequence(const struct optional_devices *devs);
 
 static int measure(int16_t *temp_x10, uint16_t *humidity_x10);
 
@@ -75,7 +84,8 @@ static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_m
  * 表示して, 温度と湿度の履歴 (グラフ) を覚える. ボタンを押すと, ページを切り替えて, すぐに
  * 表示し直す. 時刻は, RTC (CONFIG_THERMO_RTC) から読む. OLED と RTC とボタンの初期化に失敗しても,
  * 表示と時刻を諦めるだけで, 測定と通知は続ける (起動時の一時的な失敗から復帰するため,
- * RETRY_INTERVAL_MS ごとに, 初期化をやり直す).
+ * RETRY_INTERVAL_MS ごとに, 初期化をやり直す). 起動のときは, OLED に起動画面を出して (約 3 秒),
+ * ブザーでメロディを鳴らす (CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER).
  *
  * @retval EXIT_FAILURE 初期化またはアドバタイズ開始に失敗した場合
  *                      (正常時はループから戻らない)
@@ -135,6 +145,10 @@ int main(void)
 
     /* RTC と OLED とボタンを初期化する (失敗しても, 測定と通知は続ける) */
     init_optional(&devs);
+    boot_sequence(&devs);
+    /* 起動画面の間 (約 3 秒) を除いて, ループの時間を数える */
+    start_ms = k_uptime_get();
+    next_retry_ms = start_ms + RETRY_INTERVAL_MS;
 #ifdef CONFIG_THERMO_DISPLAY
     view.temp_history = &temp_history;
     view.humidity_history = &humidity_history;
@@ -214,6 +228,9 @@ static void init_optional(struct optional_devices *devs)
 #ifdef CONFIG_THERMO_RTC
     int rtc_ret = EXIT_SUCCESS; /* RTC の初期化の戻り値 */
 #endif
+#ifdef CONFIG_THERMO_BUZZER
+    int buzzer_ret = EXIT_SUCCESS; /* ブザーの初期化の戻り値 */
+#endif
 #ifdef CONFIG_THERMO_DISPLAY
     int display_ret = EXIT_SUCCESS; /* OLED の初期化の戻り値 */
     int button_ret = EXIT_SUCCESS;  /* ボタンの初期化の戻り値 */
@@ -228,6 +245,17 @@ static void init_optional(struct optional_devices *devs)
         if (!devs->rtc_ready) {
             LOG_ERR("Failed to initialize the RTC (err %d), no time (retry in %d s)", rtc_ret,
                     RETRY_INTERVAL_S);
+        }
+    }
+#endif
+
+#ifdef CONFIG_THERMO_BUZZER
+    if (!devs->buzzer_ready) {
+        buzzer_ret = buzzer_init();
+        devs->buzzer_ready = (buzzer_ret == EXIT_SUCCESS);
+        if (!devs->buzzer_ready) {
+            LOG_ERR("Failed to initialize the buzzer (err %d), no sound (retry in %d s)",
+                    buzzer_ret, RETRY_INTERVAL_S);
         }
     }
 #endif
@@ -249,6 +277,51 @@ static void init_optional(struct optional_devices *devs)
             LOG_ERR("Failed to initialize the button (err %d), the page is not switched "
                     "(retry in %d s)",
                     button_ret, RETRY_INTERVAL_S);
+        }
+    }
+#endif
+}
+
+/**
+ * 起動の画面と音を出す (起動のときに 1 回だけ)
+ *
+ * ブザーのメロディは, ワークキューで鳴るので, すぐに戻る. 起動画面は, OLED_BOOT_FRAME_MS ごとに, 1
+ * フレームずつ, OLED_BOOT_FRAMES フレーム (約 3 秒) 表示して, その間, この関数は, 戻らない (BLE
+ * のアドバタイズは, すでに始まっている). 失敗したときは, ログを出して, 続ける
+ * (画面や音を諦めるだけ).
+ *
+ * @param[in] devs 任意の機器を使えるか (使えない機器の画面や音は, 出さない)
+ */
+static void boot_sequence(const struct optional_devices *devs)
+{
+#ifdef CONFIG_THERMO_BUZZER
+    int sound_ret = EXIT_SUCCESS; /* メロディを始める戻り値 */
+#endif
+#ifdef CONFIG_THERMO_BOOT_SCREEN
+    unsigned int frame = 0U;       /* 起動画面のフレームの番号 */
+    int screen_ret = EXIT_SUCCESS; /* 起動画面の戻り値 */
+#endif
+
+    ARG_UNUSED(devs);
+
+#ifdef CONFIG_THERMO_BUZZER
+    if (devs->buzzer_ready) {
+        sound_ret = buzzer_play(boot_melody, boot_melody_count);
+        if (sound_ret != EXIT_SUCCESS) {
+            LOG_ERR("Failed to play the boot sound (err %d)", sound_ret);
+        }
+    }
+#endif
+
+#ifdef CONFIG_THERMO_BOOT_SCREEN
+    if (devs->display_ready) {
+        for (frame = 0U; frame < OLED_BOOT_FRAMES; frame++) {
+            screen_ret = oled_show_boot(frame);
+            if (screen_ret != EXIT_SUCCESS) {
+                LOG_ERR("Failed to show the boot screen (err %d)", screen_ret);
+                break;
+            }
+            (void)k_msleep(OLED_BOOT_FRAME_MS);
         }
     }
 #endif

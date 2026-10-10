@@ -12,10 +12,10 @@
  * @brief thermo-node の OLED の表示
  *
  * 拡張ボードの OLED (SSD1306, 128x64) に, 温度, 湿度, 日付, 時刻 (現在値のページ) と, 温度と
- * 湿度の履歴の折れ線グラフ (グラフのページ) を表示する. ページは, ボタンで切り替える
- * (button.h. main.c が行う). OLED は,
- * Devicetree の alias thermo-display で選ぶ. 使わないときは, CONFIG_THERMO_DISPLAY=n で
- * ビルドする (このファイルの機能は, ビルドされない).
+ * 湿度の履歴の折れ線グラフ (グラフのページ) と, 起動画面のアニメーション (oled_show_boot())
+ * を表示する. ページは, ボタンで切り替える (button.h. main.c が行う). OLED は, Devicetree の alias
+ * thermo-display で選ぶ. 使わないときは, CONFIG_THERMO_DISPLAY=n で ビルドする
+ * (このファイルの機能は, ビルドされない).
  */
 
 #include <stdbool.h> /* bool */
@@ -44,8 +44,15 @@ struct oled_view {
     const struct history *humidity_history; /**< 湿度の履歴 (NULL なら, グラフは, データなし) */
 };
 
+/** 起動画面の, フレームの数 (OLED_BOOT_FRAME_MS ごとに, 1 フレーム. 全体で, 約 3 秒) */
+#define OLED_BOOT_FRAMES   50U
+/** 起動画面の, 1 フレームの時間 [ms] */
+#define OLED_BOOT_FRAME_MS 60U
+
 int oled_init(void);
 
 int oled_show(const struct oled_view *view);
+
+int oled_show_boot(unsigned int frame);
 
 #endif /* THERMO_NODE_OLED_H */

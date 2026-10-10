@@ -1,0 +1,8 @@
+# thermo-node の単体テスト: buzzer.c (偽の PWM で、メロディの順序、周波数から周期への換算、休符、再生の中断、失敗の扱いを確認する).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-thermo-node).
+tests:
+  thermo_node.buzzer:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - thermo_node

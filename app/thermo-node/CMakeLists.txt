@@ -28,6 +28,21 @@ endif()
 target_sources(app PRIVATE src/sensor.c)
 # OLED (CONFIG_THERMO_DISPLAY=n のときは, ビルドしない)
 target_sources_ifdef(CONFIG_THERMO_DISPLAY app PRIVATE src/oled.c src/history.c src/button.c)
+# 起動画面と起動音 (CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER が, どちらも n のときは, ビルドしない).
+# 素材 (絵, 題名, メロディ) は, private/boot_assets.c (別のプライベートリポジトリを, サブモジュールとして置く)
+# があれば, それを使う. なければ, このアプリのオリジナルの素材 (src/boot_assets.c). SETUP.md を参照
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/private/boot_assets.c)
+  set(THERMO_BOOT_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/private/boot_assets.c)
+else()
+  set(THERMO_BOOT_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/src/boot_assets.c)
+endif()
+if(CONFIG_THERMO_BOOT_SCREEN OR CONFIG_THERMO_BUZZER)
+  target_sources(app PRIVATE ${THERMO_BOOT_ASSETS})
+  # private/ の素材が, src/ のヘッダ (boot_assets.h, buzzer.h) を, #include できるようにする
+  target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+endif()
+target_sources_ifdef(CONFIG_THERMO_BUZZER app PRIVATE src/buzzer.c)
+
 # RTC の時刻と, PCF8563 のドライバ (CONFIG_THERMO_RTC=n のときは, ビルドしない). binding は,
 # dts/bindings/rtc/thermo,pcf8563.yaml (アプリのディレクトリは, Devicetree のルートになる)
 target_sources_ifdef(CONFIG_THERMO_RTC app PRIVATE src/node_time.c drivers/rtc_pcf8563.c)

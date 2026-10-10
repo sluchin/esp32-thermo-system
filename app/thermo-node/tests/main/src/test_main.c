@@ -13,6 +13,8 @@
  *  - 初期化に成功したら, 一定間隔で温度を読み取り続けること (別スレッドで main を動かす)
  *  - OLED の表示と時刻を, 1 秒ごとに更新すること (グラフの履歴に, 測定値を加えること)
  *  - ボタンを押すと, ページを切り替えて (最後の次は, 最初に戻る), すぐに表示し直すこと
+ *  - 起動のときに, 起動音 (メロディ) を始めて, 起動画面を, 全てのフレームで, 順に表示すること
+ * (失敗しても続ける)
  *  - OLED や RTC の初期化に失敗しても, 表示と時刻を諦めるだけで, 測定と通知を続けること
  *  - 初期化に失敗した機器を, 一定間隔でやり直して, 復帰すること (成功した機器は, やり直さない)
  */
@@ -27,7 +29,9 @@
 #include <string.h>  /* memset */
 
 #include "ble.h"
+#include "boot_assets.h"
 #include "button.h"
+#include "buzzer.h"
 #include "history.h"
 #include "node_time.h"
 #include "oled.h"
@@ -55,6 +59,9 @@ FAKE_VALUE_FUNC(int, button_init)
 FAKE_VALUE_FUNC(bool, button_pressed)
 FAKE_VOID_FUNC(history_add, struct history *, int16_t, int64_t, int64_t)
 FAKE_VALUE_FUNC(int, oled_init)
+FAKE_VALUE_FUNC(int, oled_show_boot, unsigned int)
+FAKE_VALUE_FUNC(int, buzzer_init)
+FAKE_VALUE_FUNC(int, buzzer_play, const struct buzzer_note *, size_t)
 FAKE_VALUE_FUNC(int, oled_show, const struct oled_view *)
 FAKE_VALUE_FUNC(int, node_time_init)
 FAKE_VALUE_FUNC(int, node_time_get, struct node_datetime *)
@@ -81,8 +88,10 @@ FAKE_VALUE_FUNC(int, node_time_get, struct node_datetime *)
 #define THREAD_PRIORITY   5
 /** main.c の読み取り間隔 [秒] (SAMPLE_INTERVAL_S) */
 #define SAMPLE_INTERVAL_S 5
-/** 起動直後の初回の読み取りを待つ時間 [ms] */
-#define STARTUP_WAIT_MS   100
+/** 起動画面の長さ [ms] (フレームの数 x (1 フレームの時間 + ティックの丸め 10 ms)) */
+#define BOOT_MS           (OLED_BOOT_FRAMES * (OLED_BOOT_FRAME_MS + 10U))
+/** 起動画面のあと, 初回の読み取りを待つ時間 [ms] */
+#define STARTUP_WAIT_MS   (BOOT_MS + 100)
 /** モックの 1 回目の温度 [℃ の 10 倍] (-3.5 ℃. 負の温度の出力を通す) */
 #define FAKE_TEMP_1_X10   (-35)
 /** モックの 1 回目の湿度 [% の 10 倍] (45.0 %) */
@@ -203,6 +212,9 @@ static void before(void *fixture)
     RESET_FAKE(button_pressed);
     RESET_FAKE(history_add);
     RESET_FAKE(oled_init);
+    RESET_FAKE(oled_show_boot);
+    RESET_FAKE(buzzer_init);
+    RESET_FAKE(buzzer_play);
     RESET_FAKE(oled_show);
     RESET_FAKE(node_time_init);
     RESET_FAKE(node_time_get);
@@ -574,6 +586,7 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
     SET_RETURN_SEQ(node_time_init, fail_then_ok, ARRAY_SIZE(fail_then_ok));
     SET_RETURN_SEQ(oled_init, fail_then_ok, ARRAY_SIZE(fail_then_ok));
     SET_RETURN_SEQ(button_init, fail_then_ok, ARRAY_SIZE(fail_then_ok));
+    SET_RETURN_SEQ(buzzer_init, fail_then_ok, ARRAY_SIZE(fail_then_ok));
 
     start_main();
 
@@ -582,6 +595,10 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
     zassert_equal(node_time_init_fake.call_count, 1U);
     zassert_equal(oled_init_fake.call_count, 1U);
     zassert_equal(button_init_fake.call_count, 1U);
+    zassert_equal(buzzer_init_fake.call_count, 1U);
+    /* 起動のときに使えなかった機器は, あとで使えるようになっても, 起動画面と音を出さない */
+    zassert_equal(oled_show_boot_fake.call_count, 0U);
+    zassert_equal(buzzer_play_fake.call_count, 0U);
     zassert_equal(node_time_get_fake.call_count, 0U);
     zassert_equal(oled_show_fake.call_count, 0U);
     zassert_equal(button_pressed_fake.call_count, 0U);
@@ -592,6 +609,9 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
     zassert_equal(node_time_init_fake.call_count, 2U);
     zassert_equal(oled_init_fake.call_count, 2U);
     zassert_equal(button_init_fake.call_count, 2U);
+    zassert_equal(buzzer_init_fake.call_count, 2U);
+    zassert_equal(oled_show_boot_fake.call_count, 0U);
+    zassert_equal(buzzer_play_fake.call_count, 0U);
     zassert_true(node_time_get_fake.call_count > 0U);
     zassert_true(oled_show_fake.call_count > 0U);
     zassert_true(button_pressed_fake.call_count > 0U);
@@ -613,6 +633,7 @@ ZTEST(main_node, test_optional_devices_keep_retrying)
     node_time_init_fake.return_val = -EIO;
     oled_init_fake.return_val = -ENODEV;
     button_init_fake.return_val = -ENODEV;
+    buzzer_init_fake.return_val = -ENODEV;
 
     start_main();
 
@@ -622,7 +643,89 @@ ZTEST(main_node, test_optional_devices_keep_retrying)
     zassert_equal(node_time_init_fake.call_count, 3U);
     zassert_equal(oled_init_fake.call_count, 3U);
     zassert_equal(button_init_fake.call_count, 3U);
+    zassert_equal(buzzer_init_fake.call_count, 3U);
     zassert_equal(oled_show_fake.call_count, 0U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 起動のときに, 起動音を始めて, 起動画面を全てのフレームで出してから, 測定を始める */
+ZTEST(main_node, test_boot_sequence)
+{
+    unsigned int frame = 0U; /* フレームの番号 */
+
+    sensor_read_fake.custom_fake = fake_read;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+
+    /* メロディは, 素材 (boot_melody) を, 1 回だけ, 始める */
+    zassert_equal(buzzer_play_fake.call_count, 1U);
+    zassert_equal(buzzer_play_fake.arg0_val, boot_melody);
+    zassert_equal(buzzer_play_fake.arg1_val, boot_melody_count);
+
+    /* 起動画面は, フレーム 0 から OLED_BOOT_FRAMES - 1 まで, 順に 1 回ずつ */
+    zassert_equal(oled_show_boot_fake.call_count, OLED_BOOT_FRAMES);
+    for (frame = 0U; frame < OLED_BOOT_FRAMES; frame++) {
+        zassert_equal(oled_show_boot_fake.arg0_history[frame], frame);
+    }
+
+    /* そのあとで, 測定が始まる (起動画面の間は, 測定も, 通常の表示も, しない) */
+    zassert_equal(sensor_read_fake.call_count, 1U);
+    zassert_equal(oled_show_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 起動画面の表示に失敗したら, その時点で, 起動画面をやめて, 測定を始める (ブザーの音は, そのまま)
+ */
+ZTEST(main_node, test_boot_screen_failure_continues)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    oled_show_boot_fake.return_val = -EIO;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(oled_show_boot_fake.call_count, 1U);
+    zassert_equal(buzzer_play_fake.call_count, 1U);
+    zassert_equal(sensor_read_fake.call_count, 1U);
+    zassert_equal(ble_notify_temperature_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** メロディを始められなくても (失敗), 起動画面を出して, 測定を続ける */
+ZTEST(main_node, test_boot_sound_failure_continues)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    buzzer_play_fake.return_val = -EIO;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(buzzer_play_fake.call_count, 1U);
+    zassert_equal(oled_show_boot_fake.call_count, OLED_BOOT_FRAMES);
+    zassert_equal(sensor_read_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** OLED もブザーも使えないときは, 起動画面も, 起動音も, 出さずに, すぐに, 測定を始める */
+ZTEST(main_node, test_boot_skipped_without_devices)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    oled_init_fake.return_val = -ENODEV;
+    buzzer_init_fake.return_val = -ENODEV;
+
+    start_main();
+
+    /* 起動画面がないので, 通常の待ち時間 (100 ms) で, 測定が始まっている */
+    k_msleep(100);
+    zassert_equal(oled_show_boot_fake.call_count, 0U);
+    zassert_equal(buzzer_play_fake.call_count, 0U);
+    zassert_equal(sensor_read_fake.call_count, 1U);
 
     k_thread_abort(&main_thread);
 }

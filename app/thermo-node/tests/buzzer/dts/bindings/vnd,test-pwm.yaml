@@ -1,0 +1,11 @@
+# thermo-node の単体テスト用の, 偽の PWM コントローラ (周期とパルスを記録する)
+description: Fake PWM controller for the unit test of thermo-node
+
+compatible: "vnd,test-pwm"
+
+include: [pwm-controller.yaml, base.yaml]
+
+pwm-cells:
+  - channel
+  - period
+  - flags
