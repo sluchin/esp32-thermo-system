@@ -1,5 +1,16 @@
+# build で使う環境変数. 値は, ホストの環境変数 (THERMO_DEBUG_LOG など) を, そのまま渡す (なければ, scripts/build.sh の既定値)
+x-build-env: &build-env
+  - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+  - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+  - HOME=/tmp
+  - THERMO_DEBUG_LOG
+  - THERMO_DISPLAY
+  - THERMO_RTC
+  - THERMO_DHT_LOCK_IRQS
+  - THERMO_BUZZER
+
 services:
-  # thermo-node のビルド (THERMO_DHT_LOCK_IRQS=n で, DHT11 の読み取りの間, 割り込みを止めない設定にできる. 既定は y)
+  # thermo-node のビルド (scripts/build.sh. THERMO_DHT_LOCK_IRQS=n で, DHT11 の読み取りの間, 割り込みを止めない設定にできる. 既定は y)
   build-thermo-node:
     build:
       context: .
@@ -10,11 +21,8 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DCONFIG_THERMO_DISPLAY=${THERMO_DISPLAY:-y} -DCONFIG_THERMO_RTC=${THERMO_RTC:-y} -DCONFIG_DHT_LOCK_IRQS=${THERMO_DHT_LOCK_IRQS:-y} -DCONFIG_THERMO_BUZZER=${THERMO_BUZZER:-y} -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
-    environment:
-      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
-      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-      - HOME=/tmp
+    command: scripts/build.sh node
+    environment: *build-env
 
   # thermo-gateway のビルド
   build-thermo-gateway:
@@ -27,11 +35,8 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway -- -DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF} -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
-    environment:
-      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
-      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-      - HOME=/tmp
+    command: scripts/build.sh gateway
+    environment: *build-env
 
   # thermo-node のシミュレーション用ビルド
   build-thermo-node-sim:
@@ -184,7 +189,7 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -p always -b xiao_esp32c3 app/thermo-node -d build/analyze-thermo-node -- -DANALYZE=ON -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    command: scripts/analyze.sh node
     environment:
       - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
@@ -198,11 +203,87 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: west build -p always -b xiao_esp32c3 app/thermo-gateway -d build/analyze-thermo-gateway -- -DANALYZE=ON -DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    command: scripts/analyze.sh gateway
     environment:
       - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
+
+  # --- 短い名前 (node と gateway の両方をまとめて実行する). 個別のサービスは, 上の *-thermo-node / *-thermo-gateway ---
+
+  # 実機用のビルド (node と gateway の両方)
+  build:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: scripts/build.sh all
+    environment: *build-env
+
+  # 単体テスト (node と gateway の両方)
+  test:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: west twister -T app/thermo-node/tests -T app/thermo-gateway/tests -p native_sim/native/64 -O /tmp/twister-out --inline-logs -x=Zephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
+    environment:
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - HOME=/tmp
+
+  # カバレッジ (node と gateway の両方. 100% 未満なら失敗する)
+  coverage:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system:ro
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: sh -c "scripts/coverage.sh node && scripts/coverage.sh gateway"
+    environment:
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - HOME=/tmp
+
+  # 静的解析 (node と gateway の両方. 指摘があれば失敗する)
+  analyze:
+    image: esp32-thermo-system:latest
+    volumes:
+      - .:/workspace/esp32-thermo-system
+    working_dir: /workspace/esp32-thermo-system
+    user: "${UID:-0}:${GID:-0}"
+    command: scripts/analyze.sh all
+    environment:
+      - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - HOME=/tmp
+
+  # 整形の確認 (format-thermo と同じ)
+  format:
+    extends:
+      service: format-thermo
+
+  # 整形して、ファイルを書き換える (format-thermo-fix と同じ)
+  format-fix:
+    extends:
+      service: format-thermo-fix
+
+  # checkpatch.pl (lint-thermo と同じ)
+  lint:
+    extends:
+      service: lint-thermo
+
+  # 行末の空白の確認 (whitespace-thermo と同じ)
+  whitespace:
+    extends:
+      service: whitespace-thermo
+
+  # ドキュメントの生成 (docs-thermo と同じ)
+  docs:
+    extends:
+      service: docs-thermo
 
   # 仮想コントローラ (btvirt) を使い、BLE 付きで両方のシミュレーションを実行する。
   # Bluetooth ハードウェアは不要。Ctrl+C で停止する。
