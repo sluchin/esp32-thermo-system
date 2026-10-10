@@ -75,6 +75,24 @@ config THERMO_UTC_OFFSET_MIN
       UTC plus this offset. The default is 540 (UTC+9, Japan Standard
       Time).
 
+config THERMO_WIFI_TIME
+    bool "Get the time over WiFi when BLE does not give it"
+    default y
+    depends on THERMO_RTC
+    help
+      When the RTC has no time for 5 minutes (the gateway has not sent
+      the time over BLE), connect to WiFi, get the time with SNTP, set
+      the RTC and disconnect WiFi at once. WiFi is not used while the
+      RTC has the time. The SSID and the password are entered with the
+      "thermo" shell command (thermo set ssid ..., thermo set psk ...).
+
+config THERMO_NTP_SERVER
+    string "NTP server host name"
+    default "pool.ntp.org"
+    depends on THERMO_WIFI_TIME
+    help
+      The SNTP server that is asked for the time over WiFi.
+
 config THERMO_GRAPH_STEP_S
     int "Time per point of the graph on the OLED display [seconds]"
     default 30
