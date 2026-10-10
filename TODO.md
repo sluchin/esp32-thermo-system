@@ -20,6 +20,7 @@
   - [ ] 将来: ノードが、WiFi で、直接、NTP の時刻を取得する案 (ゲートウェイと同じ仕組みを、ノードにも載せる。WiFi と BLE の同時動作の確認が要る)。
 - [ ] **ログを mini SD カードに保存する** (拡張ボードの SD カードスロット。SPI): Zephyr の FAT (FatFS) で、CSV (時刻、温度、湿度) を追記する。Zephyr は、ext4 に対応していない (ext2、FAT、LittleFS だけ)。PC で読むには FAT32 が簡単。SPI の SD は、シールドの `seeed_xiao_expansion_board` と同じ設定 (CS は D2)。SD の取り外しと、書き込み中の電源断の対策 (定期的に同期する) も、考える。
 - [ ] **Grove のセンサ**: I2C の Grove (D4/D5。OLED と RTC と同じバス) に、CO2 (SCD40 など) や、温湿度と気圧 (BME280 など) のセンサをつなぐ。BLE の特性の形式と、AWS のペイロードを広げる必要がある。
+- [ ] **起動画面と起動音** (拡張ボードの OLED とパッシブブザー): 実装した (`oled_show_boot()`、`buzzer.c`、素材は `boot_assets.c`。`THERMO_BOOT_SCREEN` と `THERMO_BUZZER` で外せる。単体テストは `tests/buzzer`、`tests/oled`、`tests/main`)。実機で、アニメーションの速さ、音の大きさと音程、ブザーが D3 (GPIO5) につながっているか、PWM (LEDC) が動くかを、確認する。素材のサブモジュール (`app/thermo-node/private/`) は、使い方だけを書いてある (`SETUP.md`)。
 - [ ] **ADC のアナログセンサ** (LM35 など) に替えるときの、実機での確認: 実装は、ある (オーバーレイの `thermo-sensor` を消して、`zephyr,user` の `io-channels` を書く。換算は `CONFIG_THERMO_ADC_MV_PER_DEG` と `CONFIG_THERMO_ADC_OFFSET_MV`。ADC エミュレータの単体テストで確認している)。センサを買ったら、実機で、換算の値を、確認する。
 - [ ] 実機の Bluetooth アダプタを使う `native_sim` の実行 (`--bt-dev=hciN`) を、docker compose のサービスにする。(`run-sim` は、仮想コントローラ `btvirt` で動く)
 - [ ] ビルドとテストの確認: 標準ヘッダとローカル変数の行末コメントを足した変更を、Docker と Zephyr の環境で、ビルドして、単体テストを実行する。(コメントだけの変更だが、未確認)。BLE の送受信の `LOG_HEXDUMP_DBG` の追加も、ビルドして、単体テストを実行して、確認する。
