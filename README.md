@@ -187,6 +187,7 @@ scripts/flash.sh gateway /dev/ttyACM0
 - SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズ (接続しない) を受信して、温度 (℃)・湿度・電池残量を、10 秒に 1 回、AWS IoT Core に送信
 - WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](AWS_GRAPH.md)。DynamoDB に保存して、アプリから読む手順は [AWS_DYNAMODB.md](AWS_DYNAMODB.md))
 - SNTP で同期した時刻を、接続したノードに BLE (GATT の書き込み) で渡して、ノードの RTC を合わせる (1 時間ごと。[SETUP.md](SETUP.md) の「ゲートウェイからの時刻の同期」)
+- 起動の 1 分後から 1 分ごとに、ノードの RTC に時刻がなければ、ノードが自分で WiFi と SNTP で時刻を取って、WiFi を切る (最大 5 回) (BLE の予備。[SETUP.md](SETUP.md) の「WiFi での時刻の取得」)
 - WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存
 - デバッグシェル対応
 
