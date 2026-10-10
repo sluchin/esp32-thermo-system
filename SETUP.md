@@ -357,20 +357,22 @@ THERMO_RTC=n docker compose run --rm build-thermo-node
 west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_THERMO_DISPLAY=n -DCONFIG_THERMO_RTC=n
 ```
 
-### DHT11 の読み取りの失敗と、割り込みを止める設定 (実験用)
+### DHT11 の読み取りの失敗と、割り込みを止める設定
 
-`Could not fetch the sensor (-5)` が、ときどき出るときは、BLE などの割り込みが、DHT11 の読み取り (マイクロ秒単位のタイミング) を乱している可能性があります。Zephyr のドライバは、1 つの信号が 100 マイクロ秒を超えると、何も表示せずに、`-EIO` を返します (デバッグビルドでも、`Invalid checksum` は、データが乱れたときだけ出ます)。割り込みの影響かを、確かめるには、読み取りの間 (約 22 ミリ秒)、割り込みを止める設定 (`CONFIG_DHT_LOCK_IRQS`) を、有効にしてビルドします。
+DHT11 の読み取りは、マイクロ秒単位のタイミングで、1 本の線を読みます。BLE などの割り込みが、この間に入ると、`Could not fetch the sensor (-5)` が、ときどき出ます。Zephyr のドライバは、1 つの信号が 100 マイクロ秒を超えると、何も表示せずに、`-EIO` を返します (デバッグビルドでも、`Invalid checksum` は、データが乱れたときだけ出ます)。
+
+そのため、**読み取りの間 (約 22 ミリ秒)、割り込みを止める設定 (`CONFIG_DHT_LOCK_IRQS=y`) を、既定で有効にしています** (`app/thermo-node/prj.conf`)。実機で、この設定にすると、エラーが出なくなることを、確認しました。
+
+- 割り込みを止めている間 (5 秒に 1 回、約 22 ミリ秒) は、BLE の処理も止まります。ゲートウェイとの接続が、切れやすくなっていないか (`Disconnected` が、増えていないか) を、実機で、確認してください。
+- 無効にして試すときは、次のようにビルドします。
 
 ```bash
-# Docker: 環境変数 THERMO_DHT_LOCK_IRQS を y にして、ビルドする (既定は n)
-THERMO_DHT_LOCK_IRQS=y docker compose run --rm build-thermo-node
+# Docker: 環境変数 THERMO_DHT_LOCK_IRQS を n にして、ビルドする (既定は y)
+THERMO_DHT_LOCK_IRQS=n docker compose run --rm build-thermo-node
 
 # West
-west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_DHT_LOCK_IRQS=y
+west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_DHT_LOCK_IRQS=n
 ```
-
-- エラーが、出なくなれば、割り込みの影響です (配線の問題ではありません)。
-- 割り込みを止めている間は、BLE の処理も止まります。接続が切れやすくならないか (`Disconnected` が、増えないか) を、あわせて確認してください。
 
 ## シリアルモニター
 
