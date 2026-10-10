@@ -8,6 +8,7 @@ Zephyr RTOS-based BLE thermometer system featuring a sensor node and a gateway f
 
 - **Thermo Node**: 温度センサを備えたエッジノード。温度データを BLE 経由で配信
 - **Thermo Gateway**: 複数のノードから温度データを収集・集約するゲートウェイ
+- **thermon** (別のリポジトリ): ゲートウェイが AWS IoT Core 経由で DynamoDB に保存したデータを、Cognito の未認証ロールで読み取って表示する Android アプリ ([sluchin/thermon](https://github.com/sluchin/thermon)。手順は [AWS_DYNAMODB.md](AWS_DYNAMODB.md))
 
 ## プロジェクト構成
 
@@ -274,6 +275,7 @@ CONFIG_LOG_DEFAULT_LEVEL=4  # DEBUG レベル
 
 ## リンク
 
+- [thermon](https://github.com/sluchin/thermon): DynamoDB のデータを読み取る Android アプリ (Kotlin)
 - [Zephyr Project](https://www.zephyrproject.org/)
 - [ESP32C3 データシート](https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf)
 - [XIAO ESP32C3 Wiki](https://wiki.seeedstudio.com/xiao_esp32c3_getting_started/)

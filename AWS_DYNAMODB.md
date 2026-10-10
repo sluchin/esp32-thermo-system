@@ -1,6 +1,6 @@
 # AWS に届いたデータを DynamoDB に保存して、アプリから読む
 
-AWS IoT Core に届いた温度・湿度・電池残量を、DynamoDB に 1 件ずつ保存して、Kotlin のアプリ (thermo-client) から読む手順です。アプリは、Cognito の「未認証ロール」で、読み取りだけを許可されます (ログインは、ありません)。
+AWS IoT Core に届いた温度・湿度・電池残量を、DynamoDB に 1 件ずつ保存して、Android アプリ ([thermon](https://github.com/sluchin/thermon)) から読む手順です。アプリは、Cognito の「未認証ロール」で、読み取りだけを許可されます (ログインは、ありません)。
 
 > **注意**: この手順は、AWS のドキュメントに基づいて書いたもので、**まだ実際には試していません**。コマンドの結果が、ここに書いたものと違うときは、教えてください (文書を直します)。AWS の画面、料金、サービスの提供状況は、変わることがあるので、最新の情報を、確認してください。
 >
@@ -12,7 +12,7 @@ AWS IoT Core に届いた温度・湿度・電池残量を、DynamoDB に 1 件�
 ゲートウェイ ──MQTT──> AWS IoT Core ──ルール──> DynamoDB (テーブル thermo-readings)
                           thermo/#                       ▲
                                                          │ Query (読み取りだけ)
-Kotlin アプリ ──> Cognito ID プール (未認証) ──一時的な認証情報──┘
+thermon ──> Cognito ID プール (未認証) ──一時的な認証情報──┘
 ```
 
 - **ルール**: 届いた MQTT のメッセージを、SQL で絞り込んで、別のサービスに渡す、IoT Core の機能です。DynamoDBv2 アクションは、メッセージの項目を、そのまま、テーブルの属性として書きます。
@@ -239,56 +239,23 @@ aws cognito-identity set-identity-pool-roles --region ap-northeast-1 \
 - アクセスキーを、アプリに埋め込みません。必ず、Cognito の一時的な認証情報を使います。
 - アプリを、ほかの人に配るときは、Cognito のユーザープールによるログインに替えます (今は、自分だけなので、未認証ロールで進めます)。
 
-## 7. Kotlin のアプリ (thermo-client) から読む
+## 7. Android アプリ (thermon) から読む
 
-AWS SDK for Kotlin の `cognitoidentity` と `dynamodb` を使います (Gradle の依存は、`aws.sdk.kotlin:cognitoidentity` と `aws.sdk.kotlin:dynamodb`。バージョンは、最新のものにします)。次は、考え方を示す例で、**ビルドして確認していません**。
+読み取りには、Android アプリ [thermon](https://github.com/sluchin/thermon) を使います (Kotlin。別のリポジトリです)。このドキュメントで作った Cognito の ID プールと、DynamoDB のテーブルを、そのまま使います。
 
-```kotlin
-import aws.sdk.kotlin.services.cognitoidentity.CognitoIdentityClient
-import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
-import aws.sdk.kotlin.services.dynamodb.model.AttributeValue
-import aws.sdk.kotlin.services.dynamodb.model.QueryRequest
-import aws.smithy.kotlin.runtime.auth.awscredentials.Credentials
-import aws.smithy.kotlin.runtime.auth.awscredentials.CredentialsProvider
-import aws.smithy.kotlin.runtime.collections.Attributes
+- アプリの `core` モジュールが、6.1 の ID プールから、未認証の ID と一時的な認証情報を受け取り (`CognitoUnauthenticatedCredentials`)、テーブルを `Query` します (`DynamoDbReadings`)。アクセスキーは、アプリに入れません。
+- 接続先は、thermon の `local.properties` (リポジトリに入れない) に書きます。
 
-private const val REGION = "ap-northeast-1"
-private const val IDENTITY_POOL_ID = "ap-northeast-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-private const val TABLE = "thermo-readings"
+  ```properties
+  thermon.region=ap-northeast-1
+  thermon.identityPoolId=<6.1 の IdentityPoolId>
+  thermon.table=thermo-readings
+  thermon.nodes=<機器の MAC アドレス (コンマ区切り)>
+  ```
 
-/** Cognito の未認証 ID から、一時的な認証情報を受け取る */
-class UnauthCredentials : CredentialsProvider {
-    override suspend fun resolve(attributes: Attributes): Credentials {
-        CognitoIdentityClient { region = REGION }.use { cognito ->
-            val id = cognito.getId { identityPoolId = IDENTITY_POOL_ID }.identityId!!
-            val c = cognito.getCredentialsForIdentity { identityId = id }.credentials!!
-            return Credentials(c.accessKeyId!!, c.secretKey!!, c.sessionToken, c.expiration)
-        }
-    }
-}
-
-/** 機器 node の、from から to (UNIX 時刻 [s]) までの値を、古い順に取り出す */
-suspend fun readings(node: String, from: Long, to: Long): List<Map<String, AttributeValue>> {
-    DynamoDbClient { region = REGION; credentialsProvider = UnauthCredentials() }.use { db ->
-        val res = db.query(QueryRequest {
-            tableName = TABLE
-            keyConditionExpression = "#n = :n AND #t BETWEEN :a AND :b"
-            expressionAttributeNames = mapOf("#n" to "node", "#t" to "ts")
-            expressionAttributeValues = mapOf(
-                ":n" to AttributeValue.S(node),
-                ":a" to AttributeValue.N(from.toString()),
-                ":b" to AttributeValue.N(to.toString()),
-            )
-        })
-        return res.items.orEmpty()
-    }
-}
-```
-
-- 結果の各項目は、`temperature_c`、`humidity`、`battery` などの数値 (`AttributeValue.N`) を持ちます。
-- `Query` は、1 回に最大 1 MB までです。結果が大きいときは、`lastEvaluatedKey` を使って、続きを取り出します。10 秒に 1 件の 1 日分 (8,640 件) は、1 回で入らないことがあります。
-- 認証情報には、有効期限があります。実際のアプリでは、`UnauthCredentials` の結果を、期限までキャッシュしてください (毎回の取得は、無駄です)。
-- `ts` と `node` は、DynamoDB の予約語と重なるおそれがあるので、`expressionAttributeNames` で別名にしています。
+  `thermon.nodes` は、テーブルの `node` と、同じ MAC アドレスにします。
+- ビルド、端末への転送、表示の確認は、thermon の [SETUP.md](https://github.com/sluchin/thermon/blob/main/SETUP.md) の「アプリを動かして確認する」です。thermon の [AWS_DYNAMODB.md](https://github.com/sluchin/thermon/blob/main/AWS_DYNAMODB.md) には、この章までと同じ AWS の手順が、`cat` で JSON を作って `aws` コマンドで設定する形で、書いてあります。AWS CLI の準備は、[AWS_CLI.md](https://github.com/sluchin/thermon/blob/main/AWS_CLI.md) です。
+- 今は、機器ごとの最新の測定値を、文字列で表示します。グラフは、これからです。
 
 ## 8. これから
 
