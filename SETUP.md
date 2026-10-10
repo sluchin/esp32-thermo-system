@@ -330,7 +330,6 @@ Humi 45.0 %
 - 初期化に失敗した RTC、OLED、ボタンは、**60 秒ごとに、初期化をやり直します** (起動のときの、一時的な失敗 (電源の立ち上がりや、接触の瞬断) から、リセットなしで、復帰するため)。使えるようになったログは、`RTC initialized`、`OLED initialized`、`Button initialized` です。
 - OLED と RTC の設定は、Zephyr の `seeed_xiao_expansion_board` のシールドと、同じです (`app/thermo-node/boards/xiao_esp32c3.overlay`)。シールドは、SD カードの SPI も有効にするので、使わずに、OLED と RTC のノードだけを、書いています。
 - RTC は、Zephyr の RTC ドライバ (v4.3.0 の `nxp,pcf8563`) を使わずに、このアプリのドライバ (`app/thermo-node/drivers/rtc_pcf8563.c`。Devicetree の compatible は `thermo,pcf8563`。binding は `app/thermo-node/dts/bindings/rtc/thermo,pcf8563.yaml`) を使います。Zephyr のドライバは、月 (0 から 11 の検証で、12 月を設定できない) と年 (1900 年からの年数を、そのまま BCD にする) の扱いが、チップと合っていないためです。このドライバは、Zephyr の RTC API (`rtc_set_time()` と `rtc_get_time()`) だけを実装します (アラームと割り込みは、ありません)。`node_time.c` は、この API で時刻を読み書きして、UNIX 時刻の換算と、ローカルタイムへの変換をします。
-- **実機での確認は、まだです** (表示の向き、コントラスト、I2C のアドレス、RTC の読み書きは、実機で確認します)。
 
 #### 起動画面と起動音
 

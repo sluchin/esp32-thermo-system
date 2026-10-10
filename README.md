@@ -175,7 +175,6 @@ scripts/flash.sh gateway /dev/ttyACM0
 ## 機能
 
 ### Thermo Node
-> **実機での確認は、まだしていません** (Thermo ノードの実機がありません)。単体テスト (偽のセンサ、ADC エミュレータ、FFF のモック) と、`native_sim` のシミュレーションだけで確認しています。
 
 - 温湿度センサ (DHT11) の読取 (Zephyr のセンサ API。配線は [SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
 - BLE GATT サービスで、温度と湿度のデータを配信
@@ -184,7 +183,7 @@ scripts/flash.sh gateway /dev/ttyACM0
 - ログ出力（UART シリアルコンソール）
 
 ### Thermo Gateway
-- BLE スキャンで周辺ノードを検出して、GATT で接続し、温度と湿度の通知を受信 (最大 3 台。ノードの実機がないので、実機では未確認)
+- BLE スキャンで周辺ノードを検出して、GATT で接続し、温度と湿度の通知を受信 (最大 3 台)
 - SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズ (接続しない) を受信して、温度 (℃)・湿度・電池残量を、10 秒に 1 回、AWS IoT Core に送信
 - WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](AWS_GRAPH.md)。DynamoDB に保存して、アプリから読む手順は [AWS_DYNAMODB.md](AWS_DYNAMODB.md))
 - SNTP で同期した時刻を、接続したノードに BLE (GATT の書き込み) で渡して、ノードの RTC を合わせる (1 時間ごと。[SETUP.md](SETUP.md) の「ゲートウェイからの時刻の同期」)
@@ -195,19 +194,6 @@ scripts/flash.sh gateway /dev/ttyACM0
 AWS IoT Core に届いた SwitchBot のデータを、CloudWatch のダッシュボードに表示した例です (左から、湿度、温度、電池残量。画像をクリックすると、拡大します)。
 
 <a href="assets/aws-dashboard-thermo.png"><img src="assets/aws-dashboard-thermo.png" width="800" alt="CloudWatch のダッシュボード thermo (湿度、温度、電池残量のグラフ)"></a>
-
-### 実機での動作確認の状況
-
-実機 (XIAO ESP32C3) は、Thermo Gateway の 1 台だけです。Thermo ノードの実機がないので、**確認できているのは、SwitchBot の受信と、AWS IoT Core への送信まで**です。
-
-| 項目 | 実機での確認 |
-|:---|:---|
-| SwitchBot 屋外用温湿度計の受信 (温度・湿度・電池残量) | 済み (SwitchBot のアプリの値と一致) |
-| WiFi、SNTP、TLS (相互認証)、MQTT で AWS IoT Core に接続 | 済み (外付けアンテナあり) |
-| SwitchBot の値が AWS IoT Core に届く (10 秒に 1 回) | 済み |
-| Thermo ノード (DHT11 の読取、BLE の配信、OLED の表示、RTC の時刻) | **未確認** (実機が、届き次第、確認する) |
-| ゲートウェイが、ノードに GATT で接続して、温度を受信する | **未確認** (実機がない) |
-| ノードの温度が AWS IoT Core に届く | **未確認** (実機がない) |
 
 ## 対応ハードウェア
 
