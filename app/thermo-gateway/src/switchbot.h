@@ -17,7 +17,6 @@
  *  - 製造者データ (会社 ID 0x0969): MAC アドレスのあとに, 温度と湿度
  *
  * 並びは SwitchBot の公開仕様 (OpenWonderLabs/SwitchBotAPI-BLE) に基づく.
- * 実機での確認はまだ.
  */
 
 #include <zephyr/bluetooth/addr.h>
