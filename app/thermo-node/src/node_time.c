@@ -164,7 +164,7 @@ int node_time_set(int64_t unix_s)
     int64_t day = 0;          /* 日 */
     int err = EXIT_SUCCESS;   /* エラーコード */
 
-    if ((unix_s < UNIX_TIME_MIN) || (unix_s > UNIX_TIME_MAX)) {
+    if ((unix_s < UNIX_TIME_MIN) || (UNIX_TIME_MAX < unix_s)) {
         LOG_ERR("The time is out of range of the RTC");
         return -ERANGE;
     }

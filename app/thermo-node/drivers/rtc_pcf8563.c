@@ -90,7 +90,7 @@ struct pcf8563_config {
     struct i2c_dt_spec i2c; /**< RTC の I2C のバスとアドレス */
 };
 
-static bool in_range(int value, int min, int max);
+static bool is_in_range(int value, int min, int max);
 
 static int pcf8563_set_time(const struct device *dev, const struct rtc_time *timeptr);
 
@@ -125,11 +125,12 @@ static int pcf8563_set_time(const struct device *dev, const struct rtc_time *tim
 
     config = (const struct pcf8563_config *)dev->config;
 
-    if (!in_range(timeptr->tm_sec, 0, MAX_SEC_MIN) || !in_range(timeptr->tm_min, 0, MAX_SEC_MIN) ||
-        !in_range(timeptr->tm_hour, 0, MAX_HOUR) || !in_range(timeptr->tm_mday, 1, MAX_DAY) ||
-        !in_range(timeptr->tm_mon, 0, MAX_TM_MON) ||
-        !in_range(timeptr->tm_year, TM_YEAR_BASE, TM_YEAR_LAST) ||
-        !in_range(timeptr->tm_wday, 0, MAX_WEEKDAY)) {
+    if (!is_in_range(timeptr->tm_sec, 0, MAX_SEC_MIN) ||
+        !is_in_range(timeptr->tm_min, 0, MAX_SEC_MIN) ||
+        !is_in_range(timeptr->tm_hour, 0, MAX_HOUR) || !is_in_range(timeptr->tm_mday, 1, MAX_DAY) ||
+        !is_in_range(timeptr->tm_mon, 0, MAX_TM_MON) ||
+        !is_in_range(timeptr->tm_year, TM_YEAR_BASE, TM_YEAR_LAST) ||
+        !is_in_range(timeptr->tm_wday, 0, MAX_WEEKDAY)) {
         LOG_ERR("The time is out of range of the RTC");
         return -EINVAL;
     }
@@ -195,16 +196,17 @@ static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
     timeptr->tm_year = TM_YEAR_BASE + bcd2bin(raw[IDX_YEAR]);
 
     /* 範囲外の値 (BCD として不正なビットなど) は, 信用しない */
-    if (!in_range(timeptr->tm_sec, 0, MAX_SEC_MIN) || !in_range(timeptr->tm_min, 0, MAX_SEC_MIN) ||
-        !in_range(timeptr->tm_hour, 0, MAX_HOUR) || !in_range(timeptr->tm_mday, 1, MAX_DAY) ||
-        !in_range(timeptr->tm_mon, 0, MAX_TM_MON) ||
-        !in_range(timeptr->tm_year, TM_YEAR_BASE, TM_YEAR_LAST)) {
+    if (!is_in_range(timeptr->tm_sec, 0, MAX_SEC_MIN) ||
+        !is_in_range(timeptr->tm_min, 0, MAX_SEC_MIN) ||
+        !is_in_range(timeptr->tm_hour, 0, MAX_HOUR) || !is_in_range(timeptr->tm_mday, 1, MAX_DAY) ||
+        !is_in_range(timeptr->tm_mon, 0, MAX_TM_MON) ||
+        !is_in_range(timeptr->tm_year, TM_YEAR_BASE, TM_YEAR_LAST)) {
         LOG_WRN("The time of the RTC is out of range");
         return -ENODATA;
     }
 
     weekday = (int)(raw[IDX_WEEKDAY] & PCF8563_MASK_WEEKDAY);
-    timeptr->tm_wday = (in_range(weekday, 0, MAX_WEEKDAY) ? weekday : -1);
+    timeptr->tm_wday = (is_in_range(weekday, 0, MAX_WEEKDAY) ? weekday : -1);
     timeptr->tm_yday = -1;
     timeptr->tm_isdst = -1;
     timeptr->tm_nsec = 0;
@@ -237,7 +239,7 @@ static int pcf8563_init(const struct device *dev)
 }
 
 /**
- * 値が範囲に入っているかを調べる
+ * 値が範囲に入っているかを調べる (数直線の順に, min <= value <= max と書く)
  *
  * @param[in] value 調べる値
  * @param[in] min   範囲の最小 (この値を含む)
@@ -246,9 +248,9 @@ static int pcf8563_init(const struct device *dev)
  * @retval true  min 以上 max 以下
  * @retval false 範囲外
  */
-static bool in_range(int value, int min, int max)
+static bool is_in_range(int value, int min, int max)
 {
-    return (value >= min) && (value <= max);
+    return (min <= value) && (value <= max);
 }
 
 /**
