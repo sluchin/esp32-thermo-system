@@ -459,9 +459,15 @@ Thermo ノードのシェルには、ファイルシステムのコマンド `fs
 
 Docker イメージは、レイヤーを GitHub Actions のキャッシュに保存します (`.github/actions/docker-image`)。`Dockerfile` か `west.yml` を変えたときだけ、イメージが作り直されます。
 
-CI と同じ確認は、ローカルでも実行できます:
+CI と同じ確認は、ローカルでも実行できます。短い名前のサービス (`build` `test` `coverage` `analyze`) は、node と gateway の両方を、まとめて実行します (`format` `format-fix` `lint` `whitespace` `docs` は、`*-thermo` と同じ。`clean` は、`build/` と `docs/` を消す)。CI は、個別のサービス (`*-thermo-node` など) を使います。
 
 ```bash
+# node と gateway の両方
+docker compose run --rm test
+docker compose run --rm coverage
+docker compose run --rm analyze
+
+# 個別
 docker compose run --rm test-thermo-node
 docker compose run --rm test-thermo-gateway
 # カバレッジ (行と分岐が 100% でなければ失敗する)

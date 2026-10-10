@@ -50,7 +50,22 @@ docker compose run --rm build-thermo-gateway-sim
 
 Docker と Docker Compose がインストールされている場合、最も簡単な方法です：
 
+短い名前のサービスは、Thermo Node と Thermo Gateway の両方を、まとめて実行します (`build` `test` `coverage` `analyze`。`format` `format-fix` `lint` `whitespace` `docs` `clean` も、同じ名前で使えます)。
+
 ```bash
+# Thermo Node と Thermo Gateway の両方をビルド（ESP32C3用）
+docker compose run --rm build
+# 両方の単体テスト
+docker compose run --rm test
+# 両方のカバレッジ / 静的解析
+docker compose run --rm coverage
+docker compose run --rm analyze
+# 整形（確認 / 書き換え）
+docker compose run --rm format
+docker compose run --rm format-fix
+# 生成物（build/ と docs/）を消す
+docker compose run --rm clean
+
 # Thermo Node をビルド（ESP32C3用）
 docker compose run --rm build-thermo-node
 

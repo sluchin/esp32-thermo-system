@@ -9,6 +9,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 - `docker compose run` には、必ず `--rm` を付ける (終わったコンテナを、残さないため)。
 - Thermo Node ビルド: `docker compose run --rm build-thermo-node` (OLED と RTC を外すときは、`THERMO_DISPLAY=n` と `THERMO_RTC=n` を付ける。`SETUP.md` の「OLED の表示と時刻」)
 - Thermo Gateway ビルド: `docker compose run --rm build-thermo-gateway`
+- 両方まとめて: `docker compose run --rm build` / `test` / `coverage` / `analyze` (node と gateway の両方を、順に実行する。`format` `format-fix` `lint` `whitespace` `docs` も、同じ名前で使える。CI は、個別のサービス `*-thermo-node` などを使う。`scripts/build.sh` と `scripts/analyze.sh` が本体)
 - 開発シェル: `docker compose run --rm dev`
 - クリーン: `docker compose run --rm clean` (`build/` と `docs/` を消す。ビルドの不具合を疑うときに、最初からやり直す)
 
