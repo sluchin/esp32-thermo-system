@@ -33,6 +33,8 @@ FILE_PATTERNS          = *.c \
                          *.h \
                          *.md
 RECURSIVE              = YES
+# 別のプライベートリポジトリ (サブモジュール) の素材は, 文書に含めない
+EXCLUDE                = app/thermo-node/private
 USE_MDFILE_AS_MAINPAGE = README.md
 IMAGE_PATH              = assets
 ENABLE_PREPROCESSING   = YES
