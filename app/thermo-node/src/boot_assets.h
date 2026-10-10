@@ -12,7 +12,7 @@
  * @brief thermo-node の起動画面と起動音の素材 (絵, 題名, メロディ)
  *
  * 素材は, boot_assets.c が定義する (このアプリは, オリジナルの素材を持つ). ビルドのときに,
- * app/thermo-node/private/boot_assets.c があれば, そちらを使う (別のプライベートリポジトリを,
+ * app/thermo-node/private/src/boot_assets.c があれば, そちらを使う (別のプライベートリポジトリを,
  * サブモジュールとして置くための, 差し替えの仕組み. SETUP.md の「起動画面と起動音」を参照).
  * 差し替えるファイルは, ここで宣言した全てを, 同じ名前と形で, 定義すること.
  */
@@ -21,6 +21,7 @@
 #include <stdint.h> /* uint16_t */
 
 #include "buzzer.h"
+#include "notes.h" /* NOTE_* (private/src/boot_assets.c が使う) */
 
 /** 絵の 1 辺の大きさ [ドット] (幅と高さは, 同じ) */
 #define BOOT_SPRITE_SIZE 16U

@@ -14,6 +14,7 @@
  *    休符 (周波数 0) と最後に, 音を消すこと. 音の長さの分だけ, 次の音まで待つこと
  *  - 鳴らしている途中に, 新しいメロディを渡すと, 今のメロディを止めて, 最初から鳴らすこと
  *  - 音を鳴らせなかったときは, メロディを止めること
+ *  - 音名の表 (notes.h) が, 平均律の値であること
  */
 
 /** 偽の PWM コントローラのドライバが使う compatible (vnd,test-pwm) */
@@ -28,6 +29,7 @@
 #include <string.h> /* memset */
 
 #include "buzzer.h"
+#include "notes.h"
 
 /** 記録する PWM の設定の最大の数 */
 #define MAX_CALLS      16U
@@ -221,6 +223,21 @@ ZTEST(buzzer, test_play_stops_on_pwm_failure)
 
     k_msleep(NOTE1_MS + REST_MS + NOTE3_MS);
     zassert_equal(call_count, 1U);
+}
+
+/** 音名の表が, 平均律 (A4 = 440 Hz) の値で, オクターブごとに, 2 倍になること */
+ZTEST(buzzer, test_notes_table)
+{
+    zassert_equal(NOTE_REST, 0U);
+    zassert_equal(NOTE_A4, 440U);
+    zassert_equal(NOTE_C4, 262U);
+    zassert_equal(NOTE_CS4, 277U);
+    zassert_equal(NOTE_B3, 247U);
+    zassert_equal(NOTE_C5, 523U);
+    zassert_equal(NOTE_C8, 4186U);
+    zassert_equal(NOTE_A5, NOTE_A4 * 2U);
+    zassert_equal(NOTE_A6, NOTE_A5 * 2U);
+    zassert_true(NOTE_B7 < UINT16_MAX);
 }
 
 ZTEST_SUITE(buzzer, NULL, NULL, before, NULL, NULL);

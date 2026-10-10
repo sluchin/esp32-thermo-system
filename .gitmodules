@@ -1,0 +1,3 @@
+[submodule "app/thermo-node/private"]
+	path = app/thermo-node/private
+	url = git@github.com:sluchin/thermo-assets
