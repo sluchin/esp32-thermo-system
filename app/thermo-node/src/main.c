@@ -25,6 +25,9 @@
 #ifdef CONFIG_THERMO_RTC
 #include "node_time.h"
 #endif
+#ifdef CONFIG_THERMO_WIFI_TIME
+#include "wifi_time.h"
+#endif
 #ifdef CONFIG_THERMO_DISPLAY
 #include "button.h"
 #include "history.h"
@@ -42,6 +45,7 @@ struct optional_devices {
     bool display_ready; /**< OLED を使えるか */
     bool button_ready;  /**< ボタンを使えるか */
     bool buzzer_ready;  /**< ブザーを使えるか */
+    bool wifi_ready;    /**< WiFi (時刻の取得) を使えるか */
 };
 
 static void log_sample(int16_t temp_x10, uint16_t humidity_x10);
@@ -54,6 +58,10 @@ static int measure(int16_t *temp_x10, uint16_t *humidity_x10);
 
 static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_ms);
 
+#ifdef CONFIG_THERMO_WIFI_TIME
+static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries);
+#endif
+
 /** 温度を測定する間隔 [ms] */
 #define SAMPLE_INTERVAL_MS 5000
 
@@ -65,6 +73,14 @@ static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_m
 
 /** 任意の機器の初期化に失敗したときに, やり直す間隔 [ms] */
 #define RETRY_INTERVAL_MS (RETRY_INTERVAL_S * 1000)
+
+#ifdef CONFIG_THERMO_WIFI_TIME
+/** RTC に時刻があるかを確かめる間隔 [ms] (1 分. 最初の確認は, 起動の 1 分後) */
+#define TIME_CHECK_INTERVAL_MS 60000
+
+/** WiFi で時刻を取る試みの回数の上限 (時刻がなくて, 試みて, 失敗した回数) */
+#define WIFI_TRY_LIMIT 5U
+#endif
 
 /** メインループの周期 [ms] (ボタンを調べる間隔. ボタンのチャタリングを無視する時間にもなる) */
 #define TICK_MS 50
@@ -103,6 +119,11 @@ int main(void)
     struct optional_devices devs = {0};                   /* 任意の機器を使えるか */
 #ifdef CONFIG_THERMO_RTC
     struct node_datetime datetime = {0}; /* RTC のローカルタイム */
+#endif
+#ifdef CONFIG_THERMO_WIFI_TIME
+    int64_t next_time_check_ms = 0; /* 次に RTC の時刻を確かめる稼働時間 [ms] */
+    unsigned int wifi_tries = 0U;   /* WiFi で時刻を取ろうとした回数 */
+    bool time_done = false;         /* 時刻の確認を終えたか (時刻がある, または, 試みを尽くした) */
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
     struct history temp_history = {0};     /* 温度の履歴 */
@@ -149,6 +170,9 @@ int main(void)
     /* 起動画面の間 (約 3 秒) を除いて, ループの時間を数える */
     start_ms = k_uptime_get();
     next_retry_ms = start_ms + RETRY_INTERVAL_MS;
+#ifdef CONFIG_THERMO_WIFI_TIME
+    next_time_check_ms = start_ms + TIME_CHECK_INTERVAL_MS;
+#endif
 #ifdef CONFIG_THERMO_DISPLAY
     view.temp_history = &temp_history;
     view.humidity_history = &humidity_history;
@@ -188,6 +212,14 @@ int main(void)
             next_retry_ms = next_grid_ms(start_ms, now_ms, RETRY_INTERVAL_MS);
             init_optional(&devs);
         }
+
+#ifdef CONFIG_THERMO_WIFI_TIME
+        /* 1 分ごとに, RTC に時刻がなければ, WiFi で時刻を取る (最大 5 回. RTC が使えるまで待つ) */
+        if ((!time_done) && (now_ms >= next_time_check_ms) && devs.rtc_ready) {
+            next_time_check_ms = next_grid_ms(start_ms, now_ms, TIME_CHECK_INTERVAL_MS);
+            time_done = check_time(datetime.valid, devs.wifi_ready, &wifi_tries);
+        }
+#endif
 
         if (now_ms >= next_redraw_ms) {
             next_redraw_ms = next_grid_ms(start_ms, now_ms, REDRAW_INTERVAL_MS);
@@ -231,6 +263,9 @@ static void init_optional(struct optional_devices *devs)
 #ifdef CONFIG_THERMO_BUZZER
     int buzzer_ret = EXIT_SUCCESS; /* ブザーの初期化の戻り値 */
 #endif
+#ifdef CONFIG_THERMO_WIFI_TIME
+    int wifi_ret = EXIT_SUCCESS; /* WiFi (時刻の取得) の初期化の戻り値 */
+#endif
 #ifdef CONFIG_THERMO_DISPLAY
     int display_ret = EXIT_SUCCESS; /* OLED の初期化の戻り値 */
     int button_ret = EXIT_SUCCESS;  /* ボタンの初期化の戻り値 */
@@ -245,6 +280,17 @@ static void init_optional(struct optional_devices *devs)
         if (!devs->rtc_ready) {
             LOG_ERR("Failed to initialize the RTC (err %d), no time (retry in %d s)", rtc_ret,
                     RETRY_INTERVAL_S);
+        }
+    }
+#endif
+
+#ifdef CONFIG_THERMO_WIFI_TIME
+    if (!devs->wifi_ready) {
+        wifi_ret = wifi_time_init();
+        devs->wifi_ready = (wifi_ret == EXIT_SUCCESS);
+        if (!devs->wifi_ready) {
+            LOG_ERR("Failed to initialize WiFi (err %d), no time over WiFi (retry in %d s)",
+                    wifi_ret, RETRY_INTERVAL_S);
         }
     }
 #endif
@@ -326,6 +372,55 @@ static void boot_sequence(const struct optional_devices *devs)
     }
 #endif
 }
+
+#ifdef CONFIG_THERMO_WIFI_TIME
+/**
+ * RTC に時刻がなければ, WiFi と SNTP で時刻を取って, RTC に設定する
+ *
+ * 1 分ごとに呼ぶ (最初は, 起動の 1 分後. その間に, BLE でゲートウェイから時刻が届けば, RTC に
+ * 時刻がある). RTC に時刻があれば, BLE でも WiFi でも取る必要がないので, 何もしないで,
+ * 確認を終える. なければ, WiFi につないで時刻を取り, すぐに WiFi を切る (最大 25 秒,
+ * この関数は戻らない). 取れなかったときは, ログを出して, 次の確認でやり直す. 試みが WIFI_TRY_LIMIT
+ * 回になったら, 確認を終える (その後に BLE で時刻が届けば, RTC に設定される). WiFi を使えないとき
+ * (初期化の失敗) は, 試みに数えず, 次の確認を待つ.
+ *
+ * @param[in]     time_valid RTC に時刻があるか (直前に読んだ結果)
+ * @param[in]     wifi_ready WiFi (時刻の取得) を使えるか
+ * @param[in,out] tries      WiFi で時刻を取ろうとした回数
+ * @retval true  確認を終えた (RTC に時刻がある, または, 試みを尽くした)
+ * @retval false 次の確認でも, 続ける
+ */
+static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries)
+{
+    int64_t unix_s = 0;     /* WiFi で取った UTC の UNIX 時刻 [s] */
+    int ret = EXIT_SUCCESS; /* 戻り値 */
+
+    if (time_valid) {
+        return true;
+    }
+
+    if (!wifi_ready) {
+        LOG_WRN("No time in the RTC, WiFi is not available");
+        return false;
+    }
+
+    (*tries)++;
+    LOG_WRN("No time in the RTC, getting it over WiFi (try %u of %u)", *tries, WIFI_TRY_LIMIT);
+    ret = wifi_time_fetch(&unix_s);
+    if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Failed to get the time over WiFi (err %d)", ret);
+        return *tries >= WIFI_TRY_LIMIT;
+    }
+
+    ret = node_time_set(unix_s);
+    if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Failed to set the RTC (err %d)", ret);
+        return *tries >= WIFI_TRY_LIMIT;
+    }
+
+    return true;
+}
+#endif
 
 /**
  * 温度と湿度を読み取って, ログに出力して, ゲートウェイへ通知する

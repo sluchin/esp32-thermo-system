@@ -47,5 +47,12 @@ target_sources_ifdef(CONFIG_THERMO_BUZZER app PRIVATE src/buzzer.c)
 # dts/bindings/rtc/thermo,pcf8563.yaml (アプリのディレクトリは, Devicetree のルートになる)
 target_sources_ifdef(CONFIG_THERMO_RTC app PRIVATE src/node_time.c drivers/rtc_pcf8563.c)
 
+# WiFi と SNTP による時刻の取得 (CONFIG_THERMO_WIFI_TIME=n のときは, ビルドしない)
+target_sources_ifdef(CONFIG_THERMO_WIFI_TIME app PRIVATE
+  src/wifi_cfg.c
+  src/wifi_link.c
+  src/wifi_shell.c
+  src/wifi_time.c)
+
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)

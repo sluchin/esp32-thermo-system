@@ -17,6 +17,9 @@
  * (失敗しても続ける)
  *  - OLED や RTC の初期化に失敗しても, 表示と時刻を諦めるだけで, 測定と通知を続けること
  *  - 初期化に失敗した機器を, 一定間隔でやり直して, 復帰すること (成功した機器は, やり直さない)
+ *  - 1 分ごとに (最初は起動の 1 分後) RTC に時刻があるかを確かめて, なければ, WiFi で時刻を取って,
+ *    RTC に設定すること (RTC に時刻があれば, 取らない. 失敗したら, 次の確認でやり直して, 5 回で
+ *    やめる. 取れた, または, RTC に時刻が入ったら, やめる)
  */
 
 #include <zephyr/ztest.h>
@@ -37,6 +40,7 @@
 #include "oled.h"
 #include "sensor.h"
 #include "thermo_ble_uuid.h"
+#include "wifi_time.h"
 
 DEFINE_FFF_GLOBALS
 
@@ -65,6 +69,8 @@ FAKE_VALUE_FUNC(int, buzzer_play, const struct buzzer_note *, size_t)
 FAKE_VALUE_FUNC(int, oled_show, const struct oled_view *)
 FAKE_VALUE_FUNC(int, node_time_init)
 FAKE_VALUE_FUNC(int, node_time_get, struct node_datetime *)
+FAKE_VALUE_FUNC(int, wifi_time_init)
+FAKE_VALUE_FUNC(int, wifi_time_fetch, int64_t *)
 
 /** oled_show() の呼び出しを記録する数 */
 #define SHOWN_MAX 16U
@@ -101,6 +107,18 @@ FAKE_VALUE_FUNC(int, node_time_get, struct node_datetime *)
 
 /** ボタンを押したことにする呼び出しの数の上限 */
 #define PRESS_COUNT 3U
+
+/** wifi_time_fetch() が返す UTC の UNIX 時刻 [s] */
+#define WIFI_SEC 1790000000
+
+/** RTC の確認の間隔 [ms] (1 分. main.c の TIME_CHECK_INTERVAL_MS) */
+#define CHECK_MS 60000
+
+/** WiFi で時刻を取る試みの上限 (5 回. main.c の WIFI_TRY_LIMIT) */
+#define WIFI_TRIES 5U
+
+/** RTC に時刻があるか (fake_time_get_switch() が返す) */
+static bool rtc_valid;
 
 /** 押されたことにする button_pressed() の呼び出しの回数 (0 は, 使わない) */
 static unsigned int press_at[PRESS_COUNT];
@@ -179,6 +197,54 @@ static int fake_time_get(struct node_datetime *local)
 }
 
 /**
+ * node_time_get() のモック動作 (rtc_valid のとおりに, 時刻があるか・ないかを返す)
+ *
+ * @param[out] local 日時
+ * @return 0
+ */
+static int fake_time_get_switch(struct node_datetime *local)
+{
+    local->valid = rtc_valid;
+    local->year = FAKE_YEAR;
+    local->month = FAKE_MONTH;
+    local->day = FAKE_DAY;
+    local->hour = FAKE_HOUR;
+    local->minute = FAKE_MINUTE;
+    local->second = FAKE_SECOND;
+
+    return 0;
+}
+
+/**
+ * wifi_time_fetch() のモック動作 (固定の時刻を返す)
+ *
+ * @param[out] unix_s UTC の UNIX 時刻 [s]
+ * @return 0
+ */
+static int fake_fetch(int64_t *unix_s)
+{
+    *unix_s = WIFI_SEC;
+
+    return 0;
+}
+
+/**
+ * wifi_time_fetch() のモック動作 (3 回目の呼び出しだけ成功して, 固定の時刻を返す)
+ *
+ * @param[out] unix_s UTC の UNIX 時刻 [s]
+ * @return 0 (3 回目), -ETIMEDOUT (それ以外)
+ */
+static int fake_fetch_third(int64_t *unix_s)
+{
+    if (wifi_time_fetch_fake.call_count < 3U) {
+        return -ETIMEDOUT;
+    }
+    *unix_s = WIFI_SEC;
+
+    return 0;
+}
+
+/**
  * main を動かすスレッドの入口
  *
  * @param[in] p1 使用しない
@@ -218,9 +284,13 @@ static void before(void *fixture)
     RESET_FAKE(oled_show);
     RESET_FAKE(node_time_init);
     RESET_FAKE(node_time_get);
+    RESET_FAKE(wifi_time_init);
+    RESET_FAKE(wifi_time_fetch);
     FFF_RESET_HISTORY();
     oled_show_fake.custom_fake = fake_show;
     node_time_get_fake.custom_fake = fake_time_get;
+    wifi_time_fetch_fake.custom_fake = fake_fetch;
+    rtc_valid = true;
     (void)memset(press_at, 0, sizeof(press_at));
     button_pressed_fake.custom_fake = fake_pressed;
     (void)memset(shown, 0, sizeof(shown));
@@ -726,6 +796,185 @@ ZTEST(main_node, test_boot_skipped_without_devices)
     zassert_equal(oled_show_boot_fake.call_count, 0U);
     zassert_equal(buzzer_play_fake.call_count, 0U);
     zassert_equal(sensor_read_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 起動の 1 分後に RTC に時刻がなければ, WiFi で時刻を取って, RTC に設定する. 取れたら, 終える */
+ZTEST(main_node, test_wifi_time_after_one_minute)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    rtc_valid = false;
+
+    start_main();
+
+    /* 期待: 1 分たつまでは取らない (WiFi は, 初期化だけして, つながない) */
+    k_msleep(BOOT_MS + CHECK_MS - 1000);
+    zassert_equal(wifi_time_init_fake.call_count, 1U);
+    zassert_equal(wifi_time_fetch_fake.call_count, 0U);
+
+    /* 期待: 1 分後に, WiFi で時刻を取って, RTC に設定する */
+    k_msleep(2000);
+    zassert_equal(wifi_time_fetch_fake.call_count, 1U);
+    zassert_equal(node_time_set_fake.call_count, 1U);
+    zassert_equal(node_time_set_fake.arg0_val, WIFI_SEC);
+
+    /* 期待: 取れたら確認を終える (そのあとは, RTC が空のままでも, 取らない) */
+    k_msleep(10 * CHECK_MS);
+    zassert_equal(wifi_time_fetch_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** RTC に時刻があれば (BLE で届いたとき), WiFi は使わない */
+ZTEST(main_node, test_wifi_time_not_used_when_rtc_has_time)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    rtc_valid = true;
+
+    start_main();
+
+    k_msleep(BOOT_MS + (2 * CHECK_MS));
+    zassert_equal(wifi_time_fetch_fake.call_count, 0U);
+    zassert_equal(node_time_set_fake.call_count, 0U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** WiFi で時刻を取れなかったら, RTC に設定せず, 1 分ごとに 5 回まで試して, やめる */
+ZTEST(main_node, test_wifi_time_gives_up_after_five_tries)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    wifi_time_fetch_fake.custom_fake = NULL;
+    wifi_time_fetch_fake.return_val = -ETIMEDOUT;
+    rtc_valid = false;
+
+    start_main();
+
+    /* 期待: 1 分ごとに 1 回ずつ */
+    k_msleep(BOOT_MS + (2 * CHECK_MS) + 1000);
+    zassert_equal(wifi_time_fetch_fake.call_count, 2U);
+
+    /* 期待: 5 回で止まる (そのあとは、測定は続けるが、試さない) */
+    k_msleep(3 * CHECK_MS);
+    zassert_equal(wifi_time_fetch_fake.call_count, WIFI_TRIES);
+    k_msleep(5 * CHECK_MS);
+    zassert_equal(wifi_time_fetch_fake.call_count, WIFI_TRIES);
+    zassert_equal(node_time_set_fake.call_count, 0U);
+    zassert_true(sensor_read_fake.call_count > 100U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 途中で取れたら、そこで終える (3 回目で取れる) */
+ZTEST(main_node, test_wifi_time_succeeds_on_retry)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    wifi_time_fetch_fake.custom_fake = fake_fetch_third;
+    rtc_valid = false;
+
+    start_main();
+
+    k_msleep(BOOT_MS + (WIFI_TRIES * CHECK_MS) + 1000);
+    zassert_equal(wifi_time_fetch_fake.call_count, 3U);
+    zassert_equal(node_time_set_fake.call_count, 1U);
+    zassert_equal(node_time_set_fake.arg0_val, WIFI_SEC);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 試みの途中で、BLE で時刻が届いて RTC に時刻があれば、そこで終える */
+ZTEST(main_node, test_wifi_time_stops_when_time_appears)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    wifi_time_fetch_fake.custom_fake = NULL;
+    wifi_time_fetch_fake.return_val = -ETIMEDOUT;
+    rtc_valid = false;
+
+    start_main();
+
+    k_msleep(BOOT_MS + (2 * CHECK_MS) + 1000);
+    zassert_equal(wifi_time_fetch_fake.call_count, 2U);
+
+    /* 期待: 時刻が入ったら、次の確認で終える (それ以上、試さない) */
+    rtc_valid = true;
+    k_msleep(5 * CHECK_MS);
+    zassert_equal(wifi_time_fetch_fake.call_count, 2U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** RTC への設定に失敗しても、続ける (試みに数えて、次の確認でやり直す) */
+ZTEST(main_node, test_wifi_time_set_failure_retries)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    node_time_set_fake.return_val = -EIO;
+    rtc_valid = false;
+
+    start_main();
+
+    k_msleep(BOOT_MS + (WIFI_TRIES * CHECK_MS) + (3 * CHECK_MS));
+    zassert_equal(wifi_time_fetch_fake.call_count, WIFI_TRIES);
+    zassert_equal(node_time_set_fake.call_count, WIFI_TRIES);
+    zassert_true(sensor_read_fake.call_count > 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** WiFi の初期化に失敗しても, 1 分後の確認の前に、やり直して成功すれば、時刻を取る */
+ZTEST(main_node, test_wifi_time_init_failure_recovers)
+{
+    int returns[] = {-EIO, 0}; /* wifi_time_init() の戻り値の列 */
+
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    SET_RETURN_SEQ(wifi_time_init, returns, ARRAY_SIZE(returns));
+    rtc_valid = false;
+
+    start_main();
+
+    /* 期待: 1 分後の、初期化のやり直しが先に成功して、同じ周期の確認で、時刻を取る */
+    k_msleep(BOOT_MS + CHECK_MS + 1000);
+    zassert_equal(wifi_time_init_fake.call_count, 2U);
+    zassert_equal(wifi_time_fetch_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** WiFi の初期化に失敗し続けたら、時刻を取れないことを警告して、続ける (試みに数えない) */
+ZTEST(main_node, test_wifi_time_unavailable)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    wifi_time_init_fake.return_val = -ENODEV;
+    rtc_valid = false;
+
+    start_main();
+
+    k_msleep(BOOT_MS + (WIFI_TRIES * CHECK_MS) + (2 * CHECK_MS));
+    zassert_true(wifi_time_init_fake.call_count > 1U);
+    zassert_equal(wifi_time_fetch_fake.call_count, 0U);
+    zassert_true(sensor_read_fake.call_count > 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** RTC が使えないとき (初期化に失敗) は、時刻の有無を判断できないので、WiFi は使わない */
+ZTEST(main_node, test_wifi_time_skipped_without_rtc)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_init_fake.return_val = -ENODEV;
+
+    start_main();
+
+    k_msleep(BOOT_MS + (3 * CHECK_MS));
+    zassert_equal(wifi_time_fetch_fake.call_count, 0U);
 
     k_thread_abort(&main_thread);
 }
