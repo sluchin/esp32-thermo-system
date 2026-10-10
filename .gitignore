@@ -86,3 +86,10 @@ ENV/
 # 元のスクリーンショット (画面右上にアカウント ID が写っている). assets/ には, 塗りつぶした画像 (aws-*.png) だけを置く
 /assets/Screenshot*
 /assets/*.pdf
+
+# AWS の手順 (AWS_DYNAMODB.md) のコマンドが作る JSON. 実際のアカウント ID と ID プール ID が入るので, コミットしない
+/iot-trust.json
+/iot-put.json
+/rule-dynamodb.json
+/unauth-trust.json
+/unauth-read.json
