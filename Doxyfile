@@ -39,6 +39,8 @@ ENABLE_PREPROCESSING   = YES
 # ビルド構成 (Kconfig) と、Zephyr のマクロ (関数に見えてしまうもの) の扱い
 PREDEFINED             = CONFIG_THERMO_CLOUD \
                          CONFIG_THERMO_RTC \
+                         CONFIG_THERMO_BOOT_SCREEN \
+                         CONFIG_THERMO_BUZZER \
                          CONFIG_MQTT_LIB_TLS \
                          "DEFINE_FFF_GLOBALS=" \
                          "FAKE_VALUE_FUNC(...)=" \

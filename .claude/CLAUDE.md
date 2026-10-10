@@ -35,6 +35,14 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 - `docker-compose.yml` / `Dockerfile`: 開発環境定義。
 - `.github/workflows/`: GitHub Actions による CI 設定。
 
+## 起動画面と起動音の素材
+
+素材 (絵、題名、メロディ) は `app/thermo-node/src/boot_assets.c` (オリジナル)。`app/thermo-node/private/boot_assets.c` があれば、それを使う (別のプライベートリポジトリを、サブモジュールとして置く。`SETUP.md` の「起動画面と起動音」)。
+
+- **既存のゲームなどの、著作権や商標のある素材 (絵、曲) を、このリポジトリ (公開) に、コミットしない。** 履歴にも残さない。素材のデータは、ユーザーが、プライベートリポジトリに、用意する (こちらで、そのままの音階や絵を、書き写さない)。
+- 素材を入れてビルドした実行ファイル (`zephyr.elf`、`zephyr.bin`) を、公開しない (CI の成果物、リリース)。CI は、サブモジュールを取り込まない。
+- 差し替えるファイルは、`boot_assets.h` の宣言を、全て、同じ名前と形で定義する。素材がなくても、ビルドできること。
+
 ## コーディング規約
 
 @../CODING_STYLE.md
@@ -82,7 +90,8 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 - 実行: `docker compose run --rm test-thermo-node` / `docker compose run --rm test-thermo-gateway` (全てのテストを実行する。結果は、コンテナの `/tmp` に出力する)
 - 配置: `app/<アプリ>/tests/<対象>/`。1 ディレクトリが 1 つのテストアプリ (`CMakeLists.txt` `prj.conf` `testcase.yaml` `src/test_*.c`)。twister が、`testcase.yaml` を探して、自動で実行する。
   - `sensor` (thermo-node): `sensor.c`。5 つの構成 (`TEST_MODE`): `sensor_api` (偽のセンサ `vnd,test-sensor`。DHT11 などの、センサ API の経路。値とエラーを、テストから設定する)、`adc` (ADC エミュレータ `zephyr,adc-emul`。入力電圧とエラーを、テストから設定する)、`adc_setup_error` / `adc_convert_error` (ADC の設定と換算の失敗)、`simulator` (シミュレーション値)。
-  - `oled` (thermo-node): `oled.c`。表示装置は、偽のもの (`vnd,test-display`) に置き換えて、CFB (文字のフレームバッファ) の関数は、FFF のモックにする。初期化の各段階の失敗と、描く文字列と位置 (負の温度、測定値なし、湿度なし、日時あり、日時が未設定) と、グラフのページ (最小と最大、折れ線の座標、履歴なし、点が 1 つ、縦軸の最小の幅、描画の失敗) を確認する。`CONFIG_DISPLAY=y` にすると、native_sim の SDL の表示も有効になり、終了時に落ちることがあるので、`CONFIG_SDL_DISPLAY=n` にしている。
+  - `oled` (thermo-node): `oled.c`。表示装置は、偽のもの (`vnd,test-display`) に置き換えて、CFB (文字のフレームバッファ) の関数は、FFF のモックにする。初期化の各段階の失敗と、描く文字列と位置 (負の温度、測定値なし、湿度なし、日時あり、日時が未設定) と、グラフのページ (最小と最大、折れ線の座標、履歴なし、点が 1 つ、縦軸の最小の幅、描画の失敗)、起動画面 (題名の位置、ドット、絵の位置、はみ出しの切り取り、口の開き方、フレームの範囲、描画の失敗) を確認する。`CONFIG_DISPLAY=y` にすると、native_sim の SDL の表示も有効になり、終了時に落ちることがあるので、`CONFIG_SDL_DISPLAY=n` にしている。
+  - `buzzer` (thermo-node): `buzzer.c`。PWM のコントローラを、偽のもの (`vnd,test-pwm`) に置き換える。メロディの順序、周波数から周期への換算 (デューティ比 50%)、休符、再生の中断と再開、PWM の失敗でメロディを止めること。システムのワークキューで鳴らすので、仮想の時間を進めて確認する。
   - `history` (thermo-node): `history.c`。測定値の区切りごとの平均、リングバッファ (満杯で古い点を上書き)、古い順の取り出し (今の区切りの平均を含む)、取り出す数の制限、負の平均の切り捨て。関数だけなので、モックはない。
   - `button` (thermo-node): `button.c`。GPIO のコントローラを、偽のもの (`vnd,test-gpio`) に置き換える。初期化の失敗と、押された動作の検出 (押し続けても 1 回、起動のときに押されていても数えない)。
   - `node_time` (thermo-node): `node_time.c`。RTC のデバイスを、偽のもの (`vnd,test-rtc`。時刻 (`rtc_time`) と、読み書きの結果を、テストから設定する) に置き換える。UTC からローカルタイムへの変換 (日付と年の繰り上がり、うるう日)、UNIX 時刻から `rtc_time` (月は 0 から 11、年は 1900 年からの年数、曜日) への換算、時刻が未設定 (`-ENODATA`)、範囲外の時刻の設定、RTC の失敗を確認する。
