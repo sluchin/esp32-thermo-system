@@ -13,6 +13,8 @@
  *  - oled_init() が, 正しい順序で初期化して, 各段階の失敗を返すこと
  *  - oled_show() が, 温度, 湿度, 日付, 時刻の行を, 正しい文字列と位置で描いて, 画面を更新すること
  *    (負の温度, 測定値なし, 湿度なし, 時刻なし, 日時なし, 各段階の失敗)
+ *  - 起動画面 (oled_show_boot) が, 題名, ドット, 走る絵, 追う絵を, 正しい位置に描くこと
+ *    (はみ出しの切り取り, 口の開き方, フレームの範囲, 各段階の失敗)
  *  - 温度と湿度のグラフのページが, 履歴の最小と最大の文字列と, 折れ線 (位置) を描くこと
  *    (履歴なし, 点が 1 つ, 縦軸の最小の幅, 各段階の失敗)
  */
@@ -32,6 +34,7 @@
 #include <stdlib.h>  /* EXIT_SUCCESS */
 #include <string.h>  /* memset */
 
+#include "boot_assets.h"
 #include "history.h"
 #include "node_time.h"
 #include "oled.h"
@@ -82,6 +85,13 @@ FAKE_VALUE_FUNC(int, cfb_draw_line, const struct device *, const struct cfb_posi
 /** グラフの点の最大の数 */
 #define MAX_DRAWN HISTORY_SIZE
 
+/** 起動画面で, 1 フレームに描く点の最大の数 (走る絵と, 追う絵と, ドット) */
+#define MAX_POINTS 700U
+/** 起動画面の, 最後のフレームの番号 */
+#define LAST_FRAME (OLED_BOOT_FRAMES - 1U)
+/** 起動画面の, 題名を出す x 座標 (幅 128 ドットの中央. 題名は 11 文字 x 10 ドット) */
+#define TITLE_X    9U
+
 /** 偽の表示装置の画素の形式の設定の戻り値 */
 static int pixel_format_ret;
 /** 偽の表示装置が最後に設定された画素の形式 */
@@ -90,8 +100,10 @@ static enum display_pixel_format pixel_format_set;
 static int blanking_ret;
 /** cfb_print() が記録した文字列 */
 static char printed[PRINT_LINES][PRINT_SIZE];
-/** cfb_draw_point() が描いた点 */
+/** cfb_draw_point() が描いた点 (最後の 1 つ) */
 static struct cfb_position drawn_point;
+/** cfb_draw_point() が描いた点 (描いた順) */
+static struct cfb_position drawn_points[MAX_POINTS];
 /** cfb_draw_line() が描いた線の始点 (呼ばれた順) */
 static struct cfb_position line_from[MAX_DRAWN];
 /** cfb_draw_line() が描いた線の終点 (呼ばれた順) */
@@ -181,8 +193,13 @@ static int fake_print(const struct device *dev, const char *str, uint16_t x, uin
  */
 static int fake_draw_point(const struct device *dev, const struct cfb_position *pos)
 {
+    unsigned int idx = cfb_draw_point_fake.call_count - 1U; /* 今回の呼び出しの番号 (0 始まり) */
+
     ARG_UNUSED(dev);
     drawn_point = *pos;
+    if (idx < MAX_POINTS) {
+        drawn_points[idx] = *pos;
+    }
 
     return 0;
 }
@@ -228,6 +245,7 @@ static void before(void *fixture)
     cfb_draw_point_fake.custom_fake = fake_draw_point;
     cfb_draw_line_fake.custom_fake = fake_draw_line;
     (void)memset(&drawn_point, 0, sizeof(drawn_point));
+    (void)memset(drawn_points, 0, sizeof(drawn_points));
     (void)memset(line_from, 0, sizeof(line_from));
     (void)memset(line_to, 0, sizeof(line_to));
     FFF_RESET_HISTORY();
@@ -635,6 +653,208 @@ ZTEST(oled, test_graph_draw_line_failure)
     zassert_equal(show_graph(OLED_PAGE_TEMP_GRAPH, &h), -EIO);
     zassert_equal(cfb_draw_line_fake.call_count, 1U);
     zassert_equal(cfb_framebuffer_finalize_fake.call_count, 0U);
+}
+
+/**
+ * 絵の, 点灯しているドットの数を数える
+ *
+ * @param[in] sprite 絵
+ * @return 点灯しているドットの数
+ */
+static unsigned int count_lit(const struct boot_sprite *sprite)
+{
+    unsigned int lit = 0U; /* 点灯しているドットの数 */
+    unsigned int row = 0U; /* 行 */
+    unsigned int col = 0U; /* 列 */
+
+    for (row = 0U; row < BOOT_SPRITE_SIZE; row++) {
+        const unsigned int bits = sprite->rows[row]; /* 1 行ぶん */
+
+        for (col = 0U; col < BOOT_SPRITE_SIZE; col++) {
+            lit += (bits >> col) & 1U;
+        }
+    }
+
+    return lit;
+}
+
+/**
+ * 起動画面の, あるフレームの, 走る絵の口の種類 (閉じる 0, 半分 1, 開く 2, 半分 1 の繰り返し)
+ *
+ * @param[in] frame フレームの番号
+ * @return boot_chomper の添字
+ */
+static unsigned int mouth_of(unsigned int frame)
+{
+    static const unsigned int cycle[] = {0U, 1U, 2U, 1U};
+
+    return cycle[frame % ARRAY_SIZE(cycle)];
+}
+
+/**
+ * 起動画面の, あるフレームで, まだ食べられていないドットの数
+ *
+ * 走る絵の x 座標は, -16 + 3 * frame. 絵の中心 (x + 8) より右のドットが, 残っている.
+ * ドットは, x = 4 + 8 * k (k は 0 から 15).
+ *
+ * @param[in] frame フレームの番号
+ * @return 残っているドットの数
+ */
+static unsigned int dots_left(unsigned int frame)
+{
+    const int eaten_x = (-16 + (3 * (int)frame)) + 8; /* これより左のドットは, 食べられた */
+    unsigned int left = 0U;                           /* 残っているドットの数 */
+    int k = 0;                                        /* ドットの番号 */
+
+    for (k = 0; k < 16; k++) {
+        if (eaten_x < (4 + (8 * k))) {
+            left++;
+        }
+    }
+
+    return left;
+}
+
+/** 起動画面のフレームは, 題名 (中央), ドット, 走る絵, 追う絵を描いて, 最後に, 画面を更新する */
+ZTEST(oled, test_boot_frame_draws_everything)
+{
+    const unsigned int frame = 20U; /* 走る絵の x = -16 + 3 * 20 = 44. 口は閉じている */
+    /* 走る絵の中心 (52) より右のドット (x = 60, 68, ..., 124 の 9 個) が, 4 点ずつ */
+    const unsigned int expected = count_lit(&boot_chomper[mouth_of(frame)]) +
+                                  count_lit(&boot_chaser) + (dots_left(frame) * 4U);
+
+    zassert_equal(dots_left(frame), 9U);
+
+    zassert_equal(oled_show_boot(frame), EXIT_SUCCESS);
+
+    zassert_false(cfb_framebuffer_clear_fake.arg1_val);
+    zassert_str_equal(printed[0], boot_title.text);
+    zassert_equal(cfb_print_fake.arg2_history[0], TITLE_X);
+    zassert_equal(cfb_print_fake.arg3_history[0], 0U);
+    zassert_equal(cfb_draw_point_fake.call_count, expected);
+    zassert_equal(cfb_framebuffer_finalize_fake.call_count, 1U);
+}
+
+/** 最初のフレームは, 絵が画面の左の外にあるので, 絵は描かず (切り取る), ドットだけを描く */
+ZTEST(oled, test_boot_first_frame_clips_sprites_left)
+{
+    unsigned int i = 0U; /* 点の番号 */
+
+    zassert_equal(oled_show_boot(0U), EXIT_SUCCESS);
+
+    /* ドットは 16 個とも, まだ食べられていない. 4 点ずつ */
+    zassert_equal(cfb_draw_point_fake.call_count, 16U * 4U);
+    for (i = 0U; i < cfb_draw_point_fake.call_count; i++) {
+        zassert_true(drawn_points[i].x < 128U);
+    }
+}
+
+/** 右の端の近くでは, 走る絵の, 画面からはみ出す部分は, 描かない (切り取る) */
+ZTEST(oled, test_boot_frame_clips_sprites_right)
+{
+    const unsigned int frame = 47U; /* 走る絵の x = -16 + 3 * 47 = 125. 3 列だけが, 画面の中 */
+    const unsigned int full = count_lit(&boot_chomper[mouth_of(frame)]) + count_lit(&boot_chaser);
+    unsigned int i = 0U; /* 点の番号 */
+
+    zassert_equal(oled_show_boot(frame), EXIT_SUCCESS);
+
+    zassert_true(cfb_draw_point_fake.call_count > 0U);
+    zassert_true(cfb_draw_point_fake.call_count < full);
+    for (i = 0U; i < cfb_draw_point_fake.call_count; i++) {
+        zassert_true(drawn_points[i].x < 128U);
+    }
+}
+
+/** 口は, 閉じる, 半分, 開く, 半分の順に, フレームごとに, 変わる (点の数が, 絵ごとに違う) */
+ZTEST(oled, test_boot_frame_mouth_cycle)
+{
+    /* 走る絵と追う絵が, どちらも画面の中にある範囲 (フレーム 15 から 42) の 4 フレームを比べる */
+    const unsigned int first = 20U;
+    unsigned int frame = 0U; /* フレームの番号 */
+
+    for (frame = first; frame < (first + 4U); frame++) {
+        RESET_FAKE(cfb_draw_point);
+        cfb_draw_point_fake.custom_fake = fake_draw_point;
+        zassert_equal(oled_show_boot(frame), EXIT_SUCCESS);
+        zassert_equal(cfb_draw_point_fake.call_count,
+                      count_lit(&boot_chomper[mouth_of(frame)]) + count_lit(&boot_chaser) +
+                              (dots_left(frame) * 4U),
+                      "frame %u", frame);
+    }
+}
+
+/** 最後のフレームより先の番号は, 最後のフレームと, 同じにする */
+ZTEST(oled, test_boot_frame_clamps_to_last_frame)
+{
+    unsigned int expected = 0U; /* 最後のフレームで描いた点の数 */
+
+    zassert_equal(oled_show_boot(LAST_FRAME), EXIT_SUCCESS);
+    expected = cfb_draw_point_fake.call_count;
+    RESET_FAKE(cfb_draw_point);
+    cfb_draw_point_fake.custom_fake = fake_draw_point;
+
+    zassert_equal(oled_show_boot(OLED_BOOT_FRAMES + 100U), EXIT_SUCCESS);
+
+    zassert_equal(cfb_draw_point_fake.call_count, expected);
+}
+
+/** フレームバッファの消去に失敗したら, その値を返し, 何も描かない */
+ZTEST(oled, test_boot_clear_failure)
+{
+    cfb_framebuffer_clear_fake.return_val = -ENODEV;
+
+    zassert_equal(oled_show_boot(20U), -ENODEV);
+    zassert_equal(cfb_print_fake.call_count, 0U);
+}
+
+/** 題名を描くのに失敗したら, その値を返し, 絵は描かない */
+ZTEST(oled, test_boot_print_failure)
+{
+    print_ret[0] = -EINVAL;
+
+    zassert_equal(oled_show_boot(20U), -EINVAL);
+    zassert_equal(cfb_draw_point_fake.call_count, 0U);
+}
+
+/** ドットを描くのに失敗したら, その値を返し, 画面は更新しない */
+ZTEST(oled, test_boot_dot_failure)
+{
+    cfb_draw_point_fake.custom_fake = NULL;
+    cfb_draw_point_fake.return_val = -EIO;
+
+    zassert_equal(oled_show_boot(20U), -EIO);
+    zassert_equal(cfb_draw_point_fake.call_count, 1U);
+    zassert_equal(cfb_framebuffer_finalize_fake.call_count, 0U);
+}
+
+/** 走る絵を描くのに失敗したら (ドットは, もう残っていない), その値を返す */
+ZTEST(oled, test_boot_chomper_failure)
+{
+    cfb_draw_point_fake.custom_fake = NULL;
+    cfb_draw_point_fake.return_val = -EIO;
+
+    /* フレーム 47: ドットは, 全部, 食べられた. 走る絵が, 最初に描く */
+    zassert_equal(oled_show_boot(47U), -EIO);
+    zassert_equal(cfb_draw_point_fake.call_count, 1U);
+}
+
+/** 追う絵を描くのに失敗したら (走る絵は, 画面の外), その値を返し, 画面は更新しない */
+ZTEST(oled, test_boot_chaser_failure)
+{
+    cfb_draw_point_fake.custom_fake = NULL;
+    cfb_draw_point_fake.return_val = -EIO;
+
+    /* 最後のフレーム: ドットも, 走る絵も, 描かない. 追う絵だけが, 描く */
+    zassert_equal(oled_show_boot(LAST_FRAME), -EIO);
+    zassert_equal(cfb_framebuffer_finalize_fake.call_count, 0U);
+}
+
+/** 画面の更新に失敗したら, その値を返す */
+ZTEST(oled, test_boot_finalize_failure)
+{
+    cfb_framebuffer_finalize_fake.return_val = -EIO;
+
+    zassert_equal(oled_show_boot(20U), -EIO);
 }
 
 ZTEST_SUITE(oled, NULL, NULL, before, NULL, NULL);

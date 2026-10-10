@@ -33,6 +33,25 @@ config THERMO_DISPLAY
       thermo-display). The default is y when the alias exists.
       Set n (-DCONFIG_THERMO_DISPLAY=n) to build without the display.
 
+config THERMO_BOOT_SCREEN
+    bool "Show the boot animation on the OLED display"
+    default y
+    depends on THERMO_DISPLAY
+    help
+      Show an animation (a round character eating dots, chased by an
+      enemy) and the title for about 3 seconds when the node starts.
+      The pictures are defined in boot_assets.c.
+
+config THERMO_BUZZER
+    bool "Play the boot sound with the buzzer of the expansion board"
+    default y if $(dt_alias_enabled,thermo-buzzer)
+    select PWM
+    help
+      Play a short melody with the passive buzzer of the Seeed Studio
+      XIAO expansion board (D3, PWM of the LEDC) when the node starts.
+      The melody is defined in boot_assets.c. The default is y when the
+      Devicetree alias thermo-buzzer exists.
+
 config THERMO_RTC
     bool "Keep the time with the RTC (PCF8563) of the expansion board"
     default y if $(dt_alias_enabled,thermo-rtc)

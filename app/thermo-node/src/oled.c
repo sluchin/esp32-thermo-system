@@ -19,7 +19,11 @@
 #include <stddef.h>  /* size_t */
 #include <stdio.h>   /* snprintf */
 #include <stdlib.h>  /* EXIT_SUCCESS */
+#include <string.h>  /* strlen */
 
+#ifdef CONFIG_THERMO_BOOT_SCREEN
+#include "boot_assets.h"
+#endif
 #include "history.h"
 #include "node_time.h"
 #include "oled.h"
@@ -29,27 +33,53 @@
 LOG_MODULE_REGISTER(oled_thermo_node, THERMO_LOG_LEVEL);
 
 /** 表示する文字のフォントの番号 (CFB の既定のフォントの 0 番: 幅 10 x 高さ 16 ドット) */
-#define OLED_FONT_INDEX          0U
+#define OLED_FONT_INDEX    0U
 /** 1 行の高さ [ドット] (フォントの高さ) */
-#define OLED_LINE_HEIGHT         16U
+#define OLED_LINE_HEIGHT   16U
 /** 日付の行の位置 (上から) [行] */
-#define OLED_ROW_DATE            0U
+#define OLED_ROW_DATE      0U
 /** 時刻の行の位置 (上から) [行] */
-#define OLED_ROW_TIME            1U
+#define OLED_ROW_TIME      1U
 /** 日付と時刻の行の数 (温度と湿度の行は, その下) */
-#define OLED_ROWS_DATETIME       2U
+#define OLED_ROWS_DATETIME 2U
 /** 温度の行の位置 (日付と時刻の行の下から) [行] */
-#define OLED_ROW_TEMP            0U
+#define OLED_ROW_TEMP      0U
 /** 湿度の行の位置 (日付と時刻の行の下から) [行] */
-#define OLED_ROW_HUMIDITY        1U
+#define OLED_ROW_HUMIDITY  1U
 /** 温度と湿度の行の数 */
-#define OLED_ROWS_SAMPLE         2U
+#define OLED_ROWS_SAMPLE   2U
 /** 表示する行の最大数 (画面の高さ 64 ドット / 16 ドット) */
-#define OLED_ROWS                4U
+#define OLED_ROWS          4U
 /** 1 行の文字列の大きさ [バイト] (幅 128 ドット / 10 ドット = 12 文字 + 終端. 余裕を持たせる) */
-#define OLED_LINE_SIZE           24U
+#define OLED_LINE_SIZE     24U
 /** 数値の文字列 (10 分の 1 の単位を, 小数点付きにしたもの. 最長は -3276.8) の大きさ [バイト] */
-#define OLED_NUM_SIZE            8U
+#define OLED_NUM_SIZE      8U
+#ifdef CONFIG_THERMO_BOOT_SCREEN
+/** 起動画面: 画面の左端の x 座標 [ドット] */
+#define OLED_LEFT_X       0
+/** 起動画面: 絵を走らせる行の, 上端の y 座標 [ドット] */
+#define BOOT_LANE_Y       24
+/** 起動画面: 1 フレームで, 走る絵が進む距離 [ドット] */
+#define BOOT_STEP_PX      3
+/** 起動画面: 走る絵の, 最初の x 座標 (画面の左の外. 絵の幅だけ, 左) */
+#define BOOT_START_X      (-(int)BOOT_SPRITE_SIZE)
+/** 起動画面: 追いかける敵の絵が, 走る絵から, 遅れる距離 [ドット] */
+#define BOOT_CHASER_GAP   28
+/** 起動画面: ドットの間隔 [ドット] */
+#define BOOT_DOT_PITCH    8
+/** 起動画面: 最初のドットの x 座標 [ドット] */
+#define BOOT_DOT_START_X  4
+/** 起動画面: ドットの数 */
+#define BOOT_DOT_COUNT    16
+/** 起動画面: ドットの 1 辺の大きさ [ドット] */
+#define BOOT_DOT_SIZE     2
+/** 起動画面: ドットの y 座標の, 絵の上端からの距離 (絵の真ん中あたり) [ドット] */
+#define BOOT_DOT_OFFSET_Y 7
+/** 起動画面: 文字 1 つの幅 [ドット] (フォント 0 は, 幅 10 ドット) */
+#define BOOT_FONT_WIDTH   10U
+/** 起動画面: 口の開き方の, 1 周の長さ (閉じる, 半分, 開く, 半分) */
+#define BOOT_MOUTH_PERIOD 4U
+#endif
 /** 画面の幅 [ドット] (グラフの点の数と同じ) */
 #define OLED_WIDTH               128U
 /** グラフの, 一番上の y 座標 (上の文字の行の下. 16 ドットの文字の行と, 少し間をあける) */
@@ -65,6 +95,16 @@ LOG_MODULE_REGISTER(oled_thermo_node, THERMO_LOG_LEVEL);
 
 /** Devicetree (alias thermo-display) から取得した OLED */
 static const struct device *const oled_dev = DEVICE_DT_GET(DT_ALIAS(thermo_display));
+
+#ifdef CONFIG_THERMO_BOOT_SCREEN
+static int draw_sprite(const struct boot_sprite *sprite, int x, int y);
+
+static int draw_dots(int eaten_x);
+
+static bool is_in_range(int value, int min, int max);
+
+static int draw_boot_frame(unsigned int frame);
+#endif
 
 static int draw_now(const struct oled_view *view);
 
@@ -180,6 +220,45 @@ int oled_show(const struct oled_view *view)
 
     return EXIT_SUCCESS;
 }
+
+#ifdef CONFIG_THERMO_BOOT_SCREEN
+/**
+ * @brief 起動画面の, 1 フレームを OLED に表示する
+ *
+ * 画面の上に, 題名 (boot_title) を出して, その下の行を, 口を開け閉めする丸い絵 (boot_chomper) が,
+ * ドットを食べながら, 左から右へ走る. 少し後ろから, 敵の絵 (boot_chaser) が追う. frame は 0 から
+ * OLED_BOOT_FRAMES - 1 まで (それ以上は, 最後のフレーム). OLED_BOOT_FRAME_MS ごとに, 進める.
+ * oled_init() が成功してから呼ぶ.
+ *
+ * @param[in] frame フレームの番号 (0 から始まる)
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     CFB の失敗 (負の errno. 初期化していないときは -ENODEV)
+ */
+int oled_show_boot(unsigned int frame)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    err = cfb_framebuffer_clear(oled_dev, false);
+    if (err != 0) {
+        LOG_ERR("Could not clear the framebuffer of the OLED (%d)", err);
+        return err;
+    }
+
+    err = draw_boot_frame((frame < OLED_BOOT_FRAMES) ? frame : (OLED_BOOT_FRAMES - 1U));
+    if (err != 0) {
+        return err;
+    }
+
+    err = cfb_framebuffer_finalize(oled_dev);
+    if (err != 0) {
+        LOG_ERR("Could not update the OLED (%d)", err);
+        return err;
+    }
+
+    return EXIT_SUCCESS;
+}
+#endif
 
 /**
  * 現在値のページを, フレームバッファに描く (画面は, まだ更新しない)
@@ -387,3 +466,130 @@ static void format_x10(char *out, size_t size, int16_t value_x10)
     (void)snprintf(out, size, "%s%u.%u", sign, magnitude / OLED_X10_DIVISOR,
                    magnitude % OLED_X10_DIVISOR);
 }
+
+#ifdef CONFIG_THERMO_BOOT_SCREEN
+/**
+ * 起動画面の 1 フレームを, フレームバッファに描く (画面は, まだ更新しない)
+ *
+ * @param[in] frame フレームの番号 (0 から OLED_BOOT_FRAMES - 1)
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     CFB の失敗 (負の errno)
+ */
+static int draw_boot_frame(unsigned int frame)
+{
+    /* 口の開き方: 閉じる (0), 半分 (1), 開く (2), 半分 (1) の順に, 繰り返す */
+    const unsigned int phase = frame % BOOT_MOUTH_PERIOD;                   /* 口の位相 */
+    const unsigned int mouth = (phase <= 2U) ? phase : 1U;                  /* 口の種類 */
+    const int chomper_x = BOOT_START_X + ((int)frame * BOOT_STEP_PX);       /* 走る絵の x */
+    const unsigned int title_chars = (unsigned int)strlen(boot_title.text); /* 題名の文字数 */
+    const unsigned int title_x = (OLED_WIDTH - (title_chars * BOOT_FONT_WIDTH)) / 2U; /* 題名の x */
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    err = cfb_print(oled_dev, boot_title.text, (uint16_t)title_x, 0U);
+    if (err != 0) {
+        LOG_ERR("Could not print the title to the OLED (%d)", err);
+        return err;
+    }
+
+    err = draw_dots(chomper_x + ((int)BOOT_SPRITE_SIZE / 2));
+    if (err != 0) {
+        return err;
+    }
+
+    err = draw_sprite(&boot_chomper[mouth], chomper_x, BOOT_LANE_Y);
+    if (err != 0) {
+        return err;
+    }
+
+    return draw_sprite(&boot_chaser, chomper_x - BOOT_CHASER_GAP, BOOT_LANE_Y);
+}
+
+/**
+ * まだ食べられていないドットを描く (走る絵より右にあるドットだけ)
+ *
+ * @param[in] eaten_x これより左のドットは, 食べられた (x 座標 [ドット])
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     CFB の失敗 (負の errno)
+ */
+static int draw_dots(int eaten_x)
+{
+    struct cfb_position pos = {0}; /* 点の位置 */
+    int dot_x = 0;                 /* ドットの x 座標 */
+    int dx = 0;                    /* ドットの中の x のずれ */
+    int dy = 0;                    /* ドットの中の y のずれ */
+    int i = 0;                     /* ドットの番号 */
+    int err = EXIT_SUCCESS;        /* エラーコード */
+
+    for (i = 0; i < BOOT_DOT_COUNT; i++) {
+        dot_x = BOOT_DOT_START_X + (i * BOOT_DOT_PITCH);
+        for (dy = 0; (dy < BOOT_DOT_SIZE) && (eaten_x < dot_x); dy++) {
+            for (dx = 0; dx < BOOT_DOT_SIZE; dx++) {
+                pos.x = (uint16_t)(dot_x + dx);
+                pos.y = (uint16_t)(BOOT_LANE_Y + BOOT_DOT_OFFSET_Y + dy);
+                err = cfb_draw_point(oled_dev, &pos);
+                if (err != 0) {
+                    LOG_ERR("Could not draw a dot on the OLED (%d)", err);
+                    return err;
+                }
+            }
+        }
+    }
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * 絵を, フレームバッファに描く (画面の外にはみ出した部分は, 描かない)
+ *
+ * @param[in] sprite 絵 (NULL 不可)
+ * @param[in] x      絵の左上の x 座標 [ドット] (画面の外でもよい)
+ * @param[in] y      絵の左上の y 座標 [ドット] (画面の中)
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     CFB の失敗 (負の errno)
+ */
+static int draw_sprite(const struct boot_sprite *sprite, int x, int y)
+{
+    struct cfb_position pos = {0}; /* 点の位置 */
+    int px = 0;                    /* 点の x 座標 */
+    unsigned int row = 0U;         /* 絵の中の行 */
+    unsigned int col = 0U;         /* 絵の中の列 */
+    unsigned int bits = 0U;        /* 絵の 1 行ぶん (最上位ビットが左端) */
+    int err = EXIT_SUCCESS;        /* エラーコード */
+
+    for (row = 0U; row < BOOT_SPRITE_SIZE; row++) {
+        bits = sprite->rows[row];
+        for (col = 0U; col < BOOT_SPRITE_SIZE; col++) {
+            px = x + (int)col;
+            if ((((bits >> (BOOT_SPRITE_SIZE - 1U - col)) & 1U) != 0U) &&
+                is_in_range(px, OLED_LEFT_X, (int)OLED_WIDTH - 1)) {
+                pos.x = (uint16_t)px;
+                pos.y = (uint16_t)(y + (int)row);
+                err = cfb_draw_point(oled_dev, &pos);
+                if (err != 0) {
+                    LOG_ERR("Could not draw a sprite on the OLED (%d)", err);
+                    return err;
+                }
+            }
+        }
+    }
+
+    return EXIT_SUCCESS;
+}
+/**
+ * 値が範囲に入っているかを調べる (数直線の順に, min <= value <= max と書く)
+ *
+ * @param[in] value 調べる値
+ * @param[in] min   範囲の最小 (この値を含む)
+ * @param[in] max   範囲の最大 (この値を含む)
+ *
+ * @retval true  min 以上 max 以下
+ * @retval false 範囲外
+ */
+static bool is_in_range(int value, int min, int max)
+{
+    return (min <= value) && (value <= max);
+}
+#endif

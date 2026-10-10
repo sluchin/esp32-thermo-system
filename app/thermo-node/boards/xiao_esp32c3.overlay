@@ -19,6 +19,10 @@
  * -DCONFIG_THERMO_DISPLAY=n). ノードの設定は, Zephyr の seeed_xiao_expansion_board のシールドと
  * 同じ (シールドは, SD カードの SPI も有効にするので, 使わない).
  *
+ * ブザー (拡張ボードのパッシブブザー. D3 = GPIO5) は, alias thermo-buzzer で使う. PWM (LEDC のチャンネル
+ * 0) の周波数が, 音の高さになる. 起動のときの, 短いメロディを鳴らす (CONFIG_THERMO_BUZZER=n のときは,
+ * 使わない). PWM の周期は, 鳴らすときに, 音ごとに, 設定する (ここの値は, 使わない).
+ *
  * ボタン (拡張ボードのユーザボタン. D1 = GPIO3. 押すと, 0 になる) は, alias thermo-button で使い,
  * OLED の画面を切り替える (CONFIG_THERMO_DISPLAY=n のときは, 使わない).
  *
@@ -28,6 +32,7 @@
  * CONFIG_THERMO_RTC=n でビルドする.
  */
 #include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/pwm/pwm.h>
 
 / {
     aliases {
@@ -35,6 +40,12 @@
         thermo-display = &ssd1306_128x64;
         thermo-rtc = &pcf8563_rtc;
         thermo-button = &thermo_button;
+        thermo-buzzer = &thermo_buzzer;
+    };
+
+    thermo_buzzer: pwm-buzzer {
+        compatible = "thermo,buzzer";
+        pwms = <&ledc0 0 PWM_HZ(1000) PWM_POLARITY_NORMAL>;
     };
 
     buttons {
@@ -75,5 +86,27 @@
         compatible = "thermo,pcf8563";
         reg = <0x51>;
         status = "okay";
+    };
+};
+
+&pinctrl {
+    ledc0_default: ledc0_default {
+        group1 {
+            pinmux = <LEDC_CH0_GPIO5>;
+            output-enable;
+        };
+    };
+};
+
+&ledc0 {
+    pinctrl-0 = <&ledc0_default>;
+    pinctrl-names = "default";
+    status = "okay";
+    #address-cells = <1>;
+    #size-cells = <0>;
+
+    channel0@0 {
+        reg = <0x0>;
+        timer = <0>;
     };
 };

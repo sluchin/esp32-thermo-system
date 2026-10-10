@@ -1,0 +1,19 @@
+#include <zephyr/dt-bindings/pwm/pwm.h>
+
+/* 偽の PWM コントローラ (vnd,test-pwm) の 0 番のチャンネルに, ブザーをつなぎ, alias thermo-buzzer に接続する */
+/ {
+    aliases {
+        thermo-buzzer = &test_buzzer;
+    };
+
+    test_pwm: test-pwm {
+        compatible = "vnd,test-pwm";
+        status = "okay";
+        #pwm-cells = <3>;
+    };
+
+    test_buzzer: pwm-buzzer {
+        compatible = "thermo,buzzer";
+        pwms = <&test_pwm 0 1000000 PWM_POLARITY_NORMAL>;
+    };
+};

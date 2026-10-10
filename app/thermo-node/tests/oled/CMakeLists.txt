@@ -12,7 +12,10 @@ target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src
 target_sources(app PRIVATE
   src/test_oled.c
   ${CMAKE_CURRENT_LIST_DIR}/../../src/oled.c
-  ${CMAKE_CURRENT_LIST_DIR}/../../src/history.c)
+  ${CMAKE_CURRENT_LIST_DIR}/../../src/history.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../src/boot_assets.c)
+# CONFIG_THERMO_BOOT_SCREEN は, 起動画面 (oled_show_boot) を有効にする (アプリの Kconfig が定義する)
+target_compile_definitions(app PRIVATE CONFIG_THERMO_BOOT_SCREEN=1)
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_LIST_DIR}/../../../warnings.cmake)
