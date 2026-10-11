@@ -252,8 +252,8 @@ git push --force-with-lease --force-if-includes origin <ブランチ名>
 ```bash
 picocom -b 115200 /dev/ttyACM0
 
-# リセットのたびに USB が切れるので, 起動のログを見るときは, つなぎ直しを繰り返す
-while true; do picocom -b 115200 /dev/ttyACM0 --noinit --noreset; sleep 0.3; done
+# リセットのたびに USB が切れるので, 起動のログを見るときは, つなぎ直しを繰り返す (読み取りだけ. 入力は送れない)
+while true; do [ -c /dev/ttyACM0 ] && stty -F /dev/ttyACM0 115200 raw -echo && cat /dev/ttyACM0; sleep 0.3; done
 ```
 
 ### Zephyr ログレベル

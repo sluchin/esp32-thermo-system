@@ -24,7 +24,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 ### シリアルモニター
 - `picocom -b 115200 /dev/ttyACM0`
-- 起動のログ (リセットのたびに USB が切れる) を見るとき: `while true; do picocom -b 115200 /dev/ttyACM0 --noinit --noreset; sleep 0.3; done`
+- 起動のログ (リセットのたびに USB が切れる) を見るとき: `while true; do [ -c /dev/ttyACM0 ] && stty -F /dev/ttyACM0 115200 raw -echo && cat /dev/ttyACM0; sleep 0.3; done` (読み取りだけ。`picocom` のループは、端末の応答がシェルに返り続けて、出力が乱れることがある。`SETUP.md` の「起動のログを見る」)
 - Thermo ノードのシェルには、ファイルシステムのコマンド `fs` がある (`CONFIG_FILE_SYSTEM_SHELL=y`。`SETUP.md` の「ファイルシステムのシェル」)。`fs rm` と `fs write` も使えるので、ログの書き込み中には、実行しない。
 
 ### クラウドのセッション (claude.ai/code) で Docker を使うとき

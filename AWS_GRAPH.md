@@ -190,6 +190,13 @@ CloudWatch のメトリクスは、「名前空間」(`Thermo`) と「メトリ�
 
 MAC アドレスは、トピックの 4 番目の要素 (`thermo/gateway-01/switchbot/ED:2E:...`) です。ルールでは、`${topic(4)}` で取り出します。
 
+Thermo ノードの値も、同じ名前空間 `Thermo` に入れられます (手順は、7.2)。ノードのアドレスを、メトリクス名に入れます。
+
+| メトリクス名 | 意味 |
+|:---|:---|
+| `00:AA:01:00:00:42_temperature_c` | ノードの温度 [℃] |
+| `00:AA:01:00:00:42_humidity` | ノードの湿度 [%] (DHT11 のとき) |
+
 ### 4.3 ルールを作る
 
 ```bash
@@ -362,6 +369,18 @@ SELECT temperature_c, humidity, battery FROM 'thermo/+/switchbot/+'
 
 温度 (`ED:2E:C4:46:3B:11_temperature_c`)、電池残量 (`ED:2E:C4:46:3B:11_battery`) も、同じように、1 つずつ、ウィジェットにします (画面の右上の「+」で、ウィジェットを追加します)。温度と湿度は、単位が違うので、別のウィジェットにします。
 
+#### 凡例の名前を変える (室外、室内などの表示)
+
+グラフの凡例には、メトリクス名 (`ED:2E:C4:46:3B:11_temperature_c`) が出ます。置き場所が分かる名前にするときは、次のようにします。
+
+1. ウィジェット右上の「⋮」を押して、「編集」を選びます。
+2. 「グラフ化したメトリクス」のタブを開きます。
+3. メトリクスの行の「ラベル」の欄に、`室外 (ED:2E:C4:46:3B:11)` のように入力します。
+4. 画面の右下の「ウィジェットの更新」を押します。
+5. 画面の右上の「保存」を押します。
+
+CLI で作るときは、6.2 の `label` です。
+
 #### 手順 4: 保存する
 
 3 つのウィジェットが、並びます。画面の右上に「**自動保存: オフ**」と出ています。右上の橙色の「**保存**」ボタンを押してください。押さないと、画面を閉じたときに、ダッシュボードが消えます。
@@ -403,7 +422,7 @@ cat > dashboard.json <<'JSON'
       "properties": {
         "title": "Temperature [C]",
         "region": "ap-northeast-1",
-        "metrics": [ [ "Thermo", "ED:2E:C4:46:3B:11_temperature_c" ] ],
+        "metrics": [ [ "Thermo", "ED:2E:C4:46:3B:11_temperature_c", { "label": "室外 (ED:2E:C4:46:3B:11)" } ] ],
         "stat": "Average", "period": 300, "view": "timeSeries"
       }
     },
@@ -412,7 +431,7 @@ cat > dashboard.json <<'JSON'
       "properties": {
         "title": "Humidity [%]",
         "region": "ap-northeast-1",
-        "metrics": [ [ "Thermo", "ED:2E:C4:46:3B:11_humidity" ] ],
+        "metrics": [ [ "Thermo", "ED:2E:C4:46:3B:11_humidity", { "label": "室外 (ED:2E:C4:46:3B:11)" } ] ],
         "stat": "Average", "period": 300, "view": "timeSeries"
       }
     },
@@ -421,7 +440,7 @@ cat > dashboard.json <<'JSON'
       "properties": {
         "title": "Battery [%]",
         "region": "ap-northeast-1",
-        "metrics": [ [ "Thermo", "ED:2E:C4:46:3B:11_battery" ] ],
+        "metrics": [ [ "Thermo", "ED:2E:C4:46:3B:11_battery", { "label": "室外 (ED:2E:C4:46:3B:11)" } ] ],
         "stat": "Average", "period": 3600, "view": "timeSeries"
       }
     }
@@ -433,6 +452,8 @@ aws cloudwatch put-dashboard --dashboard-name thermo \
   --dashboard-body file://dashboard.json
 ```
 
+- `label` は、グラフの凡例に出す名前です。指定しないと、メトリクス名 (`ED:2E:C4:46:3B:11_temperature_c`) が、そのまま出ます。上の例は、ベランダに置いた SwitchBot を「室外」として、MAC アドレスを、カッコの中に出します。
+- ノード (7.2) を足して、室内と室外を、同じグラフに並べるときは、同じ `metrics` に、行を足します。ラベルは、`{ "label": "室内 (00:AA:01:00:00:42)" }` のように付けます。
 - 機器 (MAC アドレス) を足すときは、`metrics` に、`[ "Thermo", "<MAC>_temperature_c" ]` の行を足します。ルールは、変えなくて済みます (`+` で、すべての機器に合うため)。
 - `period` は、秒です。10 秒ごとに届いても、CloudWatch は、1 分の単位で、集計します (最小は 60)。
 
@@ -608,9 +629,49 @@ aws cloudwatch set-alarm-state \
 
 料金は、アラーム 1 つあたり月に数十円以下、メールの通知は、月 1,000 件まで無料の目安です (リージョンと時期で、変わります。最新の料金表で、確認してください)。
 
-### 7.2 Thermo ノードの温度
+### 7.2 Thermo ノードの温度と湿度
 
-ノードの値は、`temperature_c` と `humidity` (DHT11 のとき) です ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)。トピックは、`thermo/CLIENT_ID/NODE_ADDRESS/temperature` なので、SwitchBot のルール (4 章) の SQL の、`FROM` を、`thermo/+/+/temperature` にした、別のルールを作ると、同じ手順で、グラフにできます (メトリクス名の、`${topic(4)}` の位置は、同じ 4 番目のアドレスです)。ノードの実機で、値が届くのを確認していないので、この手順では、詳しくは、扱いません。
+ノードの値は、`temperature_c` と `humidity` (DHT11 のとき) です ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)。トピックは、`thermo/CLIENT_ID/NODE_ADDRESS/temperature` で、**ノードのアドレスは 3 番目**です (SwitchBot は 4 番目なので、`${topic(3)}` を使います)。SwitchBot のルール (4 章) とは別に、ノード用のルールを作ります。
+
+```bash
+cat > rule-node.json <<'JSON'
+{
+  "sql": "SELECT temperature_c, humidity FROM 'thermo/+/+/temperature'",
+  "awsIotSqlVersion": "2016-03-23",
+  "ruleDisabled": false,
+  "actions": [
+    {
+      "cloudwatchMetric": {
+        "roleArn": "arn:aws:iam::ACCOUNT_ID:role/thermo-iot-cloudwatch",
+        "metricNamespace": "Thermo",
+        "metricName": "${topic(3)}_temperature_c",
+        "metricValue": "${temperature_c}",
+        "metricUnit": "None"
+      }
+    },
+    {
+      "cloudwatchMetric": {
+        "roleArn": "arn:aws:iam::ACCOUNT_ID:role/thermo-iot-cloudwatch",
+        "metricNamespace": "Thermo",
+        "metricName": "${topic(3)}_humidity",
+        "metricValue": "${humidity}",
+        "metricUnit": "Percent"
+      }
+    }
+  ]
+}
+JSON
+
+aws iot create-topic-rule --rule-name thermo_node_to_cloudwatch \
+  --topic-rule-payload file://rule-node.json
+```
+
+- `ACCOUNT_ID` は、自分のアカウント ID に置き換えます。IAM ロールは、3 章のものを、そのまま使えます (名前空間 `Thermo` への書き込みの権限です)。
+- SwitchBot のルールの SQL (`'thermo/+/switchbot/+'`) と、このルールの SQL (`'thermo/+/+/temperature'`) は、同じトピックに合いません。メッセージが、二重に処理されることはありません。
+- 湿度を測れないセンサ (ADC など) のときは、`humidity` が出力されないので、湿度のアクションだけが実行されず、湿度のメトリクスは、できません。
+- ルールを作ったら、5 章と同じ手順で、`aws cloudwatch list-metrics --namespace Thermo` に、`00:AA:01:00:00:42_temperature_c` のような名前が出ることを見ます。
+- グラフは、6.2 の `metrics` に、`[ "Thermo", "00:AA:01:00:00:42_temperature_c" ]` の行を足します (自分のノードのアドレスに置き換えます)。コンソールで作るときは、6.1 の手順 3 で、一覧からノードのメトリクスを選びます。
+- ノードのアドレスは、MQTT テストクライアントで `thermo/#` を購読して、トピックから分かります。
 
 ### 7.3 細かいデータを残す・分析する
 
