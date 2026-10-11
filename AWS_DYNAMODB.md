@@ -55,31 +55,41 @@ thermon ──> Cognito ID プール (未認証) ──一時的な認証情報�
 
 ### 2.2 作成する
 
-AWS CLI の例です (リージョンは、`ap-northeast-1`。アカウント ID は、自分のものに置き換えます)。
+以降のコマンドは、同じシェルで、続けて実行します (シェルを閉じたら、次の変数を、設定し直します)。アカウント ID (12 桁の数字) は、コマンドで取り出して、変数に入れるので、ファイルや文書に、書き写しません。
 
 ```bash
-aws dynamodb create-table --region ap-northeast-1 \
-  --table-name thermo-readings \
+export AWS_REGION=ap-northeast-1
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+TABLE=thermo-readings
+echo "$ACCOUNT_ID"
+```
+
+- 以降で作る JSON ファイルには、アカウント ID などが入ります。リポジトリの外 (`~/tmp` など) で実行すると、ファイルが残りません。リポジトリの中で実行したときは、`.gitignore` が、無視します。**コミットしません。**
+- アカウント ID は、パスワードではありませんが、公開する必要もありません。リポジトリには、書かないでください。
+
+AWS CLI の例です。
+
+```bash
+aws dynamodb create-table \
+  --table-name "$TABLE" \
   --attribute-definitions AttributeName=node,AttributeType=S AttributeName=ts,AttributeType=N \
   --key-schema AttributeName=node,KeyType=HASH AttributeName=ts,KeyType=RANGE \
   --billing-mode PAY_PER_REQUEST
 
 # 古い項目を自動で消す (属性 expires_at)
-aws dynamodb update-time-to-live --region ap-northeast-1 \
-  --table-name thermo-readings \
+aws dynamodb update-time-to-live \
+  --table-name "$TABLE" \
   --time-to-live-specification Enabled=true,AttributeName=expires_at
 ```
-
-出力の `TableArn` (`arn:aws:dynamodb:ap-northeast-1:ACCOUNT_ID:table/thermo-readings`) を、控えます。
 
 コンソールで作る場合は、「DynamoDB → テーブル → テーブルの作成」で、テーブル名 `thermo-readings`、パーティションキー `node` (文字列)、ソートキー `ts` (数値)、設定は「オンデマンド」にします。作成後に、「追加の設定」の「有効期限 (TTL)」を開いて、属性名に `expires_at` を指定します。
 
 ## 3. IoT Core が DynamoDB に書き込むための権限 (IAM ロール)
 
-[AWS_GRAPH.md](AWS_GRAPH.md) の 3 章と同じ手順です。ロールの種類は、「カスタム信頼ポリシー」にします (「AWS のサービス」の「IoT」を選ぶと、余計な管理ポリシーが付きます)。
+共通の変数は、2.2 のものを使います。ロールの種類は、「カスタム信頼ポリシー」にします (「AWS のサービス」の「IoT」を選ぶと、余計な管理ポリシーが付きます)。
 
 ```bash
-cat > iot-trust.json <<'JSON'
+cat > iot-trust.json <<JSON
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -92,14 +102,14 @@ cat > iot-trust.json <<'JSON'
 }
 JSON
 
-cat > iot-put.json <<'JSON'
+cat > iot-put.json <<JSON
 {
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
       "Action": "dynamodb:PutItem",
-      "Resource": "arn:aws:dynamodb:ap-northeast-1:ACCOUNT_ID:table/thermo-readings"
+      "Resource": "arn:aws:dynamodb:ap-northeast-1:${ACCOUNT_ID}:table/${TABLE}"
     }
   ]
 }
@@ -111,7 +121,7 @@ aws iam put-role-policy --role-name thermo-iot-dynamodb \
   --policy-name put-item --policy-document file://iot-put.json
 ```
 
-出力の `Role.Arn` (`arn:aws:iam::ACCOUNT_ID:role/thermo-iot-dynamodb`) を、次の章で使います。
+ロールの ARN (`arn:aws:iam::アカウント ID:role/thermo-iot-dynamodb`) は、次の章のルールで、`${ACCOUNT_ID}` から作ります。
 
 ## 4. ルールを作る
 
@@ -131,7 +141,7 @@ WHERE isUndefined(temperature_c) = false
 ### 4.2 ルールを作る
 
 ```bash
-cat > rule-dynamodb.json <<'JSON'
+cat > rule-dynamodb.json <<JSON
 {
   "sql": "SELECT *, floor(timestamp() / 1000) AS ts, floor(timestamp() / 1000) + 2592000 AS expires_at FROM 'thermo/#' WHERE isUndefined(temperature_c) = false",
   "awsIotSqlVersion": "2016-03-23",
@@ -139,15 +149,15 @@ cat > rule-dynamodb.json <<'JSON'
   "actions": [
     {
       "dynamoDBv2": {
-        "roleArn": "arn:aws:iam::ACCOUNT_ID:role/thermo-iot-dynamodb",
-        "putItem": { "tableName": "thermo-readings" }
+        "roleArn": "arn:aws:iam::${ACCOUNT_ID}:role/thermo-iot-dynamodb",
+        "putItem": { "tableName": "${TABLE}" }
       }
     }
   ]
 }
 JSON
 
-aws iot create-topic-rule --region ap-northeast-1 \
+aws iot create-topic-rule \
   --rule-name thermo_to_dynamodb --topic-rule-payload file://rule-dynamodb.json
 ```
 
@@ -161,10 +171,10 @@ aws iot create-topic-rule --region ap-northeast-1 \
 
 ```bash
 # 件数と、最新の数件 (Scan は、少量のテーブルで、確認に使うだけにしてください)
-aws dynamodb scan --region ap-northeast-1 --table-name thermo-readings --max-items 5
+aws dynamodb scan --table-name "$TABLE" --max-items 5
 
 # 機器を指定して、最新の 3 件を取り出す
-aws dynamodb query --region ap-northeast-1 --table-name thermo-readings \
+aws dynamodb query --table-name "$TABLE" \
   --key-condition-expression "#n = :n" \
   --expression-attribute-names '{"#n":"node"}' \
   --expression-attribute-values '{":n":{"S":"ED:2E:C4:46:3B:11"}}' \
@@ -178,17 +188,19 @@ aws dynamodb query --region ap-northeast-1 --table-name thermo-readings \
 ### 6.1 ID プールを作る
 
 ```bash
-aws cognito-identity create-identity-pool --region ap-northeast-1 \
+IDENTITY_POOL_ID=$(aws cognito-identity create-identity-pool \
   --identity-pool-name thermo_client \
-  --allow-unauthenticated-identities
+  --allow-unauthenticated-identities \
+  --query IdentityPoolId --output text)
+echo "$IDENTITY_POOL_ID"
 ```
 
-出力の `IdentityPoolId` (`ap-northeast-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) を、控えます。アプリに書く値です。
+出力の `IdentityPoolId` (`ap-northeast-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) は、変数 `IDENTITY_POOL_ID` に入っています。アプリに書く値です (アプリ側の設定ファイルに書きます。リポジトリには、書きません)。
 
 ### 6.2 未認証ロール (読み取りだけ)
 
 ```bash
-cat > unauth-trust.json <<'JSON'
+cat > unauth-trust.json <<JSON
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -197,7 +209,7 @@ cat > unauth-trust.json <<'JSON'
       "Principal": { "Federated": "cognito-identity.amazonaws.com" },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
-        "StringEquals": { "cognito-identity.amazonaws.com:aud": "IDENTITY_POOL_ID" },
+        "StringEquals": { "cognito-identity.amazonaws.com:aud": "${IDENTITY_POOL_ID}" },
         "ForAnyValue:StringLike": { "cognito-identity.amazonaws.com:amr": "unauthenticated" }
       }
     }
@@ -205,14 +217,14 @@ cat > unauth-trust.json <<'JSON'
 }
 JSON
 
-cat > unauth-read.json <<'JSON'
+cat > unauth-read.json <<JSON
 {
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
       "Action": "dynamodb:Query",
-      "Resource": "arn:aws:dynamodb:ap-northeast-1:ACCOUNT_ID:table/thermo-readings"
+      "Resource": "arn:aws:dynamodb:ap-northeast-1:${ACCOUNT_ID}:table/${TABLE}"
     }
   ]
 }
@@ -224,12 +236,12 @@ aws iam put-role-policy --role-name thermo-client-unauth \
   --policy-name read-thermo --policy-document file://unauth-read.json
 
 # ID プールに、未認証ロールとして登録する
-aws cognito-identity set-identity-pool-roles --region ap-northeast-1 \
-  --identity-pool-id IDENTITY_POOL_ID \
-  --roles unauthenticated=arn:aws:iam::ACCOUNT_ID:role/thermo-client-unauth
+aws cognito-identity set-identity-pool-roles \
+  --identity-pool-id "$IDENTITY_POOL_ID" \
+  --roles "unauthenticated=arn:aws:iam::${ACCOUNT_ID}:role/thermo-client-unauth"
 ```
 
-`IDENTITY_POOL_ID` は 6.1 の値、`ACCOUNT_ID` は、自分のアカウント ID に置き換えます。
+`IDENTITY_POOL_ID` は 6.1 の値、`ACCOUNT_ID` は 2.2 の値です。シェルが変わったときは、設定し直します。
 
 ### 6.3 安全のために
 
