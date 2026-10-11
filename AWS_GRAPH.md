@@ -56,7 +56,7 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 echo "$ACCOUNT_ID"
 ```
 
-- 以降で作る JSON ファイルには、アカウント ID などが入ります。リポジトリの外 (`~/tmp` など) で実行すると、ファイルが残りません。リポジトリの中で実行したときは、`.gitignore` が、無視します。**コミットしません。**
+- 以降で作る JSON ファイルには、アカウント ID などが入ります。リポジトリの外 (`~/tmp` など) で実行すると、ファイルが残りません。リポジトリの中で実行したときは、 `.gitignore` が、無視します。**コミットしません。**
 
 
 ## 3. IoT Core が CloudWatch に書き込むための権限 (IAM ロール)
