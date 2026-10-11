@@ -9,7 +9,7 @@
 
 /**
  * @file
- * @brief MQTT のトピックと, ペイロード (JSON) の生成
+ * @brief MQTT のトピックとペイロード (JSON) の生成
  */
 
 #include <zephyr/bluetooth/addr.h>

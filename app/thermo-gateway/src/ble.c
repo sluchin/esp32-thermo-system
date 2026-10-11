@@ -39,7 +39,7 @@ LOG_MODULE_REGISTER(ble_thermo_gateway, THERMO_LOG_LEVEL);
 /** スキャンを止められなかったときに, 接続を始め直す最大の回数 */
 #define CONNECT_RETRY_MAX 10U
 
-/** 時刻を書き込む必要があるかを確かめる間隔 [s] (同期の前や, 書き込みの見送りのあとの待ち) */
+/** 時刻を書き込む必要があるかを確かめる間隔 [s] (同期の前や書き込みの見送りのあとの待ち) */
 #define TIME_CHECK_S  10
 /** 時刻を書き込み直す間隔 [s] (ノードの RTC のずれを直す) */
 #define TIME_RESYNC_S 3600
@@ -52,7 +52,7 @@ struct node {
     struct bt_gatt_discover_params discover;   /**< サービスの探索のパラメータ */
     struct bt_gatt_subscribe_params subscribe; /**< 通知の購読のパラメータ */
     struct bt_gatt_write_params write;         /**< 時刻の書き込みのパラメータ */
-    uint16_t service_start;                    /**< サービスの中の, 最初の属性のハンドル */
+    uint16_t service_start;                    /**< サービスの中の最初の属性のハンドル */
     uint16_t service_end;                      /**< サービスの最後の属性のハンドル */
     uint16_t time_handle;                      /**< 時刻の特性の値のハンドル (0 なら, 特性がない) */
     int64_t time_due_ms;                       /**< 次に時刻を書き込む時刻 (稼働時間 [ms]) */
@@ -125,7 +125,7 @@ struct scan_result {
 #define ADV_HEXDUMP_EVERY 50U
 
 /**
- * アドバタイズデータの 1 要素を, 16 進数でログに出す (ADV_HEXDUMP_EVERY 回に 1 回だけ)
+ * アドバタイズデータの 1 要素を 16 進数でログに出す (ADV_HEXDUMP_EVERY 回に 1 回だけ)
  *
  * スキャンでは, まわりの機器の広告が大量に届くので, 回数で間引く.
  *
@@ -163,7 +163,7 @@ int ble_init(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    /* Bluetooth スタックを, 同期で有効にする (戻ったときには, 使える) */
+    /* Bluetooth スタックを同期で有効にする (戻ったときには, 使える) */
     err = bt_enable(NULL);
     if (err != 0) {
         LOG_ERR("Bluetooth init failed (err %d)", err);
@@ -207,7 +207,7 @@ void ble_set_switchbot_callback(ble_switchbot_cb_t cb)
 /**
  * @brief ノードに書き込む時刻を得る関数を設定する
  *
- * ノードの時刻の特性を見つけたら, この関数で得た UTC の UNIX 時刻を, ノードに書き込む
+ * ノードの時刻の特性を見つけたら, この関数で得た UTC の UNIX 時刻をノードに書き込む
  * (ノードは, RTC を合わせる). 関数が失敗している間 (まだ SNTP で同期していない) は, 書き込みを
  * 見送って, TIME_CHECK_S ごとに確かめる. 書き込んだあとも, TIME_RESYNC_S ごとに, 書き込み直す.
  * ble_scan() の前に設定しておくこと. NULL で解除する (時刻は書き込まない).
@@ -363,7 +363,7 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
         return BT_GATT_ITER_CONTINUE;
     }
 
-    /* 温度 (int16) と湿度 (uint16) が, この順に, 2 byte ずつ, リトルエンディアンで並んでいる */
+    /* 温度 (int16) と湿度 (uint16) がこの順に 2 byte ずつ, リトルエンディアンで並んでいる */
     temp_x10 = (int16_t)sys_get_le16((const uint8_t *)data);
     humidity_x10 = sys_get_le16((const uint8_t *)data + sizeof(uint16_t));
     if (temperature_cb != NULL) {
@@ -450,7 +450,7 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
 /**
  * 時刻の特性の探索のコールバック (見つかったら, すぐに, 時刻を書き込む処理を動かす)
  *
- * @param[in]     attr 見つかった属性 (NULL なら, 探索が終わった. ノードに, 時刻の特性がない)
+ * @param[in]     attr 見つかった属性 (NULL なら, 探索が終わった. ノードに時刻の特性がない)
  * @param[in,out] node 対象のノード
  *
  * @return BT_GATT_ITER_STOP (探索を続けない)
@@ -497,7 +497,7 @@ static void start_time_discovery(struct bt_conn *conn, struct node *node)
 }
 
 /**
- * ノードの時刻の特性に, 時刻を書き込む (応答つきの書き込み)
+ * ノードの時刻の特性に時刻を書き込む (応答つきの書き込み)
  *
  * 次に書き込む時刻は, 成功したと見て, TIME_RESYNC_S 後にする. 始められなかったときと, ノードが
  * 拒否したとき (write_time_cb()) は, TIME_RETRY_S 後にする.
@@ -550,9 +550,9 @@ static void write_time_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_writ
 /**
  * ノードに時刻を書き込む処理 (システムのワークキューで実行する)
  *
- * 時刻の特性を見つけたノードに, 書き込む時刻になっていれば, 書き込む. 時刻がまだわからない
+ * 時刻の特性を見つけたノードに書き込む時刻になっていれば, 書き込む. 時刻がまだわからない
  * (SNTP で同期していない) ときは, 見送る. 該当するノードがある間は, TIME_CHECK_S ごとに,
- * 自分を, もう一度動かす (ノードがいなくなったら, 止まる).
+ * 自分をもう一度動かす (ノードがいなくなったら, 止まる).
  *
  * @param[in] work 使用しない
  */
@@ -670,7 +670,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
  *
  * スキャンのコールバックの中でスキャンを止めたり, 接続を始めたりすると, スキャンの開始と
  * 重なって, スキャンを止められない (EBUSY) ことがある. そのため, コールバックでは, 依頼を
- * 記録するだけにして, スキャンの停止と, 接続はここで行う. EBUSY のときは, 少し待って, やり直す.
+ * 記録するだけにして, スキャンの停止と接続はここで行う. EBUSY のときは, 少し待って, やり直す.
  *
  * @param[in] work 使用しない
  */

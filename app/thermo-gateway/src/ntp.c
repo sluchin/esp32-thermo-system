@@ -42,7 +42,7 @@ static int resolve_server(const char *server, struct sockaddr_storage *addr, soc
  * @param[in] timeout 応答を待つ時間
  * @retval EXIT_SUCCESS    同期した (または同期済み)
  * @retval -EHOSTUNREACH   サーバの名前を解決できなかった
- * @retval -ETIMEDOUT      時間内に, 応答がなかった
+ * @retval -ETIMEDOUT      時間内に応答がなかった
  * @retval negative        問い合わせ, または時計の設定の失敗 (負の errno)
  */
 int ntp_sync(const char *server, k_timeout_t timeout)

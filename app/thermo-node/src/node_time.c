@@ -10,7 +10,7 @@
  *
  * RTC のデバイスは, Devicetree の alias thermo-rtc で選ぶ. PCF8563 のドライバは, このアプリの
  * drivers/rtc_pcf8563.c (Zephyr v4.3 のドライバは, 月と年の扱いがチップと合わないので使わない).
- * このファイルは, RTC の時刻 (UTC) と UNIX 時刻の換算と, ローカルタイムへの変換を受け持つ.
+ * このファイルは, RTC の時刻 (UTC) と UNIX 時刻の換算とローカルタイムへの変換を受け持つ.
  */
 
 #include <zephyr/logging/log.h>
@@ -42,19 +42,19 @@ LOG_MODULE_REGISTER(node_time_thermo_node, THERMO_LOG_LEVEL);
 #define UNIX_TIME_MIN      946684800LL
 /** 2099-12-31 23:59:59 UTC の UNIX 時刻 [s] (設定できる最大の時刻) */
 #define UNIX_TIME_MAX      4102444799LL
-/** 0000-03-01 から 1970-01-01 までの日数 (日付の計算の基準を, 1970-01-01 に直すための値) */
+/** 0000-03-01 から 1970-01-01 までの日数 (日付の計算の基準を 1970-01-01 に直すための値) */
 #define DAYS_TO_EPOCH      719468LL
 /** 400 年 (グレゴリオ暦の周期) の日数 */
 #define DAYS_PER_ERA       146097LL
 /** 1 年 (3 月始まり) の日数 */
 #define DAYS_PER_YEAR      365LL
-/** 4 年の日数の, うるう日を除いた, 4 年ごとの割り算の値 */
+/** 4 年の日数のうるう日を除いた, 4 年ごとの割り算の値 */
 #define YEARS_PER_LEAP     4LL
-/** 100 年ごとの, うるう日を除く割り算の値 */
+/** 100 年ごとのうるう日を除く割り算の値 */
 #define YEARS_PER_CENTURY  100LL
 /** グレゴリオ暦の周期 [年] */
 #define YEARS_PER_ERA      400LL
-/** 3 月始まりの, 5 か月 (3 月から 7 月) の日数 (月と日数の換算の係数) */
+/** 3 月始まりの 5 か月 (3 月から 7 月) の日数 (月と日数の換算の係数) */
 #define DAYS_PER_5_MONTHS  153LL
 
 /** Devicetree (alias thermo-rtc) から取得した RTC のデバイス */
@@ -69,7 +69,7 @@ static void civil_from_days(int64_t days, int64_t *year, int64_t *month, int64_t
 /**
  * @brief RTC を初期化する
  *
- * RTC の時刻を, 1 回だけ読みにいって, つながっているかを確認する. 時刻が未設定
+ * RTC の時刻を 1 回だけ読みにいって, つながっているかを確認する. 時刻が未設定
  * (電圧低下のビットが 1) のときも, RTC はあるので, 成功とする.
  *
  * @retval EXIT_SUCCESS 成功 (時刻が未設定でもよい)
@@ -101,9 +101,9 @@ int node_time_init(void)
 }
 
 /**
- * @brief RTC の時刻を, ローカルタイムで読む
+ * @brief RTC の時刻をローカルタイムで読む
  *
- * RTC の UTC に, CONFIG_THERMO_UTC_OFFSET_MIN を足して, 年月日と時分秒に直す.
+ * RTC の UTC に CONFIG_THERMO_UTC_OFFSET_MIN を足して, 年月日と時分秒に直す.
  *
  * @param[out] local 日時の格納先 (NULL 不可. 失敗したときは valid が false)
  *
@@ -146,7 +146,7 @@ int node_time_get(struct node_datetime *local)
 /**
  * @brief RTC に時刻を設定する
  *
- * UNIX 時刻を, 年月日と時分秒と曜日に直して, RTC のドライバ (rtc_set_time) に渡す.
+ * UNIX 時刻を年月日と時分秒と曜日に直して, RTC のドライバ (rtc_set_time) に渡す.
  *
  * @param[in] unix_s UTC の UNIX 時刻 [s] (2000-01-01 から 2099-12-31 まで)
  *
@@ -228,7 +228,7 @@ static int read_utc(int64_t *unix_s)
 /**
  * グレゴリオ暦の日付から, 1970-01-01 からの日数を求める
  *
- * 1 月と 2 月を, 前の年の 13 月と 14 月として数える方法 (3 月始まり) で, うるう日が, 年の最後に
+ * 1 月と 2 月を前の年の 13 月と 14 月として数える方法 (3 月始まり) で, うるう日が年の最後に
  * 来るようにして, 400 年ごとの周期で計算する (H. Hinnant の civil 日付のアルゴリズム).
  * 1970 年以降の日付だけを扱う. 式の中の小さな数 (2, 3, 5, 9, 12 など) は, このアルゴリズムの
  * 定数 (月の並びの規則) なので, 名前を付けていない.

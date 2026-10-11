@@ -10,12 +10,12 @@
  *
  * 表示装置を偽のもの (vnd,test-display) に置き換えて, CFB の関数を FFF のモックにして,
  * 次を確認する.
- *  - oled_init() が, 正しい順序で初期化して, 各段階の失敗を返すこと
- *  - oled_show() が, 温度, 湿度, 日付, 時刻の行を, 正しい文字列と位置で描いて, 画面を更新すること
+ *  - oled_init() が正しい順序で初期化して, 各段階の失敗を返すこと
+ *  - oled_show() が温度, 湿度, 日付, 時刻の行を正しい文字列と位置で描いて, 画面を更新すること
  *    (負の温度, 測定値なし, 湿度なし, 時刻なし, 日時なし, 各段階の失敗)
- *  - 起動画面 (oled_show_boot) が, 題名, ドット, 走る絵, 追う絵を, 正しい位置に描くこと
+ *  - 起動画面 (oled_show_boot) が題名, ドット, 走る絵, 追う絵を正しい位置に描くこと
  *    (はみ出しの切り取り, 口の開き方, フレームの範囲, 各段階の失敗)
- *  - 温度と湿度のグラフのページが, 履歴の最小と最大の文字列と, 折れ線 (位置) を描くこと
+ *  - 温度と湿度のグラフのページが履歴の最小と最大の文字列と折れ線 (位置) を描くこと
  *    (履歴なし, 点が 1 つ, 縦軸の最小の幅, 各段階の失敗)
  */
 
@@ -85,11 +85,11 @@ FAKE_VALUE_FUNC(int, cfb_draw_line, const struct device *, const struct cfb_posi
 /** グラフの点の最大の数 */
 #define MAX_DRAWN HISTORY_SIZE
 
-/** 起動画面で, 1 フレームに描く点の最大の数 (走る絵と, 追う絵と, ドット) */
+/** 起動画面で, 1 フレームに描く点の最大の数 (走る絵と追う絵とドット) */
 #define MAX_POINTS 700U
-/** 起動画面の, 最後のフレームの番号 */
+/** 起動画面の最後のフレームの番号 */
 #define LAST_FRAME (OLED_BOOT_FRAMES - 1U)
-/** 起動画面の, 題名を出す x 座標 (幅 128 ドットの中央. 題名は 11 文字 x 10 ドット) */
+/** 起動画面の題名を出す x 座標 (幅 128 ドットの中央. 題名は 11 文字 x 10 ドット) */
 #define TITLE_X    9U
 
 /** 偽の表示装置の画素の形式の設定の戻り値 */
@@ -108,7 +108,7 @@ static struct cfb_position drawn_points[MAX_POINTS];
 static struct cfb_position line_from[MAX_DRAWN];
 /** cfb_draw_line() が描いた線の終点 (呼ばれた順) */
 static struct cfb_position line_to[MAX_DRAWN];
-/** cfb_print() が, 1 回目から 4 回目までに返す値 */
+/** cfb_print() が 1 回目から 4 回目までに返す値 */
 static int print_ret[PRINT_LINES];
 /** 設定済みの日時 (2026-10-08 14:05:09) */
 static const struct node_datetime time_valid = {
@@ -225,7 +225,7 @@ static int fake_draw_line(const struct device *dev, const struct cfb_position *s
 }
 
 /**
- * 各テストの前に, モックと偽の表示装置を, 正常な状態に戻す
+ * 各テストの前にモックと偽の表示装置を正常な状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -264,7 +264,7 @@ ZTEST(oled, test_init_success)
     /* 期待: 成功して, 各段階を 1 回ずつ行う */
     zassert_equal(oled_init(), EXIT_SUCCESS);
     zassert_equal(pixel_format_set, PIXEL_FORMAT_MONO10);
-    /* やり直しのときに, 前のフレームバッファを解放するため, 初期化の前に, 解放する */
+    /* やり直しのときに, 前のフレームバッファを解放するため, 初期化の前に解放する */
     zassert_equal(cfb_framebuffer_deinit_fake.call_count, 1U);
     zassert_equal(cfb_framebuffer_init_fake.call_count, 1U);
     zassert_equal(cfb_framebuffer_set_font_fake.call_count, 1U);
@@ -365,7 +365,7 @@ static int show_with_time(const struct node_datetime *datetime)
     return oled_show(&view);
 }
 
-/** 温度と湿度を, 1 行目と 2 行目に描いて, 最後に画面を更新する (日時なしなら 2 行だけ) */
+/** 温度と湿度を 1 行目と 2 行目に描いて, 最後に画面を更新する (日時なしなら 2 行だけ) */
 ZTEST(oled, test_show_success)
 {
     /* 期待: 成功して, 画面を消さずに (false), 2 行を描いて, 更新する */
@@ -388,7 +388,7 @@ ZTEST(oled, test_show_negative_temperature)
     zassert_str_equal(printed[0], "Temp -3.5 C");
 }
 
-/** 整数部が 0 の, 0 ℃ 未満の温度 (-0.5 ℃) も, 符号を落とさずに描く */
+/** 整数部が 0 の 0 ℃ 未満の温度 (-0.5 ℃) も, 符号を落とさずに描く */
 ZTEST(oled, test_show_negative_fraction)
 {
     zassert_equal(show_sample(TEMP_M0_5_X10, HUMIDITY_45_X10), EXIT_SUCCESS);
@@ -417,7 +417,7 @@ ZTEST(oled, test_show_no_sample)
     zassert_str_equal(printed[1], "Humi --.- %");
 }
 
-/** 設定済みの日時は, 1 行目に日付, 2 行目に時刻, その下に, 温度と湿度を描く */
+/** 設定済みの日時は, 1 行目に日付, 2 行目に時刻, その下に温度と湿度を描く */
 ZTEST(oled, test_show_time)
 {
     zassert_equal(show_with_time(&time_valid), EXIT_SUCCESS);
@@ -482,7 +482,7 @@ ZTEST(oled, test_show_finalize_failure)
 }
 
 /**
- * 履歴に, 区切りごとに 1 点ずつ, 値を加える
+ * 履歴に区切りごとに 1 点ずつ, 値を加える
  *
  * @param[out] h      履歴 (0 で初期化する)
  * @param[in]  values 値 (古い順)
@@ -516,11 +516,11 @@ static int show_graph(unsigned int page, const struct history *history)
     return oled_show(&view);
 }
 
-/** 温度のグラフは, 1 行目に最小と最大, その下に, 右端が最新の折れ線を描く */
+/** 温度のグラフは, 1 行目に最小と最大, その下に右端が最新の折れ線を描く */
 ZTEST(oled, test_graph_temperature)
 {
-    static struct history h; /* 履歴 */
-    const int16_t values[] = {200, 250, 225};
+    static struct history h;                  /* 履歴 */
+    const int16_t values[] = {200, 250, 225}; /* 履歴に入れる温度 [℃ の 10 倍] */
 
     fill_history(&h, values, ARRAY_SIZE(values));
     zassert_equal(show_graph(OLED_PAGE_TEMP_GRAPH, &h), EXIT_SUCCESS);
@@ -545,8 +545,8 @@ ZTEST(oled, test_graph_temperature)
 /** 湿度のグラフは, 湿度の履歴を描いて, 単位は % */
 ZTEST(oled, test_graph_humidity)
 {
-    static struct history h; /* 履歴 */
-    const int16_t values[] = {450, 520};
+    static struct history h;             /* 履歴 */
+    const int16_t values[] = {450, 520}; /* 履歴に入れる湿度 [% の 10 倍] */
 
     fill_history(&h, values, ARRAY_SIZE(values));
     zassert_equal(show_graph(OLED_PAGE_HUMIDITY_GRAPH, &h), EXIT_SUCCESS);
@@ -555,11 +555,11 @@ ZTEST(oled, test_graph_humidity)
     zassert_equal(cfb_draw_line_fake.call_count, 1U);
 }
 
-/** 履歴の途中に, 最小と最大があっても, 最小と最大を, 正しく見つける (負の温度も) */
+/** 履歴の途中に最小と最大があっても, 最小と最大を正しく見つける (負の温度も) */
 ZTEST(oled, test_graph_extremes_and_negative)
 {
-    static struct history h; /* 履歴 */
-    const int16_t values[] = {-10, -35, 15, -5};
+    static struct history h;                     /* 履歴 */
+    const int16_t values[] = {-10, -35, 15, -5}; /* 履歴に入れる温度 [℃ の 10 倍] */
 
     fill_history(&h, values, ARRAY_SIZE(values));
     zassert_equal(show_graph(OLED_PAGE_TEMP_GRAPH, &h), EXIT_SUCCESS);
@@ -586,8 +586,8 @@ ZTEST(oled, test_graph_no_data)
 /** 点が 1 つなら, 線は描かずに, 右端に点を描く */
 ZTEST(oled, test_graph_single_point)
 {
-    static struct history h; /* 履歴 */
-    const int16_t values[] = {235};
+    static struct history h;        /* 履歴 */
+    const int16_t values[] = {235}; /* 履歴に入れる温度 [℃ の 10 倍] */
 
     fill_history(&h, values, ARRAY_SIZE(values));
     zassert_equal(show_graph(OLED_PAGE_TEMP_GRAPH, &h), EXIT_SUCCESS);
@@ -601,8 +601,8 @@ ZTEST(oled, test_graph_single_point)
 /** 変化が小さいとき (1.0 ℃ 未満) は, 縦軸の幅を 1.0 ℃ にして, 拡大しすぎない */
 ZTEST(oled, test_graph_small_range_is_not_magnified)
 {
-    static struct history h; /* 履歴 */
-    const int16_t values[] = {200, 203};
+    static struct history h;             /* 履歴 */
+    const int16_t values[] = {200, 203}; /* 履歴に入れる温度 [℃ の 10 倍] */
 
     fill_history(&h, values, ARRAY_SIZE(values));
     zassert_equal(show_graph(OLED_PAGE_TEMP_GRAPH, &h), EXIT_SUCCESS);
@@ -614,8 +614,8 @@ ZTEST(oled, test_graph_small_range_is_not_magnified)
 /** 最小と最大の行を描くのに失敗したら, その値を返し, 折れ線は描かない */
 ZTEST(oled, test_graph_print_failure)
 {
-    static struct history h; /* 履歴 */
-    const int16_t values[] = {200, 250};
+    static struct history h;             /* 履歴 */
+    const int16_t values[] = {200, 250}; /* 履歴に入れる温度 [℃ の 10 倍] */
 
     fill_history(&h, values, ARRAY_SIZE(values));
     print_ret[0] = -EINVAL;
@@ -628,8 +628,8 @@ ZTEST(oled, test_graph_print_failure)
 /** 最初の点を描くのに失敗したら, その値を返し, 画面は更新しない */
 ZTEST(oled, test_graph_draw_point_failure)
 {
-    static struct history h; /* 履歴 */
-    const int16_t values[] = {200, 250};
+    static struct history h;             /* 履歴 */
+    const int16_t values[] = {200, 250}; /* 履歴に入れる温度 [℃ の 10 倍] */
 
     fill_history(&h, values, ARRAY_SIZE(values));
     cfb_draw_point_fake.custom_fake = NULL;
@@ -643,8 +643,8 @@ ZTEST(oled, test_graph_draw_point_failure)
 /** 線を描くのに失敗したら, その値を返し, 画面は更新しない */
 ZTEST(oled, test_graph_draw_line_failure)
 {
-    static struct history h; /* 履歴 */
-    const int16_t values[] = {200, 250, 300};
+    static struct history h;                  /* 履歴 */
+    const int16_t values[] = {200, 250, 300}; /* 履歴に入れる温度 [℃ の 10 倍] */
 
     fill_history(&h, values, ARRAY_SIZE(values));
     cfb_draw_line_fake.custom_fake = NULL;
@@ -656,7 +656,7 @@ ZTEST(oled, test_graph_draw_line_failure)
 }
 
 /**
- * 絵の, 点灯しているドットの数を数える
+ * 絵の点灯しているドットの数を数える
  *
  * @param[in] sprite 絵
  * @return 点灯しているドットの数
@@ -679,7 +679,7 @@ static unsigned int count_lit(const struct boot_sprite *sprite)
 }
 
 /**
- * 起動画面の, あるフレームの, 走る絵の口の種類 (閉じる 0, 半分 1, 開く 2, 半分 1 の繰り返し)
+ * 起動画面のあるフレームの走る絵の口の種類 (閉じる 0, 半分 1, 開く 2, 半分 1 の繰り返し)
  *
  * @param[in] frame フレームの番号
  * @return boot_chomper の添字
@@ -692,9 +692,9 @@ static unsigned int mouth_of(unsigned int frame)
 }
 
 /**
- * 起動画面の, あるフレームで, まだ食べられていないドットの数
+ * 起動画面のあるフレームで, まだ食べられていないドットの数
  *
- * 走る絵の x 座標は, -16 + 3 * frame. 絵の中心 (x + 8) より右のドットが, 残っている.
+ * 走る絵の x 座標は, -16 + 3 * frame. 絵の中心 (x + 8) より右のドットが残っている.
  * ドットは, x = 4 + 8 * k (k は 0 から 15).
  *
  * @param[in] frame フレームの番号
@@ -715,11 +715,11 @@ static unsigned int dots_left(unsigned int frame)
     return left;
 }
 
-/** 起動画面のフレームは, 題名 (中央), ドット, 走る絵, 追う絵を描いて, 最後に, 画面を更新する */
+/** 起動画面のフレームは, 題名 (中央), ドット, 走る絵, 追う絵を描いて, 最後に画面を更新する */
 ZTEST(oled, test_boot_frame_draws_everything)
 {
     const unsigned int frame = 20U; /* 走る絵の x = -16 + 3 * 20 = 44. 口は閉じている */
-    /* 走る絵の中心 (52) より右のドット (x = 60, 68, ..., 124 の 9 個) が, 4 点ずつ */
+    /* 走る絵の中心 (52) より右のドット (x = 60, 68, ..., 124 の 9 個) が 4 点ずつ */
     const unsigned int expected = count_lit(&boot_chomper[mouth_of(frame)]) +
                                   count_lit(&boot_chaser) + (dots_left(frame) * 4U);
 
@@ -749,7 +749,7 @@ ZTEST(oled, test_boot_first_frame_clips_sprites_left)
     }
 }
 
-/** 右の端の近くでは, 走る絵の, 画面からはみ出す部分は, 描かない (切り取る) */
+/** 右の端の近くでは, 走る絵の画面からはみ出す部分は, 描かない (切り取る) */
 ZTEST(oled, test_boot_frame_clips_sprites_right)
 {
     const unsigned int frame = 47U; /* 走る絵の x = -16 + 3 * 47 = 125. 3 列だけが, 画面の中 */
@@ -765,10 +765,10 @@ ZTEST(oled, test_boot_frame_clips_sprites_right)
     }
 }
 
-/** 口は, 閉じる, 半分, 開く, 半分の順に, フレームごとに, 変わる (点の数が, 絵ごとに違う) */
+/** 口は, 閉じる, 半分, 開く, 半分の順にフレームごとに, 変わる (点の数が絵ごとに違う) */
 ZTEST(oled, test_boot_frame_mouth_cycle)
 {
-    /* 走る絵と追う絵が, どちらも画面の中にある範囲 (フレーム 15 から 42) の 4 フレームを比べる */
+    /* 走る絵と追う絵がどちらも画面の中にある範囲 (フレーム 15 から 42) の 4 フレームを比べる */
     const unsigned int first = 20U;
     unsigned int frame = 0U; /* フレームの番号 */
 
@@ -783,7 +783,7 @@ ZTEST(oled, test_boot_frame_mouth_cycle)
     }
 }
 
-/** 最後のフレームより先の番号は, 最後のフレームと, 同じにする */
+/** 最後のフレームより先の番号は, 最後のフレームと同じにする */
 ZTEST(oled, test_boot_frame_clamps_to_last_frame)
 {
     unsigned int expected = 0U; /* 最後のフレームで描いた点の数 */
@@ -833,7 +833,7 @@ ZTEST(oled, test_boot_chomper_failure)
     cfb_draw_point_fake.custom_fake = NULL;
     cfb_draw_point_fake.return_val = -EIO;
 
-    /* フレーム 47: ドットは, 全部, 食べられた. 走る絵が, 最初に描く */
+    /* フレーム 47: ドットは, 全部, 食べられた. 走る絵が最初に描く */
     zassert_equal(oled_show_boot(47U), -EIO);
     zassert_equal(cfb_draw_point_fake.call_count, 1U);
 }

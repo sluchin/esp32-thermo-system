@@ -28,7 +28,7 @@
 #include "cloud.h"
 
 /**
- * `thermo set <項目> <値>`: 設定の値を, フラッシュに保存する
+ * `thermo set <項目> <値>`: 設定の値をフラッシュに保存する
  *
  * @param[in] sh   シェル
  * @param[in] argc 引数の数 (3)
@@ -90,7 +90,7 @@ static int cmd_show(const struct shell *sh, size_t argc, char **argv)
 }
 
 /**
- * `thermo save-certs`: 登録した証明書を, フラッシュに保存する
+ * `thermo save-certs`: 登録した証明書をフラッシュに保存する
  *
  * @param[in] sh   シェル
  * @param[in] argc 使用しない
@@ -136,7 +136,7 @@ static int cmd_apply(const struct shell *sh, size_t argc, char **argv)
 }
 
 /**
- * `thermo reset`: 設定と証明書を, 全て消す
+ * `thermo reset`: 設定と証明書を全て消す
  *
  * @param[in] sh   シェル
  * @param[in] argc 使用しない

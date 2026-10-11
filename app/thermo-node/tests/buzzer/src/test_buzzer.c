@@ -9,12 +9,12 @@
  * @brief buzzer.c の単体テスト
  *
  * PWM のコントローラを偽のもの (vnd,test-pwm) に置き換えて, 次を確認する.
- *  - buzzer_init() が, PWM のデバイスの状態を返すこと
- *  - buzzer_play() が, メロディの音を, 順に, 周波数に合った周期 (デューティ比は 50%) で鳴らして,
- *    休符 (周波数 0) と最後に, 音を消すこと. 音の長さの分だけ, 次の音まで待つこと
- *  - 鳴らしている途中に, 新しいメロディを渡すと, 今のメロディを止めて, 最初から鳴らすこと
+ *  - buzzer_init() が PWM のデバイスの状態を返すこと
+ *  - buzzer_play() がメロディの音を順に周波数に合った周期 (デューティ比は 50%) で鳴らして,
+ *    休符 (周波数 0) と最後に音を消すこと. 音の長さの分だけ, 次の音まで待つこと
+ *  - 鳴らしている途中に新しいメロディを渡すと, 今のメロディを止めて, 最初から鳴らすこと
  *  - 音を鳴らせなかったときは, メロディを止めること
- *  - 音名の表 (notes.h) が, 平均律の値であること
+ *  - 音名の表 (notes.h) が平均律の値であること
  */
 
 /** 偽の PWM コントローラのドライバが使う compatible (vnd,test-pwm) */
@@ -33,7 +33,7 @@
 
 /** 記録する PWM の設定の最大の数 */
 #define MAX_CALLS      16U
-/** 偽の PWM の, 1 秒あたりのサイクル数 (1 GHz にして, サイクル数を, ナノ秒と同じにする) */
+/** 偽の PWM の 1 秒あたりのサイクル数 (1 GHz にして, サイクル数をナノ秒と同じにする) */
 #define CYCLES_PER_SEC 1000000000ULL
 /** メロディの 1 つ目の音の長さ [ms] */
 #define NOTE1_MS       100U
@@ -41,7 +41,7 @@
 #define REST_MS        50U
 /** メロディの 3 つ目の音の長さ [ms] */
 #define NOTE3_MS       200U
-/** 音を鳴らす処理が, 動くのを待つ時間 [ms] */
+/** 音を鳴らす処理が動くのを待つ時間 [ms] */
 #define SETTLE_MS      5
 
 /** 偽の PWM に設定された 1 回ぶん */
@@ -119,7 +119,7 @@ static const struct buzzer_note melody[] = {
 };
 
 /**
- * 各テストの前に, 偽の PWM を, 正常な状態に戻して, 鳴らしているメロディを止める
+ * 各テストの前に偽の PWM を正常な状態に戻して, 鳴らしているメロディを止める
  *
  * @param[in] fixture 使用しない
  */
@@ -151,7 +151,7 @@ ZTEST(buzzer, test_init_not_ready)
     zassert_equal(buzzer_init(), -ENODEV);
 }
 
-/** メロディを, 順に鳴らして, 周期は 1 秒 / 周波数, 休符で音を消し, 最後にも消す */
+/** メロディを順に鳴らして, 周期は 1 秒 / 周波数, 休符で音を消し, 最後にも消す */
 ZTEST(buzzer, test_play_plays_notes_in_order)
 {
     zassert_equal(buzzer_play(melody, ARRAY_SIZE(melody)), EXIT_SUCCESS);
@@ -191,10 +191,10 @@ ZTEST(buzzer, test_play_empty_melody_silences)
     zassert_equal(calls[0].pulse, 0U);
 }
 
-/** 鳴らしている途中に, 新しいメロディを渡すと, 最初から鳴らす */
+/** 鳴らしている途中に新しいメロディを渡すと, 最初から鳴らす */
 ZTEST(buzzer, test_play_restarts_melody)
 {
-    static const struct buzzer_note other[] = {{2000U, NOTE1_MS}};
+    static const struct buzzer_note other[] = {{2000U, NOTE1_MS}}; /* 途中で渡す, 別のメロディ */
 
     zassert_equal(buzzer_play(melody, ARRAY_SIZE(melody)), EXIT_SUCCESS);
     k_msleep(SETTLE_MS);
@@ -225,7 +225,7 @@ ZTEST(buzzer, test_play_stops_on_pwm_failure)
     zassert_equal(call_count, 1U);
 }
 
-/** 音名の表が, 平均律 (A4 = 440 Hz) の値で, オクターブごとに, 2 倍になること */
+/** 音名の表が平均律 (A4 = 440 Hz) の値で, オクターブごとに, 2 倍になること */
 ZTEST(buzzer, test_notes_table)
 {
     zassert_equal(NOTE_REST, 0U);

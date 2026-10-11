@@ -33,7 +33,7 @@ typedef void (*ble_temperature_cb_t)(const bt_addr_le_t *addr, int16_t temp_x10,
  * @brief SwitchBot 屋外用温湿度計のアドバタイズを受信したときのコールバックの型
  *
  * Bluetooth のスレッドから呼ばれるので, 時間のかかる処理は書かないこと.
- * サービスデータ (機種, 電池残量) と, 製造者データ (温度, 湿度) は別々に届くので,
+ * サービスデータ (機種, 電池残量) と製造者データ (温度, 湿度) は別々に届くので,
  * どちらもこのコールバックに渡す (間引きは switchbot_accept() が行う).
  *
  * @param[in] addr 機器のアドレス

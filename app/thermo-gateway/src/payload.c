@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief MQTT のトピックと, ペイロード (JSON) の生成
+ * @brief MQTT のトピックとペイロード (JSON) の生成
  */
 
 #include <errno.h>    /* ENOSPC */
@@ -55,8 +55,8 @@ int payload_format_topic(char *buf, size_t size, const char *client_id, const bt
  *
  * 形式は `{"node":"<アドレス>","type":"thermo","temperature_c":<℃>,"humidity":<%>,
  * "uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX 時刻 [s]>}`. 湿度がないとき
- * (THERMO_HUMIDITY_NONE) は "humidity" を, UNIX 時刻がわからないとき (unix_s が負) は
- * "timestamp" を, 出力しない. 温度と湿度は, 10 分の 1 の桁まで (例: -3.5, 45.0).
+ * (THERMO_HUMIDITY_NONE) は "humidity" を UNIX 時刻がわからないとき (unix_s が負) は
+ * "timestamp" を出力しない. 温度と湿度は, 10 分の 1 の桁まで (例: -3.5, 45.0).
  *
  * @param[out] buf          出力先 (NUL で終わる)
  * @param[in]  size         buf のサイズ
@@ -119,7 +119,7 @@ int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id
  *
  * 形式は `{"node":"<アドレス>","type":"switchbot","temperature_c":<℃>,"humidity":<%>,
  * "battery":<%>,"uptime_ms":<稼働時間 [ms]>,"timestamp":<UNIX 時刻 [s]>}`. 電池残量が
- * わからないときは "battery" を, UNIX 時刻がわからないとき (unix_s が負) は "timestamp" を,
+ * わからないときは "battery" を UNIX 時刻がわからないとき (unix_s が負) は "timestamp" を,
  * 出力しない. 温度は 10 分の 1 ℃ の桁まで (例: -3.5, 23.4).
  *
  * @param[out] buf       出力先 (NUL で終わる)

@@ -61,8 +61,8 @@ FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, int16_t, u
 #define WAIT_CYCLES       3
 
 /**
- * 関数のアドレス (fff.call_history の要素と, 比べる)
- * (関数ポインタをオブジェクトポインタへ, 直接キャストすることは, ISO C では許されない)
+ * 関数のアドレス (fff.call_history の要素と比べる)
+ * (関数ポインタをオブジェクトポインタへ直接キャストすることは, ISO C では許されない)
  */
 #define FUNCTION_ADDRESS(f) ((void *)(uintptr_t)(f))
 
@@ -229,7 +229,7 @@ ZTEST(main_gateway, test_main_loop)
     zassert_equal(ble_set_time_source_fake.call_count, 1U);
     zassert_equal(ble_set_time_source_fake.arg0_val, ntp_unix_time);
 
-    /* 温度のコールバックは, ノードのアドレスと温度と湿度を, クラウドの送信のキューに渡す */
+    /* 温度のコールバックは, ノードのアドレスと温度と湿度をクラウドの送信のキューに渡す */
     ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_TEMP_X10, TEST_HUMIDITY_X10);
     zassert_equal(cloud_publish_temperature_fake.call_count, 1U);
     zassert_equal(cloud_publish_temperature_fake.arg0_val, &test_addr);
@@ -288,7 +288,7 @@ ZTEST(main_gateway, test_switchbot_dropped_by_interval)
     zassert_equal(cloud_publish_switchbot_fake.call_count, 0U);
 }
 
-/** 0 ℃ 未満の値と, クラウドに渡せなかった (キューが満杯) 場合もログに出すだけで, 問題なく戻る */
+/** 0 ℃ 未満の値とクラウドに渡せなかった (キューが満杯) 場合もログに出すだけで, 問題なく戻る */
 ZTEST(main_gateway, test_switchbot_negative_and_queue_full)
 {
     const struct switchbot_ad ad = {.kind = SWITCHBOT_ENV}; /* 広告データ */

@@ -8,14 +8,14 @@
  * @file
  * @brief PCF8563 の RTC ドライバ (Zephyr の RTC API の set_time と get_time だけを実装する)
  *
- * Zephyr v4.3 の RTC ドライバ (rtc_pcf8563.c) は, 月 (0 から 11 の検証で, 12 月が通らないのに,
- * レジスタには, そのまま書く) と年 (1900 年からの年数を, そのまま BCD にする) の扱いが, チップ
- * (月は 1 から 12, 年は 00 から 99) と合っていないので使わない. このドライバは, Zephyr の
- * rtc_time (tm_mon は 0 から 11, tm_year は 1900 年からの年数) を, レジスタの値に正しく直す.
- * 扱える年は, 2000 年から 2099 年まで (世紀のビットは, 書くときは 0 で, 読むときは無視する).
- * アラームと割り込みは, 実装しない.
+ * Zephyr v4.3 の RTC ドライバ (rtc_pcf8563.c) は月と年の扱いがチップ (月は 1 から 12, 年は 00
+ * から 99) と合っていないので使わない. 月は 0 から 11 の検証で 12 月が通らないのに,
+ * レジスタにはそのまま書く. 年は 1900 年からの年数をそのまま BCD にする. このドライバは, Zephyr
+ * の rtc_time (tm_mon は 0 から 11, tm_year は 1900 年からの年数) をレジスタの値に正しく直す.
+ * 扱える年は 2000 年から 2099 年まで (世紀のビットは, 書くときは 0 で, 読むときは無視する).
+ * アラームと割り込みは実装しない.
  *
- * Devicetree の compatible は thermo,pcf8563 (nxp,pcf8563 は, Zephyr のドライバと重なる).
+ * Devicetree の compatible は thermo,pcf8563 (nxp,pcf8563 は Zephyr のドライバと重なる).
  */
 
 /** このドライバが扱う Devicetree の compatible (thermo,pcf8563) */
@@ -38,41 +38,41 @@ LOG_MODULE_REGISTER(rtc_pcf8563_thermo_node, THERMO_LOG_LEVEL);
 
 /** 制御レジスタ 1 のアドレス (bit 5 の STOP が 1 だと, 時計が止まる) */
 #define PCF8563_REG_CONTROL1 0x00U
-/** 秒のレジスタのアドレス (ここから, 秒, 分, 時, 日, 曜日, 月, 年の 7 バイト) */
+/** 秒のレジスタのアドレス (秒, 分, 時, 日, 曜日, 月, 年の 7 バイトがここから並ぶ) */
 #define PCF8563_REG_SECONDS  0x02U
 /** 時刻のレジスタの数 [バイト] */
 #define PCF8563_TIME_BYTES   7U
-/** 秒のレジスタの, 電圧低下 (VL) のビット (1 のとき, 時刻が信用できない) */
+/** 秒のレジスタの電圧低下 (VL) のビット (1 のとき, 時刻が信用できない) */
 #define PCF8563_VL_BIT       0x80U
-/** 秒のレジスタの, 秒の値のマスク */
+/** 秒のレジスタの秒の値のマスク */
 #define PCF8563_MASK_SECOND  0x7FU
-/** 分のレジスタの, 分の値のマスク */
+/** 分のレジスタの分の値のマスク */
 #define PCF8563_MASK_MINUTE  0x7FU
-/** 時のレジスタの, 時の値のマスク */
+/** 時のレジスタの時の値のマスク */
 #define PCF8563_MASK_HOUR    0x3FU
-/** 日のレジスタの, 日の値のマスク */
+/** 日のレジスタの日の値のマスク */
 #define PCF8563_MASK_DAY     0x3FU
-/** 曜日のレジスタの, 曜日の値のマスク */
+/** 曜日のレジスタの曜日の値のマスク */
 #define PCF8563_MASK_WEEKDAY 0x07U
-/** 月のレジスタの, 月の値のマスク (bit 7 の世紀のビットは, 使わない) */
+/** 月のレジスタの月の値のマスク (bit 7 の世紀のビットは使わない) */
 #define PCF8563_MASK_MONTH   0x1FU
-/** 時刻のレジスタの並びの, 秒の位置 */
+/** 時刻のレジスタの並びの秒の位置 */
 #define IDX_SECOND           0U
-/** 時刻のレジスタの並びの, 分の位置 */
+/** 時刻のレジスタの並びの分の位置 */
 #define IDX_MINUTE           1U
-/** 時刻のレジスタの並びの, 時の位置 */
+/** 時刻のレジスタの並びの時の位置 */
 #define IDX_HOUR             2U
-/** 時刻のレジスタの並びの, 日の位置 */
+/** 時刻のレジスタの並びの日の位置 */
 #define IDX_DAY              3U
-/** 時刻のレジスタの並びの, 曜日の位置 */
+/** 時刻のレジスタの並びの曜日の位置 */
 #define IDX_WEEKDAY          4U
-/** 時刻のレジスタの並びの, 月の位置 */
+/** 時刻のレジスタの並びの月の位置 */
 #define IDX_MONTH            5U
-/** 時刻のレジスタの並びの, 年の位置 */
+/** 時刻のレジスタの並びの年の位置 */
 #define IDX_YEAR             6U
-/** 年のレジスタ 00 の, rtc_time の tm_year (2000 年 - 1900 年) */
+/** 年のレジスタ 00 の rtc_time の tm_year (2000 年 - 1900 年) */
 #define TM_YEAR_BASE         100
-/** 年のレジスタ 99 の, rtc_time の tm_year (2099 年 - 1900 年) */
+/** 年のレジスタ 99 の rtc_time の tm_year (2099 年 - 1900 年) */
 #define TM_YEAR_LAST         199
 /** 秒と分の最大 */
 #define MAX_SEC_MIN          59
@@ -108,7 +108,7 @@ static DEVICE_API(rtc, pcf8563_api) = {
  * @brief RTC に時刻を設定する
  *
  * 時計が止まっていたら動かして (制御レジスタ 1 を 0 にする), 時刻のレジスタに書く. 秒のレジスタを
- * 書くと, 電圧低下のビット (VL) が, 0 になる.
+ * 書くと, 電圧低下のビット (VL) が 0 になる.
  *
  * @param[in] dev     RTC のデバイス
  * @param[in] timeptr 設定する時刻 (tm_year は 100 から 199, tm_wday は 0 から 6 であること)
@@ -165,7 +165,7 @@ static int pcf8563_set_time(const struct device *dev, const struct rtc_time *tim
  * @param[out] timeptr 時刻の格納先 (tm_yday と tm_isdst は -1, tm_nsec は 0. 曜日が不正なら -1)
  *
  * @retval EXIT_SUCCESS 成功
- * @retval -ENODATA     時刻が未設定 (電圧低下のビットが 1), または, 値が範囲外
+ * @retval -ENODATA     時刻が未設定 (電圧低下のビットが 1) または値が範囲外
  * @retval negative     I2C の通信の失敗 (負の errno)
  */
 static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
@@ -183,7 +183,7 @@ static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
         return err;
     }
 
-    /* 電圧低下のビットが 1 のときは, 時刻が設定されていない (または, 電池が切れた) */
+    /* 電圧低下のビットが 1 のときは, 時刻が設定されていない (または電池が切れた) */
     if ((raw[IDX_SECOND] & PCF8563_VL_BIT) != 0U) {
         return -ENODATA;
     }
@@ -195,7 +195,7 @@ static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
     timeptr->tm_mon = bcd2bin(raw[IDX_MONTH] & PCF8563_MASK_MONTH) - 1;
     timeptr->tm_year = TM_YEAR_BASE + bcd2bin(raw[IDX_YEAR]);
 
-    /* 範囲外の値 (BCD として不正なビットなど) は, 信用しない */
+    /* 範囲外の値 (BCD として不正なビットなど) は信用しない */
     if (!is_in_range(timeptr->tm_sec, 0, MAX_SEC_MIN) ||
         !is_in_range(timeptr->tm_min, 0, MAX_SEC_MIN) ||
         !is_in_range(timeptr->tm_hour, 0, MAX_HOUR) || !is_in_range(timeptr->tm_mday, 1, MAX_DAY) ||
@@ -217,7 +217,7 @@ static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
 /**
  * @brief RTC のドライバを初期化する (I2C のバスが使えることを確認する)
  *
- * RTC とは通信しない (つながっているかの確認は, 時刻を読むときに分かる).
+ * RTC とは通信しない (つながっているかの確認は時刻を読むときに分かる).
  *
  * @param[in] dev RTC のデバイス
  *
@@ -239,7 +239,7 @@ static int pcf8563_init(const struct device *dev)
 }
 
 /**
- * 値が範囲に入っているかを調べる (数直線の順に, min <= value <= max と書く)
+ * 値が範囲に入っているかを調べる (数直線の順に min <= value <= max と書く)
  *
  * @param[in] value 調べる値
  * @param[in] min   範囲の最小 (この値を含む)
@@ -266,8 +266,8 @@ static bool is_in_range(int value, int min, int max)
                           CONFIG_RTC_INIT_PRIORITY, &pcf8563_api)
 
 /*
- * MISRA-C / -Wpedantic に従えない箇所: DEVICE_DT_INST_DEFINE() (Zephyr のマクロ) が,
- * 柔軟配列メンバー (nodelabels) を初期化する. このアプリのコードではなく, マクロの展開なので,
+ * MISRA-C / -Wpedantic に従えない箇所: DEVICE_DT_INST_DEFINE() (Zephyr のマクロ) が
+ * 柔軟配列メンバー (nodelabels) を初期化する. このアプリのコードではなくマクロの展開なので,
  * ここだけ警告を止める.
  */
 #pragma GCC diagnostic push

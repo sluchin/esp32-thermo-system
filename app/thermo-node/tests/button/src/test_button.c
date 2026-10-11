@@ -9,8 +9,8 @@
  * @brief button.c の単体テスト
  *
  * GPIO のコントローラを偽のもの (vnd,test-gpio) に置き換えて, 次を確認する.
- *  - button_init() が, ピンを入力に設定して, 失敗を返すこと
- *  - button_pressed() が, 押されていない状態から, 押された状態に変わったときだけ, true を返すこと
+ *  - button_init() がピンを入力に設定して, 失敗を返すこと
+ *  - button_pressed() が押されていない状態から, 押された状態に変わったときだけ, true を返すこと
  *    (押し続けても 1 回. 起動のときに押されていても, 押された動作ではない)
  */
 
@@ -28,20 +28,20 @@
 
 /** ボタンをつなぐピンの番号 (app.overlay) */
 #define BUTTON_PIN 3U
-/** 押されていないときの, 3 番ピンの入力の値 (プルアップ. 押すと 0) */
+/** 押されていないときの 3 番ピンの入力の値 (プルアップ. 押すと 0) */
 #define LEVEL_UP   BIT(BUTTON_PIN)
-/** 押されているときの, 3 番ピンの入力の値 */
+/** 押されているときの 3 番ピンの入力の値 */
 #define LEVEL_DOWN 0U
 
-/** 偽の GPIO コントローラの, ピンの設定の戻り値 */
+/** 偽の GPIO コントローラのピンの設定の戻り値 */
 static int configure_ret;
-/** 偽の GPIO コントローラが, 最後に設定されたフラグ */
+/** 偽の GPIO コントローラが最後に設定されたフラグ */
 static gpio_flags_t configured_flags;
-/** 偽の GPIO コントローラの, ポートの入力の値 */
+/** 偽の GPIO コントローラのポートの入力の値 */
 static uint32_t port_level;
-/** 偽の GPIO コントローラの, 共通のデータ (反転の設定を, gpio_pin_configure() が書く) */
+/** 偽の GPIO コントローラの共通のデータ (反転の設定を gpio_pin_configure() が書く) */
 static struct gpio_driver_data fake_data;
-/** 偽の GPIO コントローラの, 共通の設定 (全てのピンを使える) */
+/** 偽の GPIO コントローラの共通の設定 (全てのピンを使える) */
 static const struct gpio_driver_config fake_config = {.port_pin_mask = UINT32_MAX};
 
 /**
@@ -89,7 +89,7 @@ DEVICE_DT_INST_DEFINE(0, NULL, NULL, &fake_data, &fake_config, POST_KERNEL,
 static const struct device *const fake_port = DEVICE_DT_GET(DT_NODELABEL(test_gpio));
 
 /**
- * 各テストの前に, 偽の GPIO コントローラを, ボタンが押されていない状態に戻す
+ * 各テストの前に偽の GPIO コントローラをボタンが押されていない状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -104,7 +104,7 @@ static void before(void *fixture)
     port_level = LEVEL_UP;
 }
 
-/** ピンを入力に設定する (プルアップと, 押すと 0 になる設定は, Devicetree から) */
+/** ピンを入力に設定する (プルアップと押すと 0 になる設定は, Devicetree から) */
 ZTEST(button, test_init_success)
 {
     zassert_equal(button_init(), EXIT_SUCCESS);

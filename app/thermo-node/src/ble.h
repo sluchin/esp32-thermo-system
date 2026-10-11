@@ -9,9 +9,9 @@
 
 /**
  * @file
- * @brief thermo-node の BLE 制御 (アドバタイズと, GATT での温度の配信と, 時刻の受信)
+ * @brief thermo-node の BLE 制御 (アドバタイズと GATT での温度の配信と時刻の受信)
  *
- * 時刻の受信 (ble_set_time_callback() と, 時刻の特性) は, CONFIG_THERMO_RTC=y のときだけ,
+ * 時刻の受信 (ble_set_time_callback() と時刻の特性) は, CONFIG_THERMO_RTC=y のときだけ,
  * ビルドされる.
  */
 

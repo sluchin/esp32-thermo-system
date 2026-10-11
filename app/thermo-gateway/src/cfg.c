@@ -27,9 +27,9 @@ LOG_MODULE_REGISTER(thermo_cfg, THERMO_LOG_LEVEL);
 /** settings の項目の名前 ("thermo/client_id" など) の最大長 (NUL を含む) */
 #define SETTINGS_NAME_SIZE 32U
 
-/** 設定の項目ごとの名前と, 値の最大長 */
+/** 設定の項目ごとの名前と値の最大長 */
 static const struct {
-    const char *name; /**< 項目の名前 (settings の名前と, シェルの引数に使う) */
+    const char *name; /**< 項目の名前 (settings の名前とシェルの引数に使う) */
     size_t max;       /**< 値の最大長 (NUL を除く) */
 } key_infos[CFG_KEY_COUNT] = {
     [CFG_KEY_SSID] = {"ssid", CFG_SSID_MAX},
@@ -50,9 +50,9 @@ static uint8_t cert_buf[CFG_CERT_MAX];
 /** フラッシュから読み込んだ, 秘密鍵の保存先 */
 static uint8_t key_buf[CFG_KEY_PEM_MAX];
 
-/** 証明書の種類ごとの名前と, TLS の認証情報の種類と, 保存先 */
+/** 証明書の種類ごとの名前と TLS の認証情報の種類と保存先 */
 static const struct {
-    const char *name;              /**< 名前 (settings の名前と, シェルの引数に使う) */
+    const char *name;              /**< 名前 (settings の名前とシェルの引数に使う) */
     enum tls_credential_type type; /**< TLS の認証情報の種類 */
     uint8_t *buf;                  /**< フラッシュから読み込んだ証明書の保存先 */
     size_t max;                    /**< 証明書の最大サイズ */
@@ -191,7 +191,7 @@ bool cfg_has_cred(enum cfg_cred cred)
 }
 
 /**
- * @brief TLS の認証情報に登録された証明書を, フラッシュに保存する
+ * @brief TLS の認証情報に登録された証明書をフラッシュに保存する
  *
  * 保存した証明書は次の起動から, cfg_init() が自動で登録する.
  *
@@ -227,7 +227,7 @@ int cfg_save_credentials(void)
 }
 
 /**
- * @brief 接続に必要な設定が, 全て揃っているか調べる
+ * @brief 接続に必要な設定が全て揃っているか調べる
  *
  * SSID, エンドポイント, クライアント ID が空でなく, 3 つの証明書が登録されていること.
  *
@@ -333,7 +333,7 @@ static void settings_name(char *out, const char *name)
 }
 
 /**
- * settings から読み込んだ設定の値を, 登録する
+ * settings から読み込んだ設定の値を登録する
  *
  * @param[in] key     項目
  * @param[in] len     保存されている値の長さ (NUL を含む)
@@ -359,7 +359,7 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
 }
 
 /**
- * settings から読み込んだ証明書を, TLS の認証情報に登録する
+ * settings から読み込んだ証明書を TLS の認証情報に登録する
  *
  * @param[in] cred    種類
  * @param[in] len     保存されている証明書の長さ

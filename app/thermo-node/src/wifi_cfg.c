@@ -26,9 +26,9 @@ LOG_MODULE_REGISTER(thermo_wifi_cfg, THERMO_LOG_LEVEL);
 /** settings の項目の名前 ("thermo/ssid" など) の最大長 (NUL を含む) */
 #define SETTINGS_NAME_SIZE 32U
 
-/** 設定の項目ごとの名前と, 値の最大長 */
+/** 設定の項目ごとの名前と値の最大長 */
 static const struct {
-    const char *name; /**< 項目の名前 (settings の名前と, シェルの引数に使う) */
+    const char *name; /**< 項目の名前 (settings の名前とシェルの引数に使う) */
     size_t max;       /**< 値の最大長 (NUL を除く) */
 } key_infos[WIFI_CFG_COUNT] = {
     [WIFI_CFG_SSID] = {"ssid", WIFI_CFG_SSID_MAX},
@@ -197,7 +197,7 @@ static void settings_name(char *out, const char *name)
 }
 
 /**
- * settings から読み込んだ設定の値を, 登録する
+ * settings から読み込んだ設定の値を登録する
  *
  * @param[in] key     項目
  * @param[in] len     保存されている値の長さ (NUL を含む)

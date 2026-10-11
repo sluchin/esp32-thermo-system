@@ -10,9 +10,9 @@
  *
  * I2C のコントローラを偽のもの (vnd,test-i2c) に置き換えて, PCF8563 のレジスタを模擬する.
  * 次を確認する.
- *  - レジスタ (BCD) を, Zephyr の rtc_time (月は 0 から 11, 年は 1900 年からの年数) に直すこと
+ *  - レジスタ (BCD) を Zephyr の rtc_time (月は 0 から 11, 年は 1900 年からの年数) に直すこと
  *    (12 月と 2099 年を含む)
- *  - 時刻が未設定 (電圧低下のビット) や, 範囲外の値は, -ENODATA にすること. 世紀のビットは無視
+ *  - 時刻が未設定 (電圧低下のビット) や範囲外の値は, -ENODATA にすること. 世紀のビットは無視
  *  - rtc_time を設定すると, 正しい BCD がレジスタに書かれて, 電圧低下のビットが消えること
  *  - 範囲外の時刻の設定は, 何も書かずに -EINVAL にすること. I2C の通信の失敗が伝わること
  */
@@ -53,7 +53,7 @@ static unsigned int fail_at;
 /**
  * 偽の I2C コントローラの転送 (PCF8563 のレジスタの読み書きを模擬する)
  *
- * 最初の書き込みの 1 バイト目が, レジスタのアドレス. 続くバイトは, アドレスを増やしながら書く.
+ * 最初の書き込みの 1 バイト目がレジスタのアドレス. 続くバイトは, アドレスを増やしながら書く.
  * 読み出しは, 設定したアドレスから, 増やしながら読む.
  *
  * @param[in]     dev      コントローラ (使用しない)
@@ -110,7 +110,7 @@ static const struct device *const fake_bus = DEVICE_DT_GET(DT_NODELABEL(test_i2c
 static const struct device *const rtc_dev = DEVICE_DT_GET(DT_NODELABEL(test_rtc));
 
 /**
- * 偽の RTC の時刻のレジスタに, 時刻を書く
+ * 偽の RTC の時刻のレジスタに時刻を書く
  *
  * @param[in] sec   秒のレジスタ (BCD. 電圧低下のビットを含む)
  * @param[in] min   分のレジスタ (BCD)
@@ -155,7 +155,7 @@ static struct rtc_time valid_time(void)
 }
 
 /**
- * 各テストの前に, 偽の RTC を, 2026-10-08 05:00:00 UTC の, 正常な状態に戻す
+ * 各テストの前に偽の RTC を 2026-10-08 05:00:00 UTC の正常な状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -188,7 +188,7 @@ ZTEST(rtc_pcf8563, test_init_bus_not_ready)
     zassert_equal(rtc_dev->ops.init(rtc_dev), -ENODEV);
 }
 
-/** レジスタの BCD を, rtc_time (月は 0 から 11, 年は 1900 年からの年数) に直して読む */
+/** レジスタの BCD を rtc_time (月は 0 から 11, 年は 1900 年からの年数) に直して読む */
 ZTEST(rtc_pcf8563, test_get_time)
 {
     struct rtc_time tm = {0}; /* 時刻 */
@@ -208,7 +208,7 @@ ZTEST(rtc_pcf8563, test_get_time)
     zassert_equal(tm.tm_nsec, 0);
 }
 
-/** 12 月 (月のレジスタ 0x12) と 2099 年 (年のレジスタ 0x99) を, 読める */
+/** 12 月 (月のレジスタ 0x12) と 2099 年 (年のレジスタ 0x99) を読める */
 ZTEST(rtc_pcf8563, test_get_december_and_last_year)
 {
     struct rtc_time tm = {0}; /* 時刻 */
@@ -303,7 +303,7 @@ ZTEST(rtc_pcf8563, test_set_time)
     zassert_equal(regs[REG_SECONDS + 6U], 0x26U); /* 2026 年 (tm_year は 126) */
 }
 
-/** 設定できる最小 (2000-01-01) と最大 (2099-12-31) の時刻を, 設定して, 読み戻せる */
+/** 設定できる最小 (2000-01-01) と最大 (2099-12-31) の時刻を設定して, 読み戻せる */
 ZTEST(rtc_pcf8563, test_set_limits)
 {
     struct rtc_time tm = valid_time(); /* 設定する時刻 */

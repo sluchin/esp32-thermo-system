@@ -41,7 +41,7 @@ static const bt_addr_le_t addr_b = {
 };
 
 /**
- * 製造者データ (23.5 ℃, 湿度 55 %) の温度と湿度の 3 byte を, 書き換えたものを作る
+ * 製造者データ (23.5 ℃, 湿度 55 %) の温度と湿度の 3 byte を書き換えたものを作る
  *
  * @param[out] out 13 byte の製造者データ
  * @param[in] dec 小数部の byte (下位 4 bit が 10 分の 1)
@@ -67,7 +67,7 @@ static void before(void *fixture)
     switchbot_reset();
 }
 
-/** サービスデータ: 機種と, 電池残量を取り出す */
+/** サービスデータ: 機種と電池残量を取り出す */
 ZTEST(switchbot, test_parse_service_data)
 {
     struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
@@ -94,7 +94,7 @@ ZTEST(switchbot, test_parse_service_data_masks_high_bit)
     zassert_equal(ad.battery, 100U);
 }
 
-/** 製造者データ: 0 ℃ 以上の温度 (整数部の最上位の bit が 1) と, 湿度 */
+/** 製造者データ: 0 ℃ 以上の温度 (整数部の最上位の bit が 1) と湿度 */
 ZTEST(switchbot, test_parse_manufacturer_positive)
 {
     struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
@@ -225,7 +225,7 @@ static struct switchbot_ad make_ad(enum switchbot_kind kind, uint8_t model, uint
                               .model = model,
                               .battery = battery,
                               .temp_x10 = temp_x10,
-                              .humidity = humidity};
+                              .humidity = humidity}; /* 試験用の SwitchBot の広告の内容 */
 
     return ad;
 }
@@ -268,7 +268,7 @@ ZTEST(switchbot, test_accept_ignores_other_model)
     struct switchbot_ad info = {.kind = SWITCHBOT_NONE};                /* 機器の情報の広告データ */
     struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0U, 0U, 235, 55U); /* 環境データ */
 
-    /* 機種 'T' のサービスデータを, 解析して, 記録する */
+    /* 機種 'T' のサービスデータを解析して, 記録する */
     zassert_true(switchbot_parse(BT_DATA_SVC_DATA16, service_other, sizeof(service_other), &info));
     (void)switchbot_accept(&addr_a, &info, 0U, &sample);
 

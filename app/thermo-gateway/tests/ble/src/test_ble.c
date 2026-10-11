@@ -156,7 +156,7 @@ static struct bt_conn *conn_of(unsigned int index)
 /**
  * bt_data_parse() のモック動作 (本物と同じに要素ごとにコールバックを呼ぶ)
  *
- * @param[in] ad アドバタイズデータ (長さ, 種別, データ の繰り返し)
+ * @param[in] ad アドバタイズデータ (長さ, 種別, データの繰り返し)
  * @param[in] func 要素ごとに呼ぶコールバック (false を返したら, 終了する)
  * @param[in,out] user_data コールバックに渡す
  */
@@ -165,8 +165,8 @@ static void fake_data_parse(struct net_buf_simple *ad, data_cb_t func, void *use
     size_t pos = 0U; /* 書き込み位置 */
 
     while (pos < ad->len) {
-        struct bt_data data;
-        uint8_t len = ad->data[pos];
+        struct bt_data data = {0};   /* 解析した 1 つの AD 構造 */
+        uint8_t len = ad->data[pos]; /* AD 構造の長さ [バイト] (種類と値の分) */
 
         if ((len == 0U) || ((pos + len + 1U) > ad->len)) {
             return;
@@ -367,7 +367,7 @@ static void find_node(scan_cb_ptr_t scan_cb, unsigned int index)
 }
 
 /**
- * 各テストの前にモックと状態を, 初期状態に戻す
+ * 各テストの前にモックと状態を初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -459,7 +459,7 @@ ZTEST(ble_gateway, test_init_callback_failure)
     zassert_equal(bt_conn_cb_register_fake.call_count, 1U);
 }
 
-/** ble_scan() はアクティブスキャンを, 決められた間隔とウィンドウで始める */
+/** ble_scan() はアクティブスキャンを決められた間隔とウィンドウで始める */
 ZTEST(ble_gateway, test_scan_success)
 {
     bt_le_scan_start_fake.custom_fake = capture_scan_start;
@@ -617,7 +617,7 @@ ZTEST(ble_gateway, test_connected_before_create_returns)
     zassert_equal(bt_gatt_discover_fake.call_count, 1U);
     zassert_equal(bt_gatt_discover_fake.arg0_val, conn_of(0U));
 
-    /* 参照は接続のコールバックと, bt_conn_le_create() の 2 つ. 1 つはすぐに解放する */
+    /* 参照は接続のコールバックと bt_conn_le_create() の 2 つ. 1 つはすぐに解放する */
     zassert_equal(bt_conn_unref_fake.call_count, 1U);
 
     /* 切断すると, 残りの参照を解放する */
@@ -630,7 +630,7 @@ ZTEST(ble_gateway, test_connected_other_address_before_create_returns)
 {
     scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
 
-    next_conn = 1U; /* ノード 0 に接続する間に, ノード 1 の接続が完了する */
+    next_conn = 1U; /* ノード 0 に接続する間にノード 1 の接続が完了する */
     bt_conn_le_create_fake.custom_fake = fake_conn_le_create_connected_early;
     find_node(scan_cb, 0U);
 
@@ -648,9 +648,9 @@ ZTEST(ble_gateway, test_scan_connect_failure_restarts_scan)
     find_node(scan_cb, 0U);
 
     zassert_equal(bt_conn_le_create_fake.call_count, 1U);
-    zassert_equal(bt_le_scan_start_fake.call_count, 2U); /* 最初と, 再開 */
+    zassert_equal(bt_le_scan_start_fake.call_count, 2U); /* 最初と再開 */
 
-    /* 状態が戻っているので同じノードに, もう一度接続できる */
+    /* 状態が戻っているので同じノードにもう一度接続できる */
     bt_conn_le_create_fake.custom_fake = fake_conn_le_create;
     find_node(scan_cb, 0U);
     zassert_equal(bt_conn_le_create_fake.call_count, 2U);
@@ -824,8 +824,9 @@ ZTEST(ble_gateway, test_notification_delivers_temperature)
     struct bt_gatt_discover_params *params = NULL;      /* ディスカバリのパラメータ */
     struct bt_gatt_attr ccc_attr = {.handle = 0x0014U}; /* CCC ディスクリプタの属性 */
     struct bt_gatt_subscribe_params *sub = NULL;        /* 購読のパラメータ */
-    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {0xDDU, 0xFFU, 0xC2U, 0x01U};
-    uint8_t ret = 0U; /* 戻り値 */
+    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {0xDDU, 0xFFU, 0xC2U,
+                                                   0x01U}; /* ノードの温度の通知のデータ */
+    uint8_t ret = 0U;                                      /* 戻り値 */
 
     find_node(scan_cb, 1U); /* 2 台目 (アドレス B) のノード */
     next_conn = 0U;
@@ -1079,7 +1080,7 @@ ZTEST(ble_gateway, test_scan_switchbot_service_data)
     scan_cb(&node_addr[0], TEST_RSSI, BT_GAP_ADV_TYPE_ADV_IND, &adv);
     k_msleep(WORK_WAIT_MS);
 
-    /* 期待: コールバックにアドレスと, 機種 'w' と電池残量 100 % を渡す. 接続はしない */
+    /* 期待: コールバックにアドレスと機種 'w' と電池残量 100 % を渡す. 接続はしない */
     zassert_equal(switchbot_received.count, 1U);
     zassert_true(bt_addr_le_eq(&switchbot_received.addr, &node_addr[0]));
     zassert_equal(switchbot_received.ad.kind, SWITCHBOT_INFO);
@@ -1094,7 +1095,7 @@ ZTEST(ble_gateway, test_scan_switchbot_manufacturer_data)
 {
     scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
     const uint8_t mfr[] = {0x69, 0x09, 0xB0, 0xE9, 0xFE, 0x12, 0x34,
-                           0x56, 0x00, 0x00, 0x05, 0x97, 0x37};
+                           0x56, 0x00, 0x00, 0x05, 0x97, 0x37}; /* 製造者データ */
 
     ble_set_switchbot_callback(on_switchbot);
     set_adv_element(BT_DATA_MANUFACTURER_DATA, mfr, sizeof(mfr));
@@ -1202,7 +1203,7 @@ static void find_time_characteristic(unsigned int index, struct bt_gatt_discover
     k_msleep(WORK_WAIT_MS); /* 書き込みはワークキューで行う */
 }
 
-/** 時刻を得る関数があれば, 購読のあとに, 時刻の特性を, サービスの範囲の中から探す */
+/** 時刻を得る関数があれば, 購読のあとに, 時刻の特性をサービスの範囲の中から探す */
 ZTEST(ble_gateway, test_time_discovery_starts_after_subscribe)
 {
     struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
@@ -1210,7 +1211,7 @@ ZTEST(ble_gateway, test_time_discovery_starts_after_subscribe)
     ble_set_time_source(fake_time_source);
     params = connect_and_subscribe(0U);
 
-    /* 期待: 4 回目の探索 (サービス, 温度, CCC のあと) が, 時刻の特性を, サービスの範囲で探す */
+    /* 期待: 4 回目の探索 (サービス, 温度, CCC のあと) が時刻の特性をサービスの範囲で探す */
     zassert_equal(bt_gatt_discover_fake.call_count, 4U);
     zassert_equal(params->type, BT_GATT_DISCOVER_CHARACTERISTIC);
     zassert_true(memcmp(BT_UUID_128(params->uuid)->val, time_uuid, sizeof(time_uuid)) == 0);
@@ -1328,7 +1329,7 @@ ZTEST(ble_gateway, test_time_write_resyncs_periodically)
     zassert_equal(bt_gatt_write_fake.call_count, 2U);
 }
 
-/** ノードが書き込みを拒否したら (ATT のエラー), TIME_RETRY_S 後に, 書き込み直す */
+/** ノードが書き込みを拒否したら (ATT のエラー), TIME_RETRY_S 後に書き込み直す */
 ZTEST(ble_gateway, test_time_write_rejected_retries)
 {
     struct bt_gatt_discover_params *params = NULL;   /* ディスカバリのパラメータ */
@@ -1347,7 +1348,7 @@ ZTEST(ble_gateway, test_time_write_rejected_retries)
     zassert_equal(bt_gatt_write_fake.call_count, 2U);
 }
 
-/** 書き込みを始められなかったら (bt_gatt_write() の失敗), TIME_RETRY_S 後に, 書き込み直す */
+/** 書き込みを始められなかったら (bt_gatt_write() の失敗), TIME_RETRY_S 後に書き込み直す */
 ZTEST(ble_gateway, test_time_write_start_failure_retries)
 {
     struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */

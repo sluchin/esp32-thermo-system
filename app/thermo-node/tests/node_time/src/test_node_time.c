@@ -9,10 +9,10 @@
  * @brief node_time.c の単体テスト
  *
  * RTC のデバイスを偽のもの (vnd,test-rtc) に置き換えて, 次を確認する.
- *  - RTC の時刻 (rtc_time. UTC) を, ローカルタイム (UTC+9) に直すこと
+ *  - RTC の時刻 (rtc_time. UTC) をローカルタイム (UTC+9) に直すこと
  *    (日付と年をまたぐ繰り上がり, うるう日)
- *  - 時刻が未設定 (-ENODATA) や, RTC の失敗が, 呼び出し元に伝わること
- *  - UNIX 時刻を, rtc_time (年月日, 時分秒, 曜日) に直して, RTC に設定すること
+ *  - 時刻が未設定 (-ENODATA) や RTC の失敗が呼び出し元に伝わること
+ *  - UNIX 時刻を rtc_time (年月日, 時分秒, 曜日) に直して, RTC に設定すること
  *  - 範囲外の時刻の設定が -ERANGE になること
  */
 
@@ -131,7 +131,7 @@ static void set_stored(int year, int month, int day, int hour, int min, int sec)
 }
 
 /**
- * 各テストの前に, 偽の RTC を, 2026-10-08 05:00:00 UTC の, 正常な状態に戻す
+ * 各テストの前に偽の RTC を 2026-10-08 05:00:00 UTC の正常な状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -183,7 +183,7 @@ ZTEST(node_time, test_init_rtc_failure)
     zassert_equal(node_time_init(), -EIO);
 }
 
-/** RTC の UTC の時刻 (05:00:00) を, ローカルタイム (UTC+9. 14:00:00) にして返す */
+/** RTC の UTC の時刻 (05:00:00) をローカルタイム (UTC+9. 14:00:00) にして返す */
 ZTEST(node_time, test_get_local_time)
 {
     struct node_datetime local = {0}; /* 日時 */
@@ -213,7 +213,7 @@ ZTEST(node_time, test_get_year_rollover)
     zassert_equal(local.second, 59U);
 }
 
-/** うるう日 (2028-02-29) を, 正しく読む (1 月と 2 月の計算を通す) */
+/** うるう日 (2028-02-29) を正しく読む (1 月と 2 月の計算を通す) */
 ZTEST(node_time, test_get_leap_day)
 {
     struct node_datetime local = {0}; /* 日時 */
@@ -229,7 +229,7 @@ ZTEST(node_time, test_get_leap_day)
 /** 時刻が未設定 (-ENODATA) なら, その値を返し, valid を false にする */
 ZTEST(node_time, test_get_time_unset)
 {
-    struct node_datetime local = {.valid = true}; /* 日時 (valid を, 関数が false にすること) */
+    struct node_datetime local = {.valid = true}; /* 日時 (valid を関数が false にすること) */
 
     get_ret = -ENODATA;
     zassert_equal(node_time_get(&local), -ENODATA);
@@ -239,7 +239,7 @@ ZTEST(node_time, test_get_time_unset)
 /** RTC と通信できなければ, その値を返し, valid を false にする */
 ZTEST(node_time, test_get_rtc_failure)
 {
-    struct node_datetime local = {.valid = true}; /* 日時 (valid を, 関数が false にすること) */
+    struct node_datetime local = {.valid = true}; /* 日時 (valid を関数が false にすること) */
 
     get_ret = -EIO;
     zassert_equal(node_time_get(&local), -EIO);
@@ -262,7 +262,7 @@ ZTEST(node_time, test_set_time)
     zassert_equal(stored.tm_isdst, -1);
 }
 
-/** 設定した時刻を, そのまま読み戻せる (年末の繰り上がりと, うるう日も) */
+/** 設定した時刻をそのまま読み戻せる (年末の繰り上がりと, うるう日も) */
 ZTEST(node_time, test_set_then_get)
 {
     struct node_datetime local = {0}; /* 日時 */
