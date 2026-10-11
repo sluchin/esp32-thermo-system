@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#ifndef THERMO_GATEWAY_WIFI_LINK_H
-#define THERMO_GATEWAY_WIFI_LINK_H
+#ifndef THERMO_COMMON_WIFI_LINK_H
+#define THERMO_COMMON_WIFI_LINK_H
 
 /**
  * @file
@@ -25,4 +25,4 @@ bool wifi_link_is_up(void);
 
 void wifi_link_disconnect(void);
 
-#endif /* THERMO_GATEWAY_WIFI_LINK_H */
+#endif /* THERMO_COMMON_WIFI_LINK_H */

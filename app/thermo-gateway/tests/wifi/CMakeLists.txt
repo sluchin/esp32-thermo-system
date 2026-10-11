@@ -10,7 +10,7 @@ target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src
 target_compile_definitions(app PRIVATE CONFIG_NET_MGMT_EVENT=1 CONFIG_NET_MGMT_EVENT_INFO=1)
 target_sources(app PRIVATE
   src/test_wifi.c
-  ${CMAKE_CURRENT_LIST_DIR}/../../src/wifi_link.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../../common/wifi_link.c
 )
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する

@@ -46,7 +46,7 @@ FAKE_VALUE_FUNC(int, ntp_unix_time, int64_t *)
 FAKE_VALUE_FUNC(bool, switchbot_accept, const bt_addr_le_t *, const struct switchbot_ad *, uint32_t,
                 struct switchbot_sample *)
 FAKE_VALUE_FUNC(int, cloud_publish_switchbot, const bt_addr_le_t *, const struct switchbot_sample *)
-FAKE_VALUE_FUNC(int, cloud_init)
+FAKE_VALUE_FUNC(int, cloud_init, bool)
 FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, int16_t, uint16_t)
 
 /** メインループのスレッドのスタックサイズ */
