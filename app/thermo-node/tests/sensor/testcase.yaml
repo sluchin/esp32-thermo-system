@@ -1,5 +1,5 @@
 # thermo-node の単体テスト: sensor.c (TEST_MODE で、構成を切り替える: simulator = シミュレーション値、sensor_api = 偽のセンサ、adc = ADC エミュレータ、adc_setup_error = チャンネルの設定が失敗、adc_convert_error = 電圧への換算が失敗).
-# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-thermo-node).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-node).
 tests:
   thermo_node.sensor.simulator:
     platform_allow:
