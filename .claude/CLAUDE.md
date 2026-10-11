@@ -7,9 +7,9 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 ### ビルド (Docker 推奨)
 - `docker compose run` には、必ず `--rm` を付ける (終わったコンテナを、残さないため)。
-- Thermo Node ビルド: `docker compose run --rm build-thermo-node` (OLED と RTC を外すときは、`THERMO_DISPLAY=n` と `THERMO_RTC=n` を付ける。`SETUP.md` の「OLED の表示と時刻」)
-- Thermo Gateway ビルド: `docker compose run --rm build-thermo-gateway`
-- 両方まとめて: `docker compose run --rm build` / `test` / `coverage` / `analyze` (node と gateway の両方を、順に実行する。`format` `format-fix` `lint` `whitespace` `docs` も、同じ名前で使える。CI は、個別のサービス `*-thermo-node` などを使う。`scripts/build.sh` と `scripts/analyze.sh` が本体)
+- Thermo Node ビルド: `docker compose run --rm build-node` (OLED と RTC を外すときは、`THERMO_DISPLAY=n` と `THERMO_RTC=n` を付ける。`SETUP.md` の「OLED の表示と時刻」)
+- Thermo Gateway ビルド: `docker compose run --rm build-gateway`
+- 両方まとめて: `docker compose run --rm build` / `test` / `coverage` / `analyze` (node と gateway の両方を、順に実行する。個別のサービスは、`build-node` `build-gateway` `test-node` `coverage-gateway` のように、`-node` か `-gateway` を付ける。`format` `format-fix` `lint` `whitespace` `docs` は、両方のアプリを対象にする (名前に、アプリは付かない)。CI は、個別のサービスを使う。`scripts/build.sh` と `scripts/analyze.sh` が本体)
 - 開発シェル: `docker compose run --rm dev`
 - クリーン: `docker compose run --rm clean` (`build/` と `docs/` を消す。ビルドの不具合を疑うときに、最初からやり直す)
 
@@ -33,7 +33,7 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 ```bash
 scripts/cloud-docker.sh build                  # 開発用のイメージ (esp32-thermo-system) を作る (プロキシと CA の設定を足す)
-scripts/cloud-docker.sh run build-thermo-node  # docker compose run --rm build-thermo-node (test-thermo-node なども同じ)
+scripts/cloud-docker.sh run build-node  # docker compose run --rm build-node (test-node なども同じ)
 scripts/cloud-docker.sh start                  # Docker のデーモンを起動する (起動済みなら、何もしない)
 ```
 
@@ -53,6 +53,7 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
 - `app/`: アプリケーションソース
   - `thermo-node/`: センサノード。DHT11 (または ADC) で温度と湿度を読み取り BLE で配信し、拡張ボードの OLED に、温度、湿度、日時を表示する (日時は、拡張ボードの RTC。PCF8563 のドライバは、`drivers/rtc_pcf8563.c`)。
   - `thermo-gateway/`: ゲートウェイ。周辺ノードをスキャンしデータを集約。
+  - `common/`: 2 つのアプリで共有するコード。BLE の UUID (`thermo_ble_uuid.h`)、ログのレベル (`thermo_log.h`)、設定とシェル (`cfg.c` `cfg_shell.c`。SSID、パスワード、エンドポイント、クライアント ID、証明書)、WiFi (`wifi_link.c`)、SNTP (`ntp.c`)、AWS IoT Core への MQTT (`cloud.c`)、ペイロードの作成 (`payload.c`)、SwitchBot の値 (`switchbot_sample.h`)。ゲートウェイは、起動のときから、動かし続ける。ノードは、ゲートウェイにつながらないときだけ、`cloud_set_enabled()` で動かす (`thermo-node/src/direct.c`)。ノードは、`app/thermo-node/src/shell_extra.h` で、`thermo` コマンドに `sync` を足す。
 - `west.yml`: West マニフェストファイル。
 - `docker-compose.yml` / `Dockerfile`: 開発環境定義。
 - `.github/workflows/`: GitHub Actions による CI 設定。
@@ -73,25 +74,25 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
 
 1. 機能開発は `ccr-*` ブランチで行う。
 2. Push 時に GitHub Actions (`.github/workflows/build.yml`) が、開発用の Docker イメージ (ローカルと同じ環境) で、`docker compose` のサービスを実行する。
-   - `build` ジョブ: `build-thermo-node` / `build-thermo-gateway` (実機用) と、`*-sim` (native_sim 用)。ビルドに警告が出たら失敗する。成果物 (`zephyr.elf` など) とビルドのログは、アーティファクトとして保存する。`test` / `coverage` / `docs` / `analyze` / `lint` の各ジョブも、実行のログを、アーティファクト (`<サービス名>_log`、`docs_log`。サービス名の `-` は `_` にする) として保存する (失敗したときも保存する)。アーティファクトの名前は、小文字のスネークケースにする (`build_thermo_node` など)。
-   - `test` ジョブ: `test-thermo-node` / `test-thermo-gateway` (単体テスト)。
-   - `docs` ジョブ: `docs-thermo` (Doxygen のドキュメントを生成する。警告があれば失敗する)。
-   - `coverage` ジョブ: `coverage-thermo-node` / `coverage-thermo-gateway` (行と分岐のカバレッジが 100% であること)。
-   - `analyze` ジョブ: `analyze-thermo-node` / `analyze-thermo-gateway` (静的解析。指摘があれば失敗する)。
-   - `lint` ジョブ: `format-thermo` (整形の確認) / `lint-thermo` (checkpatch.pl) / `whitespace-thermo` (行末の空白の確認)。指摘があれば失敗する。
+   - `build` ジョブ: `build-node` / `build-gateway` (実機用) と、`*-sim` (native_sim 用)。ビルドに警告が出たら失敗する。成果物 (`zephyr.elf` など) とビルドのログは、アーティファクトとして保存する。`test` / `coverage` / `docs` / `analyze` / `lint` の各ジョブも、実行のログを、アーティファクト (`<サービス名>_log`、`docs_log`。サービス名の `-` は `_` にする) として保存する (失敗したときも保存する)。アーティファクトの名前は、小文字のスネークケースにする (`build_node` など)。
+   - `test` ジョブ: `test-node` / `test-gateway` (単体テスト)。
+   - `docs` ジョブ: `docs` (Doxygen のドキュメントを生成する。警告があれば失敗する)。
+   - `coverage` ジョブ: `coverage-node` / `coverage-gateway` (行と分岐のカバレッジが 100% であること)。
+   - `analyze` ジョブ: `analyze-node` / `analyze-gateway` (静的解析。指摘があれば失敗する)。
+   - `lint` ジョブ: `format` (整形の確認) / `lint` (checkpatch.pl) / `whitespace` (行末の空白の確認)。指摘があれば失敗する。
    - `cleanup` ジョブ: 3 日より前の実行 (ログと artifact) を、push のたびに削除する (`gh api` で、実行を削除する。権限は `actions: write`)。artifact は、`retention-days: 3` で、3 日で期限が切れる。保存する期間を変えるときは、`build.yml` の `KEEP_DAYS` と、全ての `retention-days` を、そろえて変える。
    - Docker イメージは、レイヤーを GitHub Actions のキャッシュに保存する (`.github/actions/docker-image`)。ビルドコンテキストは `west.yml` だけなので、`Dockerfile` か `west.yml` を変えたときだけ、イメージを作り直す。
 3. PR マージ前に、`build` / `test` / `analyze` / `lint` の全ジョブの成功を確認。
 
 ### コード修正時のルール
 
-- コードを修正したら、必ず Thermo Node と Thermo Gateway の両方をビルドする (`docker compose run --rm build-thermo-node` / `docker compose run --rm build-thermo-gateway`)。`native_sim` に関わる変更は、`build-thermo-node-sim` / `build-thermo-gateway-sim` も実行する。
+- コードを修正したら、必ず Thermo Node と Thermo Gateway の両方をビルドする (`docker compose run --rm build-node` / `docker compose run --rm build-gateway`)。`native_sim` に関わる変更は、`build-node-sim` / `build-gateway-sim` も実行する。
   - Devicetree (`*.overlay`) と Kconfig のインデントは、空白 4 つ (Zephyr のタブ 8 ではない。`CODING_STYLE.md` の例外 1。Kconfig の `help` の本文は、`help` より、空白 2 つ深くする)。新しい overlay と Kconfig も、タブを使わない。
   - ビルド出力に警告を出さない。警告やエラーが出たら修正し、出なくなるまで繰り返す。
   - 使用しているライブラリのヘッダが警告を出すときは、そのヘッダの `#include` を `#pragma GCC diagnostic push` / `ignored "-W..."` / `pop` で囲む。ただし、Zephyr のヘッダは、マクロがアプリ側のコードに展開されるため、この方法では抑えきれない (試したところ、970 件が残った)。そのため、`app/warnings.cmake` で、Zephyr の include ディレクトリをシステムヘッダとして扱う。
-  - 整形と lint: コードを修正したら、`docker compose run --rm format-thermo-fix` で整形して、`docker compose run --rm lint-thermo` (Zephyr の checkpatch.pl) と、`docker compose run --rm whitespace-thermo` (全てのテキストファイルの行末の空白の確認) を実行する。`docker compose run --rm format-thermo` は、整形が必要なら失敗する (確認だけ)。詳細は、`CODING_STYLE.md`。
-  - 単体テスト: `docker compose run --rm test-thermo-node` / `docker compose run --rm test-thermo-gateway` (「テスト」を参照)。コードを修正したら、実行して、全て通ることを確認する。
-  - 静的解析: `docker compose run --rm analyze-thermo-node` / `docker compose run --rm analyze-thermo-gateway` (gcc の `-fanalyzer` を、app のソースだけに `-O0` で掛ける。通常のビルドとは分けてあり、指摘があれば失敗する)。コードを修正したら、実行して、指摘が出ないことを確認する。
+  - 整形と lint: コードを修正したら、`docker compose run --rm format-fix` で整形して、`docker compose run --rm lint` (Zephyr の checkpatch.pl) と、`docker compose run --rm whitespace` (全てのテキストファイルの行末の空白の確認) を実行する。`docker compose run --rm format` は、整形が必要なら失敗する (確認だけ)。詳細は、`CODING_STYLE.md`。
+  - 単体テスト: `docker compose run --rm test-node` / `docker compose run --rm test-gateway` (「テスト」を参照)。コードを修正したら、実行して、全て通ることを確認する。
+  - 静的解析: `docker compose run --rm analyze-node` / `docker compose run --rm analyze-gateway` (gcc の `-fanalyzer` を、app のソースだけに `-O0` で掛ける。通常のビルドとは分けてあり、指摘があれば失敗する)。コードを修正したら、実行して、指摘が出ないことを確認する。
   - 警告オプションの一覧は `app/warnings.txt` にある (`-Wall` `-Wextra` `-Wpedantic` `-Wconversion` `-Wsign-conversion` `-Wshadow` `-Wformat=2` など約 55 個)。`app/warnings.cmake` が読み込み、アプリのソース (`app/` 配下) だけに付ける。Zephyr のヘッダは、システムヘッダとして扱うので、警告を出さない。オプションを足し引きするときは、`warnings.txt` だけを直す。
   - ビルドを実行できなかったときは、そのことを報告する (成功したとは書かない)。
   - **例外**: 変更が `.claude/CLAUDE.md` や `README.md` などの文書のみの場合は、ビルドしない。
@@ -108,8 +109,8 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
 
 単体テストは、Zephyr のテストフレームワーク Ztest (`zephyr/ztest.h`) と、モックの FFF (`zephyr/fff.h`) で書く。`native_sim` (ホスト上) で実行し、Zephyr のテストランナー twister が実行する。
 
-- カバレッジ: `docker compose run --rm coverage-thermo-node` / `docker compose run --rm coverage-thermo-gateway` (`app/thermo-*/src` と `app/thermo-node/drivers` の行と分岐が 100% でなければ失敗する。分岐は `LOG_*` と `LOG_HEXDUMP_*` マクロの内部を除く)。テストを追加・変更したら、実行して、100% を保つ。
-- 実行: `docker compose run --rm test-thermo-node` / `docker compose run --rm test-thermo-gateway` (全てのテストを実行する。結果は、コンテナの `/tmp` に出力する)
+- カバレッジ: `docker compose run --rm coverage-node` / `docker compose run --rm coverage-gateway` (`app/thermo-*/src` と `app/thermo-node/drivers` と `app/common` の行と分岐が 100% でなければ失敗する。`app/common` は、それを、ビルドに含めるテスト (今は、gateway のテスト) で、集計する。分岐は `LOG_*` と `LOG_HEXDUMP_*` マクロの内部を除く)。テストを追加・変更したら、実行して、100% を保つ。
+- 実行: `docker compose run --rm test-node` / `docker compose run --rm test-gateway` (全てのテストを実行する。結果は、コンテナの `/tmp` に出力する)
 - 配置: `app/<アプリ>/tests/<対象>/`。1 ディレクトリが 1 つのテストアプリ (`CMakeLists.txt` `prj.conf` `testcase.yaml` `src/test_*.c`)。twister が、`testcase.yaml` を探して、自動で実行する。
   - `sensor` (thermo-node): `sensor.c`。5 つの構成 (`TEST_MODE`): `sensor_api` (偽のセンサ `vnd,test-sensor`。DHT11 などの、センサ API の経路。値とエラーを、テストから設定する)、`adc` (ADC エミュレータ `zephyr,adc-emul`。入力電圧とエラーを、テストから設定する)、`adc_setup_error` / `adc_convert_error` (ADC の設定と換算の失敗)、`simulator` (シミュレーション値)。
   - `oled` (thermo-node): `oled.c`。表示装置は、偽のもの (`vnd,test-display`) に置き換えて、CFB (文字のフレームバッファ) の関数は、FFF のモックにする。初期化の各段階の失敗と、点灯と消灯 (`oled_set_power()`。blanking の開始と停止と、失敗) と、描く文字列と位置 (負の温度、測定値なし、湿度なし、日時あり、日時が未設定) と、グラフのページ (最小と最大、折れ線の座標、履歴なし、点が 1 つ、縦軸の最小の幅、描画の失敗)、起動画面 (題名の位置、ドット、絵の位置、はみ出しの切り取り、口の開き方、フレームの範囲、描画の失敗) を確認する。`CONFIG_DISPLAY=y` にすると、native_sim の SDL の表示も有効になり、終了時に落ちることがあるので、`CONFIG_SDL_DISPLAY=n` にしている。
@@ -118,11 +119,13 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
   - `button` (thermo-node): `button.c`。GPIO のコントローラを、偽のもの (`vnd,test-gpio`) に置き換える。初期化の失敗と、押された動作の検出 (押し続けても 1 回、起動のときに押されていても数えない)。
   - `node_time` (thermo-node): `node_time.c`。RTC のデバイスを、偽のもの (`vnd,test-rtc`。時刻 (`rtc_time`) と、読み書きの結果を、テストから設定する) に置き換える。UTC からローカルタイムへの変換 (日付と年の繰り上がり、うるう日)、UNIX 時刻から `rtc_time` (月は 0 から 11、年は 1900 年からの年数、曜日) への換算、時刻が未設定 (`-ENODATA`)、範囲外の時刻の設定、RTC の失敗を確認する。
   - `rtc_pcf8563` (thermo-node): `drivers/rtc_pcf8563.c` (PCF8563 の RTC ドライバ。compatible は `thermo,pcf8563`)。I2C のコントローラを、偽のもの (`vnd,test-i2c`) に置き換えて、PCF8563 のレジスタ (BCD) を模擬する。レジスタと `rtc_time` の換算 (12 月、2099 年、世紀のビットの無視、曜日)、時刻が未設定 (電圧低下のビット)、範囲外のレジスタの値、時刻の設定 (BCD、範囲外は `-EINVAL`)、通信の失敗、初期化 (I2C のバスが使えない) を確認する。
-  - `wifi` / `wifi_cfg` / `wifi_time` / `wifi_shell` (thermo-node): BLE で時刻が届かないときの、WiFi と SNTP による時刻の取得 (`wifi_link.c` `wifi_cfg.c` `wifi_time.c` `wifi_shell.c`)。net_mgmt (`wifi_link` は、gateway と同じコード)、settings、SNTP、ソケットは、FFF のモック。接続、時刻の取得、切断、各段階の失敗 (失敗しても WiFi を切る)、設定の保存と読み込み、シェル (`thermo set/show/sync/reset`) を確認する。
+  - `wifi_time` / `wifi_shell` (thermo-node): BLE で時刻が届かないときの、WiFi と SNTP による時刻の取得 (`wifi_time.c` `wifi_shell.c`)。cfg、wifi_link (どちらも `app/common/`。モック)、SNTP、ソケットは、FFF のモック。接続、時刻の取得、切断、各段階の失敗 (失敗しても WiFi を切る)、シェル (`thermo sync`。設定のコマンドは、`app/common/cfg_shell.c` で、gateway のテストが確認する) を確認する。
+  - `direct` (thermo-node): `direct.c` (ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存、あとからの送信)。ble、cfg、cloud、backlog、node_time の関数は、FFF のモック (SD カードは、メモリ上の配列)。BLE の失敗が 5 回続いたら始めること、つながったら止めること、あきらめたらやり直さないこと、10 秒ごとに送ること、つながっていない間の値を溜めること (SD カードや時刻がないときは溜めない)、SD カードの記録を古い順にキューに入れること (キューを満杯にしない)、送れた分だけ送り終えたことにすること、壊れた記録を捨てること、失敗しても続けることを確認する。
+  - `backlog` / `backlog_nodisk` / `backlog_fserr` (thermo-node): `backlog.c` (SD カードに溜める、送れなかった測定値)。`backlog` は、native_sim の RAM ディスク (`zephyr,ram-disk`。ディスク名 RAM) の FatFS (本物のファイルシステム) を、`/RAM:` にマウントして、追記と古い順の読み出し、送り終えた数の保存と再起動のあとの続き、全て送り終えたらファイルを消すこと、上限、壊れた記録 (CRC)、書きかけの記録、送り終えた数のファイルの異常を確認する。`backlog_nodisk` は、マウントできない (ディスクの名前が合わない) ときを確認する。`backlog_fserr` は、`fs_*` を FFF のモックにして、追記、読み出し、送り終えた数の保存の各段階の失敗 (開く、書く、閉じる、移動、読み出し、切り詰め) を確認する。SD カードそのもの (SPI の配線、フォーマット、抜き差し) は、実機で確認する。
   - `main_display_timeout` (thermo-node): `main.c` の OLED の自動消灯 (`CONFIG_THERMO_DISPLAY_TIMEOUT_SEC=10`。`tests/main` は、`0` で、消さない)。ボタンを押さずに 10 秒たつと消えること (消えている間は、表示しない)、消えている間にボタンを押すと、点灯するだけで、ページを切り替えないこと、点灯している間にボタンを押すと、ページを切り替えて、消すまでの時間を数え直すこと、消灯と点灯の失敗のやり直し、OLED の初期化に失敗している間は、消灯も点灯もしないこと、初期化のやり直しで使えるようになったら、点灯して、時間を数えること。RTC と WiFi と起動画面とブザーは、無効にして、OLED とボタンだけを確かめる。
   - `ble` (両方): `ble.c`。Bluetooth スタックは使わず、`bt_enable()` `bt_le_adv_start()` `bt_le_scan_start()` を、FFF のモックにして、引数と、エラーの伝わり方を確認する。時刻の同期も含む: ノードは、時刻の特性の書き込み (長さ、位置、コールバックの結果の ATT エラー)、ゲートウェイは、時刻の特性の探索と書き込み (SNTP の同期待ち、1 時間ごとの書き直し、拒否と失敗のあとのやり直し、切断で止まること。仮想時間で進める)。
   - `switchbot` (thermo-gateway): `switchbot.c`。SwitchBot 屋外用温湿度計のアドバタイズの解析 (サービスデータと製造者データ) と、機器ごとの記録と、送信の間引き (間隔、カウンタの一周、機器の数の上限)。Zephyr の関数を呼ばないので、モックは使わない。
-  - `payload` / `cfg` / `shell` / `wifi` / `cloud` (thermo-gateway): AWS IoT Core への送信 (`payload.c` `cfg.c` `cfg_shell.c` `wifi_link.c` `cloud.c`)。settings、TLS の認証情報、net_mgmt、MQTT ライブラリ、ソケットは、FFF のモックにして、接続の手順と各段階の失敗、再試行の間隔、設定の保存と読み込みを確認する。シェルは、ダミーのバックエンドで実行する。`cloud` は、`cloud_step()` を直接呼ぶ。
+  - `payload` / `cfg` / `shell` / `wifi` / `cloud` / `ntp` (thermo-gateway): AWS IoT Core への送信 (`app/common/` の `payload.c` `cfg.c` `cfg_shell.c` `wifi_link.c` `cloud.c` `ntp.c`。ノードと共有するコードも、ここで確認する。`cloud` は、止める (`cloud_set_enabled(false)`)、あきらめる (`cloud_set_attempt_limit()`)、測った時刻つきの送信 (`cloud_publish_temperature_at()`) も確認する)。settings、TLS の認証情報、net_mgmt、MQTT ライブラリ、ソケットは、FFF のモックにして、接続の手順と各段階の失敗、再試行の間隔、設定の保存と読み込みを確認する。シェルは、ダミーのバックエンドで実行する。`cloud` は、`cloud_step()` を直接呼ぶ。
   - `main` (両方): `main.c`。`ble` と `sensor` (node は、`node_time` と `oled` も。gateway は、`ble` と `cloud`) の関数を、FFF のモックにして、初期化に失敗したときに `EXIT_FAILURE` を返すことと、メインループ (別スレッドで動かす) が動き続けることを確認する (node は、OLED の表示と時刻が、1 秒ごとに更新されることと、ボタンでページが順に切り替わること (最後の次は最初)、ボタンを押すとブザーでボタンの音を鳴らすこと (ブザーが使えないとき、鳴らせなかったときも、ページは切り替わる)、グラフの履歴に測定値を加えること、OLED と RTC とボタンの初期化や表示に失敗しても、続けること。起動の 1 分後から 1 分ごとに RTC の時刻を確かめて、なければ WiFi で時刻を取って RTC に設定すること、時刻があれば取らないこと、失敗したら次の確認でやり直して 5 回でやめること)。`main.c` の `main()` は、テストの `main()` と名前が同じなので、`CMakeLists.txt` で名前を変える。
 - 規約:
   - テストにも、`app/warnings.txt` の警告オプションを付ける (`include(.../warnings.cmake)`)。モックが、関数を再宣言するため、`-Wredundant-decls` だけは外している。

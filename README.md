@@ -51,8 +51,8 @@ esp32-thermo-system/
 
 ```bash
 # ビルド
-docker compose run --rm build-thermo-node-sim
-docker compose run --rm build-thermo-gateway-sim
+docker compose run --rm build-node-sim
+docker compose run --rm build-gateway-sim
 
 # 実行
 ./build/thermo-node-sim/zephyr/zephyr.exe &
@@ -65,33 +65,11 @@ docker compose run --rm build-thermo-gateway-sim
 
 Docker と Docker Compose がインストールされている場合、最も簡単な方法です：
 
-短い名前のサービスは、Thermo Node と Thermo Gateway の両方を、まとめて実行します (`build` `test` `coverage` `analyze`。`format` `format-fix` `lint` `whitespace` `docs` `clean` も、同じ名前で使えます)。
+サービス名に `-node` か `-gateway` を付けると、そのアプリだけを実行します (`build-node` `build-gateway` `test-node` `coverage-gateway` など)。シミュレーション用のビルドは、`build-node-sim` `build-gateway-sim` です。付けないと、Thermo Node と Thermo Gateway を、順に実行します。
 
 ```bash
-# Thermo Node と Thermo Gateway の両方をビルド（ESP32C3用）
+# 「対象」が node、gateway の場合
 docker compose run --rm build
-# 両方の単体テスト
-docker compose run --rm test
-# 両方のカバレッジ / 静的解析
-docker compose run --rm coverage
-docker compose run --rm analyze
-# 整形（確認 / 書き換え）
-docker compose run --rm format
-docker compose run --rm format-fix
-# 生成物（build/ と docs/）を消す
-docker compose run --rm clean
-
-# Thermo Node をビルド（ESP32C3用）
-docker compose run --rm build-thermo-node
-
-# Thermo Gateway をビルド（ESP32C3用）
-docker compose run --rm build-thermo-gateway
-
-# Thermo Node をビルド（シミュレーション）
-docker compose run --rm build-thermo-node-sim
-
-# Thermo Gateway をビルド（シミュレーション）
-docker compose run --rm build-thermo-gateway-sim
 
 # インタラクティブ開発シェル
 docker compose run --rm dev
@@ -100,23 +78,35 @@ docker compose run --rm dev
 docker compose run --rm clean
 ```
 
+### docker compose のオプション (環境変数)
+
+オプションは、環境変数で渡します (`docker compose run --rm` の前に書く)。ビルド (`build` `build-node` `build-gateway`) だけが読みます。省略すると、既定の値になります。
+
+| 環境変数 | 値 | 既定 | 対象 | 内容 |
+|:---|:---|:---|:---|:---|
+| `THERMO_DEBUG_LOG` | `ON` / `OFF` | `OFF` | node と gateway | `LOG_DBG` と 16 進ダンプを有効にする |
+| `THERMO_DISPLAY` | `y` / `n` | `y` | node | OLED、グラフ、ボタン |
+| `THERMO_RTC` | `y` / `n` | `y` | node | RTC (PCF8563) |
+| `THERMO_BUZZER` | `y` / `n` | `y` | node | ブザー (起動音とボタンの音) |
+| `THERMO_DHT_LOCK_IRQS` | `y` / `n` | `y` | node | DHT11 の読み取りの間、割り込みを止める |
+| `UID` / `GID` | 数値 | `0` | 全て | 生成物の所有者 (`export UID GID=$(id -g)` で、自分にする) |
+
+※「対象」が node のオプションは、gateway のビルドでは使いません。
+
 ### 単体テストと静的解析
 
 単体テストは Zephyr の Ztest と FFF (モック) で書かれていて、`native_sim` 上で実行します (`app/thermo-node/tests/` と `app/thermo-gateway/tests/`)。
 
 ```bash
-# 単体テスト (Thermo Node / Thermo Gateway)
-docker compose run --rm test-thermo-node
-docker compose run --rm test-thermo-gateway
+# 「対象」が node、gateway の場合
+# 単体テスト
+docker compose run --rm test
 # カバレッジ (行と分岐が 100% でなければ失敗する)
-docker compose run --rm coverage-thermo-node
-docker compose run --rm coverage-thermo-gateway
-# ドキュメント (Doxygen。docs/index.html を開く。警告があれば失敗する)
-docker compose run --rm docs-thermo
-
+docker compose run --rm coverage
 # 静的解析 (gcc -fanalyzer。指摘があれば失敗する)
-docker compose run --rm analyze-thermo-node
-docker compose run --rm analyze-thermo-gateway
+docker compose run --rm analyze
+# ドキュメント (Doxygen。docs/index.html を開く。警告があれば失敗する)
+docker compose run --rm docs
 ```
 
 ### 整形と lint
@@ -124,14 +114,15 @@ docker compose run --rm analyze-thermo-gateway
 コーディングスタイルは Zephyr の規約に合わせています (違う点は [CODING_STYLE.md](CODING_STYLE.md))。
 
 ```bash
+# 「対象」が node、gateway の場合
 # 整形の確認 (整形が必要なら失敗する)
-docker compose run --rm format-thermo
+docker compose run --rm format
 # 整形して、ファイルを書き換える
-docker compose run --rm format-thermo-fix
+docker compose run --rm format-fix
 # Zephyr の checkpatch.pl による検査
-docker compose run --rm lint-thermo
+docker compose run --rm lint
 # 行末の空白の確認 (全てのテキストファイル)
-docker compose run --rm whitespace-thermo
+docker compose run --rm whitespace
 ```
 
 ### ローカル開発環境構築
@@ -141,16 +132,12 @@ Docker を使用しない場合は、[SETUP.md](./SETUP.md) を参照してく�
 ```bash
 # West ワークスペース初期化
 west init -l .
-
 # Thermo Node をビルド（ESP32C3用）
 west build -b xiao_esp32c3 app/thermo-node
-
 # Thermo Gateway をビルド（ESP32C3用）
 west build -b xiao_esp32c3 app/thermo-gateway
-
 # Thermo Node をビルド（シミュレーション）
 west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -DCONF_FILE=prj-native_sim.conf
-
 # Thermo Gateway をビルド（シミュレーション）
 west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-sim -- -DCONF_FILE=prj-native_sim.conf
 ```
@@ -162,8 +149,8 @@ west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-si
 
 ```bash
 # Docker: 環境変数 THERMO_DEBUG_LOG を ON にして、build-* のサービスを実行する (既定は OFF)
-THERMO_DEBUG_LOG=ON docker compose run --rm build-thermo-node
-THERMO_DEBUG_LOG=ON docker compose run --rm build-thermo-gateway
+THERMO_DEBUG_LOG=ON docker compose run --rm build-node
+THERMO_DEBUG_LOG=ON docker compose run --rm build-gateway
 
 # West (Docker を使わない場合)
 west build -p always -b xiao_esp32c3 app/thermo-node -- -DTHERMO_DEBUG_LOG=ON
@@ -193,6 +180,7 @@ scripts/flash.sh gateway /dev/ttyACM0
 - 温湿度センサ (DHT11) の読取 (Zephyr のセンサ API。配線は [SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
 - BLE GATT サービスで、温度と湿度のデータを配信
 - 拡張ボードの OLED に、温度、湿度、日付、時刻と、温度と湿度のグラフ (直近の約 64 分) を表示 (ユーザボタンでページを切り替え。OLED は、起動のときとボタンを押したときに点灯して、10 秒たつと消える。消えている間にボタンを押すと、点灯する)。時刻は、拡張ボードの RTC (PCF8563) から読みます (RTC は、ゲートウェイから BLE で受け取った時刻に合わせます) (設定は [SETUP.md](SETUP.md) の「OLED の表示と時刻」。`THERMO_DISPLAY=n` と `THERMO_RTC=n` で、別々に外せます)
+- ゲートウェイにつながらない測定が 5 回続いたら、ノードが、WiFi で、AWS IoT Core に、直接 MQTT で送る (10 秒ごと。ゲートウェイにつながったら止める。5 回失敗したらあきらめる)。BLE も WiFi も使えない間の測定値は、拡張ボードの SD カードに溜めて、つながったときに、測った時刻のまま送る ([SETUP.md](SETUP.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」。ノードごとの証明書は、[AWS_SETUP.md](AWS_SETUP.md) の 7 章)。
 - 起動のときに、OLED に、約 3 秒の起動画面 (丸い絵が、ドットを食べながら走る) を出して、ブザーで、短いメロディを鳴らす (オリジナルの絵と曲。差し替えは、[SETUP.md](SETUP.md) の「起動画面と起動音」)。ボタン (D1) を押すと、ページを切り替えて、ブザーで、短い音を鳴らす (差し替えは、同じ「ボタンを押したときの音」)
 - ログ出力（UART シリアルコンソール）
 

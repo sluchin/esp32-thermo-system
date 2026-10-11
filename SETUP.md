@@ -92,16 +92,16 @@ docker compose build
 
 ```bash
 # Thermo Node をビルド（ESP32C3用）
-docker compose run --rm build-thermo-node
+docker compose run --rm build-node
 
 # Thermo Gateway をビルド（ESP32C3用）
-docker compose run --rm build-thermo-gateway
+docker compose run --rm build-gateway
 
 # Thermo Node をビルド（シミュレーション用）
-docker compose run --rm build-thermo-node-sim
+docker compose run --rm build-node-sim
 
 # Thermo Gateway をビルド（シミュレーション用）
-docker compose run --rm build-thermo-gateway-sim
+docker compose run --rm build-gateway-sim
 
 # インタラクティブ開発シェル
 docker compose run --rm dev
@@ -339,7 +339,7 @@ Humi 45.0 %
 - **画面**: 画面の上に、題名 (`THERMO NODE`) を出して、その下を、口を開け閉めする丸い絵が、ドットを食べながら、左から右へ走ります。少し後ろから、敵の絵が追います。50 フレームを、60 ミリ秒ごとに、表示します。
 - **音**: 拡張ボードの**パッシブブザー** (D3 = GPIO5) を、PWM (LEDC のチャンネル 0) で鳴らします。周波数が、音の高さで、デューティ比は 50% です。メロディ (約 2.6 秒) は、システムのワークキューで、順に鳴らすので、BLE の開始や、測定は、待たされません。
 - 画面は、約 3 秒の間、測定のループの前で、動きます (BLE のアドバタイズは、すでに始まっています)。起動のときに、OLED かブザーが、使えなかったときは、その画面や音は、出しません (あとで使えるようになっても、出しません)。失敗しても、測定と通知は、続きます。
-- ビルドのオプションで、別々に外せます。`CONFIG_THERMO_BOOT_SCREEN=n` で画面 (`THERMO_DISPLAY` が `n` のときも、なくなる)、`CONFIG_THERMO_BUZZER=n` で音 (Docker は、`THERMO_BUZZER=n docker compose run --rm build-thermo-node`)。
+- ビルドのオプションで、別々に外せます。`CONFIG_THERMO_BOOT_SCREEN=n` で画面 (`THERMO_DISPLAY` が `n` のときも、なくなる)、`CONFIG_THERMO_BUZZER=n` で音 (Docker は、`THERMO_BUZZER=n docker compose run --rm build-node`)。
 
 ```bash
 # West
@@ -405,14 +405,17 @@ scripts/send-wifi.sh home-ap "" /dev/ttyACM0          # パスワードが空: �
 SYNC=1 scripts/send-wifi.sh home-ap - /dev/ttyACM0    # 送ったあと、時刻の取得 (thermo sync) も試す (約 30 秒)
 ```
 
-スクリプトは、`thermo set ssid`、`thermo set psk`、`thermo show` を順に送ります。終わりに `ready to get the time: yes` と表示されれば、設定できています (ポートの既定は `/dev/ttyACM0`)。ノードのシェルには、`cred` コマンドは、ありません。ゲートウェイ用の `send-cred.sh` は、使いません (ノードは、証明書を使いません)。シェルに、短いコマンドを手で入力するときは、次のコマンドを使います。
+スクリプトは、`thermo set ssid`、`thermo set psk`、`thermo show` を順に送ります。終わりに、`ssid:` に、送った SSID が表示されれば、設定できています (ポートの既定は `/dev/ttyACM0`)。WiFi での直接の送信 (下の節) に使う、エンドポイントと証明書は、ゲートウェイ用の `scripts/send-cred.sh` で、同じように送れます。
 
 ```text
 thermo set ssid <SSID>
 thermo set psk <パスワード>    (オープンネットワークでは、設定しない)
-thermo show                    (SSID と、設定が揃っているかを表示する。パスワードは隠す)
+thermo set endpoint <ホスト名>  (AWS IoT Core のエンドポイント。直接の送信に使う。下の節)
+thermo set client_id <ID>      (MQTT のクライアント ID。直接の送信に使う。下の節)
+thermo show                    (設定と証明書の状態を表示する。パスワードは隠す)
+thermo save-certs              (cred add で登録した証明書をフラッシュに保存する。直接の送信に使う)
 thermo sync                    (WiFi で時刻をすぐに取って、RTC に設定する。1 分待たずに試せる。試みの回数には数えない)
-thermo reset                   (設定を消す)
+thermo reset                   (設定と証明書を消す)
 ```
 
 - `thermo sync` で、1 分待たずに、WiFi での取得を確かめられます。2.4 GHz の WiFi だけに対応します (ESP32-C3)。
@@ -426,12 +429,54 @@ OLED と RTC は、ビルドのオプションで、別々に外せます。Devi
 
 ```bash
 # Docker: 環境変数 THERMO_DISPLAY と THERMO_RTC を n にして、ビルドする (既定は y)
-THERMO_DISPLAY=n docker compose run --rm build-thermo-node
-THERMO_RTC=n docker compose run --rm build-thermo-node
+THERMO_DISPLAY=n docker compose run --rm build-node
+THERMO_RTC=n docker compose run --rm build-node
 
 # West
 west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_THERMO_DISPLAY=n -DCONFIG_THERMO_RTC=n
 ```
+
+### ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存
+
+ゲートウェイが止まっているなど、BLE でつながらないときに、ノードが、自分で、WiFi につないで、AWS IoT Core に、MQTT (TLS) で、直接、送ります。BLE も WiFi も使えない間の測定値は、SD カードに溜めて、つながったときに、測った時刻のまま、送ります (`CONFIG_THERMO_DIRECT_MQTT`。既定は `y`。`CONFIG_THERMO_WIFI_TIME=y` が前提です。SD カードは `CONFIG_THERMO_BACKLOG`。既定は、SD カードの Devicetree のノード (`sdhc0`) があれば `y`)。
+
+**動き**
+
+1. ゲートウェイにつながっていない測定 (5 秒ごと) が **5 回続いたら** (約 25 秒)、WiFi と MQTT を動かして、**10 秒ごと**に、測定値を、AWS IoT Core に、送ります (トピックは、`thermo/<クライアント ID>/<ノードのアドレス>/temperature`。ゲートウェイが送る形と同じなので、DynamoDB のルールと、`thermon` が、そのまま使えます)。
+2. ゲートウェイにつながったら、直接の送信を止めて、WiFi を切ります (ゲートウェイが送るので、重複させません)。
+3. WiFi か MQTT の接続が、**5 回続けて失敗したら、あきらめて**、ゲートウェイにつながるまで、やり直しません (WiFi を切ります)。
+4. 直接の送信を動かしている間は、WiFi を、時刻の取得 (上の節) には、使いません。
+5. **SD カードに溜める**: ゲートウェイにつながっていない間の測定値は、10 秒ごとに、まだ MQTT につながっていないとき (始める前の約 25 秒を含む)、または、先に送る記録があるときは、SD カードに、溜めます (測った UNIX 時刻、温度、湿度。1 件 16 バイト)。RTC に時刻がないときは、溜められません (時刻が要るため)。
+6. **SD カードの記録を送る**: SD カードに、送っていない記録があるときは、ゲートウェイにつながっていても、WiFi と MQTT を動かして、**古い順に**、測った時刻 (`timestamp`) のまま、送ります。publish できた分だけ、送り終えたことにして、全て送り終えて、ゲートウェイにつながっていれば、WiFi を切ります。送り終えたら、ファイルを消します。
+
+**設定** (ゲートウェイと同じ。`thermo` コマンド)
+
+```text
+thermo set ssid <SSID>            (スマートフォンのテザリングなら、2.4 GHz にする。ESP32-C3 は 5 GHz に対応しない)
+thermo set psk <パスワード>
+thermo set endpoint <AWS IoT のエンドポイント>
+thermo set client_id <クライアント ID>    (ノードごとに、別の ID にする。ゲートウェイとも、重ねない。例: node-01)
+cred add ...                      (CA 証明書、デバイス証明書、秘密鍵。ゲートウェイと同じ手順。AWS_SETUP.md)
+thermo save-certs
+thermo show                       (ready to connect: yes になれば、揃っている)
+```
+
+文字が欠けないように、`scripts/send-cred.sh` と `scripts/send-wifi.sh` で、少しずつ送ります。**証明書とポリシーは、ノードごとに、別のものを作ります** (ゲートウェイと共有しません。1 台が漏れても、その 1 台だけ、無効にできます)。作り方は、[AWS_SETUP.md](AWS_SETUP.md) の 7 章です。
+
+**SD カード** (拡張ボードの SD カードスロット。SPI。CS は D2)
+
+- **FAT でフォーマット**したカードを、差します (32 GB 以下の SDHC を、お勧めします)。Devicetree は、Zephyr の `seeed_xiao_expansion_board` と同じです (`app/thermo-node/boards/xiao_esp32c3.overlay`)。
+- ファイルは、`/SD:/backlog.bin` (記録) と、`/SD:/backlog.pos` (送り終えた数) です。溜められる数は、`CONFIG_THERMO_BACKLOG_MAX_RECORDS` (既定 100000 件 = 約 1.6 MB = 10 秒ごとで、約 11.5 日) です。満杯のときは、新しい値を捨てます。
+- カードがないとき (マウントできないとき) は、ログに `No SD card` を出して、溜めません (ほかの機能は、動きます)。電源が切れたときの、書きかけの記録は、起動のときに、捨てます。壊れた記録は、送らずに、捨てます。
+- ファイルの中身は、シェルの `fs ls /SD:` などで見られます (`fs rm` と `fs write` も使えるので、書き込み中は、実行しない)。
+- 使わないとき: `-DCONFIG_THERMO_BACKLOG=n`。
+
+**制限と、未確認のこと**
+
+- **実機で、まだ確認していません**: BLE と WiFi と TLS を同時に動かしたときの動作、ゲートウェイを止めたときの切り替え、戻ったときの停止、SD カードの読み書き (配線、フォーマット、抜き差し、電源断)、あとからの送信。単体テストは、FFF のモックと、RAM ディスクの FatFS で、動作の流れだけを確かめています。
+- **RAM の余裕が小さい**: SD カードと TLS を加えて、静的な RAM (`dram0`) の空きは、約 1.5 KB です。`prj.conf` で、ネットワークのバッファ (`CONFIG_NET_BUF_*_COUNT` と `CONFIG_NET_PKT_*_COUNT`) と、FatFS の同時に開くファイル (`CONFIG_FS_FATFS_NUM_FILES`) を、減らしています。機能を足すと、`region dram0_0_seg overflowed` で、ビルドが失敗します (そのときは、`CONFIG_MBEDTLS_HEAP_SIZE` など、ほかの設定を見直します)。
+- 「送り終えた」は、publish の成功で、判断します (PUBACK は、待ちません)。接続が切れる直前の値は、AWS に届かずに、失われることがあります。
+- BLE だけで、WiFi の設定がない場合の、ゲートウェイ経由での、SD カードの記録の送信は、まだありません ([TODO.md](TODO.md))。
 
 ### DHT11 の読み取りの失敗と、割り込みを止める設定
 
@@ -444,7 +489,7 @@ DHT11 の読み取りは、マイクロ秒単位のタイミングで、1 本の
 
 ```bash
 # Docker: 環境変数 THERMO_DHT_LOCK_IRQS を n にして、ビルドする (既定は y)
-THERMO_DHT_LOCK_IRQS=n docker compose run --rm build-thermo-node
+THERMO_DHT_LOCK_IRQS=n docker compose run --rm build-node
 
 # West
 west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_DHT_LOCK_IRQS=n
@@ -495,12 +540,12 @@ Thermo ノードのシェルには、ファイルシステムのコマンド `fs
 
 | ジョブ | 実行するサービス | 内容 |
 |:---|:---|:---|
-| `build` | `build-thermo-node` / `build-thermo-gateway` / `build-thermo-node-sim` / `build-thermo-gateway-sim` | ビルド。警告が出たら失敗 |
-| `test` | `test-thermo-node` / `test-thermo-gateway` | 単体テスト (Ztest + FFF, `native_sim`) |
-| `coverage` | `coverage-thermo-node` / `coverage-thermo-gateway` | 単体テストのカバレッジ (行と分岐。100% 未満なら失敗) |
-| `docs` | `docs-thermo` | ドキュメント (Doxygen)。警告があれば失敗。生成物 (`docs/`) は、アーティファクトに保存 |
-| `analyze` | `analyze-thermo-node` / `analyze-thermo-gateway` | 静的解析 (gcc `-fanalyzer`)。指摘があれば失敗 |
-| `lint` | `format-thermo` / `lint-thermo` / `whitespace-thermo` | 整形の確認 (clang-format)、Zephyr の `checkpatch.pl`、行末の空白の確認。指摘があれば失敗 |
+| `build` | `build-node` / `build-gateway` / `build-node-sim` / `build-gateway-sim` | ビルド。警告が出たら失敗 |
+| `test` | `test-node` / `test-gateway` | 単体テスト (Ztest + FFF, `native_sim`) |
+| `coverage` | `coverage-node` / `coverage-gateway` | 単体テストのカバレッジ (行と分岐。100% 未満なら失敗) |
+| `docs` | `docs` | ドキュメント (Doxygen)。警告があれば失敗。生成物 (`docs/`) は、アーティファクトに保存 |
+| `analyze` | `analyze-node` / `analyze-gateway` | 静的解析 (gcc `-fanalyzer`)。指摘があれば失敗 |
+| `lint` | `format` / `lint` / `whitespace` | 整形の確認 (clang-format)、Zephyr の `checkpatch.pl`、行末の空白の確認。指摘があれば失敗 |
 
 Docker イメージは、レイヤーを GitHub Actions のキャッシュに保存します (`.github/actions/docker-image`)。`Dockerfile` か `west.yml` を変えたときだけ、イメージが作り直されます。
 
@@ -513,18 +558,18 @@ docker compose run --rm coverage
 docker compose run --rm analyze
 
 # 個別
-docker compose run --rm test-thermo-node
-docker compose run --rm test-thermo-gateway
+docker compose run --rm test-node
+docker compose run --rm test-gateway
 # カバレッジ (行と分岐が 100% でなければ失敗する)
-docker compose run --rm coverage-thermo-node
-docker compose run --rm coverage-thermo-gateway
+docker compose run --rm coverage-node
+docker compose run --rm coverage-gateway
 # ドキュメント (Doxygen。docs/index.html を開く。警告があれば失敗する)
-docker compose run --rm docs-thermo
-docker compose run --rm analyze-thermo-node
-docker compose run --rm analyze-thermo-gateway
-docker compose run --rm format-thermo
-docker compose run --rm lint-thermo
-docker compose run --rm whitespace-thermo
+docker compose run --rm docs
+docker compose run --rm analyze-node
+docker compose run --rm analyze-gateway
+docker compose run --rm format
+docker compose run --rm lint
+docker compose run --rm whitespace
 ```
 
 コーディングスタイルは Zephyr の規約に合わせています。違う点は、[CODING_STYLE.md](CODING_STYLE.md) を参照してください。
@@ -540,10 +585,10 @@ docker compose run --rm whitespace-thermo
 
 | 名前 | 内容 |
 |:---|:---|
-| `build_thermo_node` `build_thermo_gateway` `build_thermo_node_sim` `build_thermo_gateway_sim` | 上のビルド成果物と `build.log` |
-| `test_thermo_node_log` `test_thermo_gateway_log` | 単体テストのログ |
-| `coverage_thermo_node_log` `coverage_thermo_gateway_log` | カバレッジのログ |
-| `analyze_thermo_node_log` `analyze_thermo_gateway_log` | 静的解析のログ |
+| `build_node` `build_gateway` `build_node_sim` `build_gateway_sim` | 上のビルド成果物と `build.log` |
+| `test_node_log` `test_gateway_log` | 単体テストのログ |
+| `coverage_node_log` `coverage_gateway_log` | カバレッジのログ |
+| `analyze_node_log` `analyze_gateway_log` | 静的解析のログ |
 | `format_thermo_log` `lint_thermo_log` `whitespace_thermo_log` | 整形、lint、行末の空白の確認のログ |
 | `docs` `docs_log` | Doxygen のドキュメントと、生成のログ |
 

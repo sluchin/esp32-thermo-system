@@ -17,10 +17,10 @@
 
 ```bash
 # Thermo Node をシミュレーション用にビルド
-docker compose run --rm build-thermo-node-sim
+docker compose run --rm build-node-sim
 
 # Thermo Gateway をシミュレーション用にビルド
-docker compose run --rm build-thermo-gateway-sim
+docker compose run --rm build-gateway-sim
 ```
 
 ### 2. 直接 west コマンドを使用
@@ -116,8 +116,8 @@ native_sim ボード用の device tree overlay。
 1. **ローカル開発**
    ```bash
    # シミュレーション用にビルド
-   docker compose run --rm build-thermo-node-sim
-   docker compose run --rm build-thermo-gateway-sim
+   docker compose run --rm build-node-sim
+   docker compose run --rm build-gateway-sim
 
    # Node を実行してテスト
    ./build/thermo-node-sim/zephyr/zephyr.exe &
@@ -133,8 +133,8 @@ native_sim ボード用の device tree overlay。
 3. **本番環境への展開**
    ```bash
    # ESP32C3 用にビルド
-   docker compose run --rm build-thermo-node
-   docker compose run --rm build-thermo-gateway
+   docker compose run --rm build-node
+   docker compose run --rm build-gateway
 
    # フラッシング
    # 2 台つないでいるときは, 台ごとにポートが違う (PORT で指定する)

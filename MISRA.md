@@ -38,7 +38,7 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 - **再帰、`goto`、シグナル、`exit()` / `atexit()`、可変長引数、浮動小数点を使わない**: アプリのコードは、これらの Rule 15.1, 17.2, 21.5, 21.8, 17.1, 14.1 の対象となる機能を使いません。
 - **到達しないコードの排除 (Rule 2.1)**: 無限ループの後ろに、到達しない `return` を書かない。
 - **コンパイル警告ゼロ**: `app/warnings.txt` の警告オプション (`-Wall` `-Wextra` `-Wpedantic` `-Wconversion` `-Wsign-conversion` など約 55 個) で警告が出ない状態を維持。
-- **静的解析**: `docker compose run --rm analyze-thermo-node` / `analyze-thermo-gateway` (gcc `-fanalyzer`) で、指摘が出ない状態を維持。
+- **静的解析**: `docker compose run --rm analyze-node` / `analyze-gateway` (gcc `-fanalyzer`) で、指摘が出ない状態を維持。
 
 ---
 

@@ -202,3 +202,50 @@ AWS IoT Core の相互認証のために、`prj.conf` に、次の設定を入�
 - 送信できなかった値は、キュー (16 件) があふれると、捨てます。再送はしません (最新の値を優先)。
 - ゲートウェイの RAM は、ほぼ使い切っています (`dram0_0_seg` が 約 98%)。機能を足すときは、`CONFIG_MBEDTLS_HEAP_SIZE` など、ほかを減らす必要があります。
 - `native_sim` のビルドは、ネットワークがないので、クラウドへの送信を含みません (`CONFIG_THERMO_CLOUD=n`)。
+
+## 7. Thermo ノードから、直接送る (ゲートウェイがないとき)
+
+ノードが、ゲートウェイにつながらないときに、WiFi で、AWS IoT Core に、直接送る機能 ([SETUP.md](SETUP.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」) に要る、AWS 側の準備です。**ノードごとに、別のモノ、証明書、ポリシー、クライアント ID** を作ります (ゲートウェイと共有しません)。
+
+```bash
+# 共通の変数 (2 章と同じ。シェルを閉じたら、設定し直す)
+export AWS_REGION=ap-northeast-1
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+NODE_ID=node-01        # ノードの名前 (クライアント ID。トピックの 2 つ目。ノードごとに変える)
+
+# モノの登録と, 証明書と鍵の作成 (ノードごとに, 別のファイル名にする)
+aws iot create-thing --thing-name "$NODE_ID"
+CERT_ARN=$(aws iot create-keys-and-certificate --set-as-active \
+  --certificate-pem-outfile "${NODE_ID}.pem.crt" \
+  --public-key-outfile "${NODE_ID}.public.key" \
+  --private-key-outfile "${NODE_ID}.private.key" \
+  --query certificateArn --output text)
+
+# ポリシー: このクライアント ID での接続と, このノードのトピックへの publish だけを許す
+cat > policy-node.json <<JSON
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "iot:Connect",
+      "Resource": "arn:aws:iot:${AWS_REGION}:${ACCOUNT_ID}:client/${NODE_ID}"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Publish",
+      "Resource": "arn:aws:iot:${AWS_REGION}:${ACCOUNT_ID}:topic/thermo/${NODE_ID}/*"
+    }
+  ]
+}
+JSON
+aws iot create-policy --policy-name "thermo-${NODE_ID}" --policy-document file://policy-node.json
+aws iot attach-policy --policy-name "thermo-${NODE_ID}" --target "$CERT_ARN"
+aws iot attach-thing-principal --thing-name "$NODE_ID" --principal "$CERT_ARN"
+```
+
+- 作った `${NODE_ID}.pem.crt` と `${NODE_ID}.private.key` と、ルート CA (`AmazonRootCA1.pem`。2 章) を、ノードのシェルに登録します ([SETUP.md](SETUP.md)。`scripts/send-cred.sh`)。クライアント ID は、`thermo set client_id ${NODE_ID}` です (ポリシーの `client/` と、トピックの `thermo/${NODE_ID}/` と、同じにします)。
+- エンドポイントは、ゲートウェイと同じです (`aws iot describe-endpoint --endpoint-type iot:Data-ATS`)。
+- トピックは、`thermo/${NODE_ID}/<ノードの BLE アドレス>/temperature` で、ゲートウェイが送る形と同じです。DynamoDB のルール (`thermon` の `AWS_DYNAMODB.md`。`FROM 'thermo/#'`) と、`thermon` の機器の指定 (ノードの BLE アドレス) は、そのまま使えます。
+- 作ったファイル (`*.pem.crt`、`*.private.key`、`policy-node.json`) は、**コミットしません**。秘密鍵は、ノードのフラッシュにだけ、置きます。
+- 1 台の証明書を、無効にするとき: `aws iot update-certificate --certificate-id "$CERT_ID" --new-status INACTIVE` (`CERT_ID` は、証明書の ID。`aws iot list-certificates` で調べる)。
