@@ -2,7 +2,7 @@
 
 Thermo Gateway のデバッグログ (`THERMO_DEBUG_LOG=ON`) の、取り方と、読み方です。例は、実機 (XIAO ESP32C3) で、SwitchBot 屋外用温湿度計 (`ED:2E:C4:46:3B:11`) を受信して、AWS IoT Core に送信したときのログです。
 
-> ノードから受信した温度 (`ble.c` の `Notification` の 16 進ダンプ) と、ノードの温度の送信のログは、この文書には載せていません (載せているのは、SwitchBot の受信と送信だけです)。
+> ノード (thermo-node) の温度の測定と通知のログは、「7. ノードのログ」にあります。
 
 ## 1. ログの取り方
 
@@ -238,3 +238,37 @@ grep -E "<wrn>|<err>" debug.log
 | `Could not fetch` だけで、`Invalid checksum` が出ない | 時間切れ。配線 (`out` が D7、`+` が 3V3、`-` が GND)、ジャンパーの接触、センサの電源、`dio-gpios` の極性 (`GPIO_ACTIVE_LOW`) の問題か、割り込みによる遅れ |
 
 割り込みの影響は、読み取りの間、割り込みを止める設定 (`CONFIG_DHT_LOCK_IRQS=y`) で、防げます。**この設定は、既定で有効です**。無効にして試す方法は、[SETUP.md](SETUP.md) の「DHT11 の読み取りの失敗と、割り込みを止める設定」にあります。
+
+## 7. ノードのログ
+
+Thermo Node のデバッグログ (`THERMO_DEBUG_LOG=ON`) です。取り方は、「1. ログの取り方」と同じです (`build-thermo-node` でビルドして、`scripts/flash.sh node /dev/ttyACM0` で書き込みます)。例は、実機で、ゲートウェイをつないだときのログです。
+
+```
+[00:01:32.966,000] <inf> thermo_node: Temperature: 24.0 C, humidity: 49.0 %
+[00:01:32.969,000] <dbg> ble_thermo_node: ble_notify_temperature: Notify
+                                          f0 00 ea 01                                      |....
+[00:01:37.962,000] <inf> thermo_node: Temperature: 24.0 C, humidity: 49.0 %
+```
+
+| 部分 | 意味 |
+|:---|:---|
+| `<inf> thermo_node: Temperature: 24.0 C, humidity: 49.0 %` | `main.c` のメインループが、5 秒ごとに出す、測定値の要約。湿度がないセンサ (ADC など) では、`humidity` の部分が出ません |
+| `<dbg> ble_thermo_node: ble_notify_temperature: Notify` | `ble.c` が、ゲートウェイへ通知 (notify) する値の 16 進ダンプ。上の `Temperature` の約 3 ミリ秒あと |
+
+16 進ダンプの 4 バイトは、温度と湿度を、それぞれ 2 バイト、リトルエンディアン (下の桁が先) で並べたものです。値は、10 倍の整数です。
+
+| バイト | 読み方 | 例 |
+|:---|:---|:---|
+| 1 から 2 バイト目 | 温度 [℃ の 10 倍]。符号あり 16 ビット | `f0 00` → `0x00F0` = 240 → 24.0 ℃ |
+| 3 から 4 バイト目 | 湿度 [% の 10 倍]。符号なし 16 ビット | `ea 01` → `0x01EA` = 490 → 49.0 % |
+
+- 負の温度は、2 の補数です (例: `-5.0` ℃ は 500 ではなく `-50` = `0xFFCE` → `ce ff`)。
+- 湿度がないときは、`ff ff` (`0xFFFF`、`THERMO_HUMIDITY_NONE`) です。
+- ダンプの値は、直前の `Temperature` の値と一致します。ずれていたら、測定値と通知の間で、値が変わっています。
+
+ゲートウェイがつながっていないときは、`Notify` のダンプは出ますが、通知は送られません。そのときは、`No connection to notify` が出ます (値は更新されるので、あとで読み取れます)。通知に失敗したときは、`<err>` の `Notify failed (err ...)` です。
+
+| 見たいこと | 見るログ |
+|:---|:---|
+| 測定できているか | `Temperature:` が、約 5 秒ごとに出ているか。`Could not fetch the sensor (-5)` は、「DHT11 の読み取りの失敗」を参照 |
+| ゲートウェイに届いているか | `Notify` のダンプのあとに、`No connection to notify` や `Notify failed` が続いていないか。ゲートウェイ側の `Notification` のダンプ (`ble_thermo_gateway`) と、同じ 4 バイトか |
