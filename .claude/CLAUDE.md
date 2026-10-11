@@ -27,6 +27,28 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 - 起動のログ (リセットのたびに USB が切れる) を見るとき: `while true; do picocom -b 115200 /dev/ttyACM0 --noinit --noreset; sleep 0.3; done`
 - Thermo ノードのシェルには、ファイルシステムのコマンド `fs` がある (`CONFIG_FILE_SYSTEM_SHELL=y`。`SETUP.md` の「ファイルシステムのシェル」)。`fs rm` と `fs write` も使えるので、ログの書き込み中には、実行しない。
 
+### クラウドのセッション (claude.ai/code) で Docker を使うとき
+
+**通常の `docker compose build` は、使わない** (curl の終了コード 60 で失敗する。理由は、下)。イメージは `scripts/cloud-docker.sh build` で作り、サービスは `scripts/cloud-docker.sh run <サービス>` で実行する (イメージがなければ、先に `build` する)。環境変数 `CLAUDE_CODE_REMOTE` が `true` なら、クラウド。
+
+```bash
+scripts/cloud-docker.sh build                  # 開発用のイメージ (esp32-thermo-system) を作る (プロキシと CA の設定を足す)
+scripts/cloud-docker.sh run build-thermo-node  # docker compose run --rm build-thermo-node (test-thermo-node なども同じ)
+scripts/cloud-docker.sh start                  # Docker のデーモンを起動する (起動済みなら、何もしない)
+```
+
+- クラウドの VM には、Docker (`dockerd`) が入っているが、デーモンは、自動では起動しない。SessionStart フック (`.claude/settings.json`) が、セッションの開始のときに、`scripts/cloud-docker.sh hook` で起動する (クラウドのときだけ)。起動していないときは、`scripts/cloud-docker.sh start`。ログは、`/tmp/dockerd.log`。
+- VM の外への通信は、全て、Anthropic のプロキシを通る。通信できるドメインは、環境の「Network access」で決まる (標準の Trusted の一覧にないドメインは、「Custom」で足す)。
+- **curl の終了コード 60 の原因** (2026-10-11 に、`thermon` で確認した): VM の通信は、プロキシと、そのプロキシの CA 証明書を使うが、**コンテナは、どちらも引き継がない**。
+  - VM には、`HTTPS_PROXY=http://127.0.0.1:<ポート>` が設定されている。**ポートは、セッションの途中でも変わる** (例: 37451、45999) ので、固定で書かず、実行のたびに `$HTTPS_PROXY` から読む。`127.0.0.1` は、コンテナの中では、コンテナ自身を指す。
+  - CA 証明書は、`/root/.ccr/ca-bundle.crt` にある (`SSL_CERT_FILE` などが指す)。VM のシステムの信頼ストアには、入っていない。
+- **`cloud-docker.sh` がしていること**: `Dockerfile` を、一時的にコピーして (リポジトリは、変えない)、CA を、**証明書ごとに 1 ファイルに分けて**、信頼ストアに入れる行を足す。`--network host` を付け、プロキシを、`ARG` で渡す (`ENV` には、焼き込まない)。Python (`pip`、`west`) は、システムの信頼ストアを見ないので、`PIP_CERT`、`REQUESTS_CA_BUNDLE`、`SSL_CERT_FILE` に、`/etc/ssl/certs/ca-certificates.crt` を教える。**プロキシは、HTTPS (`curl`、`pip`、`west` の git) だけに渡し、`HTTP_PROXY` は渡さない** (`apt` は、Ubuntu のミラーに、HTTP で接続するので、`HTTP_PROXY` を渡すと、プロキシに拒否される。`thermon` で確認した)。`apt` が、それでも失敗するときは、環境の「Allowed domains」に、`archive.ubuntu.com` と `security.ubuntu.com` を足す。ビルドのコンテキストは、`west.yml` だけ (`Dockerfile` の `COPY` が使う)。
+- **Docker Hub の `429`** (ベースのイメージ `ubuntu:24.04` の取得): 失敗したときは、Google のミラー `mirror.gcr.io/library/ubuntu:24.04` から取って、`ubuntu:24.04` のタグを付けてから、ビルドする (スクリプトが、自動でする。環境の「Allowed domains」に、`mirror.gcr.io` が要るかもしれない)。
+- イメージに入った CA は、セッションが変わって、プロキシの CA が変わったときは、古くなる。TLS のエラーが出たら、`scripts/cloud-docker.sh build` で、作り直す。
+- **確認した範囲**: `thermon` の同じスクリプトは、クラウドで、`build`、`test`、`coverage`、`analyze`、`format`、`docs` の全てが成功した。`esp32-thermo-system` のスクリプトは、手元 (ローカル) で、スクリプトが作るビルドのコンテキスト (`Dockerfile`、`ca/`、`west.yml`)、CA がシステムの信頼ストアに入ること (CA を入れる部分までの、切り詰めたビルド)、`ARG` がイメージに残らないこと、ベースのイメージのミラーへの切り替え、`run` がイメージのないときに、先に `build` することを、確認した。
+- **確認していない** (クラウドでは、まだ実行していない): イメージの作成の完走 (イメージは、約 25 GB で、ビルドに、時間と、ディスクが、かかる。クラウドの VM の余裕は、未確認)。Zephyr SDK のダウンロード (`github.com` のリリース。ダウンロード先が、別のドメイン (`objects.githubusercontent.com`、`release-assets.githubusercontent.com` など) に、リダイレクトされ、標準の許可リストにないときは、「Allowed domains」に足す)。`west update` (GitHub の git)。`west blobs fetch`。`pip install` (`pypi.org` は、標準の許可リストにある)。
+- 同じ失敗を、繰り返さない。
+
 ## プロジェクト構成
 
 - `app/`: アプリケーションソース
