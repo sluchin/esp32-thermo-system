@@ -9,7 +9,7 @@ target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src
                            ${CMAKE_CURRENT_LIST_DIR}/../../../common)
 target_sources(app PRIVATE
   src/test_cfg.c
-  ${CMAKE_CURRENT_LIST_DIR}/../../src/cfg.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../../common/cfg.c
 )
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する

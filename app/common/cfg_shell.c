@@ -27,6 +27,17 @@
 #include "cfg.h"
 #include "cloud.h"
 
+/*
+ * アプリ固有のサブコマンド (THERMO_SHELL_EXTRA) を, shell_extra.h で足せる (thermo-node の sync).
+ * shell_extra.h がなければ (thermo-gateway), 足さない.
+ */
+#if __has_include("shell_extra.h")
+#include "shell_extra.h"
+#endif
+#ifndef THERMO_SHELL_EXTRA
+#define THERMO_SHELL_EXTRA
+#endif
+
 /**
  * `thermo set <項目> <値>`: 設定の値をフラッシュに保存する
  *
@@ -174,6 +185,6 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
         /* clang-format on */
         SHELL_CMD(apply, NULL, "reconnect with the current settings", cmd_apply),
         SHELL_CMD(reset, NULL, "erase all the settings and certificates", cmd_reset),
-        SHELL_SUBCMD_SET_END);
+        THERMO_SHELL_EXTRA SHELL_SUBCMD_SET_END);
 
-SHELL_CMD_REGISTER(thermo, &thermo_cmds, "Thermo gateway settings", NULL);
+SHELL_CMD_REGISTER(thermo, &thermo_cmds, "Thermo settings", NULL);

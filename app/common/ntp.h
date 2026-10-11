@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#ifndef THERMO_GATEWAY_NTP_H
-#define THERMO_GATEWAY_NTP_H
+#ifndef THERMO_COMMON_NTP_H
+#define THERMO_COMMON_NTP_H
 
 /**
  * @file
@@ -25,4 +25,4 @@ bool ntp_is_synced(void);
 
 int ntp_unix_time(int64_t *sec);
 
-#endif /* THERMO_GATEWAY_NTP_H */
+#endif /* THERMO_COMMON_NTP_H */

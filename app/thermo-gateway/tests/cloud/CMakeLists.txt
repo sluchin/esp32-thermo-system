@@ -11,8 +11,8 @@ target_compile_definitions(app PRIVATE CONFIG_MQTT_LIB_TLS=1
                            CONFIG_THERMO_NTP_SERVER="ntp.test")
 target_sources(app PRIVATE
   src/test_cloud.c
-  ${CMAKE_CURRENT_LIST_DIR}/../../src/cloud.c
-  ${CMAKE_CURRENT_LIST_DIR}/../../src/payload.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../../common/cloud.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../../common/payload.c
 )
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する

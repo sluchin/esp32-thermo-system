@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#ifndef THERMO_GATEWAY_PAYLOAD_H
-#define THERMO_GATEWAY_PAYLOAD_H
+#ifndef THERMO_COMMON_PAYLOAD_H
+#define THERMO_COMMON_PAYLOAD_H
 
 /**
  * @file
@@ -16,7 +16,7 @@
 #include <stddef.h> /* size_t */
 #include <stdint.h> /* int16_t uint16_t uint32_t int64_t */
 
-#include "switchbot.h"
+#include "switchbot_sample.h"
 
 int payload_format_topic(char *buf, size_t size, const char *client_id, const bt_addr_le_t *addr);
 
@@ -30,4 +30,4 @@ int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
                              const struct switchbot_sample *sample, uint32_t uptime_ms,
                              int64_t unix_s);
 
-#endif /* THERMO_GATEWAY_PAYLOAD_H */
+#endif /* THERMO_COMMON_PAYLOAD_H */

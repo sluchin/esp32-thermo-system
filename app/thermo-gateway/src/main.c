@@ -62,7 +62,7 @@ int main(void)
 
 #ifdef CONFIG_THERMO_CLOUD
     /* 設定を読み込んで AWS IoT Core への送信のスレッドを開始する */
-    ret = cloud_init();
+    ret = cloud_init(true);
     if (ret != EXIT_SUCCESS) {
         LOG_ERR("Failed to initialize the cloud connection");
         return EXIT_FAILURE;

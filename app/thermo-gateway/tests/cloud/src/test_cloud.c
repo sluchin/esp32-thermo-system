@@ -39,6 +39,7 @@ FAKE_VALUE_FUNC(bool, cfg_is_complete)
 FAKE_VALUE_FUNC(int, wifi_link_init)
 FAKE_VALUE_FUNC(int, wifi_link_connect, const char *, const char *, k_timeout_t)
 FAKE_VOID_FUNC(wifi_link_disconnect)
+FAKE_VALUE_FUNC(bool, wifi_link_is_up)
 FAKE_VALUE_FUNC(int, ntp_sync, const char *, k_timeout_t)
 FAKE_VALUE_FUNC(bool, ntp_is_synced)
 FAKE_VALUE_FUNC(int, ntp_unix_time, int64_t *)
@@ -143,6 +144,10 @@ static unsigned int live_calls;
 static unsigned int end_after_live_calls;
 /** mqtt_live() の戻り値 (接続を終わらせる回以外) */
 static int live_return;
+/** 接続を終わらせる回に, cloud_reconnect() の代わりに, cloud_set_enabled(false) を呼ぶか */
+static bool disable_at_end;
+/** 接続中の処理の途中で, cloud_is_connected() が true だったか */
+static bool connected_seen;
 
 /**
  * cfg_get() のモック動作
@@ -295,8 +300,13 @@ static int fake_mqtt_live(struct mqtt_client *client)
 {
     ARG_UNUSED(client);
     live_calls++;
+    connected_seen = connected_seen || cloud_is_connected();
     if (live_calls >= end_after_live_calls) {
-        cloud_reconnect();
+        if (disable_at_end) {
+            cloud_set_enabled(false);
+        } else {
+            cloud_reconnect();
+        }
     }
 
     return live_return;
@@ -313,6 +323,7 @@ static void setup_defaults(void)
     RESET_FAKE(wifi_link_init);
     RESET_FAKE(wifi_link_connect);
     RESET_FAKE(wifi_link_disconnect);
+    RESET_FAKE(wifi_link_is_up);
     RESET_FAKE(ntp_sync);
     RESET_FAKE(ntp_is_synced);
     RESET_FAKE(ntp_unix_time);
@@ -353,6 +364,8 @@ static void setup_defaults(void)
     live_calls = 0U;
     end_after_live_calls = 1U;
     live_return = -EAGAIN;
+    disable_at_end = false;
+    connected_seen = false;
     (void)memset(published, 0, sizeof(published));
 }
 
@@ -378,6 +391,8 @@ static void connect_and_run_for(unsigned int ticks)
 static void before(void *fixture)
 {
     ARG_UNUSED(fixture);
+    cloud_set_attempt_limit(0U);
+    cloud_set_enabled(true);
     setup_defaults();
     zassert_equal(cloud_step(), EXIT_SUCCESS);
     setup_defaults();
@@ -839,7 +854,7 @@ ZTEST(cloud, test_init_cfg_failure)
     cfg_init_fake.return_val = -EIO;
 
     /* 期待: 設定の読み込みに失敗したら, WiFi の初期化もスレッドの開始もしない */
-    zassert_equal(cloud_init(), -EIO);
+    zassert_equal(cloud_init(true), -EIO);
     zassert_equal(wifi_link_init_fake.call_count, 0U);
 }
 
@@ -849,7 +864,7 @@ ZTEST(cloud, test_init_wifi_failure)
     wifi_link_init_fake.return_val = -ENODEV;
 
     /* 期待: WiFi の初期化の失敗を返す */
-    zassert_equal(cloud_init(), -ENODEV);
+    zassert_equal(cloud_init(true), -ENODEV);
 }
 
 /** 初期化に成功したら, スレッドが接続の処理 (cloud_step) を繰り返す */
@@ -857,7 +872,7 @@ ZTEST(cloud, test_init_starts_thread)
 {
     cfg_is_complete_fake.return_val = false; /* 設定が揃うまで待つ (接続しない) */
 
-    zassert_equal(cloud_init(), EXIT_SUCCESS);
+    zassert_equal(cloud_init(true), EXIT_SUCCESS);
     k_msleep(100);
     cloud_stop();
 
@@ -934,6 +949,132 @@ ZTEST(cloud, test_session_switchbot_format_failure)
 
     zassert_equal(cloud_step(), -ENOSPC);
     zassert_equal(mqtt_publish_fake.call_count, 0U);
+}
+
+/** 止めた状態で初期化 (cloud_init(false)) すると, スレッドは, 設定を確認も接続もしないで待つ */
+ZTEST(cloud, test_init_idle_does_not_connect)
+{
+    zassert_equal(cloud_init(false), EXIT_SUCCESS);
+    k_msleep(2500);
+    cloud_stop();
+
+    zassert_equal(cfg_is_complete_fake.call_count, 0U);
+    zassert_equal(wifi_link_connect_fake.call_count, 0U);
+}
+
+/** 止められている間は, 接続せずに待つ. WiFi がつながっていれば, 切る */
+ZTEST(cloud, test_step_idle_when_disabled)
+{
+    cloud_set_enabled(false);
+
+    wifi_link_is_up_fake.return_val = true;
+    zassert_equal(cloud_step(), -EAGAIN);
+    zassert_equal(wifi_link_disconnect_fake.call_count, 1U);
+
+    wifi_link_is_up_fake.return_val = false;
+    zassert_equal(cloud_step(), -EAGAIN);
+    zassert_equal(wifi_link_disconnect_fake.call_count, 1U);
+    zassert_equal(wifi_link_connect_fake.call_count, 0U);
+}
+
+/** 止められている間は, 値を受け付けない. 動かすと, 接続して, キューの古い値は捨てる */
+ZTEST(cloud, test_enable_connects_and_purges_the_queue)
+{
+    zassert_equal(cloud_publish_temperature(&node, 100, 450U), EXIT_SUCCESS);
+    zassert_equal(cloud_pending(), 1U);
+
+    cloud_set_enabled(false);
+    zassert_equal(cloud_publish_temperature(&node, 200, 450U), -ENOTCONN);
+    zassert_equal(cloud_publish_temperature_at(&node, 200, 450U, 1790000000), -ENOTCONN);
+
+    cloud_set_enabled(true);
+    zassert_equal(cloud_pending(), 0U);
+    zassert_equal(cloud_step(), EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect_fake.call_count, 1U);
+    zassert_equal(mqtt_publish_fake.call_count, 0U);
+}
+
+/** 接続の失敗が上限の回数続いたら, あきらめて, WiFi を切る. 動かし直すまで, 接続しない */
+ZTEST(cloud, test_attempt_limit_gives_up)
+{
+    cloud_set_attempt_limit(2U);
+    wifi_link_connect_fake.return_val = -ETIMEDOUT;
+
+    /* 1 回目の失敗: まだ, あきらめない (間隔をあけて, やり直す) */
+    zassert_equal(cloud_step(), -ETIMEDOUT);
+    zassert_false(cloud_has_given_up());
+    zassert_equal(wifi_link_disconnect_fake.call_count, 0U);
+
+    /* 2 回目の失敗: あきらめて, WiFi を切る */
+    zassert_equal(cloud_step(), -ETIMEDOUT);
+    zassert_true(cloud_has_given_up());
+    zassert_equal(wifi_link_disconnect_fake.call_count, 1U);
+
+    /* あきらめたあとは, 接続しない */
+    zassert_equal(cloud_step(), -EAGAIN);
+    zassert_equal(wifi_link_connect_fake.call_count, 2U);
+
+    /* 動かし直すと, あきらめた状態が戻って, 接続を試す */
+    cloud_set_enabled(true);
+    zassert_false(cloud_has_given_up());
+    zassert_equal(cloud_step(), -ETIMEDOUT);
+    zassert_equal(wifi_link_connect_fake.call_count, 3U);
+}
+
+/** 接続に成功したら, 失敗の回数を数え直す (間を空けた失敗は, あきらめる回数に数えない) */
+ZTEST(cloud, test_attempts_reset_on_success)
+{
+    cloud_set_attempt_limit(2U);
+
+    wifi_link_connect_fake.return_val = -ETIMEDOUT;
+    zassert_equal(cloud_step(), -ETIMEDOUT);
+    wifi_link_connect_fake.return_val = 0;
+    zassert_equal(cloud_step(), EXIT_SUCCESS);
+    wifi_link_connect_fake.return_val = -ETIMEDOUT;
+    zassert_equal(cloud_step(), -ETIMEDOUT);
+
+    zassert_false(cloud_has_given_up());
+}
+
+/** 上限が 0 なら, 何度失敗しても, あきらめない */
+ZTEST(cloud, test_no_limit_never_gives_up)
+{
+    wifi_link_connect_fake.return_val = -ETIMEDOUT;
+
+    zassert_equal(cloud_step(), -ETIMEDOUT);
+    zassert_equal(cloud_step(), -ETIMEDOUT);
+    zassert_equal(cloud_step(), -ETIMEDOUT);
+
+    zassert_false(cloud_has_given_up());
+}
+
+/** 接続中に止めると, 接続中の処理を終えて (MQTT を閉じて), WiFi を切る */
+ZTEST(cloud, test_disable_ends_the_session)
+{
+    disable_at_end = true;
+
+    zassert_equal(cloud_step(), EXIT_SUCCESS);
+
+    zassert_equal(wifi_link_disconnect_fake.call_count, 1U);
+    zassert_equal(mqtt_disconnect_fake.call_count, 1U);
+    zassert_false(cloud_is_connected());
+}
+
+/** 測った時刻を指定した値は, その時刻を payload に入れる. 送ると, 送った回数が増える */
+ZTEST(cloud, test_publish_at_uses_the_given_time)
+{
+    uint32_t before_count = cloud_sent_count(); /* 送る前の回数 */
+
+    zassert_equal(cloud_publish_temperature_at(&node, -35, 450U, 1700000000), EXIT_SUCCESS);
+    zassert_equal(cloud_pending(), 1U);
+
+    zassert_equal(cloud_step(), EXIT_SUCCESS);
+
+    zassert_equal(mqtt_publish_fake.call_count, 1U);
+    zassert_not_null(strstr(published[0].payload, "\"timestamp\":1700000000"));
+    zassert_equal(cloud_sent_count(), before_count + 1U);
+    zassert_equal(cloud_pending(), 0U);
+    zassert_true(connected_seen);
 }
 
 ZTEST_SUITE(cloud, NULL, NULL, before, NULL, NULL);

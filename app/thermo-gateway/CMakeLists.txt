@@ -14,13 +14,14 @@ target_sources(app PRIVATE src/ble.c)
 target_sources(app PRIVATE src/switchbot.c)
 
 # AWS IoT Core への送信 (WiFi + MQTT)。ネットワークのないビルド (native_sim) では、含めない
+# (thermo-node と共有する, app/common/ のソース)
 target_sources_ifdef(CONFIG_THERMO_CLOUD app PRIVATE
-  src/cfg.c
-  src/cfg_shell.c
-  src/cloud.c
-  src/ntp.c
-  src/payload.c
-  src/wifi_link.c)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/cfg.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/cfg_shell.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/cloud.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/ntp.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/payload.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/wifi_link.c)
 
 # thermo-node と thermo-gateway で共有する, BLE の UUID の定義 (app/common/)
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)

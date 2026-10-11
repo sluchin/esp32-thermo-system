@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#ifndef THERMO_GATEWAY_CFG_H
-#define THERMO_GATEWAY_CFG_H
+#ifndef THERMO_COMMON_CFG_H
+#define THERMO_COMMON_CFG_H
 
 /**
  * @file
@@ -74,4 +74,4 @@ bool cfg_is_complete(void);
 
 int cfg_reset(void);
 
-#endif /* THERMO_GATEWAY_CFG_H */
+#endif /* THERMO_COMMON_CFG_H */

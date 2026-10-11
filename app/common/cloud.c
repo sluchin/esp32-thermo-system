@@ -65,6 +65,9 @@ BUILD_ASSERT(PAYLOAD_SIZE >= 156U, "The payload buffer is too small");
 /** スレッドの優先度 */
 #define THREAD_PRIORITY   7
 
+/** struct sample の unix_s: 測った時刻が分からないので, 受信したときの稼働時間から求める */
+#define UNIX_FROM_UPTIME (-1)
+
 /** 送信を待つ値の種類 */
 enum sample_kind {
     SAMPLE_THERMO,   /**< Thermo ノードの温度と湿度 */
@@ -79,6 +82,7 @@ struct sample {
     int16_t temp_x10;                  /**< 温度 [℃ の 10 倍] (SAMPLE_THERMO のとき) */
     uint16_t humidity_x10;             /**< 湿度 [% の 10 倍] (SAMPLE_THERMO のとき) */
     struct switchbot_sample switchbot; /**< SwitchBot の値 (SAMPLE_SWITCHBOT のとき) */
+    int64_t unix_s; /**< 測った UNIX 時刻 [s] (UNIX_FROM_UPTIME のときは, 稼働時間から求める) */
 };
 
 /** 送信を待つ温度のキュー */
@@ -103,6 +107,16 @@ static volatile bool reconnect_requested;
 static unsigned int retry_s = RETRY_MIN_S;
 /** 次に publish するメッセージの ID (1 .. 65535) */
 static uint16_t message_id;
+/** 接続して送信する状態か (false の間は, WiFi を切って, 待つ) */
+static volatile bool enabled = true;
+/** 接続の失敗が続く上限の回数に達して, あきらめたか */
+static volatile bool gave_up;
+/** 接続の失敗が続いたら, あきらめる回数 (0 は, あきらめない) */
+static unsigned int max_attempts;
+/** 接続の失敗が続いている回数 */
+static unsigned int attempts;
+/** publish に成功した回数 (SD カードに溜めた値を, 送り終えたかの確認に使う) */
+static volatile uint32_t sent_count;
 
 /** 送信のスレッド */
 static struct k_thread cloud_thread;
@@ -133,6 +147,15 @@ int cloud_step(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
+    /* 止められている間は, WiFi を切って, 待つ */
+    if (!enabled) {
+        if (wifi_link_is_up()) {
+            wifi_link_disconnect();
+        }
+        (void)k_sleep(K_MSEC(SESSION_TICK_MS));
+        return -EAGAIN;
+    }
+
     /* 設定 (WiFi, エンドポイント, 証明書) が揃うまで接続しないで待つ */
     if (!cfg_is_complete()) {
         (void)k_sleep(K_SECONDS(WAIT_CONFIG_S));
@@ -159,6 +182,15 @@ int cloud_step(void)
     }
     /* 失敗したら, 間隔をあけてから, やり直す (間隔は失敗のたびに倍にして, 上限で止める) */
     if (err != 0) {
+        attempts++;
+        /* 失敗が続いたら, あきらめて, WiFi を切る (cloud_set_enabled(true) まで, 接続しない) */
+        if ((max_attempts > 0U) && (attempts >= max_attempts)) {
+            LOG_ERR("Connection failed (err %d), giving up after %u attempts", err, attempts);
+            gave_up = true;
+            enabled = false;
+            wifi_link_disconnect();
+            return err;
+        }
         LOG_WRN("Connection failed (err %d), retrying in %u s", err, retry_s);
         (void)k_sleep(K_SECONDS(retry_s));
         retry_s = MIN(retry_s * 2U, RETRY_MAX_S);
@@ -166,8 +198,13 @@ int cloud_step(void)
     }
 
     retry_s = RETRY_MIN_S;
+    attempts = 0U;
     LOG_INF("Connected to AWS IoT Core");
     err = run_session();
+    /* 止められて, 接続中の処理を終えたら, WiFi を切る */
+    if (!enabled) {
+        wifi_link_disconnect();
+    }
     if (err != 0) {
         (void)k_sleep(K_SECONDS(RETRY_MIN_S)); /* すぐに失敗を繰り返さない */
     }
@@ -178,16 +215,22 @@ int cloud_step(void)
 /**
  * @brief 設定を読み込んで, WiFi と MQTT のスレッドを開始する
  *
+ * @param[in] start_enabled true なら, すぐに接続して送る (ゲートウェイ). false なら,
+ * cloud_set_enabled(true) が呼ばれるまで, 接続しないで待つ (ノード)
  * @retval EXIT_SUCCESS 成功
  * @retval negative     失敗 (負の errno)
  */
-int cloud_init(void)
+int cloud_init(bool start_enabled)
 {
     int err = cfg_init(); /* エラーコード */
 
     if (err != 0) {
         return err;
     }
+
+    enabled = start_enabled;
+    gave_up = false;
+    attempts = 0U;
 
     err = wifi_link_init();
     if (err != 0) {
@@ -228,7 +271,34 @@ int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16
                        .addr = *addr,
                        .temp_x10 = temp_x10,
                        .humidity_x10 = humidity_x10,
-                       .uptime_ms = k_uptime_get_32()}; /* キューに入れる, ノードの温度の値 */
+                       .uptime_ms = k_uptime_get_32(),
+                       .unix_s = UNIX_FROM_UPTIME}; /* キューに入れる, ノードの温度の値 */
+
+    return enqueue_sample(&s);
+}
+
+/**
+ * @brief 測った時刻 (UNIX 時刻) を指定して, 温度と湿度を送信のキューに入れる (待たずにすぐ戻る)
+ *
+ * SD カードに溜めた値のように, 測った時刻が, 今ではない値を送るときに使う.
+ *
+ * @param[in] addr         温度を測ったノードのアドレス
+ * @param[in] temp_x10     温度 [℃ の 10 倍]
+ * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
+ * @param[in] unix_s       測った UNIX 時刻 [s] (0 以上)
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOMSG      キューが満杯で, 値を捨てた
+ * @retval -ENOTCONN    止められている (cloud_set_enabled(false))
+ */
+int cloud_publish_temperature_at(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10,
+                                 int64_t unix_s)
+{
+    struct sample s = {.kind = SAMPLE_THERMO,
+                       .addr = *addr,
+                       .temp_x10 = temp_x10,
+                       .humidity_x10 = humidity_x10,
+                       .uptime_ms = k_uptime_get_32(),
+                       .unix_s = unix_s}; /* キューに入れる, 時刻つきの温度の値 */
 
     return enqueue_sample(&s);
 }
@@ -249,9 +319,83 @@ int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sam
     struct sample s = {.kind = SAMPLE_SWITCHBOT,
                        .addr = *addr,
                        .switchbot = *sample,
-                       .uptime_ms = k_uptime_get_32()}; /* キューに入れる, SwitchBot の値 */
+                       .uptime_ms = k_uptime_get_32(),
+                       .unix_s = UNIX_FROM_UPTIME}; /* キューに入れる, SwitchBot の値 */
 
     return enqueue_sample(&s);
+}
+
+/**
+ * @brief 接続して送る状態にするか, 止めて WiFi を切る状態にするかを切り替える
+ *
+ * true にすると, 失敗の回数と, あきらめた状態を戻して, すぐに接続を始める (キューの古い値は,
+ * 捨てる). false にすると, 接続中の処理を終えて (MQTT を閉じて), WiFi を切って, 待つ.
+ *
+ * @param[in] on true なら, 接続して送る. false なら, 止める
+ */
+void cloud_set_enabled(bool on)
+{
+    if (on) {
+        attempts = 0U;
+        gave_up = false;
+        k_msgq_purge(&cloud_sample_q);
+        enabled = true;
+    } else {
+        enabled = false;
+        reconnect_requested = true;
+    }
+}
+
+/**
+ * @brief 接続の失敗が続いたら, あきらめる回数を決める
+ *
+ * @param[in] limit あきらめる回数 (0 は, あきらめない)
+ */
+void cloud_set_attempt_limit(unsigned int limit)
+{
+    max_attempts = limit;
+}
+
+/**
+ * @brief 接続の失敗が続いて, あきらめたか
+ *
+ * @retval true  あきらめた (cloud_set_enabled(true) まで, 接続しない)
+ * @retval false あきらめていない
+ */
+bool cloud_has_given_up(void)
+{
+    return gave_up;
+}
+
+/**
+ * @brief MQTT で接続しているか
+ *
+ * @retval true  接続している (CONNACK を受け取って, 切断されていない)
+ * @retval false 接続していない
+ */
+bool cloud_is_connected(void)
+{
+    return mqtt_up;
+}
+
+/**
+ * @brief 送信を待っている値の数
+ *
+ * @return キューにある値の数 (SD カードの値を, キューが満杯にならないように送るために使う)
+ */
+unsigned int cloud_pending(void)
+{
+    return k_msgq_num_used_get(&cloud_sample_q);
+}
+
+/**
+ * @brief publish に成功した回数 (起動してからの合計)
+ *
+ * @return publish に成功した回数
+ */
+uint32_t cloud_sent_count(void)
+{
+    return sent_count;
 }
 
 /**
@@ -441,9 +585,10 @@ static int publish_sample(const struct sample *s)
     char payload[PAYLOAD_SIZE] = {0};                   /* ペイロード */
     struct mqtt_publish_param param = {0};              /* パブリッシュのパラメータ */
     const char *client_id = cfg_get(CFG_KEY_CLIENT_ID); /* クライアント ID */
-    int64_t unix_s = received_unix_time(s->uptime_ms);  /* UNIX 時刻 [s] */
-    int topic_len = 0;                                  /* トピックの長さ [バイト] */
-    int payload_len = 0;                                /* ペイロードの長さ [バイト] */
+    int64_t unix_s =
+            ((s->unix_s >= 0) ? s->unix_s : received_unix_time(s->uptime_ms)); /* UNIX 時刻 [s] */
+    int topic_len = 0;   /* トピックの長さ [バイト] */
+    int payload_len = 0; /* ペイロードの長さ [バイト] */
 
     /* 値の種類でトピックとペイロードの形式が違う */
     if (s->kind == SAMPLE_SWITCHBOT) {
@@ -500,6 +645,7 @@ static int run_session(void)
                 LOG_ERR("Publish failed (err %d)", err);
                 break;
             }
+            sent_count++;
         }
 
         /* 受信 (PUBACK, サーバからの切断など) を処理する. 待たない */
@@ -557,9 +703,14 @@ static void cloud_thread_entry(void *p1, void *p2, void *p3)
  * @param[in] s 値
  * @retval EXIT_SUCCESS 成功
  * @retval -ENOMSG      キューが満杯で, 値を捨てた
+ * @retval -ENOTCONN    止められている (cloud_set_enabled(false))
  */
 static int enqueue_sample(const struct sample *s)
 {
+    if (!enabled) {
+        return -ENOTCONN;
+    }
+
     if (k_msgq_put(&cloud_sample_q, s, K_NO_WAIT) != 0) {
         LOG_WRN("Send queue is full, the value was dropped");
         return -ENOMSG;
