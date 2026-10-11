@@ -13,6 +13,8 @@
  *  - 初期化に成功したら, 一定間隔で温度を読み取り続けること (別スレッドで main を動かす)
  *  - OLED の表示と時刻を 1 秒ごとに更新すること (グラフの履歴に測定値を加えること)
  *  - ボタンを押すと, ページを切り替えて (最後の次は, 最初に戻る), すぐに表示し直すこと
+ *  - 消灯までの時間が 0 のときは, OLED を消さないこと (消灯は, tests/main_display_timeout
+ * で確認する)
  *  - ボタンを押すと, ブザーで, ボタンの音 (button_assets.c) を鳴らすこと (ブザーが使えないときは,
  * 鳴らさない. 鳴らせなくても, ページは切り替わる)
  *  - 起動のときに, 起動音 (メロディ) を始めて, 起動画面を全てのフレームで, 順に表示すること
@@ -66,6 +68,7 @@ FAKE_VALUE_FUNC(int, button_init)
 FAKE_VALUE_FUNC(bool, button_pressed)
 FAKE_VOID_FUNC(history_add, struct history *, int16_t, int64_t, int64_t)
 FAKE_VALUE_FUNC(int, oled_init)
+FAKE_VALUE_FUNC(int, oled_set_power, bool)
 FAKE_VALUE_FUNC(int, oled_show_boot, unsigned int)
 FAKE_VALUE_FUNC(int, buzzer_init)
 FAKE_VALUE_FUNC(int, buzzer_play, const struct buzzer_note *, size_t)
@@ -281,6 +284,7 @@ static void before(void *fixture)
     RESET_FAKE(button_pressed);
     RESET_FAKE(history_add);
     RESET_FAKE(oled_init);
+    RESET_FAKE(oled_set_power);
     RESET_FAKE(oled_show_boot);
     RESET_FAKE(buzzer_init);
     RESET_FAKE(buzzer_play);
@@ -501,6 +505,23 @@ ZTEST(main_node, test_display_updates_every_second)
     /* 測定していない間は, 前回の値を表示し続ける */
     zassert_true(shown[3].has_sample);
     zassert_equal(shown[3].temp_x10, FAKE_TEMP_1_X10);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 消灯までの時間が 0 (CONFIG_THERMO_DISPLAY_TIMEOUT_SEC=0) なら, 何も操作しなくても, OLED
+ * を消さない
+ */
+ZTEST(main_node, test_display_is_not_turned_off_without_timeout)
+{
+    sensor_read_fake.custom_fake = fake_read;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+    k_sleep(K_SECONDS(30));
+    zassert_equal(oled_set_power_fake.call_count, 0U);
+    zassert_true(oled_show_fake.call_count >= 30U);
 
     k_thread_abort(&main_thread);
 }

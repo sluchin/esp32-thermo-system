@@ -11,6 +11,7 @@
  * 表示装置を偽のもの (vnd,test-display) に置き換えて, CFB の関数を FFF のモックにして,
  * 次を確認する.
  *  - oled_init() が正しい順序で初期化して, 各段階の失敗を返すこと
+ *  - oled_set_power() が点灯 (blanking_off) と消灯 (blanking_on) を切り替えて, 失敗を返すこと
  *  - oled_show() が温度, 湿度, 日付, 時刻の行を正しい文字列と位置で描いて, 画面を更新すること
  *    (負の温度, 測定値なし, 湿度なし, 時刻なし, 日時なし, 各段階の失敗)
  *  - 起動画面 (oled_show_boot) が題名, ドット, 走る絵, 追う絵を正しい位置に描くこと
@@ -98,6 +99,12 @@ static int pixel_format_ret;
 static enum display_pixel_format pixel_format_set;
 /** 偽の表示装置の表示の開始 (blanking_off) の戻り値 */
 static int blanking_ret;
+/** 偽の表示装置の表示の停止 (blanking_on) の戻り値 */
+static int blanking_on_ret;
+/** 偽の表示装置の blanking_off が呼ばれた回数 */
+static unsigned int blanking_off_calls;
+/** 偽の表示装置の blanking_on が呼ばれた回数 */
+static unsigned int blanking_on_calls;
 /** cfb_print() が記録した文字列 */
 static char printed[PRINT_LINES][PRINT_SIZE];
 /** cfb_draw_point() が描いた点 (最後の 1 つ) */
@@ -147,14 +154,30 @@ static int fake_set_pixel_format(const struct device *dev, const enum display_pi
 static int fake_blanking_off(const struct device *dev)
 {
     ARG_UNUSED(dev);
+    blanking_off_calls++;
 
     return blanking_ret;
+}
+
+/**
+ * 偽の表示装置の blanking_on (設定した戻り値を返す)
+ *
+ * @param[in] dev 表示装置 (使用しない)
+ * @return blanking_on_ret
+ */
+static int fake_blanking_on(const struct device *dev)
+{
+    ARG_UNUSED(dev);
+    blanking_on_calls++;
+
+    return blanking_on_ret;
 }
 
 /** 偽の表示装置のドライバ API */
 static DEVICE_API(display, fake_api) = {
     .set_pixel_format = fake_set_pixel_format,
     .blanking_off = fake_blanking_off,
+    .blanking_on = fake_blanking_on,
 };
 
 DEVICE_DT_INST_DEFINE(0, NULL, NULL, NULL, NULL, POST_KERNEL, CONFIG_DISPLAY_INIT_PRIORITY,
@@ -254,6 +277,9 @@ static void before(void *fixture)
     pixel_format_ret = 0;
     pixel_format_set = PIXEL_FORMAT_ARGB_8888;
     blanking_ret = 0;
+    blanking_on_ret = 0;
+    blanking_off_calls = 0U;
+    blanking_on_calls = 0U;
     (void)memset(print_ret, 0, sizeof(print_ret));
     (void)memset(printed, 0, sizeof(printed));
 }
@@ -326,6 +352,38 @@ ZTEST(oled, test_init_blanking_failure)
     blanking_ret = -EIO;
 
     zassert_equal(oled_init(), -EIO);
+}
+
+/** 消灯すると, 表示の停止 (blanking_on) を呼ぶ (表示の開始は, 呼ばない) */
+ZTEST(oled, test_set_power_off)
+{
+    zassert_equal(oled_set_power(false), EXIT_SUCCESS);
+    zassert_equal(blanking_on_calls, 1U);
+    zassert_equal(blanking_off_calls, 0U);
+}
+
+/** 点灯すると, 表示の開始 (blanking_off) を呼ぶ (表示の停止は, 呼ばない) */
+ZTEST(oled, test_set_power_on)
+{
+    zassert_equal(oled_set_power(true), EXIT_SUCCESS);
+    zassert_equal(blanking_off_calls, 1U);
+    zassert_equal(blanking_on_calls, 0U);
+}
+
+/** 消灯に失敗したら, その値を返す */
+ZTEST(oled, test_set_power_off_failure)
+{
+    blanking_on_ret = -EIO;
+
+    zassert_equal(oled_set_power(false), -EIO);
+}
+
+/** 点灯に失敗したら, その値を返す */
+ZTEST(oled, test_set_power_on_failure)
+{
+    blanking_ret = -EIO;
+
+    zassert_equal(oled_set_power(true), -EIO);
 }
 
 /**

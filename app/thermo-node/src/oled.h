@@ -13,9 +13,11 @@
  *
  * 拡張ボードの OLED (SSD1306, 128x64) に温度, 湿度, 日付, 時刻 (現在値のページ) と温度と
  * 湿度の履歴の折れ線グラフ (グラフのページ) と起動画面のアニメーション (oled_show_boot())
- * を表示する. ページは, ボタンで切り替える (button.h. main.c が行う). OLED は, Devicetree の alias
- * thermo-display で選ぶ. 使わないときは, CONFIG_THERMO_DISPLAY=n でビルドする
- * (このファイルの機能は, ビルドされない).
+ * を表示する. ページは, ボタンで切り替える (button.h. main.c が行う). 点灯と消灯は,
+ * oled_set_power() で切り替える (main.c が, ボタンで点灯して, 一定時間
+ * (CONFIG_THERMO_DISPLAY_TIMEOUT_SEC) たつと消灯する). OLED は, Devicetree の alias thermo-display
+ * で選ぶ. 使わないときは, CONFIG_THERMO_DISPLAY=n でビルドする (このファイルの機能は,
+ * ビルドされない).
  */
 
 #include <stdbool.h> /* bool */
@@ -50,6 +52,8 @@ struct oled_view {
 #define OLED_BOOT_FRAME_MS 60U
 
 int oled_init(void);
+
+int oled_set_power(bool on);
 
 int oled_show(const struct oled_view *view);
 
