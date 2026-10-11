@@ -18,9 +18,10 @@ target_sources(app PRIVATE
 # (node_time.h の関数) を, 有効にする. CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER は, 起動画面と
 # 起動音 (oled_show_boot() と buzzer.h の関数) を, 有効にする (どれもモック. 素材 boot_assets.c は, 本物).
 # CONFIG_THERMO_WIFI_TIME は, RTC に時刻がないときの, WiFi での時刻の取得 (wifi_time.h の関数. モック) を, 有効にする.
+# CONFIG_THERMO_DISPLAY_TIMEOUT_SEC=0 は, OLED を消さない (消えるときの確認は, tests/main_display_timeout で行う).
 # CONFIG_THERMO_BUTTON_SOUND は, ボタンを押したときの音 (buzzer_play() はモック. 素材 button_assets.c は, 本物) を, 有効にする
 set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/../../src/main.c PROPERTIES
-  COMPILE_DEFINITIONS "main=thermo_node_main;CONFIG_THERMO_DISPLAY=1;CONFIG_THERMO_RTC=1;CONFIG_THERMO_BOOT_SCREEN=1;CONFIG_THERMO_BUZZER=1;CONFIG_THERMO_WIFI_TIME=1;CONFIG_THERMO_BUTTON_SOUND=1;CONFIG_THERMO_GRAPH_STEP_S=30"
+  COMPILE_DEFINITIONS "main=thermo_node_main;CONFIG_THERMO_DISPLAY=1;CONFIG_THERMO_RTC=1;CONFIG_THERMO_BOOT_SCREEN=1;CONFIG_THERMO_BUZZER=1;CONFIG_THERMO_WIFI_TIME=1;CONFIG_THERMO_BUTTON_SOUND=1;CONFIG_THERMO_GRAPH_STEP_S=30;CONFIG_THERMO_DISPLAY_TIMEOUT_SEC=0"
   COMPILE_OPTIONS "-Wno-missing-prototypes;-Wno-missing-declarations")
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する

@@ -55,6 +55,10 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10);
 
 static void init_optional(struct optional_devices *devs);
 
+#ifdef CONFIG_THERMO_DISPLAY
+static bool set_display_power(bool on);
+#endif
+
 static void boot_sequence(const struct optional_devices *devs);
 
 static int measure(int16_t *temp_x10, uint16_t *humidity_x10);
@@ -95,6 +99,10 @@ static void play_button_sound(bool buzzer_ready);
 #ifdef CONFIG_THERMO_DISPLAY
 /** グラフの 1 点の時間 [ms] (CONFIG_THERMO_GRAPH_STEP_S) */
 #define GRAPH_STEP_MS ((int64_t)CONFIG_THERMO_GRAPH_STEP_S * 1000)
+
+/** ボタンを押さずに, OLED を消すまでの時間 [ms] (CONFIG_THERMO_DISPLAY_TIMEOUT_SEC. 0 は, 消さない)
+ */
+#define DISPLAY_TIMEOUT_MS ((int64_t)CONFIG_THERMO_DISPLAY_TIMEOUT_SEC * 1000)
 #endif
 
 /**
@@ -105,13 +113,16 @@ static void play_button_sound(bool buzzer_ready);
  * (GATT の notify) する. ゲートウェイから時刻を受け取ったら (GATT の write), RTC に設定する
  * (CONFIG_THERMO_RTC). OLED があれば (CONFIG_THERMO_DISPLAY), 温度, 湿度, 時刻を 1 秒ごとに
  * 表示して, 温度と湿度の履歴 (グラフ) を覚える. ボタンを押すと, ページを切り替えて, すぐに
- * 表示し直す. 時刻は, RTC (CONFIG_THERMO_RTC) から読む. OLED と RTC とボタンの初期化に失敗しても,
- * 表示と時刻を諦めるだけで, 測定と通知は続ける (起動時の一時的な失敗から復帰するため,
- * RETRY_INTERVAL_MS ごとに, 初期化をやり直す). 起動のときは, OLED に起動画面を出して (約 3 秒),
- * ブザーでメロディを鳴らす (CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER).
- * ボタンを押したときも, ブザーで短い音を鳴らす (CONFIG_THERMO_BUTTON_SOUND). RTC
- * に時刻がないときは, 起動の 1 分後から 1 分ごとに確かめて, ゲートウェイから時刻が届かなければ,
- * WiFi と SNTP で時刻を取って RTC に設定する (最大 5 回. CONFIG_THERMO_WIFI_TIME).
+ * 表示し直す. OLED は, 起動のときと, ボタンを押したときに点灯して, ボタンを押さずに
+ * CONFIG_THERMO_DISPLAY_TIMEOUT_SEC (既定 10 秒) たつと消える (消えている間にボタンを押すと,
+ * 点灯するだけで, ページは, 切り替えず, ボタンの音も鳴らさない. 0 なら, 消さない). 時刻は, RTC
+ * (CONFIG_THERMO_RTC) から読む. OLED と RTC とボタンの初期化に失敗しても, 表示と時刻を諦めるだけで,
+ * 測定と通知は続ける (起動時の一時的な失敗から復帰するため, RETRY_INTERVAL_MS ごとに,
+ * 初期化をやり直す). 起動のときは, OLED に起動画面を出して (約 3 秒), ブザーでメロディを鳴らす
+ * (CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER). ボタンを押したときも, ブザーで短い音を鳴らす
+ * (CONFIG_THERMO_BUTTON_SOUND). RTC に時刻がないときは, 起動の 1 分後から 1 分ごとに確かめて,
+ * ゲートウェイから時刻が届かなければ, WiFi と SNTP で時刻を取って RTC に設定する (最大 5 回.
+ * CONFIG_THERMO_WIFI_TIME).
  *
  * @retval EXIT_FAILURE 初期化またはアドバタイズ開始に失敗した場合
  *                      (正常時はループから戻らない)
@@ -139,6 +150,9 @@ int main(void)
     struct history temp_history = {0};     /* 温度の履歴 */
     struct history humidity_history = {0}; /* 湿度の履歴 */
     struct oled_view view = {0};           /* OLED に表示する内容 */
+    bool display_on = false;               /* OLED が点灯しているか */
+    int64_t display_off_ms = 0;            /* OLED を消す稼働時間 [ms] */
+    bool had_display = false;              /* やり直しの前に, OLED を使えたか */
 #endif
 
 /* ビルド構成に応じて起動ログを切り替える */
@@ -186,6 +200,9 @@ int main(void)
 #ifdef CONFIG_THERMO_DISPLAY
     view.temp_history = &temp_history;
     view.humidity_history = &humidity_history;
+    /* OLED は, 起動画面から点灯していて, ボタンを押さずに DISPLAY_TIMEOUT_MS たつと消える */
+    display_on = devs.display_ready;
+    display_off_ms = start_ms + DISPLAY_TIMEOUT_MS;
 #endif
 
     /* 50 ms ごとに, ボタンを調べて, 一定間隔で温度と湿度を測り, 1 秒ごとに時刻を表示する */
@@ -210,20 +227,46 @@ int main(void)
         }
 
 #ifdef CONFIG_THERMO_DISPLAY
-        /* ボタンが押されたら, 次のページにして, すぐに表示し直す */
+        /* ボタンが押されたら, 次のページにして, すぐに表示し直す (消えている OLED は, 点灯するだけ)
+         */
         if (devs.button_ready && button_pressed()) {
-            view.page = (view.page + 1U) % OLED_PAGE_COUNT;
-            next_redraw_ms = now_ms;
+            if (display_on || (!devs.display_ready)) {
+                view.page = (view.page + 1U) % OLED_PAGE_COUNT;
 #ifdef CONFIG_THERMO_BUTTON_SOUND
-            play_button_sound(devs.buzzer_ready);
+                play_button_sound(devs.buzzer_ready);
 #endif
+            } else {
+                /* 点灯のための押下では, 音を鳴らさない */
+                display_on = set_display_power(true);
+            }
+            display_off_ms = now_ms + DISPLAY_TIMEOUT_MS;
+            next_redraw_ms = now_ms;
+        }
+
+        /* ボタンを押さずに DISPLAY_TIMEOUT_MS たったら, OLED を消す (0 のときは, 消さない) */
+        if ((DISPLAY_TIMEOUT_MS > 0) && display_on && (now_ms >= display_off_ms)) {
+            if (set_display_power(false)) {
+                display_on = false;
+            } else {
+                display_off_ms = now_ms + REDRAW_INTERVAL_MS;
+            }
         }
 #endif
 
         /* 初期化に失敗した機器をやり直す (起動のときの一時的な失敗から, 復帰する) */
         if (now_ms >= next_retry_ms) {
             next_retry_ms = next_grid_ms(start_ms, now_ms, RETRY_INTERVAL_MS);
+#ifdef CONFIG_THERMO_DISPLAY
+            had_display = devs.display_ready;
+#endif
             init_optional(&devs);
+#ifdef CONFIG_THERMO_DISPLAY
+            /* OLED が使えるようになったら (初期化で点灯する), 消すまでの時間を数え直す */
+            if ((!had_display) && devs.display_ready) {
+                display_on = true;
+                display_off_ms = now_ms + DISPLAY_TIMEOUT_MS;
+            }
+#endif
         }
 
 #ifdef CONFIG_THERMO_WIFI_TIME
@@ -246,8 +289,8 @@ int main(void)
             }
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
-            /* OLED に表示する (失敗しても次回に再試行する) */
-            if (devs.display_ready) {
+            /* OLED に表示する (点灯している間だけ. 失敗しても次回に再試行する) */
+            if (display_on) {
                 ret = oled_show(&view);
                 if (ret != EXIT_SUCCESS) {
                     LOG_ERR("Failed to show on the OLED (err %d)", ret);
@@ -259,6 +302,29 @@ int main(void)
         (void)k_msleep(TICK_MS);
     }
 }
+
+#ifdef CONFIG_THERMO_DISPLAY
+/**
+ * OLED を点灯または消灯する (失敗したときは, ログを出す)
+ *
+ * @param[in] on 点灯するなら true, 消灯するなら false
+ *
+ * @retval true  成功
+ * @retval false 失敗
+ */
+static bool set_display_power(bool on)
+{
+    int ret = EXIT_SUCCESS; /* 戻り値 */
+
+    ret = oled_set_power(on);
+    if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Failed to turn %s the OLED (err %d)", (on ? "on" : "off"), ret);
+        return false;
+    }
+
+    return true;
+}
+#endif
 
 /**
  * 任意の機器 (RTC, OLED, ボタン) のうち, まだ使えない機器を初期化する

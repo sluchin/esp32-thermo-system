@@ -177,6 +177,34 @@ int oled_init(void)
 }
 
 /**
+ * @brief OLED を点灯または消灯する (消灯しても, 表示の内容は, 消えない)
+ *
+ * 消灯 (blanking on) の間は, 画面に何も出ない (焼き付きと, 消費電力を減らす). 消灯の間も,
+ * oled_show() で, フレームバッファを更新できる. oled_init() が成功してから呼ぶ.
+ *
+ * @param[in] on 点灯するなら true, 消灯するなら false
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval negative     ドライバの失敗 (負の errno)
+ */
+int oled_set_power(bool on)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    if (on) {
+        err = display_blanking_off(oled_dev);
+    } else {
+        err = display_blanking_on(oled_dev);
+    }
+    if (err != 0) {
+        LOG_ERR("Could not turn %s the OLED (%d)", (on ? "on" : "off"), err);
+        return err;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+/**
  * @brief 指定したページを OLED に表示する
  *
  * 現在値のページ (OLED_PAGE_NOW) は, 1 行目に日付 (例: 2026-10-08), 2 行目に時刻
