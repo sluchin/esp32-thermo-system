@@ -464,14 +464,16 @@ minicom -D /dev/ttyACM0 -b 115200
 
 ### 起動のログを見る (リセットのたびに、つなぎ直す)
 
-XIAO ESP32C3 の USB は、リセットや書き込みのたびに、一度切れて、また、つながります。そのため、picocom は、リセットのときに、終了してしまい、起動のログ (初期化の成功と失敗) を、見逃します。次のように、つなぎ直しを、自動で繰り返すと、起動のログが、見えます。
+XIAO ESP32C3 の USB は、リセットや書き込みのたびに、一度切れて、また、つながります。そのため、picocom は、リセットのときに、終了してしまい、起動のログ (初期化の成功と失敗) を、見逃します。`cat` で読み取るだけにして、つなぎ直しを、自動で繰り返すと、起動のログが、見えます。
 
 ```bash
-while true; do picocom -b 115200 /dev/ttyACM0 --noinit --noreset; sleep 0.3; done
+while true; do [ -c /dev/ttyACM0 ] && stty -F /dev/ttyACM0 115200 raw -echo && cat /dev/ttyACM0; sleep 0.3; done
 ```
 
-- `--noinit` と `--noreset` は、picocom が、接続のときに、モデムの初期化と、リセットを、しないための指定です。
-- 終了するときは、Ctrl-A、Ctrl-X で、picocom を終了したあと、すぐに Ctrl-C で、ループを止めます。
+- 読み取りだけなので、シェルのコマンドは、打てません。コマンドを打つときは、`picocom -b 115200 /dev/ttyACM0` を使います。
+- `picocom` のループ (`--noinit --noreset`) は、使いません。Zephyr のシェルが出す、カーソル位置の問い合わせ (`ESC[6n`) に、端末が応答して、その応答がデバイスに送られ続け、`RX ring buffer full` と `^[` の連続になることがあるためです (原因は、推測です)。
+- `/dev/ttyACM0` を読めないときは、ユーザーを `dialout` のグループに入れます (`sudo usermod -aG dialout $USER`。再ログインが要ります)。
+- 終了するときは、Ctrl-C です。
 - 2 台 (ノードとゲートウェイ) を、同時につなぐときは、`/dev/ttyACM0` と `/dev/ttyACM1` を、別の端末で開きます。
 
 ### ファイルシステムのシェル (Thermo ノード)
