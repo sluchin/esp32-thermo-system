@@ -2,7 +2,7 @@
 
 AWS IoT Core に届いた温度・湿度・電池残量を、DynamoDB に 1 件ずつ保存して、Android アプリ ([thermon](https://github.com/sluchin/thermon)) から読む手順です。アプリは、Cognito の「未認証ロール」で、読み取りだけを許可されます (ログインは、ありません)。
 
-> **注意**: この手順は、AWS のドキュメントに基づいて書いたもので、**まだ実際には試していません**。コマンドの結果が、ここに書いたものと違うときは、教えてください (文書を直します)。AWS の画面、料金、サービスの提供状況は、変わることがあるので、最新の情報を、確認してください。
+> **注意**: この手順は、AWS のドキュメントに基づいています。AWS の画面、料金、サービスの提供状況は、変わることがあるので、最新の情報を、確認してください。
 >
 > ノードの温度 ([AWS_SETUP.md](AWS_SETUP.md) の 1.1) の保存は、SwitchBot と同じ形のメッセージとして書いてあります。
 
@@ -255,7 +255,7 @@ aws cognito-identity set-identity-pool-roles --region ap-northeast-1 \
 
   `thermon.nodes` は、テーブルの `node` と、同じ MAC アドレスにします。
 - ビルド、端末への転送、表示の確認は、thermon の [SETUP.md](https://github.com/sluchin/thermon/blob/main/SETUP.md) の「アプリを動かして確認する」です。thermon の [AWS_DYNAMODB.md](https://github.com/sluchin/thermon/blob/main/AWS_DYNAMODB.md) には、この章までと同じ AWS の手順が、`cat` で JSON を作って `aws` コマンドで設定する形で、書いてあります。AWS CLI の準備は、[AWS_CLI.md](https://github.com/sluchin/thermon/blob/main/AWS_CLI.md) です。
-- 今は、機器ごとの最新の測定値を、文字列で表示します。グラフは、これからです。
+- 機器ごとの最新の測定値と、温度と湿度のグラフ (1 時間、6 時間、24 時間) を表示します。
 
 ## 8. これから
 
