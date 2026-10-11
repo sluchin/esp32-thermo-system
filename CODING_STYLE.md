@@ -19,18 +19,18 @@ Zephyr と同じ道具を、Zephyr のバージョン (v4.3.0) に合わせて�
 
 ```bash
 # 整形の確認 (整形が必要なファイルがあれば失敗する)
-docker compose run --rm format-thermo
+docker compose run --rm format
 # 整形して、ファイルを書き換える
-docker compose run --rm format-thermo-fix
+docker compose run --rm format-fix
 # checkpatch.pl による検査 (指摘があれば失敗する)
-docker compose run --rm lint-thermo
+docker compose run --rm lint
 # 行末の空白の確認 (全てのテキストファイル)
-docker compose run --rm whitespace-thermo
+docker compose run --rm whitespace
 ```
 
 `.clang-format` の `StatementMacros` には、`K_THREAD_STACK_DEFINE` が入っています。Zephyr のこのマクロは、末尾に `;` を付けない書き方なので、clang-format が文の終わりを見失い、次のコメントや関数を、8 桁字下げしてしまうためです。
 
-コードを修正したら、`format-thermo-fix` で整形してから、`lint-thermo` と `whitespace-thermo` を実行します。CI (GitHub Actions) の `lint` ジョブも、同じ確認を行います。
+コードを修正したら、`format-fix` で整形してから、`lint` と `whitespace` を実行します。CI (GitHub Actions) の `lint` ジョブも、同じ確認を行います。
 
 Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と `.editorconfig` を取り込み直して、例外 1 (`.editorconfig` の Devicetree と Kconfig を含む) と例外 5 の変更 (と、初期化リストのインデント、`StatementMacros`) だけを、もう一度行います。
 
@@ -152,7 +152,7 @@ MISRA-C への対応方針と、あえて従わない規則 (例外事項。Devi
 
 1. **関数の Doxygen コメントは、 `.c` の定義の直前に書く**: `/** ... */` 形式で `@brief`、`@param[in]`/`@param[out]`、`@retval` (または `@return`) を記述する。`@brief` の説明の終わりには、句点を付けない。ソースのコメントの句読点は、「, 」(カンマと空白) と「.」(ピリオド) にする (「、」と「。」は使わない)。読点 (「, 」) は、読みやすさのために、必要なところだけに打つ (「は」「が」「を」などの助詞の直後には、基本的に打たない。節の切れ目と、並列には打つ)。ヘッダ (`.h`) の関数宣言には、コメントを書かない (`.c` と重複させない。Doxygen は、定義のコメントを、宣言にも使う)。
 2. **各ファイルの先頭に、`Copyright` と `SPDX-License-Identifier: GPL-3.0-or-later` (Zephyr の形式。`CODING_STYLE.md` を参照)、続けて `@file` と `@brief` を書く** (Zephyr と同じく、`@file` の後に、ファイル名は書かない)。
-3. **`static` 関数、`#define`、グローバル/静的変数、構造体のメンバー、単体テストのテストケース (`ZTEST`) と補助関数にも `/** ... */` で説明を付ける**。`docs-thermo` が、説明のないものを警告にする (`Doxyfile` の `PREDEFINED` で、`ZTEST` と `K_*_DEFINE` を、関数や変数として扱う。FFF のモック (`FAKE_*`) は、対象外。モックの宣言の前に、1 行の注釈を付ける)。
+3. **`static` 関数、`#define`、グローバル/静的変数、構造体のメンバー、単体テストのテストケース (`ZTEST`) と補助関数にも `/** ... */` で説明を付ける**。`docs` が、説明のないものを警告にする (`Doxyfile` の `PREDEFINED` で、`ZTEST` と `K_*_DEFINE` を、関数や変数として扱う。FFF のモック (`FAKE_*`) は、対象外。モックの宣言の前に、1 行の注釈を付ける)。
 4. コメントは日本語で記述する。
 5. **全ての引数と戻り値を書く**: 引数がある関数には `@param[in]` / `@param[out]`、値を返す関数には `@retval` (または `@return`) を書く。値を返さない (`void`) 関数には `@return なし` を書かない。
-6. **ドキュメントは、警告ゼロにする**: コメントを書いたら、`docker compose run --rm docs-thermo` で、警告がないことを確認する (ドキュメントのない関数・引数・変数が 1 つでもあれば失敗する)。Markdown で、日本語の直後に、`.` か `(` で始まるコードを続けると、Doxygen が誤るので、空白を 1 つ入れる。
+6. **ドキュメントは、警告ゼロにする**: コメントを書いたら、`docker compose run --rm docs` で、警告がないことを確認する (ドキュメントのない関数・引数・変数が 1 つでもあれば失敗する)。Markdown で、日本語の直後に、`.` か `(` で始まるコードを続けると、Doxygen が誤るので、空白を 1 つ入れる。

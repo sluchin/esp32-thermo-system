@@ -8,7 +8,7 @@ Thermo Gateway のデバッグログ (`THERMO_DEBUG_LOG=ON`) の、取り方と�
 
 ```bash
 # デバッグログ ON でビルドして、書き込む
-THERMO_DEBUG_LOG=ON docker compose run --rm build-thermo-gateway
+THERMO_DEBUG_LOG=ON docker compose run --rm build-gateway
 scripts/flash.sh gateway /dev/ttyACM0
 
 # シリアルコンソールをつなぐ (ファイルにも保存する)
@@ -241,7 +241,7 @@ grep -E "<wrn>|<err>" debug.log
 
 ## 7. ノードのログ
 
-Thermo Node のデバッグログ (`THERMO_DEBUG_LOG=ON`) です。取り方は、「1. ログの取り方」と同じです (`build-thermo-node` でビルドして、`scripts/flash.sh node /dev/ttyACM0` で書き込みます)。例は、実機で、ゲートウェイをつないだときのログです。
+Thermo Node のデバッグログ (`THERMO_DEBUG_LOG=ON`) です。取り方は、「1. ログの取り方」と同じです (`build-node` でビルドして、`scripts/flash.sh node /dev/ttyACM0` で書き込みます)。例は、実機で、ゲートウェイをつないだときのログです。
 
 ```
 [00:01:32.966,000] <inf> thermo_node: Temperature: 24.0 C, humidity: 49.0 %

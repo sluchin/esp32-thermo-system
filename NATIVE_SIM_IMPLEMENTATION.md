@@ -73,13 +73,13 @@ CONFIG_MAIN_STACK_SIZE=8192
 **ファイル**: `docker-compose.yml`
 
 新サービス追加：
-- `build-thermo-node-sim` - Node シミュレーション用ビルド
-- `build-thermo-gateway-sim` - Gateway シミュレーション用ビルド
+- `build-node-sim` - Node シミュレーション用ビルド
+- `build-gateway-sim` - Gateway シミュレーション用ビルド
 
 使用例：
 ```bash
-docker compose run --rm build-thermo-node-sim
-docker compose run --rm build-thermo-gateway-sim
+docker compose run --rm build-node-sim
+docker compose run --rm build-gateway-sim
 ```
 
 ### 7. ドキュメント
@@ -104,7 +104,7 @@ docker compose run --rm build-thermo-gateway-sim
 ### ビルドプロセス
 
 ```
-docker compose run --rm build-thermo-node-sim
+docker compose run --rm build-node-sim
   ↓
 west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -DCONF_FILE=prj-native_sim.conf
   ↓
@@ -152,7 +152,7 @@ ble_advertise() → BLE アドバタイジング開始
 
 ## 後方互換性
 
-- 既存の ESP32C3 用ビルド（`docker compose run --rm build-thermo-node` など）は変わらない
+- 既存の ESP32C3 用ビルド（`docker compose run --rm build-node` など）は変わらない
 - `prj.conf` は ESP32C3 用のまま（`prj-native_sim.conf` は別ファイル）
 - 完全な後方互換性を保証
 
