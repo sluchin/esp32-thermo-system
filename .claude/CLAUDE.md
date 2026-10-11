@@ -60,11 +60,11 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
 
 ## 起動画面と起動音の素材
 
-素材 (絵、題名、メロディ) は `app/thermo-node/src/boot_assets.c` (オリジナル)。`app/thermo-node/private/src/boot_assets.c` があれば、それを使う (別のプライベートリポジトリを、サブモジュールとして置く。`SETUP.md` の「起動画面と起動音」)。
+素材 (絵、題名、メロディ) は `app/thermo-node/src/boot_assets.c` (オリジナル)。ボタンを押したときの音は `app/thermo-node/src/button_assets.c` (オリジナル)。`app/thermo-node/private/src/boot_assets.c` と `app/thermo-node/private/src/button_assets.c` があれば、それぞれ、それを使う (別のプライベートリポジトリを、サブモジュールとして置く。`SETUP.md` の「起動画面と起動音」)。
 
 - **既存のゲームなどの、著作権や商標のある素材 (絵、曲) を、このリポジトリ (公開) に、コミットしない。** 履歴にも残さない。素材のデータは、ユーザーが、プライベートリポジトリに、用意する (こちらで、そのままの音階や絵を、書き写さない)。
 - 素材を入れてビルドした実行ファイル (`zephyr.elf`、`zephyr.bin`) を、公開しない (CI の成果物、リリース)。CI は、サブモジュールを取り込まない。
-- 差し替えるファイルは、`boot_assets.h` の宣言を、全て、同じ名前と形で定義する。素材がなくても、ビルドできること。
+- 差し替えるファイルは、`boot_assets.h` と `button_assets.h` の宣言を、全て、同じ名前と形で定義する。素材がなくても、ビルドできること。
 
 ## コーディング規約
 
@@ -123,7 +123,7 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
   - `ble` (両方): `ble.c`。Bluetooth スタックは使わず、`bt_enable()` `bt_le_adv_start()` `bt_le_scan_start()` を、FFF のモックにして、引数と、エラーの伝わり方を確認する。時刻の同期も含む: ノードは、時刻の特性の書き込み (長さ、位置、コールバックの結果の ATT エラー)、ゲートウェイは、時刻の特性の探索と書き込み (SNTP の同期待ち、1 時間ごとの書き直し、拒否と失敗のあとのやり直し、切断で止まること。仮想時間で進める)。
   - `switchbot` (thermo-gateway): `switchbot.c`。SwitchBot 屋外用温湿度計のアドバタイズの解析 (サービスデータと製造者データ) と、機器ごとの記録と、送信の間引き (間隔、カウンタの一周、機器の数の上限)。Zephyr の関数を呼ばないので、モックは使わない。
   - `payload` / `cfg` / `shell` / `wifi` / `cloud` (thermo-gateway): AWS IoT Core への送信 (`payload.c` `cfg.c` `cfg_shell.c` `wifi_link.c` `cloud.c`)。settings、TLS の認証情報、net_mgmt、MQTT ライブラリ、ソケットは、FFF のモックにして、接続の手順と各段階の失敗、再試行の間隔、設定の保存と読み込みを確認する。シェルは、ダミーのバックエンドで実行する。`cloud` は、`cloud_step()` を直接呼ぶ。
-  - `main` (両方): `main.c`。`ble` と `sensor` (node は、`node_time` と `oled` も。gateway は、`ble` と `cloud`) の関数を、FFF のモックにして、初期化に失敗したときに `EXIT_FAILURE` を返すことと、メインループ (別スレッドで動かす) が動き続けることを確認する (node は、OLED の表示と時刻が、1 秒ごとに更新されることと、ボタンでページが順に切り替わること (最後の次は最初)、グラフの履歴に測定値を加えること、OLED と RTC とボタンの初期化や表示に失敗しても、続けること。起動の 1 分後から 1 分ごとに RTC の時刻を確かめて、なければ WiFi で時刻を取って RTC に設定すること、時刻があれば取らないこと、失敗したら次の確認でやり直して 5 回でやめること)。`main.c` の `main()` は、テストの `main()` と名前が同じなので、`CMakeLists.txt` で名前を変える。
+  - `main` (両方): `main.c`。`ble` と `sensor` (node は、`node_time` と `oled` も。gateway は、`ble` と `cloud`) の関数を、FFF のモックにして、初期化に失敗したときに `EXIT_FAILURE` を返すことと、メインループ (別スレッドで動かす) が動き続けることを確認する (node は、OLED の表示と時刻が、1 秒ごとに更新されることと、ボタンでページが順に切り替わること (最後の次は最初)、ボタンを押すとブザーでボタンの音を鳴らすこと (ブザーが使えないとき、鳴らせなかったときも、ページは切り替わる)、グラフの履歴に測定値を加えること、OLED と RTC とボタンの初期化や表示に失敗しても、続けること。起動の 1 分後から 1 分ごとに RTC の時刻を確かめて、なければ WiFi で時刻を取って RTC に設定すること、時刻があれば取らないこと、失敗したら次の確認でやり直して 5 回でやめること)。`main.c` の `main()` は、テストの `main()` と名前が同じなので、`CMakeLists.txt` で名前を変える。
 - 規約:
   - テストにも、`app/warnings.txt` の警告オプションを付ける (`include(.../warnings.cmake)`)。モックが、関数を再宣言するため、`-Wredundant-decls` だけは外している。
   - ソースを足したり、関数を変えたりしたら、対応するテストを足す (正常系と、エラーの伝わり方)。

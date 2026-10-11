@@ -44,6 +44,7 @@ PREDEFINED             = CONFIG_THERMO_CLOUD \
                          CONFIG_THERMO_BOOT_SCREEN \
                          CONFIG_THERMO_BUZZER \
                          CONFIG_THERMO_WIFI_TIME \
+                         CONFIG_THERMO_BUTTON_SOUND \
                          CONFIG_MQTT_LIB_TLS \
                          "DEFINE_FFF_GLOBALS=" \
                          "FAKE_VALUE_FUNC(...)=" \
