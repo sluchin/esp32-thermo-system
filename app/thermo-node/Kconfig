@@ -52,6 +52,17 @@ config THERMO_BUZZER
       The melody is defined in boot_assets.c. The default is y when the
       Devicetree alias thermo-buzzer exists.
 
+config THERMO_BUTTON_SOUND
+    bool "Play a sound with the buzzer when the button is pressed"
+    default y
+    depends on THERMO_BUZZER && THERMO_DISPLAY
+    help
+      Play a short sound with the buzzer when the user button (D1) is
+      pressed. The button switches the pages of the OLED display, so this
+      depends on THERMO_DISPLAY. The sound is defined in button_assets.c.
+      If app/thermo-node/private/src/button_assets.c exists, it is used
+      instead (a private repository can be put there as a submodule).
+
 config THERMO_RTC
     bool "Keep the time with the RTC (PCF8563) of the expansion board"
     default y if $(dt_alias_enabled,thermo-rtc)

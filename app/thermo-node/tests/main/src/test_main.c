@@ -13,6 +13,8 @@
  *  - 初期化に成功したら, 一定間隔で温度を読み取り続けること (別スレッドで main を動かす)
  *  - OLED の表示と時刻を, 1 秒ごとに更新すること (グラフの履歴に, 測定値を加えること)
  *  - ボタンを押すと, ページを切り替えて (最後の次は, 最初に戻る), すぐに表示し直すこと
+ *  - ボタンを押すと, ブザーで, ボタンの音 (button_assets.c) を鳴らすこと (ブザーが使えないときは,
+ * 鳴らさない. 鳴らせなくても, ページは切り替わる)
  *  - 起動のときに, 起動音 (メロディ) を始めて, 起動画面を, 全てのフレームで, 順に表示すること
  * (失敗しても続ける)
  *  - OLED や RTC の初期化に失敗しても, 表示と時刻を諦めるだけで, 測定と通知を続けること
@@ -33,6 +35,7 @@
 
 #include "ble.h"
 #include "boot_assets.h"
+#include "button_assets.h"
 #include "button.h"
 #include "buzzer.h"
 #include "history.h"
@@ -590,6 +593,73 @@ ZTEST(main_node, test_time_unset)
     zassert_false(shown_time[0].valid);
 
     k_thread_abort(&main_thread);
+}
+
+/** ボタンを押すと, ページの切り替えと同時に, ボタンの音を鳴らす */
+ZTEST(main_node, test_button_plays_sound)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    press_at[0] = 3U; /* 3 回目の呼び出し (100 ms) で押される */
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS + 60);
+    /* 期待: 1 回目は起動のメロディ, 2 回目が, ボタンの音 (素材の表と, 音の数) */
+    zassert_equal(buzzer_play_fake.call_count, 2U);
+    zassert_equal(buzzer_play_fake.arg0_history[1], button_melody);
+    zassert_equal(buzzer_play_fake.arg1_history[1], button_melody_count);
+    zassert_equal(oled_show_fake.call_count, 2U);
+    zassert_equal(shown[1].page, OLED_PAGE_TEMP_GRAPH);
+
+    k_thread_abort(&main_thread);
+}
+
+/** ボタンの音を鳴らせなくても, ページは, 切り替わる (ログを出して, 続ける) */
+ZTEST(main_node, test_button_sound_failure_continues)
+{
+    int returns[] = {
+        0, -EIO}; /* buzzer_play() の戻り値の列 (起動のメロディは成功, ボタンの音は失敗) */
+
+    sensor_read_fake.custom_fake = fake_read;
+    press_at[0] = 3U;
+    SET_RETURN_SEQ(buzzer_play, returns, ARRAY_SIZE(returns));
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS + 60);
+    zassert_equal(buzzer_play_fake.call_count, 2U);
+    zassert_equal(oled_show_fake.call_count, 2U);
+    zassert_equal(shown[1].page, OLED_PAGE_TEMP_GRAPH);
+
+    k_thread_abort(&main_thread);
+}
+
+/** ブザーが使えないときは, ボタンの音を鳴らさない (ページは, 切り替わる) */
+ZTEST(main_node, test_button_no_sound_without_buzzer)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    buzzer_init_fake.return_val = -ENODEV;
+    press_at[0] = 3U;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS + 60);
+    zassert_equal(buzzer_play_fake.call_count, 0U);
+    zassert_equal(oled_show_fake.call_count, 2U);
+    zassert_equal(shown[1].page, OLED_PAGE_TEMP_GRAPH);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 素材のボタンの音は, 1 つ以上の音で, どの音も, 長さがある (差し替えた素材の, 書き間違いを防ぐ) */
+ZTEST(main_node, test_button_sound_asset)
+{
+    size_t i = 0U; /* ループ用の添字 */
+
+    zassert_true(button_melody_count > 0U);
+    for (i = 0U; i < button_melody_count; i++) {
+        zassert_true(button_melody[i].duration_ms > 0U);
+    }
 }
 
 /** ボタンを押すと, 次のページにして, 1 秒を待たずに表示し直す */
