@@ -22,6 +22,9 @@
 #ifdef CONFIG_THERMO_BUZZER
 #include "buzzer.h"
 #endif
+#ifdef CONFIG_THERMO_BUTTON_SOUND
+#include "button_assets.h"
+#endif
 #ifdef CONFIG_THERMO_RTC
 #include "node_time.h"
 #endif
@@ -60,6 +63,10 @@ static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_m
 
 #ifdef CONFIG_THERMO_WIFI_TIME
 static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries);
+#endif
+
+#ifdef CONFIG_THERMO_BUTTON_SOUND
+static void play_button_sound(bool buzzer_ready);
 #endif
 
 /** 温度を測定する間隔 [ms] */
@@ -102,6 +109,7 @@ static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries);
  * 表示と時刻を諦めるだけで, 測定と通知は続ける (起動時の一時的な失敗から復帰するため,
  * RETRY_INTERVAL_MS ごとに, 初期化をやり直す). 起動のときは, OLED に起動画面を出して (約 3 秒),
  * ブザーでメロディを鳴らす (CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER).
+ * ボタンを押したときも, ブザーで短い音を鳴らす (CONFIG_THERMO_BUTTON_SOUND).
  *
  * @retval EXIT_FAILURE 初期化またはアドバタイズ開始に失敗した場合
  *                      (正常時はループから戻らない)
@@ -204,6 +212,9 @@ int main(void)
         if (devs.button_ready && button_pressed()) {
             view.page = (view.page + 1U) % OLED_PAGE_COUNT;
             next_redraw_ms = now_ms;
+#ifdef CONFIG_THERMO_BUTTON_SOUND
+            play_button_sound(devs.buzzer_ready);
+#endif
         }
 #endif
 
@@ -419,6 +430,30 @@ static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries)
     }
 
     return true;
+}
+#endif
+
+#ifdef CONFIG_THERMO_BUTTON_SOUND
+/**
+ * ボタンを押したときの音を鳴らす
+ *
+ * 鳴っている音 (起動のメロディなど) があれば, 止めて, この音を最初から鳴らす. 鳴らせなかったときは,
+ * ログを出して, 続ける (ページの切り替えには, 影響しない).
+ *
+ * @param[in] buzzer_ready ブザーを使えるか (使えないときは, 何もしない)
+ */
+static void play_button_sound(bool buzzer_ready)
+{
+    int ret = EXIT_SUCCESS; /* 戻り値 */
+
+    if (!buzzer_ready) {
+        return;
+    }
+
+    ret = buzzer_play(button_melody, button_melody_count);
+    if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Failed to play the button sound (err %d)", ret);
+    }
 }
 #endif
 

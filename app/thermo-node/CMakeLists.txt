@@ -42,6 +42,16 @@ if(CONFIG_THERMO_BOOT_SCREEN OR CONFIG_THERMO_BUZZER)
   target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 endif()
 target_sources_ifdef(CONFIG_THERMO_BUZZER app PRIVATE src/buzzer.c)
+# ボタンを押したときの音 (CONFIG_THERMO_BUTTON_SOUND=n のときは, ビルドしない). 素材は, private/src/button_assets.c があれば,
+# それを使う (起動画面と起動音と同じ). なければ, このアプリのオリジナルの音 (src/button_assets.c). SETUP.md を参照
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/private/src/button_assets.c)
+  set(THERMO_BUTTON_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/private/src/button_assets.c)
+else()
+  set(THERMO_BUTTON_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/src/button_assets.c)
+endif()
+if(CONFIG_THERMO_BUTTON_SOUND)
+  target_sources(app PRIVATE ${THERMO_BUTTON_ASSETS})
+endif()
 
 # RTC の時刻と, PCF8563 のドライバ (CONFIG_THERMO_RTC=n のときは, ビルドしない). binding は,
 # dts/bindings/rtc/thermo,pcf8563.yaml (アプリのディレクトリは, Devicetree のルートになる)
