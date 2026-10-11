@@ -77,7 +77,7 @@ ENV/
 # macOS
 .DS_Store
 
-# Doxygen の出力 (docker compose run --rm docs-thermo)
+# Doxygen の出力 (docker compose run --rm docs)
 /docs/
 
 # シリアルコンソールのログ (DEBUG_LOG.md: picocom --logfile debug.log)
@@ -105,3 +105,7 @@ ENV/
 /public.pem.key
 /private.pem.key
 /AmazonRootCA1.pem
+/policy-node.json
+/*.pem.crt
+/*.private.key
+/*.public.key
