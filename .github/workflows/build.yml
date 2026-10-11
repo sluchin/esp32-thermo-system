@@ -24,14 +24,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: build-thermo-node
-            artifact: build_thermo_node
-          - service: build-thermo-gateway
-            artifact: build_thermo_gateway
-          - service: build-thermo-node-sim
-            artifact: build_thermo_node_sim
-          - service: build-thermo-gateway-sim
-            artifact: build_thermo_gateway_sim
+          - service: build-node
+            artifact: build_node
+          - service: build-gateway
+            artifact: build_gateway
+          - service: build-node-sim
+            artifact: build_node_sim
+          - service: build-gateway-sim
+            artifact: build_gateway_sim
 
     steps:
       - name: Checkout code
@@ -69,10 +69,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: test-thermo-node
-            artifact: test_thermo_node
-          - service: test-thermo-gateway
-            artifact: test_thermo_gateway
+          - service: test-node
+            artifact: test_node
+          - service: test-gateway
+            artifact: test_gateway
 
     steps:
       - name: Checkout code
@@ -102,10 +102,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: coverage-thermo-node
-            artifact: coverage_thermo_node
-          - service: coverage-thermo-gateway
-            artifact: coverage_thermo_gateway
+          - service: coverage-node
+            artifact: coverage_node
+          - service: coverage-gateway
+            artifact: coverage_gateway
 
     steps:
       - name: Checkout code
@@ -142,7 +142,7 @@ jobs:
       - name: Generate the documentation (Doxygen, no warnings allowed)
         run: |
           set -o pipefail
-          env UID="$(id -u)" GID="$(id -g)" docker compose run --rm docs-thermo 2>&1 | tee "$RUNNER_TEMP/docs.log"
+          env UID="$(id -u)" GID="$(id -g)" docker compose run --rm docs 2>&1 | tee "$RUNNER_TEMP/docs.log"
 
       - name: Upload the documentation
         uses: actions/upload-artifact@v4
@@ -197,10 +197,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: analyze-thermo-node
-            artifact: analyze_thermo_node
-          - service: analyze-thermo-gateway
-            artifact: analyze_thermo_gateway
+          - service: analyze-node
+            artifact: analyze_node
+          - service: analyze-gateway
+            artifact: analyze_gateway
 
     steps:
       - name: Checkout code
@@ -230,12 +230,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: format-thermo
-            artifact: format_thermo
-          - service: lint-thermo
-            artifact: lint_thermo
-          - service: whitespace-thermo
-            artifact: whitespace_thermo
+          - service: format
+            artifact: format
+          - service: lint
+            artifact: lint
+          - service: whitespace
+            artifact: whitespace
 
     steps:
       - name: Checkout code
