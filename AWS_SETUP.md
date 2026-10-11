@@ -36,40 +36,44 @@ Thermo Gateway は、BLE で受信した温度と湿度を、WiFi と MQTT (TLS�
 AWS CLI の例です (リージョンとアカウント ID は、自分のものに置き換えます)。コンソールからも、同じ設定ができます。
 
 ```bash
+# 共通の変数 (同じシェルで、続けて実行する。アカウント ID は、コマンドで取り出して、書き写さない)
+export AWS_REGION=ap-northeast-1
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
 # モノ (デバイス) の登録
 aws iot create-thing --thing-name gateway-01
 
 # 証明書と鍵の作成 (有効化する)。device.pem.crt と private.pem.key が、ゲートウェイに登録するものです
-aws iot create-keys-and-certificate --set-as-active \
+CERT_ARN=$(aws iot create-keys-and-certificate --set-as-active \
   --certificate-pem-outfile device.pem.crt \
   --public-key-outfile public.pem.key \
-  --private-key-outfile private.pem.key
-# 出力の certificateArn を、次の手順で使います
+  --private-key-outfile private.pem.key \
+  --query certificateArn --output text)
 
 # ルート CA 証明書 (サーバの確認用)
 curl -o AmazonRootCA1.pem https://www.amazontrust.com/repository/AmazonRootCA1.pem
 
 # ポリシー: このクライアント ID での接続と、このゲートウェイのトピックへの publish だけを許す
-cat > policy.json <<'JSON'
+cat > policy.json <<JSON
 {
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
       "Action": "iot:Connect",
-      "Resource": "arn:aws:iot:REGION:ACCOUNT_ID:client/gateway-01"
+      "Resource": "arn:aws:iot:${AWS_REGION}:${ACCOUNT_ID}:client/gateway-01"
     },
     {
       "Effect": "Allow",
       "Action": "iot:Publish",
-      "Resource": "arn:aws:iot:REGION:ACCOUNT_ID:topic/thermo/gateway-01/*"
+      "Resource": "arn:aws:iot:${AWS_REGION}:${ACCOUNT_ID}:topic/thermo/gateway-01/*"
     }
   ]
 }
 JSON
 aws iot create-policy --policy-name thermo-gateway --policy-document file://policy.json
-aws iot attach-policy --policy-name thermo-gateway --target <certificateArn>
-aws iot attach-thing-principal --thing-name gateway-01 --principal <certificateArn>
+aws iot attach-policy --policy-name thermo-gateway --target "$CERT_ARN"
+aws iot attach-thing-principal --thing-name gateway-01 --principal "$CERT_ARN"
 
 # エンドポイント (ATS)。thermo set endpoint に設定します
 aws iot describe-endpoint --endpoint-type iot:Data-ATS

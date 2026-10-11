@@ -87,9 +87,21 @@ ENV/
 /assets/Screenshot*
 /assets/*.pdf
 
-# AWS の手順 (AWS_DYNAMODB.md) のコマンドが作る JSON. 実際のアカウント ID と ID プール ID が入るので, コミットしない
+# AWS の手順 (AWS_DYNAMODB.md と AWS_GRAPH.md) のコマンドが作る JSON. 実際のアカウント ID と ID プール ID が入るので, コミットしない
 /iot-trust.json
 /iot-put.json
 /rule-dynamodb.json
 /unauth-trust.json
 /unauth-read.json
+/trust.json
+/perm.json
+/rule.json
+/rule-node.json
+/dashboard.json
+
+# AWS_SETUP.md のコマンドが作る証明書, 秘密鍵, ポリシー. コミットしない
+/policy.json
+/device.pem.crt
+/public.pem.key
+/private.pem.key
+/AmazonRootCA1.pem
