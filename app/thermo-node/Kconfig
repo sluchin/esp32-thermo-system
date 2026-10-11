@@ -115,7 +115,7 @@ config THERMO_NTP_SERVER
     help
       The SNTP server that is asked for the time over WiFi.
 
-config THERMO_GRAPH_STEP_S
+config THERMO_GRAPH_STEP_SEC
     int "Time per point of the graph on the OLED display [seconds]"
     default 30
     range 5 600

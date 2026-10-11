@@ -30,7 +30,7 @@
 - [x] **起動画面と起動音** (拡張ボードの OLED とパッシブブザー): 実装した (`oled_show_boot()`、`buzzer.c`、素材は `boot_assets.c`。`THERMO_BOOT_SCREEN` と `THERMO_BUZZER` で外せる。単体テストは `tests/buzzer`、`tests/oled`、`tests/main`)。ブザーは D3 (GPIO5) につなぐ。素材のサブモジュール (`app/thermo-node/private/`) は、使い方を `SETUP.md` に書いてある。ボタン (D1) を押したときの音も、同じ仕組みで鳴らす (`button_assets.c`。`THERMO_BUTTON_SOUND` で外せる)。
 - [x] ペイロードの UNIX 時刻 (`timestamp` [s]): 受信したときの時刻を、publish するときに、(今の UNIX 時刻) - (受信してからの経過) で求める。`uptime_ms` も、残す。
 - [x] サーバ証明書の有効期限の確認: `CONFIG_MBEDTLS_HAVE_TIME_DATE=y` で、mbedTLS がシステム時計 (SNTP で同期) を使う。1 度も同期していないときは、TLS が必ず失敗するので、MQTT に接続せず、間隔をあけて、やり直す。(ビルドと実機での確認は、未対応。実機では、RAM の増加と、期限切れの証明書で接続が拒否されることを確認する)
-- [x] SNTP による時刻の同期 (ゲートウェイ): WiFi の接続のたびに、`CONFIG_THERMO_NTP_SERVER` (既定 `pool.ntp.org`) に問い合わせて、システム時計を合わせる (`CONFIG_THERMO_NTP_RESYNC_S` の間は、再同期しない。失敗しても、MQTT の接続は続ける)。単体テストは `tests/ntp`。(ビルドと実機での確認は、未対応)
+- [x] SNTP による時刻の同期 (ゲートウェイ): WiFi の接続のたびに、`CONFIG_THERMO_NTP_SERVER` (既定 `pool.ntp.org`) に問い合わせて、システム時計を合わせる (`CONFIG_THERMO_NTP_RESYNC_SEC` の間は、再同期しない。失敗しても、MQTT の接続は続ける)。単体テストは `tests/ntp`。(ビルドと実機での確認は、未対応)
 - [x] AWS IoT Core への MQTT 送信 (ゲートウェイ): WiFi の接続、MQTT over TLS (相互認証)、JSON の publish、再接続 (間隔を倍々に増やす)、シェル (`thermo` コマンド) による設定と、フラッシュへの保存。(実機での確認は、未対応の項目を参照)
 - [x] BLE の GATT 接続 + 通知: ノードが温度と湿度を通知し、ゲートウェイが接続・購読して受信する (UUID は `app/common/thermo_ble_uuid.h`。`native_sim` + `btvirt` の `run-sim` で、接続から温度の受信まで動かせる)。
 - [x] Ztest + FFF の単体テストを、両アプリに追加した (`app/*/tests/`。sensor は偽のセンサと ADC エミュレータを使う)。

@@ -18,7 +18,7 @@ target_sources(app PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/../../src/button_assets.c)
 # 名前を変えた main() は, ヘッダに宣言がないので, その警告は出さない.
 set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/../../src/main.c PROPERTIES
-  COMPILE_DEFINITIONS "main=thermo_node_main;CONFIG_THERMO_DISPLAY=1;CONFIG_THERMO_BUZZER=1;CONFIG_THERMO_BUTTON_SOUND=1;CONFIG_THERMO_GRAPH_STEP_S=30;CONFIG_THERMO_DISPLAY_TIMEOUT_SEC=10"
+  COMPILE_DEFINITIONS "main=thermo_node_main;CONFIG_THERMO_DISPLAY=1;CONFIG_THERMO_BUZZER=1;CONFIG_THERMO_BUTTON_SOUND=1;CONFIG_THERMO_GRAPH_STEP_SEC=30;CONFIG_THERMO_DISPLAY_TIMEOUT_SEC=10"
   COMPILE_OPTIONS "-Wno-missing-prototypes;-Wno-missing-declarations")
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する

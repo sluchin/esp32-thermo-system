@@ -7,7 +7,7 @@ project(thermo_gateway_ntp_test)
 
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src
                            ${CMAKE_CURRENT_LIST_DIR}/../../../common)
-target_compile_definitions(app PRIVATE CONFIG_THERMO_NTP_RESYNC_S=3600)
+target_compile_definitions(app PRIVATE CONFIG_THERMO_NTP_RESYNC_SEC=3600)
 target_sources(app PRIVATE
   src/test_ntp.c
   ${CMAKE_CURRENT_LIST_DIR}/../../src/ntp.c

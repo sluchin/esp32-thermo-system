@@ -35,7 +35,7 @@ FAKE_VOID_FUNC(sntp_close, struct sntp_ctx *)
 
 /** テストの NTP サーバ */
 #define SERVER   "ntp.test"
-/** 再同期の間隔 [s] (CMakeLists.txt の CONFIG_THERMO_NTP_RESYNC_S) */
+/** 再同期の間隔 [s] (CMakeLists.txt の CONFIG_THERMO_NTP_RESYNC_SEC) */
 #define RESYNC_S 3600
 /** テストの UNIX 時刻 [s] */
 #define TEST_SEC 1790000000ULL
@@ -155,7 +155,7 @@ ZTEST(ntp, test_e_success_then_skip)
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), 0);
     zassert_equal(sntp_query_fake.call_count, 1U);
 
-    /* 再同期の間隔 (CONFIG_THERMO_NTP_RESYNC_S) がたてば, もう一度, 問い合わせる */
+    /* 再同期の間隔 (CONFIG_THERMO_NTP_RESYNC_SEC) がたてば, もう一度, 問い合わせる */
     k_sleep(K_SECONDS(RESYNC_S));
     zassert_equal(ntp_sync(SERVER, K_MSEC(100)), 0);
     zassert_equal(sntp_query_fake.call_count, 2U);
