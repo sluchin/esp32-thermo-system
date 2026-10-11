@@ -40,6 +40,7 @@
 #include "button_assets.h"
 #include "button.h"
 #include "buzzer.h"
+#include "direct.h"
 #include "history.h"
 #include "node_time.h"
 #include "oled.h"
@@ -77,6 +78,9 @@ FAKE_VALUE_FUNC(int, node_time_init)
 FAKE_VALUE_FUNC(int, node_time_get, struct node_datetime *)
 FAKE_VALUE_FUNC(int, wifi_time_init)
 FAKE_VALUE_FUNC(int, wifi_time_fetch, int64_t *)
+FAKE_VALUE_FUNC(int, direct_init)
+FAKE_VOID_FUNC(direct_sample, int16_t, uint16_t)
+FAKE_VALUE_FUNC(bool, direct_active)
 
 /** oled_show() の呼び出しを記録する数 */
 #define SHOWN_MAX 16U
@@ -293,6 +297,9 @@ static void before(void *fixture)
     RESET_FAKE(node_time_get);
     RESET_FAKE(wifi_time_init);
     RESET_FAKE(wifi_time_fetch);
+    RESET_FAKE(direct_init);
+    RESET_FAKE(direct_sample);
+    RESET_FAKE(direct_active);
     FFF_RESET_HISTORY();
     oled_show_fake.custom_fake = fake_show;
     node_time_get_fake.custom_fake = fake_time_get;
@@ -1066,6 +1073,74 @@ ZTEST(main_node, test_wifi_time_skipped_without_rtc)
 
     k_msleep(BOOT_MS + (3 * CHECK_MS));
     zassert_equal(wifi_time_fetch_fake.call_count, 0U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 起動のとき, 直接の送信を準備する. 失敗しても, 測定と通知を続ける */
+ZTEST(main_node, test_direct_init)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    direct_init_fake.return_val = -EIO;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(direct_init_fake.call_count, 1U);
+    zassert_equal(ble_notify_temperature_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 測定に成功するたびに, 測定値を直接の送信に知らせる (読み取りに失敗したときは, 知らせない) */
+ZTEST(main_node, test_direct_sample)
+{
+    sensor_read_fake.custom_fake = fake_read;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(direct_sample_fake.call_count, 1U);
+    zassert_equal(direct_sample_fake.arg0_val, FAKE_TEMP_1_X10);
+    zassert_equal(direct_sample_fake.arg1_val, FAKE_HUMIDITY_1);
+    k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
+    zassert_equal(direct_sample_fake.call_count, 2U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 読み取りに失敗したときは, 直接の送信に知らせない */
+ZTEST(main_node, test_direct_sample_not_called_on_read_failure)
+{
+    sensor_read_fake.return_val = -EIO;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(sensor_read_fake.call_count, 1U);
+    zassert_equal(direct_sample_fake.call_count, 0U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 直接の送信を動かしている間は, WiFi で時刻を取らない. 止まったら, 取る */
+ZTEST(main_node, test_wifi_time_waits_while_direct_is_active)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    rtc_valid = false;
+    direct_active_fake.return_val = true;
+
+    start_main();
+
+    /* 期待: 1 分たっても, 直接の送信を動かしている間は, 取らない */
+    k_msleep(BOOT_MS + CHECK_MS + 1000);
+    zassert_equal(wifi_time_fetch_fake.call_count, 0U);
+
+    /* 期待: 止まったら, 次の確認 (1 分後) で取る */
+    direct_active_fake.return_val = false;
+    k_msleep(CHECK_MS);
+    zassert_equal(wifi_time_fetch_fake.call_count, 1U);
 
     k_thread_abort(&main_thread);
 }

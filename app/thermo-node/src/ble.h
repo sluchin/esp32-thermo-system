@@ -15,7 +15,9 @@
  * ビルドされる.
  */
 
-#include <stdint.h> /* int16_t uint16_t int64_t */
+#include <zephyr/bluetooth/addr.h>
+#include <stdbool.h> /* bool */
+#include <stdint.h>  /* int16_t uint16_t int64_t */
 
 /**
  * @brief ゲートウェイから時刻を受け取ったときのコールバックの型
@@ -37,5 +39,9 @@ void ble_set_time_callback(ble_time_cb_t cb);
 int ble_advertise(void);
 
 int ble_notify_temperature(int16_t temp_x10, uint16_t humidity_x10);
+
+bool ble_is_connected(void);
+
+int ble_get_address(bt_addr_le_t *addr);
 
 #endif /* THERMO_NODE_BLE_H */

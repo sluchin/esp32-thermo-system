@@ -18,7 +18,7 @@
 #include <string.h> /* memcpy */
 
 #include "thermo_log.h"
-#include "wifi_cfg.h"
+#include "cfg.h"
 #include "wifi_link.h"
 #include "wifi_time.h"
 
@@ -38,7 +38,7 @@ static int resolve_server(const char *server, struct sockaddr_storage *addr, soc
  */
 int wifi_time_init(void)
 {
-    int err = wifi_cfg_init(); /* エラーコード */
+    int err = cfg_init(); /* エラーコード */
 
     if (err != 0) {
         return err;
@@ -64,12 +64,12 @@ int wifi_time_fetch(int64_t *unix_s)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    if (!wifi_cfg_is_complete()) {
+    if (cfg_get(CFG_KEY_SSID)[0] == '\0') {
         LOG_ERR("The WiFi SSID is not set (use 'thermo set ssid <SSID>' in the shell)");
         return -ENOENT;
     }
 
-    err = wifi_link_connect(wifi_cfg_get(WIFI_CFG_SSID), wifi_cfg_get(WIFI_CFG_PSK),
+    err = wifi_link_connect(cfg_get(CFG_KEY_SSID), cfg_get(CFG_KEY_PSK),
                             K_SECONDS(WIFI_TIME_CONNECT_S));
     if (err == 0) {
         err = query_sntp(CONFIG_THERMO_NTP_SERVER, K_SECONDS(WIFI_TIME_SNTP_S), unix_s);

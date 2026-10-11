@@ -246,6 +246,26 @@ ZTEST(node_time, test_get_rtc_failure)
     zassert_false(local.valid);
 }
 
+/** UTC の UNIX 時刻で読める (RTC の時刻そのまま. ローカルタイムの換算は, しない) */
+ZTEST(node_time, test_unix_time)
+{
+    int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
+
+    zassert_equal(node_time_unix(&unix_s), EXIT_SUCCESS);
+    zassert_equal(unix_s, UNIX_2026_10_08);
+}
+
+/** 時刻が未設定 (-ENODATA) や, RTC の失敗は, その値を返す */
+ZTEST(node_time, test_unix_time_failures)
+{
+    int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
+
+    get_ret = -ENODATA;
+    zassert_equal(node_time_unix(&unix_s), -ENODATA);
+    get_ret = -EIO;
+    zassert_equal(node_time_unix(&unix_s), -EIO);
+}
+
 /** 時刻を設定すると, 月 (0 から 11), 年 (1900 年から), 曜日などが, RTC に渡される */
 ZTEST(node_time, test_set_time)
 {

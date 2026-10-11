@@ -8,7 +8,7 @@
  * @file
  * @brief wifi_shell.c の単体テスト
  *
- * wifi_cfg と wifi_time と node_time の関数を FFF のモックに置き換えて, シェルのコマンド
+ * wifi_time と node_time の関数を FFF のモックに置き換えて, シェルのコマンド
  * (`thermo ...`) をダミーのバックエンドで実行して, 戻り値と出力を確認する.
  */
 
@@ -20,68 +20,22 @@
 #include <string.h> /* strcmp memset strstr */
 
 #include "node_time.h"
-#include "wifi_cfg.h"
+#include "shell_extra.h"
 #include "wifi_time.h"
 
 DEFINE_FFF_GLOBALS
 
+/* 本物の `thermo` コマンドは, ここでは使わない. `sync` だけの `thermo` を作る */
+/** 試験用の `thermo` コマンドのサブコマンド (`sync` だけ) */
+SHELL_STATIC_SUBCMD_SET_CREATE(thermo_cmds, THERMO_SHELL_EXTRA SHELL_SUBCMD_SET_END);
+SHELL_CMD_REGISTER(thermo, &thermo_cmds, "Test of thermo", NULL);
+
 /* FAKE_*: FFF のモック (実物の代わりの関数. 呼ばれた回数と引数を記録する) */
-FAKE_VALUE_FUNC(int, wifi_cfg_key_from_name, const char *)
-FAKE_VALUE_FUNC(const char *, wifi_cfg_key_name, enum wifi_cfg_key)
-FAKE_VALUE_FUNC(const char *, wifi_cfg_get, enum wifi_cfg_key)
-FAKE_VALUE_FUNC(int, wifi_cfg_set, enum wifi_cfg_key, const char *)
-FAKE_VALUE_FUNC(bool, wifi_cfg_is_complete)
-FAKE_VALUE_FUNC(int, wifi_cfg_reset)
 FAKE_VALUE_FUNC(int, wifi_time_fetch, int64_t *)
 FAKE_VALUE_FUNC(int, node_time_set, int64_t)
 
-/** 項目の名前 */
-static const char *const key_names[] = {"ssid", "psk"};
-/** wifi_cfg_get() が返す値 */
-static const char *values[WIFI_CFG_COUNT];
 /** wifi_time_fetch() が返す時刻 [s] */
 #define FETCHED_SEC 1790000000
-
-/**
- * wifi_cfg_key_from_name() のモック動作
- *
- * @param[in] name 項目の名前
- * @return 項目. ない名前なら -ENOENT
- */
-static int fake_key_from_name(const char *name)
-{
-    size_t i = 0U; /* ループ用の添字 */
-
-    for (i = 0U; i < ARRAY_SIZE(key_names); i++) {
-        if (strcmp(name, key_names[i]) == 0) {
-            return (int)i;
-        }
-    }
-
-    return -ENOENT;
-}
-
-/**
- * wifi_cfg_key_name() のモック動作
- *
- * @param[in] key 項目
- * @return 名前
- */
-static const char *fake_key_name(enum wifi_cfg_key key)
-{
-    return key_names[key];
-}
-
-/**
- * wifi_cfg_get() のモック動作
- *
- * @param[in] key 項目
- * @return values の値
- */
-static const char *fake_get(enum wifi_cfg_key key)
-{
-    return values[key];
-}
 
 /**
  * wifi_time_fetch() のモック動作 (固定の時刻を返す)
@@ -138,85 +92,10 @@ static void *setup(void)
 static void before(void *fixture)
 {
     ARG_UNUSED(fixture);
-    RESET_FAKE(wifi_cfg_key_from_name);
-    RESET_FAKE(wifi_cfg_key_name);
-    RESET_FAKE(wifi_cfg_get);
-    RESET_FAKE(wifi_cfg_set);
-    RESET_FAKE(wifi_cfg_is_complete);
-    RESET_FAKE(wifi_cfg_reset);
     RESET_FAKE(wifi_time_fetch);
     RESET_FAKE(node_time_set);
     FFF_RESET_HISTORY();
-    wifi_cfg_key_from_name_fake.custom_fake = fake_key_from_name;
-    wifi_cfg_key_name_fake.custom_fake = fake_key_name;
-    wifi_cfg_get_fake.custom_fake = fake_get;
     wifi_time_fetch_fake.custom_fake = fake_fetch;
-
-    (void)memset(values, 0, sizeof(values));
-    values[WIFI_CFG_SSID] = "";
-    values[WIFI_CFG_PSK] = "";
-}
-
-/** `thermo set <項目> <値>` は, 値を保存して, 保存したことを表示する */
-ZTEST(thermo_wifi_shell, test_set)
-{
-    int ret = 0;                                            /* 戻り値 */
-    const char *out = run("thermo set ssid home-ap", &ret); /* シェルの出力 */
-
-    /* 期待: 値を保存して, "<項目> saved" と表示する */
-    zassert_equal(ret, 0);
-    zassert_equal(wifi_cfg_set_fake.call_count, 1U);
-    zassert_equal(wifi_cfg_set_fake.arg0_val, WIFI_CFG_SSID);
-    zassert_str_equal(wifi_cfg_set_fake.arg1_val, "home-ap");
-    zassert_not_null(strstr(out, "ssid saved"));
-}
-
-/** 知らない項目は -EINVAL (保存しない) */
-ZTEST(thermo_wifi_shell, test_set_unknown_item)
-{
-    int ret = 0;                                             /* 戻り値 */
-    const char *out = run("thermo set nothing value", &ret); /* シェルの出力 */
-
-    /* 期待: 知らない項目は -EINVAL で, 保存しない (使える項目を表示する) */
-    zassert_equal(ret, -EINVAL);
-    zassert_equal(wifi_cfg_set_fake.call_count, 0U);
-    zassert_not_null(strstr(out, "Unknown item 'nothing'"));
-}
-
-/** 保存に失敗したら, そのエラーを返して, 表示する */
-ZTEST(thermo_wifi_shell, test_set_failure)
-{
-    int ret = 0;            /* 戻り値 */
-    const char *out = NULL; /* シェルの出力 */
-
-    wifi_cfg_set_fake.return_val = -EIO;
-    out = run("thermo set psk secret", &ret);
-
-    zassert_equal(ret, -EIO);
-    zassert_not_null(strstr(out, "Failed to set 'psk'"));
-}
-
-/** `thermo show` は, SSID とパスワードの有無 (値は隠す) と揃っているかを表示する */
-ZTEST(thermo_wifi_shell, test_show)
-{
-    int ret = 0;            /* 戻り値 */
-    const char *out = NULL; /* シェルの出力 */
-
-    /* 期待: 未設定のときは, パスワードは (empty) で, 揃っていない */
-    out = run("thermo show", &ret);
-    zassert_equal(ret, 0);
-    zassert_not_null(strstr(out, "psk: (empty)"));
-    zassert_not_null(strstr(out, "ready to get the time: no"));
-
-    /* 期待: 設定済みのときは, SSID を表示して, パスワードは隠し, 揃っている */
-    values[WIFI_CFG_SSID] = "home-ap";
-    values[WIFI_CFG_PSK] = "secret-pass";
-    wifi_cfg_is_complete_fake.return_val = true;
-    out = run("thermo show", &ret);
-    zassert_not_null(strstr(out, "ssid: home-ap"));
-    zassert_not_null(strstr(out, "psk: ********"));
-    zassert_is_null(strstr(out, "secret-pass"));
-    zassert_not_null(strstr(out, "ready to get the time: yes"));
 }
 
 /** `thermo sync` は, WiFi で時刻を取って, RTC に設定する */
@@ -259,30 +138,6 @@ ZTEST(thermo_wifi_shell, test_sync_set_failure)
 
     zassert_equal(ret, -EIO);
     zassert_not_null(strstr(out, "Failed to set the RTC"));
-}
-
-/** `thermo reset` は, 設定を消して, 表示する */
-ZTEST(thermo_wifi_shell, test_reset)
-{
-    int ret = 0;                                 /* 戻り値 */
-    const char *out = run("thermo reset", &ret); /* シェルの出力 */
-
-    zassert_equal(ret, 0);
-    zassert_equal(wifi_cfg_reset_fake.call_count, 1U);
-    zassert_not_null(strstr(out, "settings erased"));
-}
-
-/** 消去に失敗したら, そのエラーを返す */
-ZTEST(thermo_wifi_shell, test_reset_failure)
-{
-    int ret = 0;            /* 戻り値 */
-    const char *out = NULL; /* シェルの出力 */
-
-    wifi_cfg_reset_fake.return_val = -EIO;
-    out = run("thermo reset", &ret);
-
-    zassert_equal(ret, -EIO);
-    zassert_not_null(strstr(out, "Failed to erase the settings"));
 }
 
 ZTEST_SUITE(thermo_wifi_shell, NULL, setup, before, NULL, NULL);

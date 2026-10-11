@@ -36,4 +36,6 @@ int node_time_get(struct node_datetime *local);
 
 int node_time_set(int64_t unix_s);
 
+int node_time_unix(int64_t *unix_s);
+
 #endif /* THERMO_NODE_NODE_TIME_H */
