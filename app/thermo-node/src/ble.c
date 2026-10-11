@@ -22,6 +22,9 @@
 #include "thermo_ble_uuid.h"
 #include "thermo_log.h"
 
+/** 取得する BLE のアドレスの数 (ID は, 既定の 1 つだけ) */
+#define ID_COUNT 1U
+
 LOG_MODULE_REGISTER(ble_thermo_node, THERMO_LOG_LEVEL);
 
 /** アドバタイズデータ: フラグ (LE 一般発見可能, BR/EDR 非対応) とデバイス名 */
@@ -44,6 +47,9 @@ static const struct bt_data sd[] = {
 static int16_t latest_temp_x10;
 /** 最後に通知した湿度 [% の 10 倍]. 通知の前は, 湿度なし. 読み取り (read) で返す */
 static uint16_t latest_humidity_x10 = THERMO_HUMIDITY_NONE;
+
+/** ゲートウェイとの BLE の接続の数 */
+static volatile unsigned int connection_count;
 
 #ifdef CONFIG_THERMO_RTC
 /** ゲートウェイから時刻を受け取ったときのコールバック (NULL なら, 書き込みを拒否する) */
@@ -120,6 +126,40 @@ int ble_init(void)
         return err;
     }
     LOG_INF("Bluetooth initialized");
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * @brief ゲートウェイと BLE でつながっているか
+ *
+ * @retval true  つながっている (接続が 1 つ以上ある)
+ * @retval false つながっていない
+ */
+bool ble_is_connected(void)
+{
+    return connection_count > 0U;
+}
+
+/**
+ * @brief このノードの BLE のアドレスを取得する (ゲートウェイが見るアドレスと同じ)
+ *
+ * ble_init() のあとに呼ぶ.
+ *
+ * @param[out] addr アドレス
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOENT      アドレスがない
+ */
+int ble_get_address(bt_addr_le_t *addr)
+{
+    bt_addr_le_t addrs[ID_COUNT] = {0}; /* BLE のアドレス (ID ごと) */
+    size_t count = ID_COUNT;            /* 取得するアドレスの数 */
+
+    bt_id_get(addrs, &count);
+    if (count == 0U) {
+        return -ENOENT;
+    }
+    *addr = addrs[0];
 
     return EXIT_SUCCESS;
 }
@@ -297,6 +337,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
         LOG_ERR("Connection failed (err 0x%02x)", err);
         return;
     }
+    connection_count++;
     LOG_INF("Connected");
 }
 
@@ -314,6 +355,9 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
     ARG_UNUSED(conn);
 
+    if (connection_count > 0U) {
+        connection_count--;
+    }
     LOG_INF("Disconnected (reason 0x%02x)", reason);
 }
 

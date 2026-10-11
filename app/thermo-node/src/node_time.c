@@ -144,6 +144,20 @@ int node_time_get(struct node_datetime *local)
 }
 
 /**
+ * @brief RTC の時刻を, UTC の UNIX 時刻で読む (SD カードに溜める測定値の時刻に使う)
+ *
+ * @param[out] unix_s UTC の UNIX 時刻 [s]
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENODATA     RTC に時刻が設定されていない
+ * @retval negative     RTC のドライバの失敗 (負の errno)
+ */
+int node_time_unix(int64_t *unix_s)
+{
+    return read_utc(unix_s);
+}
+
+/**
  * @brief RTC に時刻を設定する
  *
  * UNIX 時刻を年月日と時分秒と曜日に直して, RTC のドライバ (rtc_set_time) に渡す.

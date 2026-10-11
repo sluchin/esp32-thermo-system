@@ -115,6 +115,63 @@ config THERMO_NTP_SERVER
     help
       The SNTP server that is asked for the time over WiFi.
 
+config THERMO_NTP_RESYNC_SEC
+    int "Minimum interval between two time synchronizations [s]"
+    default 3600
+    depends on THERMO_WIFI_TIME
+    help
+      Used when the node sends directly to AWS IoT Core over WiFi: after
+      a successful synchronization, the next one is skipped until this
+      many seconds have passed (it is tried at each WiFi connection).
+
+config THERMO_DIRECT_MQTT
+    bool "Send directly to AWS IoT Core over WiFi when the gateway is not connected"
+    default y
+    depends on THERMO_WIFI_TIME
+    help
+      When BLE is not connected to the gateway for 5 samples in a row,
+      connect to WiFi and publish the temperature to AWS IoT Core with
+      MQTT over TLS every 10 seconds. When the gateway connects again,
+      stop and disconnect WiFi. If the WiFi or the MQTT connection fails
+      5 times, give up until the gateway connects once more. The settings
+      (SSID, password, endpoint, client ID, certificates) are entered with
+      the "thermo" shell command, as for the gateway. Use a certificate and
+      a client ID of its own for each node.
+
+config THERMO_BACKLOG
+    bool "Save the values on the SD card while no connection is available"
+    default y if $(dt_nodelabel_enabled,sdhc0)
+    depends on THERMO_DIRECT_MQTT
+    select DISK_ACCESS
+    select FILE_SYSTEM
+    select FAT_FILESYSTEM_ELM
+    select CRC
+    help
+      While BLE is not connected to the gateway and the values cannot be
+      sent over WiFi, save them (UNIX time, temperature, humidity) on the
+      SD card of the expansion board (FAT, SPI). When the gateway or WiFi
+      is available again, send them to AWS IoT Core in the order of the
+      time with MQTT. The default is y when the SD card is in the
+      Devicetree (the node label sdhc0). The card must be formatted
+      with FAT.
+
+config THERMO_BACKLOG_MAX_RECORDS
+    int "Maximum number of the values on the SD card"
+    default 100000
+    range 10 4000000
+    depends on THERMO_BACKLOG
+    help
+      One value takes 16 bytes. The default 100000 is about 1.6 MB, and
+      about 5.8 days of the values saved every 5 seconds. When it is
+      full, the new values are dropped.
+
+config THERMO_BACKLOG_MOUNT
+    string "Mount point of the SD card"
+    default "/SD:"
+    depends on THERMO_BACKLOG
+    help
+      The FatFS volume name is the disk name of the Devicetree (SD).
+
 config THERMO_GRAPH_STEP_SEC
     int "Time per point of the graph on the OLED display [seconds]"
     default 30

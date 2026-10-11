@@ -90,4 +90,4 @@ if [ "${SYNC:-0}" = "1" ]; then
 fi
 
 echo
-echo "Done. Check that 'ready to get the time: yes' is shown above."
+echo "Done. Check that the SSID is shown above."

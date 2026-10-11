@@ -9,7 +9,7 @@
 
 set -e
 
-TAG=1            # セキュリティタグ (app/thermo-gateway/src/cfg.h の CFG_TLS_SEC_TAG)
+TAG=1            # セキュリティタグ (app/common/cfg.h の CFG_TLS_SEC_TAG)
 CHUNK=16         # 一度に送る文字数
 CHUNK_DELAY=0.05 # 分けて送るごとの待ち時間 [s]
 LINE_DELAY=0.2   # 1 行ごとの待ち時間 [s]

@@ -55,6 +55,7 @@ FAKE_VALUE_FUNC(int, bt_le_adv_start, const struct bt_le_adv_param *, const stru
                 size_t, const struct bt_data *, size_t)
 FAKE_VALUE_FUNC(int, bt_gatt_service_register, struct bt_gatt_service *)
 FAKE_VALUE_FUNC(int, bt_conn_cb_register, struct bt_conn_cb *)
+FAKE_VOID_FUNC(bt_id_get, bt_addr_le_t *, size_t *)
 FAKE_VALUE_FUNC(int, bt_gatt_notify_cb, struct bt_conn *, struct bt_gatt_notify_params *)
 FAKE_VALUE_FUNC(ssize_t, bt_gatt_attr_read, struct bt_conn *, const struct bt_gatt_attr *, void *,
                 uint16_t, uint16_t, const void *, uint16_t)
@@ -256,6 +257,7 @@ static void before(void *fixture)
     RESET_FAKE(bt_le_adv_start);
     RESET_FAKE(bt_gatt_service_register);
     RESET_FAKE(bt_conn_cb_register);
+    RESET_FAKE(bt_id_get);
     RESET_FAKE(bt_gatt_notify_cb);
     RESET_FAKE(bt_gatt_attr_read);
     RESET_FAKE(bt_gatt_attr_read_service);
@@ -605,6 +607,80 @@ ZTEST(ble_node, test_write_time_failure)
 
     zassert_equal(write_time_attr(service, value, sizeof(value), 0U),
                   BT_GATT_ERR(BT_ATT_ERR_UNLIKELY));
+}
+
+/**
+ * bt_id_get() のモック動作 (アドレスを 1 つ返す)
+ *
+ * @param[out] addrs アドレスの配列
+ * @param[in,out] count 配列の大きさ (入力) と, 書き込んだ数 (出力)
+ */
+static void fake_id_get(bt_addr_le_t *addrs, size_t *count)
+{
+    (void)memset(&addrs[0], 0xAB, sizeof(addrs[0]));
+    *count = 1U;
+}
+
+/** 接続の状態: 接続すると, つながっている. 全て切断すると, つながっていない */
+ZTEST(ble_node, test_is_connected)
+{
+    struct bt_conn_cb *cb = NULL; /* コールバックの登録情報 */
+
+    zassert_equal(ble_init(), EXIT_SUCCESS);
+    cb = bt_conn_cb_register_fake.arg0_val;
+    /* 前のテストの接続を, 全て切る (数が 0 のときの切断は, 数えない) */
+    while (ble_is_connected()) {
+        cb->disconnected(NULL, 0x13U);
+    }
+    cb->disconnected(NULL, 0x13U);
+    zassert_false(ble_is_connected());
+
+    cb->connected(NULL, 0x3EU); /* 接続に失敗 */
+    zassert_false(ble_is_connected());
+
+    cb->connected(NULL, 0U);
+    cb->connected(NULL, 0U);
+    zassert_true(ble_is_connected());
+
+    cb->disconnected(NULL, 0x13U);
+    zassert_true(ble_is_connected());
+    cb->disconnected(NULL, 0x13U);
+    zassert_false(ble_is_connected());
+}
+
+/** アドレスは, bt_id_get() が返した 1 つ目 */
+ZTEST(ble_node, test_get_address)
+{
+    bt_addr_le_t addr = {0};     /* 取得したアドレス */
+    bt_addr_le_t expected = {0}; /* 期待するアドレス */
+
+    bt_id_get_fake.custom_fake = fake_id_get;
+    (void)memset(&expected, 0xAB, sizeof(expected));
+
+    zassert_equal(ble_get_address(&addr), EXIT_SUCCESS);
+    zassert_mem_equal(&addr, &expected, sizeof(addr));
+}
+
+/**
+ * bt_id_get() のモック動作 (アドレスを 1 つも返さない)
+ *
+ * @param[out] addrs 使用しない
+ * @param[in,out] count 書き込んだ数 (0)
+ */
+static void fake_id_get_none(bt_addr_le_t *addrs, size_t *count)
+{
+    ARG_UNUSED(addrs);
+    *count = 0U;
+}
+
+/** アドレスが 1 つもなければ, -ENOENT */
+ZTEST(ble_node, test_get_address_none)
+{
+    bt_addr_le_t addr = {0}; /* 取得したアドレス */
+
+    bt_id_get_fake.custom_fake = fake_id_get_none;
+
+    zassert_equal(ble_get_address(&addr), -ENOENT);
 }
 
 ZTEST_SUITE(ble_node, NULL, NULL, before, NULL, NULL);

@@ -31,6 +31,9 @@
 #ifdef CONFIG_THERMO_WIFI_TIME
 #include "wifi_time.h"
 #endif
+#ifdef CONFIG_THERMO_DIRECT_MQTT
+#include "direct.h"
+#endif
 #ifdef CONFIG_THERMO_DISPLAY
 #include "button.h"
 #include "history.h"
@@ -86,6 +89,14 @@ static void play_button_sound(bool buzzer_ready);
 #define RETRY_INTERVAL_MS (RETRY_INTERVAL_S * 1000)
 
 #ifdef CONFIG_THERMO_WIFI_TIME
+#ifdef CONFIG_THERMO_DIRECT_MQTT
+/** WiFi での直接の送信を動かしているか (動かしている間は, WiFi を時刻の取得に使わない) */
+#define DIRECT_BUSY() direct_active()
+#else
+/** WiFi での直接の送信を使わないビルドでは, 動かしていない */
+#define DIRECT_BUSY() false
+#endif
+
 /** RTC に時刻があるかを確かめる間隔 [ms] (1 分. 最初の確認は, 起動の 1 分後) */
 #define TIME_CHECK_INTERVAL_MS 60000
 
@@ -190,6 +201,13 @@ int main(void)
 
     /* RTC と OLED とボタンを初期化する (失敗しても, 測定と通知は続ける) */
     init_optional(&devs);
+#ifdef CONFIG_THERMO_DIRECT_MQTT
+    /* ゲートウェイにつながらないときの, WiFi での直接の送信を準備する (失敗しても, 続ける) */
+    ret = direct_init();
+    if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Direct publish is not available (err %d)", ret);
+    }
+#endif
     boot_sequence(&devs);
     /* 起動画面の間 (約 3 秒) を除いて, ループの時間を数える */
     start_ms = k_uptime_get();
@@ -212,6 +230,12 @@ int main(void)
         if (now_ms >= next_sample_ms) {
             next_sample_ms = next_grid_ms(start_ms, now_ms, SAMPLE_INTERVAL_MS);
             ret = measure(&temp_x10, &humidity_x10);
+#ifdef CONFIG_THERMO_DIRECT_MQTT
+            /* ゲートウェイにつながらない測定が続いたら, WiFi で直接送る */
+            if (ret == EXIT_SUCCESS) {
+                direct_sample(temp_x10, humidity_x10);
+            }
+#endif
 #ifdef CONFIG_THERMO_DISPLAY
             /* 読み取りに失敗したときは, 前回の値を表示し続ける */
             if (ret == EXIT_SUCCESS) {
@@ -271,7 +295,7 @@ int main(void)
 
 #ifdef CONFIG_THERMO_WIFI_TIME
         /* 1 分ごとに, RTC に時刻がなければ, WiFi で時刻を取る (最大 5 回. RTC が使えるまで待つ) */
-        if ((!time_done) && (now_ms >= next_time_check_ms) && devs.rtc_ready) {
+        if ((!time_done) && (now_ms >= next_time_check_ms) && devs.rtc_ready && (!DIRECT_BUSY())) {
             next_time_check_ms = next_grid_ms(start_ms, now_ms, TIME_CHECK_INTERVAL_MS);
             time_done = check_time(datetime.valid, devs.wifi_ready, &wifi_tries);
         }

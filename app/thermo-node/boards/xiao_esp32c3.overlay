@@ -110,3 +110,26 @@
         timer = <0>;
     };
 };
+
+/*
+ * SD カード (拡張ボードの, SPI の SD カードスロット. CS は D2) は, 送れなかった測定値を溜めるために使う
+ * (CONFIG_THERMO_BACKLOG). Zephyr の seeed_xiao_expansion_board のシールドと同じ設定 (SPI は, XIAO の
+ * D8 が SCK, D9 が MISO, D10 が MOSI). ディスク名は SD (マウントポイント /SD:).
+ */
+&xiao_spi {
+    status = "okay";
+    cs-gpios = <&xiao_d 2 GPIO_ACTIVE_LOW>;
+
+    sdhc0: sdhc@0 {
+        compatible = "zephyr,sdhc-spi-slot";
+        reg = <0>;
+        status = "okay";
+
+        mmc {
+            compatible = "zephyr,sdmmc-disk";
+            disk-name = "SD";
+            status = "okay";
+        };
+        spi-max-frequency = <24000000>;
+    };
+};

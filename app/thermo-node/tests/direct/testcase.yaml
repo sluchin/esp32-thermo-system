@@ -1,0 +1,8 @@
+# thermo-node の単体テスト: direct.c (ゲートウェイにつながらないときの, WiFi での直接の送信. ble, cfg, cloud の関数は, FFF のモック).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-node).
+tests:
+  thermo_node.direct:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - thermo_node

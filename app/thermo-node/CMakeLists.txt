@@ -57,12 +57,22 @@ endif()
 # dts/bindings/rtc/thermo,pcf8563.yaml (アプリのディレクトリは, Devicetree のルートになる)
 target_sources_ifdef(CONFIG_THERMO_RTC app PRIVATE src/node_time.c drivers/rtc_pcf8563.c)
 
-# WiFi と SNTP による時刻の取得 (CONFIG_THERMO_WIFI_TIME=n のときは, ビルドしない)
+# WiFi と SNTP による時刻の取得と, WiFi での AWS IoT Core への直接の送信 (CONFIG_THERMO_WIFI_TIME=n のときは,
+# ビルドしない). 設定 (cfg), シェル (cfg_shell), WiFi (wifi_link), MQTT (cloud), SNTP (ntp), ペイロード
+# (payload) は, thermo-gateway と共有する, app/common/ のソース
 target_sources_ifdef(CONFIG_THERMO_WIFI_TIME app PRIVATE
-  src/wifi_cfg.c
-  src/wifi_link.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/cfg.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/cfg_shell.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/cloud.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/ntp.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/payload.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../common/wifi_link.c
   src/wifi_shell.c
   src/wifi_time.c)
+# ゲートウェイにつながらないときの, 直接の送信 (CONFIG_THERMO_DIRECT_MQTT=n のときは, ビルドしない)
+target_sources_ifdef(CONFIG_THERMO_DIRECT_MQTT app PRIVATE src/direct.c)
+# SD カードに溜める, 送れなかった測定値 (CONFIG_THERMO_BACKLOG=n のときは, ビルドしない)
+target_sources_ifdef(CONFIG_THERMO_BACKLOG app PRIVATE src/backlog.c)
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)

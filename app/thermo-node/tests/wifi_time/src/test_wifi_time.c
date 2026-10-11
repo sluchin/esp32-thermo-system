@@ -8,7 +8,7 @@
  * @file
  * @brief wifi_time.c の単体テスト
  *
- * wifi_cfg と wifi_link の関数と SNTP とソケットの関数を FFF のモックに置き換えて, 次を確認する.
+ * cfg と wifi_link の関数と SNTP とソケットの関数を FFF のモックに置き換えて, 次を確認する.
  *  - 初期化 (設定の読み込みと WiFi の準備. どちらの失敗も伝わること)
  *  - 時刻の取得の流れ (設定の SSID とパスワードで接続して, SNTP で時刻を得て, 切る)
  *  - SSID が未設定のとき, 接続しないこと
@@ -22,16 +22,15 @@
 #include <errno.h>  /* ENOENT EHOSTUNREACH ETIMEDOUT ECONNREFUSED ENOMEM EIO */
 #include <stdlib.h> /* EXIT_SUCCESS */
 
-#include "wifi_cfg.h"
+#include "cfg.h"
 #include "wifi_link.h"
 #include "wifi_time.h"
 
 DEFINE_FFF_GLOBALS
 
 /* FAKE_*: FFF のモック (実物の代わりの関数. 呼ばれた回数と引数を記録する) */
-FAKE_VALUE_FUNC(int, wifi_cfg_init)
-FAKE_VALUE_FUNC(const char *, wifi_cfg_get, enum wifi_cfg_key)
-FAKE_VALUE_FUNC(bool, wifi_cfg_is_complete)
+FAKE_VALUE_FUNC(int, cfg_init)
+FAKE_VALUE_FUNC(const char *, cfg_get, enum cfg_key)
 FAKE_VALUE_FUNC(int, wifi_link_init)
 FAKE_VALUE_FUNC(int, wifi_link_connect, const char *, const char *, k_timeout_t)
 FAKE_VOID_FUNC(wifi_link_disconnect)
@@ -53,15 +52,18 @@ static struct zsock_addrinfo resolved = {
     .ai_addrlen = sizeof(resolved_addr),
 };
 
+/** cfg_get() が返す SSID (空にすると, SSID が設定されていない) */
+static const char *ssid_value;
+
 /**
- * wifi_cfg_get() のモック動作 (SSID とパスワードを返す)
+ * cfg_get() のモック動作 (SSID とパスワードを返す. SSID は, ssid_value)
  *
  * @param[in] key 項目
  * @return 値
  */
-static const char *cfg_get_values(enum wifi_cfg_key key)
+static const char *cfg_get_values(enum cfg_key key)
 {
-    return ((key == WIFI_CFG_SSID) ? "home-ap" : "secret-pass");
+    return ((key == CFG_KEY_SSID) ? ssid_value : "secret-pass");
 }
 
 /**
@@ -110,9 +112,8 @@ static int sntp_query_ok(struct sntp_ctx *ctx, uint32_t timeout, struct sntp_tim
 static void before(void *fixture)
 {
     ARG_UNUSED(fixture);
-    RESET_FAKE(wifi_cfg_init);
-    RESET_FAKE(wifi_cfg_get);
-    RESET_FAKE(wifi_cfg_is_complete);
+    RESET_FAKE(cfg_init);
+    RESET_FAKE(cfg_get);
     RESET_FAKE(wifi_link_init);
     RESET_FAKE(wifi_link_connect);
     RESET_FAKE(wifi_link_disconnect);
@@ -122,8 +123,8 @@ static void before(void *fixture)
     RESET_FAKE(sntp_query);
     RESET_FAKE(sntp_close);
     FFF_RESET_HISTORY();
-    wifi_cfg_get_fake.custom_fake = cfg_get_values;
-    wifi_cfg_is_complete_fake.return_val = true;
+    cfg_get_fake.custom_fake = cfg_get_values;
+    ssid_value = "home-ap";
     zsock_getaddrinfo_fake.custom_fake = getaddrinfo_ok;
     sntp_query_fake.custom_fake = sntp_query_ok;
 }
@@ -134,14 +135,14 @@ ZTEST(wifi_time, test_init)
     zassert_equal(wifi_time_init(), EXIT_SUCCESS);
 
     /* 期待: 両方を 1 回ずつ呼ぶ */
-    zassert_equal(wifi_cfg_init_fake.call_count, 1U);
+    zassert_equal(cfg_init_fake.call_count, 1U);
     zassert_equal(wifi_link_init_fake.call_count, 1U);
 }
 
 /** 設定の読み込みに失敗したら, そのエラーを返して, WiFi の準備には進まない */
 ZTEST(wifi_time, test_init_cfg_failure)
 {
-    wifi_cfg_init_fake.return_val = -EIO;
+    cfg_init_fake.return_val = -EIO;
 
     zassert_equal(wifi_time_init(), -EIO);
     zassert_equal(wifi_link_init_fake.call_count, 0U);
@@ -180,7 +181,7 @@ ZTEST(wifi_time, test_fetch_not_configured)
 {
     int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
 
-    wifi_cfg_is_complete_fake.return_val = false;
+    ssid_value = "";
 
     zassert_equal(wifi_time_fetch(&unix_s), -ENOENT);
     zassert_equal(wifi_link_connect_fake.call_count, 0U);
