@@ -8,8 +8,8 @@
  * @file
  * @brief sensor.c の単体テスト (センサ API)
  *
- * alias thermo-sensor に, 偽のセンサ (vnd,test-sensor) を接続して, DHT11 などの, センサ API の
- * 経路をテストする. センサが返す値と, エラーは, テストから設定する.
+ * alias thermo-sensor に偽のセンサ (vnd,test-sensor) を接続して, DHT11 などのセンサ API の
+ * 経路をテストする. センサが返す値とエラーは, テストから設定する.
  */
 
 /** 偽のセンサのドライバが使う compatible (vnd,test-sensor) */
@@ -89,7 +89,7 @@ DEVICE_DT_INST_DEFINE(0, NULL, NULL, NULL, NULL, POST_KERNEL, CONFIG_SENSOR_INIT
 static const struct device *const fake_dev = DEVICE_DT_GET(DT_ALIAS(thermo_sensor));
 
 /**
- * 各テストの前に, 偽のセンサを, 23.5 ℃, 45 % の, 正常な状態に戻す
+ * 各テストの前に偽のセンサを 23.5 ℃, 45 % の正常な状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -121,7 +121,7 @@ ZTEST(sensor_api, test_init_not_ready)
     state->initialized = true;
 }
 
-/** 温度と湿度を, 10 倍の整数にして返す */
+/** 温度と湿度を 10 倍の整数にして返す */
 ZTEST(sensor_api, test_read)
 {
     int16_t temp = 0;      /* 温度 */

@@ -8,7 +8,7 @@
  * @file
  * @brief payload.c の単体テスト
  *
- * トピックと JSON のペイロードの形式と, バッファが小さいときの -ENOSPC を確認する.
+ * トピックと JSON のペイロードの形式とバッファが小さいときの -ENOSPC を確認する.
  */
 
 #include <zephyr/ztest.h>
@@ -38,7 +38,7 @@ static const bt_addr_le_t node = {
 /** 期待するペイロード */
 #define EXPECTED_PAYLOAD EXPECTED_PAYLOAD_HEAD "\"uptime_ms\":123456}"
 
-/** トピックはクライアント ID と, ノードのアドレスから作る */
+/** トピックはクライアント ID とノードのアドレスから作る */
 ZTEST(payload, test_topic)
 {
     char buf[64] = {0}; /* 出力バッファ */
@@ -135,7 +135,7 @@ ZTEST(payload, test_payload_no_space)
                   -ENOSPC);
 }
 
-/** SwitchBot のトピックは, クライアント ID と, 機器のアドレスから作る (switchbot の階層を挟む) */
+/** SwitchBot のトピックは, クライアント ID と機器のアドレスから作る (switchbot の階層を挟む) */
 ZTEST(payload, test_switchbot_topic)
 {
     char buf[64] = {0}; /* 出力バッファ */
@@ -204,7 +204,9 @@ ZTEST(payload, test_switchbot_payload_unknown_battery)
 {
     char buf[160] = {0}; /* 出力バッファ */
     const struct switchbot_sample sample = {
-        .temp_x10 = 235, .humidity = 55U, .battery = SWITCHBOT_BATTERY_UNKNOWN};
+        .temp_x10 = 235,
+        .humidity = 55U,
+        .battery = SWITCHBOT_BATTERY_UNKNOWN}; /* 電池残量が不明な SwitchBot の値 */
 
     zassert_true(payload_format_switchbot(buf, sizeof(buf), &node, &sample, 1U, -1) > 0);
 
@@ -218,7 +220,10 @@ ZTEST(payload, test_switchbot_payload_longest)
 {
     char buf[160] = {0}; /* 出力バッファ */
     const struct switchbot_sample sample = {
-        .temp_x10 = INT16_MIN + 1, .humidity = 100U, .battery = 100};
+        .temp_x10 = INT16_MIN + 1,
+        .humidity = 100U,
+        .battery =
+                100}; /* 出力が最も長くなる SwitchBot の値 (最小の温度, 湿度 100 %, 電池 100 %) */
 
     zassert_equal(payload_format_switchbot(buf, sizeof(buf), &node, &sample, UINT32_MAX, -1), 123);
 }
@@ -268,7 +273,10 @@ ZTEST(payload, test_switchbot_payload_longest_with_timestamp)
 {
     char buf[160] = {0}; /* 出力バッファ */
     const struct switchbot_sample sample = {
-        .temp_x10 = INT16_MIN + 1, .humidity = 100U, .battery = 100};
+        .temp_x10 = INT16_MIN + 1,
+        .humidity = 100U,
+        .battery =
+                100}; /* 出力が最も長くなる SwitchBot の値 (最小の温度, 湿度 100 %, 電池 100 %) */
 
     zassert_equal(payload_format_switchbot(buf, sizeof(buf), &node, &sample, UINT32_MAX, INT64_MAX),
                   155);

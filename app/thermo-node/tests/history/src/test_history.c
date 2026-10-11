@@ -30,7 +30,7 @@ static struct history h;
 static int16_t out[HISTORY_SIZE];
 
 /**
- * 各テストの前に, 履歴を空にする
+ * 各テストの前に履歴を空にする
  *
  * @param[in] fixture 使用しない
  */
@@ -58,7 +58,7 @@ ZTEST(history, test_get_current_bucket_average)
     zassert_equal(out[0], 210);
 }
 
-/** 区切りが変わると, 前の区切りの平均を覚えて, 今の区切りの平均が, 最後の点になる */
+/** 区切りが変わると, 前の区切りの平均を覚えて, 今の区切りの平均が最後の点になる */
 ZTEST(history, test_bucket_change_keeps_previous_average)
 {
     history_add(&h, 200, 0, STEP_MS);
@@ -80,13 +80,13 @@ ZTEST(history, test_average_truncates_toward_zero)
     zassert_equal(out[0], -35);
 }
 
-/** 満杯 (HISTORY_SIZE 点) になったら, 古い点を上書きして, 古い順に, 新しい 128 点を取り出す */
+/** 満杯 (HISTORY_SIZE 点) になったら, 古い点を上書きして, 古い順に新しい 128 点を取り出す */
 ZTEST(history, test_wraps_and_returns_oldest_first)
 {
     unsigned int i = 0U; /* 区切りの番号 */
     unsigned int n = 0U; /* 取り出した点の数 */
 
-    /* 区切り 0 から 129 まで (130 区切り) に, 値 = 区切りの番号 を加える */
+    /* 区切り 0 から 129 まで (130 区切り) に値 = 区切りの番号を加える */
     for (i = 0U; i < HISTORY_SIZE + 2U; i++) {
         history_add(&h, (int16_t)i, (int64_t)i * STEP_MS, STEP_MS);
     }
@@ -99,7 +99,7 @@ ZTEST(history, test_wraps_and_returns_oldest_first)
     zassert_equal(out[HISTORY_SIZE - 1U], 129, "newest (the current bucket)");
 }
 
-/** 取り出す数が少ないときは, 新しい点だけを, 古い順に取り出す */
+/** 取り出す数が少ないときは, 新しい点だけを古い順に取り出す */
 ZTEST(history, test_get_limited_returns_newest)
 {
     history_add(&h, 10, 0, STEP_MS);

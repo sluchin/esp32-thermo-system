@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief 時刻の取得に使う WiFi を設定するための, シェルのコマンド (`thermo`)
+ * @brief 時刻の取得に使う WiFi を設定するためのシェルのコマンド (`thermo`)
  *
  * 使い方:
  * @code
@@ -27,7 +27,7 @@
 #include "wifi_time.h"
 
 /**
- * `thermo set <項目> <値>`: 設定の値を, フラッシュに保存する
+ * `thermo set <項目> <値>`: 設定の値をフラッシュに保存する
  *
  * @param[in] sh   シェル
  * @param[in] argc 引数の数 (3)

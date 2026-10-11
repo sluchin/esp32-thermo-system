@@ -10,11 +10,11 @@
  *
  * cfg, wifi_link, MQTT ライブラリ, ソケットの関数を FFF のモックに置き換えて (payload.c は
  * 本物を使う), 接続から送信までの流れを cloud_step() を直接呼んで確認する.
- *  - 接続の手順 (WiFi, 名前の解決, TLS の設定, MQTT の接続, CONNACK) と, 各段階の失敗
+ *  - 接続の手順 (WiFi, 名前の解決, TLS の設定, MQTT の接続, CONNACK) と各段階の失敗
  *  - 接続中の送信 (トピック, ペイロード, QoS, メッセージ ID), 受信, keep alive
  *  - 失敗したときの再試行の間隔 (倍々に増やして, 上限で止める)
  *  - 設定の変更 (cloud_reconnect()) による, 接続のやり直し
- *  - 送信のキューと, スレッドの開始
+ *  - 送信のキューとスレッドの開始
  */
 
 #include <zephyr/ztest.h>
@@ -660,7 +660,7 @@ ZTEST(cloud, test_session_disconnect_event)
     zassert_equal(mqtt_abort_fake.call_count, 1U);
 }
 
-/** PUBACK と, 使わないイベントを受け取っても, 接続中の処理は続く */
+/** PUBACK と使わないイベントを受け取っても, 接続中の処理は続く */
 ZTEST(cloud, test_session_ignores_other_events)
 {
     poll_tick.ret = 1;
@@ -766,7 +766,7 @@ ZTEST(cloud, test_step_connack_socket_failure)
 {
     poll_wait.ret = -1;
     poll_wait.err = ETIMEDOUT;
-    /* 期待: poll の失敗 (errno) と, ソケットのエラー (POLLERR) はどちらも接続を閉じる */
+    /* 期待: poll の失敗 (errno) とソケットのエラー (POLLERR) はどちらも接続を閉じる */
     zassert_equal(cloud_step(), -ETIMEDOUT);
 
     poll_wait.ret = 1;
@@ -795,7 +795,7 @@ ZTEST(cloud, test_retry_backoff)
     wifi_link_connect_fake.return_val = -ETIMEDOUT;
     for (i = 0U; i < ARRAY_SIZE(expected_s); i++) {
         elapsed = step_failure_duration();
-        /* 期待: 失敗のたびに 5, 10, 20, 40, 60 秒と, 間隔が倍になって, 60 秒で止まる */
+        /* 期待: 失敗のたびに 5, 10, 20, 40, 60 秒と間隔が倍になって, 60 秒で止まる */
         zassert_true((elapsed >= (expected_s[i] * 1000U)) &&
                              (elapsed < ((expected_s[i] * 1000U) + TIME_MARGIN_MS)),
                      "retry %zu: %u ms", i, elapsed);
@@ -866,7 +866,7 @@ ZTEST(cloud, test_init_starts_thread)
     zassert_true(cfg_is_complete_fake.call_count >= 1U);
 }
 
-/** SwitchBot の値は, switchbot の階層のトピックに, 温度 (℃), 湿度, 電池残量の JSON で publish する
+/** SwitchBot の値は, switchbot の階層のトピックに温度 (℃), 湿度, 電池残量の JSON で publish する
  */
 ZTEST(cloud, test_session_publishes_switchbot)
 {
@@ -886,7 +886,7 @@ ZTEST(cloud, test_session_publishes_switchbot)
     zassert_equal(published[0].qos, MQTT_QOS_1_AT_LEAST_ONCE);
 }
 
-/** Thermo ノードの温度と, SwitchBot の値は, 同じキューで受け取った順に送る */
+/** Thermo ノードの温度と SwitchBot の値は, 同じキューで受け取った順に送る */
 ZTEST(cloud, test_session_publishes_mixed_in_order)
 {
     /* テスト用のサンプル */
@@ -921,7 +921,7 @@ ZTEST(cloud, test_publish_switchbot_queue_full)
     drain_queue();
 }
 
-/** SwitchBot のトピックが, バッファに入らなければ -ENOSPC で, publish しない */
+/** SwitchBot のトピックがバッファに入らなければ -ENOSPC で, publish しない */
 ZTEST(cloud, test_session_switchbot_format_failure)
 {
     static char long_id[161]; /* 上限を超える長さのクライアント ID */

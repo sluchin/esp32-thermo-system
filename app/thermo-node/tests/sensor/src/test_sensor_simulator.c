@@ -43,7 +43,7 @@ ZTEST(sensor_simulator, test_read_range)
     int i = 0;             /* ループ用の添字 */
 
     for (i = 0; i < REPEAT; i++) {
-        /* 期待: 温度と湿度は, 常に, 決められた範囲に収まる */
+        /* 期待: 温度と湿度は, 常に決められた範囲に収まる */
         zassert_equal(sensor_read(&temp, &humidity), EXIT_SUCCESS);
         zassert_true((temp >= TEMP_MIN_X10) && (temp < TEMP_LIMIT_X10), "temp=%d", temp);
         zassert_true((humidity >= HUMIDITY_MIN_X10) && (humidity < HUMIDITY_LIMIT_X10),

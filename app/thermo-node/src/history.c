@@ -42,9 +42,9 @@ void history_add(struct history *h, int16_t value, int64_t now_ms, int64_t step_
 }
 
 /**
- * @brief 履歴の点を, 古い順に取り出す
+ * @brief 履歴の点を古い順に取り出す
  *
- * 今の区切りに測定値があれば, その平均を, 最後の点に含める. 取り出せる点が max より多いときは,
+ * 今の区切りに測定値があれば, その平均を最後の点に含める. 取り出せる点が max より多いときは,
  * 新しい方から max 個だけ取り出す.
  *
  * @param[in]  h   履歴 (NULL 不可)

@@ -8,8 +8,8 @@
  * @file
  * @brief wifi_shell.c の単体テスト
  *
- * wifi_cfg と wifi_time と node_time の関数を, FFF のモックに置き換えて, シェルのコマンド
- * (`thermo ...`) を, ダミーのバックエンドで実行して, 戻り値と出力を確認する.
+ * wifi_cfg と wifi_time と node_time の関数を FFF のモックに置き換えて, シェルのコマンド
+ * (`thermo ...`) をダミーのバックエンドで実行して, 戻り値と出力を確認する.
  */
 
 #include <zephyr/ztest.h>
@@ -131,7 +131,7 @@ static void *setup(void)
 }
 
 /**
- * 各テストの前にモックと値を, 初期状態に戻す
+ * 各テストの前にモックと値を初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -196,7 +196,7 @@ ZTEST(thermo_wifi_shell, test_set_failure)
     zassert_not_null(strstr(out, "Failed to set 'psk'"));
 }
 
-/** `thermo show` は, SSID と, パスワードの有無 (値は隠す) と, 揃っているかを表示する */
+/** `thermo show` は, SSID とパスワードの有無 (値は隠す) と揃っているかを表示する */
 ZTEST(thermo_wifi_shell, test_show)
 {
     int ret = 0;            /* 戻り値 */

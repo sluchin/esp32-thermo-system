@@ -64,7 +64,7 @@ int wifi_link_init(void)
  * @param[in] timeout 待つ時間
  * @retval EXIT_SUCCESS    接続して, IPv4 アドレスを取得した
  * @retval -ENODEV         ネットワークインターフェースがない
- * @retval -ETIMEDOUT      時間内に, 完了しなかった
+ * @retval -ETIMEDOUT      時間内に完了しなかった
  * @retval -ECONNREFUSED   接続に失敗した (SSID やパスワードの誤りなど)
  * @retval negative        接続の要求に失敗した (負の errno)
  */

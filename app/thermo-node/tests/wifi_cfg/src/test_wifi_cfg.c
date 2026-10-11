@@ -8,8 +8,8 @@
  * @file
  * @brief wifi_cfg.c の単体テスト
  *
- * settings の関数を, FFF のモックに置き換えて, 次を確認する.
- *  - 設定の保存, 読み出し, 消去と, エラーの扱い
+ * settings の関数を FFF のモックに置き換えて, 次を確認する.
+ *  - 設定の保存, 読み出し, 消去とエラーの扱い
  *  - フラッシュから読み込んだ設定の登録 (settings のハンドラを直接呼ぶ)
  *  - 接続に必要な設定が揃っているかの判定
  */
@@ -154,7 +154,7 @@ static void load(const char *name, const void *data, size_t len)
 }
 
 /**
- * 各テストの前にモックと記録を, 初期状態に戻す
+ * 各テストの前にモックと記録を初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -202,7 +202,7 @@ ZTEST(wifi_cfg, test_key_names)
 /** 設定した値は読み出せて, フラッシュに (NUL を含めて) 保存される */
 ZTEST(wifi_cfg, test_set_saves_and_get)
 {
-    /* 期待: 取り出せて, "thermo/ssid" に, NUL を含めて, 保存される */
+    /* 期待: 取り出せて, "thermo/ssid" に NUL を含めて, 保存される */
     zassert_equal(wifi_cfg_set(WIFI_CFG_SSID, "home-ap"), EXIT_SUCCESS);
 
     zassert_str_equal(wifi_cfg_get(WIFI_CFG_SSID), "home-ap");
@@ -332,7 +332,7 @@ ZTEST(wifi_cfg, test_init_failures)
     zassert_equal(wifi_cfg_init(), -EIO);
 }
 
-/** フラッシュから読み込んだ SSID とパスワードが, 設定に入る */
+/** フラッシュから読み込んだ SSID とパスワードが設定に入る */
 ZTEST(wifi_cfg, test_load_values)
 {
     load("ssid", "saved-ap", strlen("saved-ap") + 1U);
@@ -343,7 +343,7 @@ ZTEST(wifi_cfg, test_load_values)
     zassert_true(wifi_cfg_is_complete());
 }
 
-/** 長さが 0 や長すぎる値と, 読み出しに失敗した値は, 無視する. 知らない項目も無視する */
+/** 長さが 0 や長すぎる値と読み出しに失敗した値は, 無視する. 知らない項目も無視する */
 ZTEST(wifi_cfg, test_load_invalid)
 {
     static const char long_value[WIFI_CFG_SSID_MAX + 3U] = {'a'}; /* 長すぎる値 */
@@ -351,7 +351,7 @@ ZTEST(wifi_cfg, test_load_invalid)
 
     zassert_equal(wifi_cfg_set(WIFI_CFG_SSID, "kept"), EXIT_SUCCESS);
 
-    /* 期待: 長さ 0 と, 長すぎる値は, 無視して, 値を変えない */
+    /* 期待: 長さ 0 と長すぎる値は, 無視して, 値を変えない */
     load("ssid", "x", 0U);
     zassert_str_equal(wifi_cfg_get(WIFI_CFG_SSID), "kept");
     load("psk", long_value, sizeof(long_value) + WIFI_CFG_PSK_MAX);

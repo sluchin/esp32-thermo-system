@@ -228,13 +228,13 @@ int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16
                        .addr = *addr,
                        .temp_x10 = temp_x10,
                        .humidity_x10 = humidity_x10,
-                       .uptime_ms = k_uptime_get_32()};
+                       .uptime_ms = k_uptime_get_32()}; /* キューに入れる, ノードの温度の値 */
 
     return enqueue_sample(&s);
 }
 
 /**
- * @brief SwitchBot の温湿度計の値を, 送信のキューに入れる (待たずにすぐ戻る)
+ * @brief SwitchBot の温湿度計の値を送信のキューに入れる (待たずにすぐ戻る)
  *
  * トピックは `thermo/<クライアント ID>/switchbot/<機器のアドレス>`. Bluetooth のスレッドから
  * 呼べる. キューが満杯のときは, 新しい値を捨てる.
@@ -249,7 +249,7 @@ int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sam
     struct sample s = {.kind = SAMPLE_SWITCHBOT,
                        .addr = *addr,
                        .switchbot = *sample,
-                       .uptime_ms = k_uptime_get_32()};
+                       .uptime_ms = k_uptime_get_32()}; /* キューに入れる, SwitchBot の値 */
 
     return enqueue_sample(&s);
 }
@@ -350,7 +350,7 @@ static int poll_input(int timeout_ms)
  * MQTT のブローカーに接続して, CONNACK を待つ
  *
  * @retval EXIT_SUCCESS 接続した
- * @retval -ECONNREFUSED CONNACK が, 拒否, または時間内に来なかった
+ * @retval -ECONNREFUSED CONNACK が拒否, または時間内に来なかった
  * @retval negative     名前の解決, 接続, 受信の失敗 (負の errno)
  */
 static int connect_broker(void)
@@ -386,7 +386,7 @@ static int connect_broker(void)
     tls->sec_tag_count = ARRAY_SIZE(sec_tags);
     tls->hostname = endpoint;
 
-    /* TCP の接続と, TLS のハンドシェイクと, MQTT の CONNECT の送信まで, ここで行う */
+    /* TCP の接続と TLS のハンドシェイクと MQTT の CONNECT の送信まで, ここで行う */
     mqtt_up = false;
     err = mqtt_connect(&client);
     if (err != 0) {
@@ -461,7 +461,7 @@ static int publish_sample(const struct sample *s)
         return -ENOSPC;
     }
 
-    /* メッセージ ID は 1 から 65535 を, 順に使う (QoS 1 では, 0 は使えない) */
+    /* メッセージ ID は 1 から 65535 を順に使う (QoS 1 では, 0 は使えない) */
     message_id = (uint16_t)((message_id % UINT16_MAX) + 1U);
     param.message.topic.qos = MQTT_QOS_1_AT_LEAST_ONCE;
     param.message.topic.topic.utf8 = (const uint8_t *)topic;

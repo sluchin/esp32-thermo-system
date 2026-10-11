@@ -8,8 +8,8 @@
  * @file
  * @brief cfg.c の単体テスト
  *
- * settings と TLS の認証情報の関数を, FFF のモックに置き換えて, 次を確認する.
- *  - 設定の保存, 読み出し, 消去と, エラーの扱い
+ * settings と TLS の認証情報の関数を FFF のモックに置き換えて, 次を確認する.
+ *  - 設定の保存, 読み出し, 消去とエラーの扱い
  *  - フラッシュから読み込んだ設定と証明書の登録 (settings のハンドラを直接呼ぶ)
  *  - 接続に必要な設定が揃っているかの判定
  */
@@ -236,7 +236,7 @@ static void set_all(void)
 }
 
 /**
- * 各テストの前にモックと記録を, 初期状態に戻す
+ * 各テストの前にモックと記録を初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -302,7 +302,7 @@ ZTEST(cfg, test_cred_names)
 /** 設定した値は読み出せて, フラッシュに (NUL を含めて) 保存される */
 ZTEST(cfg, test_set_saves_and_get)
 {
-    /* 期待: 取り出せて, "thermo/ssid" に, NUL を含めて, 保存される */
+    /* 期待: 取り出せて, "thermo/ssid" に NUL を含めて, 保存される */
     zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
 
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "home-ap");
@@ -655,7 +655,7 @@ ZTEST(cfg, test_load_credential_invalid_length_ignored)
     load("ca", big, CFG_CERT_MAX + 1U);
     load("key", big, CFG_KEY_PEM_MAX + 1U);
 
-    /* 期待: 長さ 0 と, 領域に入らない証明書は, 登録しない */
+    /* 期待: 長さ 0 と領域に入らない証明書は, 登録しない */
     zassert_equal(tls_credential_add_fake.call_count, 0U);
 }
 

@@ -8,12 +8,12 @@
  * @file
  * @brief wifi_link.c の単体テスト
  *
- * net_if と net_mgmt の関数を, FFF のモックに置き換える. 接続の要求のモック動作の中で,
- * net_mgmt のイベントのコールバック (wifi_link.c が登録したもの) を, 直接呼んで WiFi の
+ * net_if と net_mgmt の関数を FFF のモックに置き換える. 接続の要求のモック動作の中で,
+ * net_mgmt のイベントのコールバック (wifi_link.c が登録したもの) を直接呼んで WiFi の
  * イベントを再現する. 次を確認する.
  *  - 接続の要求のパラメータ (SSID, パスワード, セキュリティの種類)
  *  - 接続の成功, 失敗, タイムアウト
- *  - 切断のイベントと, 切断の要求
+ *  - 切断のイベントと切断の要求
  */
 
 #include <zephyr/ztest.h>
@@ -143,15 +143,17 @@ static void before(void *fixture)
     net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.custom_fake = fake_connect;
 }
 
-/** 初期化は WiFi のイベントと, IPv4 のイベントの 2 つのコールバックを登録する */
+/** 初期化は WiFi のイベントと IPv4 のイベントの 2 つのコールバックを登録する */
 ZTEST(wifi, test_init_registers_callbacks)
 {
     const struct net_mgmt_event_callback *wifi_cb =
-            net_mgmt_add_event_callback_fake.arg0_history[0];
+            net_mgmt_add_event_callback_fake
+                    .arg0_history[0]; /* WiFi のイベントのコールバックの登録情報 */
     const struct net_mgmt_event_callback *ipv4_cb =
-            net_mgmt_add_event_callback_fake.arg0_history[1];
+            net_mgmt_add_event_callback_fake
+                    .arg0_history[1]; /* IPv4 のイベントのコールバックの登録情報 */
 
-    /* 期待: WiFi (接続の結果, 切断) と IPv4 (アドレスの取得) の 2 つを, 同じ処理で登録する */
+    /* 期待: WiFi (接続の結果, 切断) と IPv4 (アドレスの取得) の 2 つを同じ処理で登録する */
     zassert_equal(net_mgmt_add_event_callback_fake.call_count, 2U);
     zassert_equal(wifi_cb->event_mask,
                   NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT);
@@ -183,7 +185,7 @@ ZTEST(wifi, test_connect_waits_for_ip)
 /** パスワードがあれば PSK で, 空なら暗号化なしで接続を要求する */
 ZTEST(wifi, test_connect_parameters)
 {
-    /* パスワードあり: PSK で SSID とパスワードを, そのまま渡す */
+    /* パスワードあり: PSK で SSID とパスワードをそのまま渡す */
     zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
     zassert_str_equal(captured_ssid, "home-ap");
     zassert_equal(captured.ssid_length, strlen("home-ap"));

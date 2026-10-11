@@ -8,7 +8,7 @@
  * @file
  * @brief cfg_shell.c の単体テスト
  *
- * cfg と cloud の関数を, FFF のモックに置き換えて, シェルのコマンド (`thermo ...`) を,
+ * cfg と cloud の関数を FFF のモックに置き換えて, シェルのコマンド (`thermo ...`) を,
  * ダミーのバックエンドで実行して, 戻り値と出力を確認する.
  */
 
@@ -143,7 +143,7 @@ static void *setup(void)
 }
 
 /**
- * 各テストの前にモックと値を, 初期状態に戻す
+ * 各テストの前にモックと値を初期状態に戻す
  *
  * @param[in] fixture 使用しない
  */
@@ -250,7 +250,7 @@ ZTEST(thermo_shell, test_show)
     zassert_is_null(strstr(out, "secret-pass"));
     zassert_not_null(strstr(out, "endpoint: example.amazonaws.com"));
     zassert_not_null(strstr(out, "client_id: gateway-01"));
-    /* 証明書の登録の状態と, 接続できるか (秘密鍵がない) */
+    /* 証明書の登録の状態と接続できるか (秘密鍵がない) */
     zassert_not_null(strstr(out, "ca: registered"));
     zassert_not_null(strstr(out, "cert: registered"));
     zassert_not_null(strstr(out, "key: missing"));
@@ -293,7 +293,7 @@ ZTEST(thermo_shell, test_save_certs_failure)
     cfg_save_credentials_fake.return_val = -ENOENT;
     out = run("thermo save-certs", &ret);
 
-    /* 期待: 失敗の戻り値と, 登録の手順 (cred add) を表示する */
+    /* 期待: 失敗の戻り値と登録の手順 (cred add) を表示する */
     zassert_equal(ret, -ENOENT);
     zassert_not_null(strstr(out, "Failed to save the certificates (err -2)"));
     zassert_not_null(strstr(out, "cred add"));

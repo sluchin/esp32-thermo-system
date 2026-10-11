@@ -52,18 +52,18 @@ LOG_MODULE_REGISTER(oled_thermo_node, THERMO_LOG_LEVEL);
 #define OLED_ROWS          4U
 /** 1 行の文字列の大きさ [バイト] (幅 128 ドット / 10 ドット = 12 文字 + 終端. 余裕を持たせる) */
 #define OLED_LINE_SIZE     24U
-/** 数値の文字列 (10 分の 1 の単位を, 小数点付きにしたもの. 最長は -3276.8) の大きさ [バイト] */
+/** 数値の文字列 (10 分の 1 の単位を小数点付きにしたもの. 最長は -3276.8) の大きさ [バイト] */
 #define OLED_NUM_SIZE      8U
 #ifdef CONFIG_THERMO_BOOT_SCREEN
 /** 起動画面: 画面の左端の x 座標 [ドット] */
 #define OLED_LEFT_X       0
-/** 起動画面: 絵を走らせる行の, 上端の y 座標 [ドット] */
+/** 起動画面: 絵を走らせる行の上端の y 座標 [ドット] */
 #define BOOT_LANE_Y       24
 /** 起動画面: 1 フレームで, 走る絵が進む距離 [ドット] */
 #define BOOT_STEP_PX      3
-/** 起動画面: 走る絵の, 最初の x 座標 (画面の左の外. 絵の幅だけ, 左) */
+/** 起動画面: 走る絵の最初の x 座標 (画面の左の外. 絵の幅だけ, 左) */
 #define BOOT_START_X      (-(int)BOOT_SPRITE_SIZE)
-/** 起動画面: 追いかける敵の絵が, 走る絵から, 遅れる距離 [ドット] */
+/** 起動画面: 追いかける敵の絵が走る絵から, 遅れる距離 [ドット] */
 #define BOOT_CHASER_GAP   28
 /** 起動画面: ドットの間隔 [ドット] */
 #define BOOT_DOT_PITCH    8
@@ -73,20 +73,20 @@ LOG_MODULE_REGISTER(oled_thermo_node, THERMO_LOG_LEVEL);
 #define BOOT_DOT_COUNT    16
 /** 起動画面: ドットの 1 辺の大きさ [ドット] */
 #define BOOT_DOT_SIZE     2
-/** 起動画面: ドットの y 座標の, 絵の上端からの距離 (絵の真ん中あたり) [ドット] */
+/** 起動画面: ドットの y 座標の絵の上端からの距離 (絵の真ん中あたり) [ドット] */
 #define BOOT_DOT_OFFSET_Y 7
 /** 起動画面: 文字 1 つの幅 [ドット] (フォント 0 は, 幅 10 ドット) */
 #define BOOT_FONT_WIDTH   10U
-/** 起動画面: 口の開き方の, 1 周の長さ (閉じる, 半分, 開く, 半分) */
+/** 起動画面: 口の開き方の 1 周の長さ (閉じる, 半分, 開く, 半分) */
 #define BOOT_MOUTH_PERIOD 4U
 #endif
 /** 画面の幅 [ドット] (グラフの点の数と同じ) */
 #define OLED_WIDTH               128U
-/** グラフの, 一番上の y 座標 (上の文字の行の下. 16 ドットの文字の行と, 少し間をあける) */
+/** グラフの一番上の y 座標 (上の文字の行の下. 16 ドットの文字の行と少し間をあける) */
 #define OLED_GRAPH_TOP           20
-/** グラフの, 一番下の y 座標 (画面の一番下) */
+/** グラフの一番下の y 座標 (画面の一番下) */
 #define OLED_GRAPH_BOTTOM        63
-/** グラフの縦軸の, 最小の幅 [10 分の 1 の単位] (1.0 ℃. 小さな変化を, 拡大しすぎない) */
+/** グラフの縦軸の最小の幅 [10 分の 1 の単位] (1.0 ℃. 小さな変化を拡大しすぎない) */
 #define OLED_GRAPH_MIN_RANGE_X10 10
 /** データがないときの文字を出す行 (上から) [行] */
 #define OLED_ROW_NO_DATA         1U
@@ -183,8 +183,8 @@ int oled_init(void)
  * (例: 14:05:09), 3 行目に温度 (例: Temp 23.5 C), 4 行目に湿度 (例: Humi 45.0 %) を表示する.
  * 測定値がないとき, 湿度を測れないとき (THERMO_HUMIDITY_NONE), 時刻が未設定のときは, その値を
  * --.- (日付と時刻は, ---- と --) にする. 日時が NULL のときは, 日付と時刻の行を出さない.
- * グラフのページ (OLED_PAGE_TEMP_GRAPH, OLED_PAGE_HUMIDITY_GRAPH) は, 1 行目に, 履歴の最小と
- * 最大 (例: 19.7~25.1 C) を表示して, その下に, 履歴の折れ線グラフ (右端が, 最新) を描く.
+ * グラフのページ (OLED_PAGE_TEMP_GRAPH, OLED_PAGE_HUMIDITY_GRAPH) は, 1 行目に履歴の最小と
+ * 最大 (例: 19.7~25.1 C) を表示して, その下に履歴の折れ線グラフ (右端が最新) を描く.
  * 履歴がないときは, No data を表示する.
  * oled_init() が成功してから呼ぶ (初期化していないと, CFB が -ENODEV を返す).
  *
@@ -223,9 +223,9 @@ int oled_show(const struct oled_view *view)
 
 #ifdef CONFIG_THERMO_BOOT_SCREEN
 /**
- * @brief 起動画面の, 1 フレームを OLED に表示する
+ * @brief 起動画面の 1 フレームを OLED に表示する
  *
- * 画面の上に, 題名 (boot_title) を出して, その下の行を, 口を開け閉めする丸い絵 (boot_chomper) が,
+ * 画面の上に題名 (boot_title) を出して, その下の行を口を開け閉めする丸い絵 (boot_chomper) が,
  * ドットを食べながら, 左から右へ走る. 少し後ろから, 敵の絵 (boot_chaser) が追う. frame は 0 から
  * OLED_BOOT_FRAMES - 1 まで (それ以上は, 最後のフレーム). OLED_BOOT_FRAME_MS ごとに, 進める.
  * oled_init() が成功してから呼ぶ.
@@ -261,7 +261,7 @@ int oled_show_boot(unsigned int frame)
 #endif
 
 /**
- * 現在値のページを, フレームバッファに描く (画面は, まだ更新しない)
+ * 現在値のページをフレームバッファに描く (画面は, まだ更新しない)
  *
  * @param[in] view 表示する内容 (NULL 不可)
  *
@@ -287,9 +287,9 @@ static int draw_now(const struct oled_view *view)
 }
 
 /**
- * グラフのページを, フレームバッファに描く (画面は, まだ更新しない)
+ * グラフのページをフレームバッファに描く (画面は, まだ更新しない)
  *
- * @param[in] view 表示する内容 (NULL 不可. page が, 温度か湿度のグラフ)
+ * @param[in] view 表示する内容 (NULL 不可. page が温度か湿度のグラフ)
  *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
@@ -343,11 +343,11 @@ static int draw_graph(const struct oled_view *view)
 }
 
 /**
- * 折れ線を, フレームバッファに描く (右端が, 最新の点)
+ * 折れ線をフレームバッファに描く (右端が最新の点)
  *
  * @param[in] points 点 (古い順. NULL 不可)
  * @param[in] count  点の数 (1 以上, OLED_WIDTH 以下)
- * @param[in] low    縦軸の下端の値 (グラフの下端の y が, この値)
+ * @param[in] low    縦軸の下端の値 (グラフの下端の y がこの値)
  * @param[in] range  縦軸の幅 (上端の値 - 下端の値. 1 以上)
  *
  * @retval EXIT_SUCCESS 成功
@@ -380,7 +380,7 @@ static int draw_polyline(const int16_t *points, unsigned int count, int16_t low,
 }
 
 /**
- * 1 行の文字列を, フレームバッファに書く (画面は, まだ更新しない)
+ * 1 行の文字列をフレームバッファに書く (画面は, まだ更新しない)
  *
  * @param[in] text 文字列
  * @param[in] row  行の位置 (上から 0 始まり)
@@ -402,7 +402,7 @@ static int draw_line(const char *text, uint16_t row)
 }
 
 /**
- * 表示する内容を, 行ごとの文字列にする
+ * 表示する内容を行ごとの文字列にする
  *
  * @param[in]  view  表示する内容 (NULL 不可)
  * @param[out] lines 行ごとの文字列の格納先 (OLED_ROWS 行)
@@ -449,7 +449,7 @@ static unsigned int format_lines(const struct oled_view *view, char lines[][OLED
 }
 
 /**
- * 10 分の 1 の単位の値を, 小数点付きの文字列にする (例: -35 は -3.5)
+ * 10 分の 1 の単位の値を小数点付きの文字列にする (例: -35 は -3.5)
  *
  * 0 未満は整数部が 0 でも (-0.5 など) 符号を出すため, 符号を別に出力する.
  *
@@ -469,7 +469,7 @@ static void format_x10(char *out, size_t size, int16_t value_x10)
 
 #ifdef CONFIG_THERMO_BOOT_SCREEN
 /**
- * 起動画面の 1 フレームを, フレームバッファに描く (画面は, まだ更新しない)
+ * 起動画面の 1 フレームをフレームバッファに描く (画面は, まだ更新しない)
  *
  * @param[in] frame フレームの番号 (0 から OLED_BOOT_FRAMES - 1)
  *
@@ -478,7 +478,7 @@ static void format_x10(char *out, size_t size, int16_t value_x10)
  */
 static int draw_boot_frame(unsigned int frame)
 {
-    /* 口の開き方: 閉じる (0), 半分 (1), 開く (2), 半分 (1) の順に, 繰り返す */
+    /* 口の開き方: 閉じる (0), 半分 (1), 開く (2), 半分 (1) の順に繰り返す */
     const unsigned int phase = frame % BOOT_MOUTH_PERIOD;                   /* 口の位相 */
     const unsigned int mouth = (phase <= 2U) ? phase : 1U;                  /* 口の種類 */
     const int chomper_x = BOOT_START_X + ((int)frame * BOOT_STEP_PX);       /* 走る絵の x */
@@ -541,7 +541,7 @@ static int draw_dots(int eaten_x)
 }
 
 /**
- * 絵を, フレームバッファに描く (画面の外にはみ出した部分は, 描かない)
+ * 絵をフレームバッファに描く (画面の外にはみ出した部分は, 描かない)
  *
  * @param[in] sprite 絵 (NULL 不可)
  * @param[in] x      絵の左上の x 座標 [ドット] (画面の外でもよい)
@@ -579,7 +579,7 @@ static int draw_sprite(const struct boot_sprite *sprite, int x, int y)
     return EXIT_SUCCESS;
 }
 /**
- * 値が範囲に入っているかを調べる (数直線の順に, min <= value <= max と書く)
+ * 値が範囲に入っているかを調べる (数直線の順に min <= value <= max と書く)
  *
  * @param[in] value 調べる値
  * @param[in] min   範囲の最小 (この値を含む)

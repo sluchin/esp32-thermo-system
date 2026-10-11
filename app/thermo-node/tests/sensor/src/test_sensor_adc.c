@@ -8,8 +8,8 @@
  * @file
  * @brief sensor.c の単体テスト (ADC エミュレータ)
  *
- * zephyr,user の io-channels に, ADC エミュレータ (adc0) のチャンネル 0 を接続して,
- * 実機用の経路 (adc_read_dt) をテストする. エミュレータの入力電圧と, エラーはテストから設定する.
+ * zephyr,user の io-channels に ADC エミュレータ (adc0) のチャンネル 0 を接続して,
+ * 実機用の経路 (adc_read_dt) をテストする. エミュレータの入力電圧とエラーはテストから設定する.
  */
 
 #include <zephyr/ztest.h>
@@ -126,7 +126,7 @@ ZTEST(sensor_adc, test_read_monotonic)
     uint16_t humidity = 0; /* 湿度 */
 
     zassert_equal(sensor_init(), EXIT_SUCCESS);
-    /* 低い電圧 (500 mV) と, 高い電圧 (2500 mV) を順に読む */
+    /* 低い電圧 (500 mV) と高い電圧 (2500 mV) を順に読む */
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, 500U), 0);
     zassert_equal(sensor_read(&low, &humidity), EXIT_SUCCESS);
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, 2500U), 0);

@@ -55,7 +55,7 @@ int wifi_time_init(void)
  * @param[out] unix_s UTC の UNIX 時刻 [s]
  * @retval EXIT_SUCCESS    成功
  * @retval -ENOENT         WiFi の SSID が設定されていない
- * @retval -ETIMEDOUT      WiFi の接続か, SNTP の応答が, 時間内に完了しなかった
+ * @retval -ETIMEDOUT      WiFi の接続か, SNTP の応答が時間内に完了しなかった
  * @retval -ECONNREFUSED   WiFi の接続に失敗した (SSID やパスワードの誤りなど)
  * @retval -EHOSTUNREACH   NTP サーバの名前を解決できなかった
  * @retval negative        そのほかの失敗 (負の errno)

@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズの解析と, 送信の間引き
+ * @brief SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズの解析と送信の間引き
  */
 
 #include <zephyr/bluetooth/bluetooth.h>
@@ -130,9 +130,9 @@ bool switchbot_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad, u
 }
 
 /**
- * @brief 機器ごとの記録を, 全て消す
+ * @brief 機器ごとの記録を全て消す
  *
- * 通常は呼ばない. 単体テストが前のテストの記録を, 残さないために使う.
+ * 通常は呼ばない. 単体テストが前のテストの記録を残さないために使う.
  */
 void switchbot_reset(void)
 {
@@ -162,7 +162,7 @@ static bool parse_service_data(const uint8_t *data, uint8_t len, struct switchbo
 /**
  * 製造者データ (温度と湿度) を解析する
  *
- * 温度は整数部 (下位 7 bit. 最上位が 1 なら 0 ℃ 以上) と, 小数部 (別の byte の下位 4 bit) から
+ * 温度は整数部 (下位 7 bit. 最上位が 1 なら 0 ℃ 以上) と小数部 (別の byte の下位 4 bit) から
  * 作る. 湿度は下位 7 bit.
  *
  * @param[in]  data 会社 ID のあとから

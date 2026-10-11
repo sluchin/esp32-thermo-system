@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief thermo-node の BLE 実装 (アドバタイズと, GATT での温度の配信)
+ * @brief thermo-node の BLE 実装 (アドバタイズと GATT での温度の配信)
  */
 
 #include <zephyr/bluetooth/bluetooth.h>
@@ -219,7 +219,7 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
 
 #ifdef CONFIG_THERMO_RTC
 /**
- * 時刻の特性の書き込み (write) のコールバック (ゲートウェイが送った UTC の時刻を, 設定する)
+ * 時刻の特性の書き込み (write) のコールバック (ゲートウェイが送った UTC の時刻を設定する)
  *
  * Bluetooth のスレッドから呼ばれる. 値は, UTC の UNIX 時刻 [s] (uint32, リトルエンディアン).
  * 認証はしないので, 近くの BLE 機器は, 誰でも書き込める (表示する時刻だけに影響する).
@@ -301,11 +301,11 @@ static void connected(struct bt_conn *conn, uint8_t err)
 }
 
 /**
- * 切断のコールバック (切断の理由を, ログに出す)
+ * 切断のコールバック (切断の理由をログに出す)
  *
- * このコールバックの中では, まだ, スタックが, 接続のオブジェクトを持っているので, 接続可能な
+ * このコールバックの中では, まだ, スタックが接続のオブジェクトを持っているので, 接続可能な
  * アドバタイズを始めると, 空きがなく, -ENOMEM で失敗することがある (Zephyr の仕様). アドバタイズの
- * 再開は, 接続のオブジェクトが, 解放されたあとに呼ばれる recycled() で行う.
+ * 再開は, 接続のオブジェクトが解放されたあとに呼ばれる recycled() で行う.
  *
  * @param[in] conn 接続
  * @param[in] reason 切断の理由

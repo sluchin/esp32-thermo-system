@@ -9,11 +9,11 @@
 
 /**
  * @file
- * @brief SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズの解析と, 送信の間引き
+ * @brief SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズの解析と送信の間引き
  *
  * SwitchBot の温湿度計は, 接続せずにアドバタイズだけで, 温度と湿度を送る.
  * 1 つの機器の情報は 2 つのアドバタイズデータに分かれて届く.
- *  - サービスデータ (UUID 0xFD3D): 機種と, 電池残量
+ *  - サービスデータ (UUID 0xFD3D): 機種と電池残量
  *  - 製造者データ (会社 ID 0x0969): MAC アドレスのあとに, 温度と湿度
  *
  * 並びは SwitchBot の公開仕様 (OpenWonderLabs/SwitchBotAPI-BLE) に基づく.
@@ -37,7 +37,7 @@ enum switchbot_kind {
     SWITCHBOT_ENV   /**< 温度と湿度 (製造者データ) */
 };
 
-/** アドバタイズデータ 1 要素を, 解析した結果 */
+/** アドバタイズデータ 1 要素を解析した結果 */
 struct switchbot_ad {
     enum switchbot_kind kind; /**< 内容の種類 */
     uint8_t model;            /**< 機種コード (SWITCHBOT_INFO のとき) */

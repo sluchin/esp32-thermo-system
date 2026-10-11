@@ -20,7 +20,7 @@
 #include "sensor.h"
 #include "thermo_ble_uuid.h"
 
-/* 実機のセンサを使うかを, Devicetree で決める (シミュレータは, 常に, シミュレーション値) */
+/* 実機のセンサを使うかを Devicetree で決める (シミュレータは, 常にシミュレーション値) */
 #if !defined(CONFIG_SIMULATOR) && DT_HAS_ALIAS(thermo_sensor)
 #include <zephyr/drivers/sensor.h>
 /** センサ API (DHT11 など) を使うビルドであることを示す */
@@ -35,7 +35,7 @@
 LOG_MODULE_REGISTER(sensor_thermo_node, THERMO_LOG_LEVEL);
 
 #if defined(HAVE_SENSOR)
-/** 温度と湿度の, ミリ単位 (sensor_value_to_milli) から, 10 分の 1 の単位への割り算の値 */
+/** 温度と湿度のミリ単位 (sensor_value_to_milli) から, 10 分の 1 の単位への割り算の値 */
 #define MILLI_PER_X10 100
 
 /** Devicetree (alias thermo-sensor) から取得したセンサ */

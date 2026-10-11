@@ -10,9 +10,9 @@
  *
  * Bluetooth スタックの関数 (bt_enable, bt_le_adv_start, bt_gatt_service_register など) を,
  * FFF のモックに置き換えて, 次を確認する.
- *  - ble_init() が GATT サービスと, 接続のコールバックを登録すること
+ *  - ble_init() が GATT サービスと接続のコールバックを登録すること
  *  - ble_advertise() が正しいアドバタイズデータとスキャン応答データで, アドバタイズを始めること
- *  - GATT サービスの属性 (UUID, 特性の性質) と, 温度の読み取り (read) のコールバック
+ *  - GATT サービスの属性 (UUID, 特性の性質) と温度の読み取り (read) のコールバック
  *  - ble_notify_temperature() が温度を更新して, 通知 (notify) すること
  *  - 切断のコールバックがアドバタイズを再開すること
  */
@@ -228,7 +228,7 @@ static int on_time(int64_t unix_s)
 }
 
 /**
- * 時刻の特性に, 値を書き込む (write)
+ * 時刻の特性に値を書き込む (write)
  *
  * @param[in] service ble_init() で登録されたサービス
  * @param[in] value   書き込む値
@@ -271,7 +271,7 @@ static void before(void *fixture)
     (void)memset(&time_received, 0, sizeof(time_received));
 }
 
-/** ble_init() は bt_enable(NULL) を呼んで GATT サービスと, 接続のコールバックを登録する */
+/** ble_init() は bt_enable(NULL) を呼んで GATT サービスと接続のコールバックを登録する */
 ZTEST(ble_node, test_init_success)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -318,7 +318,7 @@ ZTEST(ble_node, test_init_callback_failure)
     zassert_equal(bt_conn_cb_register_fake.call_count, 1U);
 }
 
-/** Thermo サービスは, 温度の特性 (読み取りと通知) と, CCC を持つ */
+/** Thermo サービスは, 温度の特性 (読み取りと通知) と CCC を持つ */
 ZTEST(ble_node, test_service_attributes)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -345,7 +345,7 @@ ZTEST(ble_node, test_service_attributes)
     zassert_equal(BT_UUID_16(attrs[3].uuid)->val, BT_UUID_GATT_CCC_VAL);
 }
 
-/** 温度の特性の読み取り (read) は最後に更新した温度と湿度を, 2 byte ずつのリトルエンディアンで返す
+/** 温度の特性の読み取り (read) は最後に更新した温度と湿度を 2 byte ずつのリトルエンディアンで返す
  */
 ZTEST(ble_node, test_read_temperature)
 {
@@ -389,7 +389,7 @@ ZTEST(ble_node, test_notify_success)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
 
-    /* 期待: 温度の特性の値に, 温度と湿度を, リトルエンディアンの 4 byte で, 通知する */
+    /* 期待: 温度の特性の値に温度と湿度をリトルエンディアンの 4 byte で, 通知する */
     zassert_equal(ble_notify_temperature(TEST_TEMP_X10, TEST_HUMIDITY_X10), EXIT_SUCCESS);
     zassert_equal(bt_gatt_notify_cb_fake.call_count, 1U);
     zassert_equal(notified.attr, &service->attrs[ATTR_VALUE]);
@@ -421,7 +421,7 @@ ZTEST(ble_node, test_notify_failure)
     zassert_equal(ble_notify_temperature(TEST_TEMP_X10, TEST_HUMIDITY_X10), -EIO);
 }
 
-/** ble_advertise() は接続可能なアドバタイズを, フラグと名前のデータ付きで始める */
+/** ble_advertise() は接続可能なアドバタイズをフラグと名前のデータ付きで始める */
 ZTEST(ble_node, test_advertise_success)
 {
     bt_le_adv_start_fake.custom_fake = capture_adv_start;
@@ -471,7 +471,7 @@ ZTEST(ble_node, test_connected_callback)
     zassert_equal(bt_le_adv_start_fake.call_count, 0U);
 }
 
-/** 切断のコールバックでは, アドバタイズを始めない (接続のオブジェクトが, まだ解放されていないため)
+/** 切断のコールバックでは, アドバタイズを始めない (接続のオブジェクトがまだ解放されていないため)
  */
 ZTEST(ble_node, test_disconnected_does_not_advertise)
 {
@@ -525,7 +525,7 @@ ZTEST(ble_node, test_time_attributes)
     zassert_not_null(attrs[ATTR_TIME_VALUE].write);
 }
 
-/** 時刻の書き込みは, uint32 のリトルエンディアンの UTC の UNIX 時刻を, コールバックに渡す */
+/** 時刻の書き込みは, uint32 のリトルエンディアンの UTC の UNIX 時刻をコールバックに渡す */
 ZTEST(ble_node, test_write_time_success)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -535,7 +535,7 @@ ZTEST(ble_node, test_write_time_success)
     ble_set_time_callback(on_time);
     time_received.ret = EXIT_SUCCESS;
 
-    /* 期待: 4 byte 書き込めて, コールバックが, 時刻を受け取る */
+    /* 期待: 4 byte 書き込めて, コールバックが時刻を受け取る */
     zassert_equal(write_time_attr(service, value, sizeof(value), 0U), THERMO_TIME_SIZE);
     zassert_equal(time_received.count, 1U);
     zassert_equal(time_received.unix_s, 1791435600LL);
@@ -545,7 +545,8 @@ ZTEST(ble_node, test_write_time_success)
 ZTEST(ble_node, test_write_time_without_callback)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
-    const uint8_t value[THERMO_TIME_SIZE] = {0x50U, 0x23U, 0xC7U, 0x6AU};
+    const uint8_t value[THERMO_TIME_SIZE] = {
+        0x50U, 0x23U, 0xC7U, 0x6AU}; /* 時刻の特性に書き込む値 (UNIX 時刻の 4 バイト) */
 
     zassert_equal(write_time_attr(service, value, sizeof(value), 0U),
                   BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED));
@@ -555,7 +556,7 @@ ZTEST(ble_node, test_write_time_without_callback)
 ZTEST(ble_node, test_write_time_bad_length)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
-    const uint8_t value[THERMO_TIME_SIZE + 1U] = {0};
+    const uint8_t value[THERMO_TIME_SIZE + 1U] = {0};               /* 長さが 1 バイト長い値 */
 
     ble_set_time_callback(on_time);
 
@@ -570,7 +571,7 @@ ZTEST(ble_node, test_write_time_bad_length)
 ZTEST(ble_node, test_write_time_bad_offset)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
-    const uint8_t value[THERMO_TIME_SIZE] = {0};
+    const uint8_t value[THERMO_TIME_SIZE] = {0}; /* 時刻の特性に書き込む値 (すべて 0) */
 
     ble_set_time_callback(on_time);
 
@@ -583,7 +584,7 @@ ZTEST(ble_node, test_write_time_bad_offset)
 ZTEST(ble_node, test_write_time_out_of_range)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
-    const uint8_t value[THERMO_TIME_SIZE] = {0};
+    const uint8_t value[THERMO_TIME_SIZE] = {0}; /* 時刻の特性に書き込む値 (すべて 0) */
 
     ble_set_time_callback(on_time);
     time_received.ret = -ERANGE;
@@ -597,7 +598,7 @@ ZTEST(ble_node, test_write_time_out_of_range)
 ZTEST(ble_node, test_write_time_failure)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
-    const uint8_t value[THERMO_TIME_SIZE] = {0};
+    const uint8_t value[THERMO_TIME_SIZE] = {0}; /* 時刻の特性に書き込む値 (すべて 0) */
 
     ble_set_time_callback(on_time);
     time_received.ret = -EIO;
