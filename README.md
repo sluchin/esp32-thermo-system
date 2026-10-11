@@ -15,18 +15,32 @@ Zephyr RTOS-based BLE thermometer system featuring a sensor node and a gateway f
 ```
 esp32-thermo-system/
 ├── app/
-│   ├── thermo-node/      # センサノードアプリケーション
+│   ├── thermo-node/            # センサノード (DHT11、BLE、OLED、RTC、ブザー、ボタン、WiFi での時刻の取得)
 │   │   ├── CMakeLists.txt
-│   │   ├── prj.conf      # Zephyr 設定
-│   │   └── src/          # ソースコード
-│   └── thermo-gateway/   # ゲートウェイアプリケーション
-│       ├── CMakeLists.txt
-│       ├── prj.conf
-│       └── src/
-├── .github/workflows/    # CI/CD パイプライン
-├── west.yml              # West マニフェスト
-├── SETUP.md              # セットアップガイド
-└── README.md             # このファイル
+│   │   ├── Kconfig             # アプリのオプション (THERMO_DISPLAY など)
+│   │   ├── prj.conf            # Zephyr 設定
+│   │   ├── boards/             # Devicetree のオーバーレイ (XIAO ESP32C3 と拡張ボード)
+│   │   ├── dts/bindings/       # Devicetree の binding (RTC、ブザー)
+│   │   ├── drivers/            # PCF8563 の RTC ドライバ
+│   │   ├── private/            # サブモジュール (起動画面、起動音、ボタンの音の素材。なくてもビルドできる)
+│   │   ├── src/                # ソースコード
+│   │   └── tests/              # 単体テスト (Ztest + FFF)
+│   ├── thermo-gateway/         # ゲートウェイ (BLE のスキャン、WiFi、AWS IoT Core への送信)
+│   │   ├── CMakeLists.txt
+│   │   ├── Kconfig
+│   │   ├── prj.conf
+│   │   ├── src/
+│   │   └── tests/
+│   ├── common/                 # 両方のアプリが使う、BLE の UUID とログのレベル
+│   └── warnings.txt            # コンパイラの警告オプション (warnings.cmake が読み込む)
+├── scripts/                    # ビルド、テスト、整形、書き込み、WiFi の設定などの補助スクリプト
+├── .github/                    # GitHub Actions (workflows/build.yml と、Docker イメージのアクション)
+├── Dockerfile                  # 開発環境 (Docker)
+├── docker-compose.yml          # ビルド、テスト、解析などのサービス
+├── Doxyfile                    # ドキュメントの生成 (Doxygen)
+├── west.yml                    # West マニフェスト
+├── SETUP.md                    # セットアップガイド
+└── README.md                   # このファイル
 ```
 
 ## クイックスタート
