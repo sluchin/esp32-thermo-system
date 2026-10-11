@@ -1,7 +1,7 @@
 # Doxyfile
 #
 # Doxygen 1.9 以降の設定. 標準と異なる項目だけを書く.
-# 生成: docker compose run --rm docs-thermo   (出力: docs/index.html。アプリごとに、docs/<アプリ>/html)
+# 生成: docker compose run --rm docs   (出力: docs/index.html。アプリごとに、docs/<アプリ>/html)
 #   Markdown の注意: 日本語の直後に、"." か "(" で始まるコード (`.c` など) を続けると、Doxygen が誤る。空白を 1 つ入れる.
 #   アプリごとに実行する (C には名前空間がなく、両方に ble_init() があるので、1 回では混ざる).
 #   DOCS_NAME (プロジェクト名) と DOCS_APP (thermo-node か thermo-gateway) は、scripts/docs.sh が設定する.

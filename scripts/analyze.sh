@@ -3,9 +3,9 @@
 #
 # 使い方: scripts/analyze.sh [node|gateway|all]   (省略すると all. node と gateway の両方)
 #
-# 通常のビルドとは分けてある (build/analyze-thermo-node, build/analyze-thermo-gateway).
+# 通常のビルドとは分けてある (build/analyze-node, build/analyze-gateway).
 #
-# docker compose run --rm analyze / analyze-thermo-node / analyze-thermo-gateway から呼ぶ.
+# docker compose run --rm analyze / analyze-node / analyze-gateway から呼ぶ.
 set -eu
 
 cd "$(dirname "$0")/.."

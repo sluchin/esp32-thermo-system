@@ -7,7 +7,7 @@
 # THERMO_DHT_LOCK_IRQS (y), THERMO_BUZZER (y). 括弧の中が, 省略したときの値. node だけが使う
 # (THERMO_DEBUG_LOG は, 両方).
 #
-# docker compose run --rm build / build-thermo-node / build-thermo-gateway から呼ぶ.
+# docker compose run --rm build / build-node / build-gateway から呼ぶ.
 set -eu
 
 cd "$(dirname "$0")/.."

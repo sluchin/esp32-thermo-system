@@ -5,7 +5,7 @@
 #   scripts/cloud-docker.sh hook         SessionStart フック用. クラウドのときだけ, start する
 #   scripts/cloud-docker.sh build        開発用のイメージ (esp32-thermo-system) を, プロキシと CA の設定を足して作る
 #   scripts/cloud-docker.sh run <引数>   docker compose run --rm <引数> を実行する (イメージがなければ, 先に build する)
-#                                        (例: scripts/cloud-docker.sh run build-thermo-node)
+#                                        (例: scripts/cloud-docker.sh run build-node)
 #
 # なぜ必要か: クラウドの VM の外への通信は, 全て, プロキシ (HTTPS_PROXY=http://127.0.0.1:<ポート>) と,
 # そのプロキシの CA 証明書 (SSL_CERT_FILE) を使う. コンテナは, どちらも引き継がないので, 通常の
@@ -106,7 +106,7 @@ cmd_hook() {
     cmd_start || true
     # SessionStart フックの出力は, Claude の文脈に入る. 通常の docker compose build を使わせないための注意
     echo "Cloud session: build the Docker image with scripts/cloud-docker.sh build (not docker compose build),"
-    echo "and run the services (build-thermo-node, test-thermo-node, ...) with scripts/cloud-docker.sh run <service>."
+    echo "and run the services (build-node, test-node, ...) with scripts/cloud-docker.sh run <service>."
     echo "See .claude/CLAUDE.md."
     return 0
 }

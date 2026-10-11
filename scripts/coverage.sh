@@ -3,11 +3,12 @@
 #
 # 使い方: scripts/coverage.sh node|gateway
 #
-# twister (native_sim) でテストを実行して, gcovr で, app/thermo-<名前>/src と drivers のソースだけを集計する.
+# twister (native_sim) でテストを実行して, gcovr で, app/thermo-<名前>/src と drivers と, 共有のソース (app/common) だけを集計する.
+# 共有のソースは, それを使うアプリのテストが, ビルドに含めたときだけ, 集計される (今は, gateway のテスト).
 # twister の --coverage は, Zephyr 本体も含めた集計になるので, gcovr を直接実行している.
 # 分岐は, LOG_* マクロの内部 (ログレベルで変わる) を除く.
 #
-# docker compose run --rm coverage-thermo-node / coverage-thermo-gateway から呼ぶ.
+# docker compose run --rm coverage-node / coverage-gateway から呼ぶ.
 set -eu
 
 app=${1:?usage: coverage.sh node|gateway}
@@ -24,6 +25,7 @@ west twister -T "app/thermo-$app/tests" -p native_sim/native/64 -O "$out" --cove
 cd "$out"
 opts=(. --root "$project" --gcov-executable gcov --gcov-ignore-errors=no_working_dir_found
     --filter "$project/app/thermo-$app/src/" --filter "$project/app/thermo-$app/drivers/"
+    --filter "$project/app/common/"
     --exclude-branches-by-pattern '.*LOG_(ERR|WRN|INF|DBG|HEXDUMP_(ERR|WRN|INF|DBG)).*')
 
 echo "Line coverage:"
