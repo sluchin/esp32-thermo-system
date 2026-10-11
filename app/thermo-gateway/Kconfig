@@ -29,7 +29,7 @@ config THERMO_NTP_SERVER
       The gateway sets its clock from this server with SNTP after the
       WiFi connection is up.
 
-config THERMO_NTP_RESYNC_S
+config THERMO_NTP_RESYNC_SEC
     int "Minimum interval between two time synchronizations [s]"
     default 3600
     help

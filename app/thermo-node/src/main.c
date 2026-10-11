@@ -97,8 +97,8 @@ static void play_button_sound(bool buzzer_ready);
 #define TICK_MS 50
 
 #ifdef CONFIG_THERMO_DISPLAY
-/** グラフの 1 点の時間 [ms] (CONFIG_THERMO_GRAPH_STEP_S) */
-#define GRAPH_STEP_MS ((int64_t)CONFIG_THERMO_GRAPH_STEP_S * 1000)
+/** グラフの 1 点の時間 [ms] (CONFIG_THERMO_GRAPH_STEP_SEC) */
+#define GRAPH_STEP_MS ((int64_t)CONFIG_THERMO_GRAPH_STEP_SEC * 1000)
 
 /** ボタンを押さずに, OLED を消すまでの時間 [ms] (CONFIG_THERMO_DISPLAY_TIMEOUT_SEC. 0 は, 消さない)
  */

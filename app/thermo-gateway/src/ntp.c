@@ -35,7 +35,7 @@ static int resolve_server(const char *server, struct sockaddr_storage *addr, soc
 /**
  * @brief NTP サーバに問い合わせて, システム時計を合わせる
  *
- * すでに同期していて, 前回の同期から CONFIG_THERMO_NTP_RESYNC_S 秒たっていなければ,
+ * すでに同期していて, 前回の同期から CONFIG_THERMO_NTP_RESYNC_SEC 秒たっていなければ,
  * 問い合わせずにすぐ戻る.
  *
  * @param[in] server  NTP サーバのホスト名
@@ -56,7 +56,7 @@ int ntp_sync(const char *server, k_timeout_t timeout)
 
     /* 前回の同期から, 間もなければ, 問い合わせない */
     if (synced &&
-        ((k_uptime_get() - last_sync_ms) < ((int64_t)CONFIG_THERMO_NTP_RESYNC_S * 1000))) {
+        ((k_uptime_get() - last_sync_ms) < ((int64_t)CONFIG_THERMO_NTP_RESYNC_SEC * 1000))) {
         return EXIT_SUCCESS;
     }
 
