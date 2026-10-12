@@ -11,6 +11,8 @@
  * 使い方:
  * @code
  *   thermo set <ssid|psk|endpoint|client_id> <値>
+ *   thermo tether <SSID> [パスワード]   (元の SSID とパスワードを残して, テザリングに切り替える)
+ *   thermo restore                      (元の SSID とパスワードに戻す)
  *   cred buf load               (Zephyr のコマンド. PEM を貼り付けて, Ctrl-C で終える)
  *   cred add 1 CA default strt  (Zephyr のコマンド. 証明書の登録. CA, CLIENT, PK の 3 つ)
  *   thermo save-certs
@@ -69,6 +71,57 @@ static int cmd_set(const struct shell *sh, size_t argc, char **argv)
 }
 
 /**
+ * `thermo tether <SSID> [パスワード]`: テザリングの SSID とパスワードに切り替える
+ *
+ * 切り替える前の SSID とパスワードは, 保存して残す (`thermo restore` で戻せる).
+ * 反映するには, 続けて `thermo apply` を実行する.
+ *
+ * @param[in] sh   シェル
+ * @param[in] argc 引数の数 (2 か 3)
+ * @param[in] argv 引数 (argv[1] が SSID, argv[2] がパスワード. なければ空)
+ * @return 0 (成功), 負の errno (失敗)
+ */
+static int cmd_tether(const struct shell *sh, size_t argc, char **argv)
+{
+    const char *psk = ((argc > 2U) ? argv[2] : ""); /* テザリングのパスワード */
+    int err = cfg_tether(argv[1], psk);             /* エラーコード */
+
+    if (err != 0) {
+        shell_error(sh, "Failed to switch to the tethering (err %d)", err);
+        return err;
+    }
+    shell_print(sh, "tethering saved (original: %s)", cfg_backup_ssid());
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * `thermo restore`: テザリングに切り替える前の SSID とパスワードに戻す
+ *
+ * 反映するには, 続けて `thermo apply` を実行する.
+ *
+ * @param[in] sh   シェル
+ * @param[in] argc 使用しない
+ * @param[in] argv 使用しない
+ * @return 0 (成功), 負の errno (失敗. 戻す設定がなければ -ENOENT)
+ */
+static int cmd_restore(const struct shell *sh, size_t argc, char **argv)
+{
+    int err = cfg_restore(); /* エラーコード */
+
+    ARG_UNUSED(argc);
+    ARG_UNUSED(argv);
+
+    if (err != 0) {
+        shell_error(sh, "Failed to restore the original settings (err %d)", err);
+        return err;
+    }
+    shell_print(sh, "original settings restored");
+
+    return EXIT_SUCCESS;
+}
+
+/**
  * `thermo show`: 設定の状態を表示する (パスワードは表示しない)
  *
  * @param[in] sh   シェル
@@ -95,6 +148,7 @@ static int cmd_show(const struct shell *sh, size_t argc, char **argv)
         shell_print(sh, "%s: %s", cfg_cred_name((enum cfg_cred)i),
                     (cfg_has_cred((enum cfg_cred)i) ? "registered" : "missing"));
     }
+    shell_print(sh, "tether backup: %s", (cfg_has_backup() ? cfg_backup_ssid() : "(none)"));
     shell_print(sh, "ready to connect: %s", (cfg_is_complete() ? "yes" : "no"));
 
     return EXIT_SUCCESS;
@@ -170,11 +224,14 @@ static int cmd_reset(const struct shell *sh, size_t argc, char **argv)
     return EXIT_SUCCESS;
 }
 
-/** `thermo` コマンドのサブコマンド (set, show, save-certs, apply, reset) */
+/** `thermo` コマンドのサブコマンド (set, tether, restore, show, save-certs, apply, reset) */
 SHELL_STATIC_SUBCMD_SET_CREATE(
         thermo_cmds,
         SHELL_CMD_ARG(set, NULL, "<ssid|psk|endpoint|client_id> <value> : save a setting", cmd_set,
                       3, 0),
+        SHELL_CMD_ARG(tether, NULL, "<ssid> [psk] : switch to the tethering, keeping the original",
+                      cmd_tether, 2, 1),
+        SHELL_CMD(restore, NULL, "restore the ssid and psk before the tethering", cmd_restore),
         SHELL_CMD(show, NULL, "show the settings (the password is hidden)", cmd_show),
         /*
          * コマンド名のハイフンは, clang-format が前後に空白を入れて ("save - certs"),

@@ -34,6 +34,10 @@ FAKE_VALUE_FUNC(bool, cfg_has_cred, enum cfg_cred)
 FAKE_VALUE_FUNC(int, cfg_save_credentials)
 FAKE_VALUE_FUNC(bool, cfg_is_complete)
 FAKE_VALUE_FUNC(int, cfg_reset)
+FAKE_VALUE_FUNC(int, cfg_tether, const char *, const char *)
+FAKE_VALUE_FUNC(int, cfg_restore)
+FAKE_VALUE_FUNC(bool, cfg_has_backup)
+FAKE_VALUE_FUNC(const char *, cfg_backup_ssid)
 FAKE_VOID_FUNC(cloud_reconnect)
 
 /** 項目の名前 */
@@ -159,6 +163,10 @@ static void before(void *fixture)
     RESET_FAKE(cfg_save_credentials);
     RESET_FAKE(cfg_is_complete);
     RESET_FAKE(cfg_reset);
+    RESET_FAKE(cfg_tether);
+    RESET_FAKE(cfg_restore);
+    RESET_FAKE(cfg_has_backup);
+    RESET_FAKE(cfg_backup_ssid);
     RESET_FAKE(cloud_reconnect);
     FFF_RESET_HISTORY();
     cfg_key_from_name_fake.custom_fake = fake_key_from_name;
@@ -166,6 +174,7 @@ static void before(void *fixture)
     cfg_cred_name_fake.custom_fake = fake_cred_name;
     cfg_get_fake.custom_fake = fake_get;
     cfg_has_cred_fake.custom_fake = fake_has_cred;
+    cfg_backup_ssid_fake.return_val = "home-ap";
 
     (void)memset(values, 0, sizeof(values));
     (void)memset(has_cred, 0, sizeof(has_cred));
@@ -257,6 +266,91 @@ ZTEST(thermo_shell, test_show)
     zassert_not_null(strstr(out, "ready to connect: no"));
 }
 
+/** `thermo tether <SSID> <パスワード>` は, 切り替えて, 元の SSID を表示する */
+ZTEST(thermo_shell, test_tether)
+{
+    int ret = 0;                                                  /* 戻り値 */
+    const char *out = run("thermo tether \"my phone\" pw", &ret); /* シェルの出力 */
+
+    zassert_equal(ret, 0);
+    zassert_equal(cfg_tether_fake.call_count, 1U);
+    zassert_str_equal(cfg_tether_fake.arg0_val, "my phone");
+    zassert_str_equal(cfg_tether_fake.arg1_val, "pw");
+    zassert_not_null(strstr(out, "tethering saved (original: home-ap)"));
+}
+
+/** パスワードを省略すると, 空のパスワードで切り替える */
+ZTEST(thermo_shell, test_tether_without_psk)
+{
+    int ret = 0; /* 戻り値 */
+
+    (void)run("thermo tether phone", &ret);
+
+    zassert_equal(ret, 0);
+    zassert_str_equal(cfg_tether_fake.arg1_val, "");
+}
+
+/** 切り替えに失敗したら, そのエラーを返して, 表示する */
+ZTEST(thermo_shell, test_tether_failure)
+{
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
+
+    cfg_tether_fake.return_val = -EINVAL;
+    out = run("thermo tether phone pw", &ret);
+
+    zassert_equal(ret, -EINVAL);
+    zassert_not_null(strstr(out, "Failed to switch to the tethering (err -22)"));
+}
+
+/** SSID がなければ, 切り替えない */
+ZTEST(thermo_shell, test_tether_missing_argument)
+{
+    int ret = 0; /* 戻り値 */
+
+    (void)run("thermo tether", &ret);
+
+    zassert_not_equal(ret, 0);
+    zassert_equal(cfg_tether_fake.call_count, 0U);
+}
+
+/** `thermo restore` は, 元に戻して, 戻したことを表示する */
+ZTEST(thermo_shell, test_restore)
+{
+    int ret = 0;                                   /* 戻り値 */
+    const char *out = run("thermo restore", &ret); /* シェルの出力 */
+
+    zassert_equal(ret, 0);
+    zassert_equal(cfg_restore_fake.call_count, 1U);
+    zassert_not_null(strstr(out, "original settings restored"));
+}
+
+/** 戻すのに失敗したら, そのエラーを返す */
+ZTEST(thermo_shell, test_restore_failure)
+{
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
+
+    cfg_restore_fake.return_val = -ENOENT;
+    out = run("thermo restore", &ret);
+
+    zassert_equal(ret, -ENOENT);
+    zassert_not_null(strstr(out, "Failed to restore the original settings (err -2)"));
+}
+
+/** `thermo show` は, 元の設定があれば、その SSID を表示する */
+ZTEST(thermo_shell, test_show_backup)
+{
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
+
+    cfg_has_backup_fake.return_val = true;
+    out = run("thermo show", &ret);
+
+    zassert_equal(ret, 0);
+    zassert_not_null(strstr(out, "tether backup: home-ap"));
+}
+
 /** パスワードが空なら "(empty)", 全て揃っていれば, 接続できると表示する */
 ZTEST(thermo_shell, test_show_empty_psk_and_ready)
 {
@@ -269,6 +363,7 @@ ZTEST(thermo_shell, test_show_empty_psk_and_ready)
     /* 期待: 空のパスワードは "(empty)". 揃っていれば, 接続できると表示する */
     zassert_equal(ret, 0);
     zassert_not_null(strstr(out, "psk: (empty)"));
+    zassert_not_null(strstr(out, "tether backup: (none)"));
     zassert_not_null(strstr(out, "ready to connect: yes"));
 }
 

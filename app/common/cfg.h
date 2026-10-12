@@ -35,6 +35,9 @@
 /** 秘密鍵の最大サイズ [byte] (PEM. NUL を含む. RSA 2048 bit の PEM は約 1700 byte) */
 #define CFG_KEY_PEM_MAX   1792U
 
+/** テザリングに切り替える前の, SSID とパスワードの保存先の最大サイズ [byte] (2 つの文字列と NUL) */
+#define CFG_BACKUP_MAX (CFG_SSID_MAX + CFG_PSK_MAX + 2U)
+
 /** 設定の項目 */
 enum cfg_key {
     CFG_KEY_SSID,      /**< WiFi の SSID */
@@ -73,5 +76,13 @@ int cfg_save_credentials(void);
 bool cfg_is_complete(void);
 
 int cfg_reset(void);
+
+int cfg_tether(const char *ssid, const char *psk);
+
+int cfg_restore(void);
+
+bool cfg_has_backup(void);
+
+const char *cfg_backup_ssid(void);
 
 #endif /* THERMO_COMMON_CFG_H */

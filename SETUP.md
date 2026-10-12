@@ -464,6 +464,8 @@ thermo save-certs
 thermo show                       (ready to connect: yes になれば、揃っている)
 ```
 
+**スマートフォンのテザリングに切り替える** (元の設定を残して、戻せる): `thermo tether <SSID> [パスワード]` は、今の SSID とパスワードを、フラッシュに保存してから (1 項目。`tether_bak`)、テザリングの SSID とパスワードを設定します。続けて、`thermo apply` で反映します。すでに切り替えているときに、もう一度実行しても、最初の元の設定は、上書きしません。`thermo restore` は、元の SSID とパスワードに戻して、保存した元の設定を消します (続けて、`thermo apply`)。`thermo show` の `tether backup:` に、元の SSID が出ます (なければ `(none)`)。パスワードは、基板の外に、出しません。Android アプリ [thermo-term](https://github.com/sluchin/thermo-term) が、USB ケーブル (Type-C) で、この 2 つのコマンドを送ります。
+
 文字が欠けないように、`scripts/send-cred.sh` と `scripts/send-wifi.sh` で、少しずつ送ります。**証明書とポリシーは、ノードごとに、別のものを作ります** (ゲートウェイと共有しません。1 台が漏れても、その 1 台だけ、無効にできます)。作り方は、[AWS_SETUP.md](AWS_SETUP.md) の 7 章です。
 
 **SD カード** (拡張ボードの SD カードスロット。SPI。CS は D2)

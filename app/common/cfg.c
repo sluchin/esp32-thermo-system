@@ -15,7 +15,7 @@
 #include <stdint.h> /* uint8_t */
 #include <stdio.h>  /* snprintf */
 #include <stdlib.h> /* EXIT_SUCCESS */
-#include <string.h> /* strcmp strlen memcpy */
+#include <string.h> /* strcmp strlen strnlen memcpy */
 
 #include "cfg.h"
 #include "thermo_log.h"
@@ -26,6 +26,13 @@ LOG_MODULE_REGISTER(thermo_cfg, THERMO_LOG_LEVEL);
 #define SETTINGS_ROOT      "thermo"
 /** settings の項目の名前 ("thermo/client_id" など) の最大長 (NUL を含む) */
 #define SETTINGS_NAME_SIZE 32U
+/**
+ * テザリングに切り替える前の SSID とパスワードの項目の名前
+ *
+ * 値は、SSID、NUL、パスワード、NUL の順に並べて、1 つの項目で保存する (保存の途中で電源が切れても、
+ * 片方だけが残らない).
+ */
+#define BACKUP_NAME        "tether_bak"
 
 /** 設定の項目ごとの名前と値の最大長 */
 static const struct {
@@ -65,12 +72,21 @@ static const struct {
 /** 設定の値 (NUL で終わる) */
 static char values[CFG_KEY_COUNT][CFG_ENDPOINT_MAX + 1U];
 
+/** テザリングに切り替える前の SSID (NUL で終わる) */
+static char backup_ssid[CFG_SSID_MAX + 1U];
+/** テザリングに切り替える前のパスワード (NUL で終わる) */
+static char backup_psk[CFG_PSK_MAX + 1U];
+/** テザリングに切り替える前の設定が、保存されているか */
+static bool backup_present;
+
 /** 証明書をフラッシュに保存するときの一時的な領域 (最も大きい証明書が入る大きさ) */
 static uint8_t save_buf[CFG_KEY_PEM_MAX];
 
 static void settings_name(char *out, const char *name);
+static void clear_backup(void);
 static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, void *cb_arg);
 static void load_credential(enum cfg_cred cred, size_t len, settings_read_cb read_cb, void *cb_arg);
+static void load_backup(size_t len, settings_read_cb read_cb, void *cb_arg);
 static int settings_set_cb(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg);
 
 /**
@@ -285,7 +301,123 @@ int cfg_reset(void)
         (void)tls_credential_delete(CFG_TLS_SEC_TAG, cred_infos[i].type);
     }
 
+    settings_name(name, BACKUP_NAME);
+    err = settings_delete(name);
+    if ((err != 0) && (first_err == EXIT_SUCCESS)) {
+        first_err = err;
+    }
+    clear_backup();
+
     return first_err;
+}
+
+/**
+ * @brief スマートフォンのテザリングの SSID とパスワードに切り替える
+ *
+ * 切り替える前の SSID とパスワードは、まだ保存していなければ、フラッシュに保存する
+ * (保存してあるときは、そのまま残す. 続けて呼んでも、元の設定を失わない).
+ * 元の設定には、cfg_restore() で戻せる.
+ *
+ * @param[in] ssid テザリングの SSID (空でないこと)
+ * @param[in] psk  テザリングのパスワード (空でもよい)
+ * @retval EXIT_SUCCESS 成功
+ * @retval -EINVAL      SSID が空か、SSID かパスワードが長すぎる
+ * @retval negative     保存に失敗 (負の errno)
+ */
+int cfg_tether(const char *ssid, const char *psk)
+{
+    char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
+    uint8_t blob[CFG_BACKUP_MAX] = {0};  /* 元の SSID とパスワードを並べた値 */
+    size_t ssid_len = strlen(ssid);      /* 新しい SSID の長さ [バイト] */
+    size_t old_len = 0U;                 /* 今の SSID の長さ [バイト] */
+    size_t psk_len = 0U;                 /* 今のパスワードの長さ [バイト] */
+    int err = EXIT_SUCCESS;              /* エラーコード */
+
+    if ((ssid_len == 0U) || (CFG_SSID_MAX < ssid_len) || (CFG_PSK_MAX < strlen(psk))) {
+        return -EINVAL;
+    }
+
+    if (!backup_present) {
+        old_len = strlen(values[CFG_KEY_SSID]);
+        psk_len = strlen(values[CFG_KEY_PSK]);
+        (void)memcpy(blob, values[CFG_KEY_SSID], old_len + 1U);
+        (void)memcpy(&blob[old_len + 1U], values[CFG_KEY_PSK], psk_len + 1U);
+
+        settings_name(name, BACKUP_NAME);
+        err = settings_save_one(name, blob, old_len + psk_len + 2U);
+        if (err != 0) {
+            LOG_ERR("Saving the original WiFi settings failed (err %d)", err);
+            return err;
+        }
+        (void)memcpy(backup_ssid, values[CFG_KEY_SSID], old_len + 1U);
+        (void)memcpy(backup_psk, values[CFG_KEY_PSK], psk_len + 1U);
+        backup_present = true;
+    }
+
+    err = cfg_set(CFG_KEY_SSID, ssid);
+    if (err != 0) {
+        return err;
+    }
+
+    return cfg_set(CFG_KEY_PSK, psk);
+}
+
+/**
+ * @brief テザリングに切り替える前の SSID とパスワードに戻す
+ *
+ * 戻したら、保存してあった元の設定は、消す.
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENOENT      戻す設定が、保存されていない
+ * @retval negative     失敗 (負の errno)
+ */
+int cfg_restore(void)
+{
+    char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
+    int err = EXIT_SUCCESS;              /* エラーコード */
+
+    if (!backup_present) {
+        return -ENOENT;
+    }
+
+    err = cfg_set(CFG_KEY_SSID, backup_ssid);
+    if (err != 0) {
+        return err;
+    }
+    err = cfg_set(CFG_KEY_PSK, backup_psk);
+    if (err != 0) {
+        return err;
+    }
+
+    /* 戻せたあとで消す (消すのに失敗したら、次の restore で、同じ値を書き直せる) */
+    settings_name(name, BACKUP_NAME);
+    err = settings_delete(name);
+    if (err != 0) {
+        return err;
+    }
+    clear_backup();
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * @brief テザリングに切り替える前の設定が、保存されているか調べる
+ *
+ * @return 保存されていれば true
+ */
+bool cfg_has_backup(void)
+{
+    return backup_present;
+}
+
+/**
+ * @brief テザリングに切り替える前の SSID を返す
+ *
+ * @return SSID (NUL で終わる. 保存されていなければ、空の文字列)
+ */
+const char *cfg_backup_ssid(void)
+{
+    return backup_ssid;
 }
 
 /** settings のこのアプリの項目のハンドラ */
@@ -362,6 +494,59 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
 }
 
 /**
+ * テザリングに切り替える前の設定を、消す (RAM だけ)
+ */
+static void clear_backup(void)
+{
+    backup_ssid[0] = '\0';
+    backup_psk[0] = '\0';
+    backup_present = false;
+}
+
+/**
+ * settings から読み込んだ、テザリングに切り替える前の SSID とパスワードを登録する
+ *
+ * @param[in] len     保存されている値の長さ
+ * @param[in] read_cb 値を読むコールバック
+ * @param[in] cb_arg  read_cb に渡す引数
+ */
+static void load_backup(size_t len, settings_read_cb read_cb, void *cb_arg)
+{
+    uint8_t blob[CFG_BACKUP_MAX] = {0}; /* 保存されていた値 */
+    size_t ssid_len = 0U;               /* SSID の長さ [バイト] */
+    size_t psk_len = 0U;                /* パスワードの長さ [バイト] */
+    ssize_t read_len = 0;               /* 読み込んだ長さ [バイト] */
+
+    if ((len < 2U) || (sizeof(blob) < len)) {
+        LOG_WRN("Ignoring '%s' with an invalid length %zu", BACKUP_NAME, len);
+        return;
+    }
+
+    read_len = read_cb(cb_arg, blob, len);
+    if (read_len < 0) {
+        LOG_WRN("Reading '%s' failed (err %d)", BACKUP_NAME, (int)read_len);
+        return;
+    }
+
+    /* 並びは、SSID、NUL、パスワード、NUL. 終わりの NUL がなければ、壊れている */
+    ssid_len = strnlen((const char *)blob, len);
+    if (len <= (ssid_len + 1U)) {
+        LOG_WRN("Ignoring the broken '%s'", BACKUP_NAME);
+        return;
+    }
+    psk_len = strnlen((const char *)&blob[ssid_len + 1U], len - ssid_len - 1U);
+    if ((CFG_SSID_MAX < ssid_len) || (CFG_PSK_MAX < psk_len) ||
+        (len != (ssid_len + psk_len + 2U))) {
+        LOG_WRN("Ignoring the broken '%s'", BACKUP_NAME);
+        return;
+    }
+
+    (void)memcpy(backup_ssid, blob, ssid_len + 1U);
+    (void)memcpy(backup_psk, &blob[ssid_len + 1U], psk_len + 1U);
+    backup_present = true;
+}
+
+/**
  * settings から読み込んだ証明書を TLS の認証情報に登録する
  *
  * @param[in] cred    種類
@@ -413,6 +598,8 @@ static int settings_set_cb(const char *name, size_t len, settings_read_cb read_c
         load_value((enum cfg_key)key, len, read_cb, cb_arg);
     } else if (cred >= 0) {
         load_credential((enum cfg_cred)cred, len, read_cb, cb_arg);
+    } else if (strcmp(name, BACKUP_NAME) == 0) {
+        load_backup(len, read_cb, cb_arg);
     } else {
         LOG_WRN("Ignoring the unknown setting '%s'", name);
     }
