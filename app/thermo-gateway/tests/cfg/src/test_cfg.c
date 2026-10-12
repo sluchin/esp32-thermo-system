@@ -208,6 +208,23 @@ static void load(const char *name, const void *data, size_t len)
     zassert_equal(h->h_set(name, len, read_source, NULL), 0);
 }
 
+/** fake_delete() が覚えた, 最後に削除した項目の名前 */
+static char deleted_name[32];
+
+/**
+ * settings_delete() の偽物 (項目の名前を覚える. 引数のポインタは、呼び出し元の関数の
+ * スタックの中なので、戻ったあとは、中身が残らないため)
+ *
+ * @param[in] name 項目の名前
+ * @return 0
+ */
+static int fake_delete(const char *name)
+{
+    (void)snprintf(deleted_name, sizeof(deleted_name), "%s", name);
+
+    return 0;
+}
+
 /**
  * 3 つの証明書を TLS の認証情報に登録する
  */
@@ -630,13 +647,14 @@ ZTEST(cfg, test_restore)
     zassert_equal(cfg_set(CFG_KEY_PSK, "secret"), EXIT_SUCCESS);
     zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
     RESET_FAKE(settings_delete);
+    settings_delete_fake.custom_fake = fake_delete;
 
     zassert_equal(cfg_restore(), EXIT_SUCCESS);
 
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "home-ap");
     zassert_str_equal(cfg_get(CFG_KEY_PSK), "secret");
     zassert_equal(settings_delete_fake.call_count, 1U);
-    zassert_str_equal(settings_delete_fake.arg0_val, "thermo/tether_bak");
+    zassert_str_equal(deleted_name, "thermo/tether_bak");
     zassert_false(cfg_has_backup());
     zassert_str_equal(cfg_backup_ssid(), "");
 }
@@ -729,8 +747,8 @@ ZTEST(cfg, test_load_backup_broken_ignored)
     static const char no_psk[] = "ab";                  /* パスワードの部分がない */
     static const char no_end[] = {'a', '\0', 'b', 'c'}; /* 終わりの NUL がない */
     static const char extra[] = "a\0b\0c";              /* NUL のあとに余りがある */
-    static char long_ssid[CFG_SSID_MAX + 4U]; /* 上限を超える SSID (パスワードは空) */
-    static char long_psk[CFG_PSK_MAX + 4U];   /* 上限を超えるパスワード */
+    static char long_ssid[CFG_SSID_MAX + 4U];           /* 上限を超える SSID (パスワードは空) */
+    static char long_psk[CFG_PSK_MAX + 4U];             /* 上限を超えるパスワード */
 
     (void)memset(long_ssid, 'a', sizeof(long_ssid));
     long_ssid[sizeof(long_ssid) - 2U] = '\0';
