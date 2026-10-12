@@ -11,7 +11,7 @@
 
 #include <zephyr/logging/log.h>
 #include <zephyr/settings/settings.h>
-#include <errno.h>  /* ENOENT EINVAL */
+#include <errno.h>  /* ENOENT EINVAL EEXIST */
 #include <stdint.h> /* uint8_t */
 #include <stdio.h>  /* snprintf */
 #include <stdlib.h> /* EXIT_SUCCESS */
@@ -294,6 +294,8 @@ static struct settings_handler handler = {.name = SETTINGS_ROOT, .h_set = settin
 /**
  * @brief 設定をフラッシュから読み込む (証明書は TLS の認証情報に登録する)
  *
+ * 何回呼んでもよい (ハンドラが登録済みなら, 登録し直さずに, 読み込み直す).
+ *
  * @retval EXIT_SUCCESS 成功 (保存された設定がなくても成功)
  * @retval negative     失敗 (負の errno)
  */
@@ -306,8 +308,9 @@ int cfg_init(void)
         return err;
     }
 
+    /* 2 回目以降 (WiFi の初期化と、クラウドの初期化の、両方が呼ぶ) は、登録済み */
     err = settings_register(&handler);
-    if (err != 0) {
+    if ((err != 0) && (err != -EEXIST)) {
         LOG_ERR("Registering the settings handler failed (err %d)", err);
         return err;
     }
