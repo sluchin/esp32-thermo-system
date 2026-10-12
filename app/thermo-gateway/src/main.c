@@ -116,10 +116,10 @@ static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t 
 
     (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
     if (humidity_x10 == THERMO_HUMIDITY_NONE) {
-        LOG_INF("Temperature from %s: %s%u.%u C", addr_str, sign, magnitude / 10U, magnitude % 10U);
+        LOG_INF("Node %s: %s%u.%u C", addr_str, sign, magnitude / 10U, magnitude % 10U);
     } else {
-        LOG_INF("Temperature from %s: %s%u.%u C, humidity: %u.%u %%", addr_str, sign,
-                magnitude / 10U, magnitude % 10U, humidity_x10 / 10U, humidity_x10 % 10U);
+        LOG_INF("Node %s: %s%u.%u C, humidity: %u.%u %%", addr_str, sign, magnitude / 10U,
+                magnitude % 10U, humidity_x10 / 10U, humidity_x10 % 10U);
     }
 
 #ifdef CONFIG_THERMO_CLOUD

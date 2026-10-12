@@ -168,7 +168,7 @@ thermo apply
 ```
 <inf> thermo_wifi: WiFi connected (IPv4 address acquired)
 <inf> thermo_cloud: Connected to AWS IoT Core
-<inf> thermo_gateway: Temperature from 00:AA:01:00:00:42 (public): 23.5 C, humidity: 45.0 %
+<inf> thermo_gateway: Node 00:AA:01:00:00:42 (public): 23.5 C, humidity: 45.0 %
 ```
 
 ## 5. うまくいかないとき

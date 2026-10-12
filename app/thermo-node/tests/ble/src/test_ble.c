@@ -460,17 +460,50 @@ ZTEST(ble_node, test_advertise_failure)
     zassert_equal(bt_le_adv_start_fake.call_count, 1U);
 }
 
-/** 接続のコールバック: 接続しても, アドバタイズは再開しない */
+/** 接続のコールバック: 接続の数に空きがあれば, アドバタイズを続ける. 満杯なら, 続けない */
 ZTEST(ble_node, test_connected_callback)
 {
     struct bt_conn_cb *cb = NULL; /* コールバックの登録情報 */
 
     zassert_equal(ble_init(), EXIT_SUCCESS);
     cb = bt_conn_cb_register_fake.arg0_val;
+    /* 前のテストの接続を, 全て切る */
+    while (ble_is_connected()) {
+        cb->disconnected(NULL, 0x13U);
+    }
 
-    cb->connected(NULL, 0U);
     cb->connected(NULL, 0x3EU); /* 接続に失敗 (ログを出すだけ) */
     zassert_equal(bt_le_adv_start_fake.call_count, 0U);
+
+    cb->connected(NULL, 0U); /* 1 つ目: 空きがあるので, アドバタイズを続ける */
+    zassert_equal(bt_le_adv_start_fake.call_count, 1U);
+
+    cb->connected(NULL, 0U); /* 2 つ目: 満杯 (CONFIG_BT_MAX_CONN = 2) */
+    zassert_equal(bt_le_adv_start_fake.call_count, 1U);
+}
+
+/** 接続のコールバック: アドバタイズを続けるのに失敗しても, ログを出すだけ (EALREADY は, 何もしない)
+ */
+ZTEST(ble_node, test_connected_advertise_failure)
+{
+    struct bt_conn_cb *cb = NULL; /* コールバックの登録情報 */
+
+    zassert_equal(ble_init(), EXIT_SUCCESS);
+    cb = bt_conn_cb_register_fake.arg0_val;
+    while (ble_is_connected()) {
+        cb->disconnected(NULL, 0x13U);
+    }
+
+    bt_le_adv_start_fake.return_val = -ENOMEM;
+    cb->connected(NULL, 0U);
+    zassert_equal(bt_le_adv_start_fake.call_count, 1U);
+    zassert_true(ble_is_connected());
+    cb->disconnected(NULL, 0x13U);
+
+    bt_le_adv_start_fake.return_val = -EALREADY;
+    cb->connected(NULL, 0U);
+    zassert_equal(bt_le_adv_start_fake.call_count, 2U);
+    zassert_true(ble_is_connected());
 }
 
 /** 切断のコールバックでは, アドバタイズを始めない (接続のオブジェクトがまだ解放されていないため)

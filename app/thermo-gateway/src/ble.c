@@ -671,6 +671,8 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
  * スキャンのコールバックの中でスキャンを止めたり, 接続を始めたりすると, スキャンの開始と
  * 重なって, スキャンを止められない (EBUSY) ことがある. そのため, コールバックでは, 依頼を
  * 記録するだけにして, スキャンの停止と接続はここで行う. EBUSY のときは, 少し待って, やり直す.
+ * スキャンを止められなかった (EALREADY 以外の) ときは, 接続せずに, スキャンを再開する
+ * (再開しないと, 以降は, スキャンのコールバックが呼ばれず, ノードを見つけられなくなる).
  *
  * @param[in] work 使用しない
  */
@@ -689,9 +691,17 @@ static void connect_work_handler(struct k_work *work)
         (void)k_work_reschedule(&connect_work, K_MSEC(CONNECT_RETRY_MS));
         return;
     }
+    if (err == -EALREADY) {
+        err = EXIT_SUCCESS; /* すでに止まっている (スキャンを止める目的は, 満たしている) */
+    }
     if (err != 0) {
         LOG_ERR("Stopping scan failed (err %d)", err);
         pending_node = NULL; /* 次にノードが見つかったときに, やり直す */
+        /* スキャンが止まったままにならないよう, 再開する (動いていれば, 成功を返す) */
+        err = ble_scan();
+        if (err != EXIT_SUCCESS) {
+            LOG_ERR("Failed to restart scanning (err %d)", err);
+        }
         return;
     }
 
