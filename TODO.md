@@ -27,7 +27,8 @@
   - [x] OLED のグラフ: 温度と湿度の履歴 (170 秒ごとの平均を 128 点。約 6 時間) の折れ線を、ユーザボタン (D1) で切り替えるページに表示する (`history.c`、`button.c`)。測定値のない区切りは、線を引かない。履歴は、起動のときに、SD カードの記録 (`backlog.c`) から、区切りごとの平均を作り直して戻す (`history_store.c`)。
   - [x] 段階 4: BLE で時刻が届かないときの予備として、ノードが、WiFi で、直接、SNTP の時刻を取得する (`wifi_time.c`。`CONFIG_THERMO_WIFI_TIME`)。起動の 1 分後から 1 分ごとに、RTC に時刻があるかを確かめ、なければ、WiFi につないで時刻を取り、RTC に設定して、WiFi を切る (最大 5 回)。SSID とパスワードは、シェル (`thermo set`) か、`scripts/send-wifi.sh` で設定する。
   - [ ] 残り: WiFi と BLE の同時動作で、アドバタイズと DHT11 の読み取りが、続くか (長時間)。スタックとヒープの余裕。
-- [ ] **ログを mini SD カードに保存する** (拡張ボードの SD カードスロット。SPI): Zephyr の FAT (FatFS) で、CSV (時刻、温度、湿度) を追記する。Zephyr は、ext4 に対応していない (ext2、FAT、LittleFS だけ)。PC で読むには FAT32 が簡単。SPI の SD は、シールドの `seeed_xiao_expansion_board` と同じ設定 (CS は D2)。SD の取り外しと、書き込み中の電源断の対策 (定期的に同期する) も、考える。
+- [x] **ノードのログを SD カードに保存する** (実装した。**実機では、まだ確認していない**): 起動から 60 秒の全てのログ (`boot.log`) と、エラーのログ (`error.log`) を、テキストで保存する (`sdlog.c`。ログのバックエンド。[SD_LOG.md](SD_LOG.md))。
+- [ ] **測定値を CSV で mini SD カードに保存する** (拡張ボードの SD カードスロット。SPI): Zephyr の FAT (FatFS) で、CSV (時刻、温度、湿度) を追記する。Zephyr は、ext4 に対応していない (ext2、FAT、LittleFS だけ)。PC で読むには FAT32 が簡単。SPI の SD は、シールドの `seeed_xiao_expansion_board` と同じ設定 (CS は D2)。SD の取り外しと、書き込み中の電源断の対策 (定期的に同期する) も、考える。
 - [ ] **Grove のセンサ**: I2C の Grove (D4/D5。OLED と RTC と同じバス) に、CO2 (SCD40 など) や、温湿度と気圧 (BME280 など) のセンサをつなぐ。BLE の特性の形式と、AWS のペイロードを広げる必要がある。
 - [ ] **ADC のアナログセンサ** (LM35 など) に替えるときの、実機での確認: 実装は、ある (オーバーレイの `thermo-sensor` を消して、`zephyr,user` の `io-channels` を書く。換算は `CONFIG_THERMO_ADC_MV_PER_DEG` と `CONFIG_THERMO_ADC_OFFSET_MV`。ADC エミュレータの単体テストで確認している)。センサを買ったら、実機で、換算の値を、確認する。
 - [ ] 実機の Bluetooth アダプタを使う `native_sim` の実行 (`--bt-dev=hciN`) を、docker compose のサービスにする。(`run-sim` は、仮想コントローラ `btvirt` で動く)

@@ -176,6 +176,49 @@ config THERMO_BACKLOG_MOUNT
     help
       The FatFS volume name is the disk name of the Devicetree (SD).
 
+config THERMO_SDLOG
+    bool "Save the log on the SD card (the first minute after the start, and the errors)"
+    default y
+    depends on THERMO_BACKLOG
+    depends on LOG
+    help
+      Save the log as text on the SD card of the expansion board, with a
+      log backend. boot.log has all the logs of the first
+      THERMO_SDLOG_BOOT_SEC seconds after the start (it is made again at
+      every start). error.log has the errors (LOG_ERR) at any time. When
+      it is full (THERMO_SDLOG_ERROR_MAX_BYTES), it is moved to error.old
+      and a new error.log is made. The SD card is mounted by the backlog.
+
+config THERMO_SDLOG_BOOT_SEC
+    int "Seconds after the start in which all the logs are saved"
+    default 60
+    range 1 3600
+    depends on THERMO_SDLOG
+
+config THERMO_SDLOG_BOOT_BUF_SIZE
+    int "RAM buffer of the boot log [bytes]"
+    default 768
+    range 128 16384
+    depends on THERMO_SDLOG
+    help
+      The log is kept in RAM until it is written to the SD card (every
+      second, and after the SD card is mounted). The log that does not
+      fit is dropped, and reported as an error. The default is small,
+      because the static RAM of the ESP32-C3 is almost full with BLE,
+      WiFi and TLS (about 1 KB is left).
+
+config THERMO_SDLOG_ERROR_BUF_SIZE
+    int "RAM buffer of the error log [bytes]"
+    default 256
+    range 128 16384
+    depends on THERMO_SDLOG
+
+config THERMO_SDLOG_ERROR_MAX_BYTES
+    int "Size of error.log at which it is moved to error.old [bytes]"
+    default 65536
+    range 512 4194304
+    depends on THERMO_SDLOG
+
 config THERMO_GRAPH_STEP_SEC
     int "Time per point of the graph on the OLED display [seconds]"
     default 170
