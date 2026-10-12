@@ -17,7 +17,7 @@
 #include <zephyr/ztest.h>
 #include <zephyr/fff.h>
 #include <zephyr/settings/settings.h>
-#include <errno.h>  /* EIO ENOENT EFBIG EINVAL ENOMEM EBUSY etc... */
+#include <errno.h>  /* EIO ENOENT EFBIG EINVAL ENOMEM EBUSY EEXIST etc... */
 #include <stdlib.h> /* EXIT_SUCCESS */
 #include <string.h> /* strncpy memcpy memset strlen */
 
@@ -545,6 +545,16 @@ ZTEST(cfg, test_init_register_failure)
     /* 期待: ハンドラの登録に失敗したら, 読み込まない */
     zassert_equal(cfg_init(), -ENOMEM);
     zassert_equal(settings_load_subtree_fake.call_count, 0U);
+}
+
+/** ハンドラが登録済みなら (2 回目の初期化), エラーにせず, 読み込む */
+ZTEST(cfg, test_init_already_registered)
+{
+    settings_register_fake.return_val = -EEXIST;
+
+    /* 期待: 登録済みは成功として, "thermo" 以下を読み込む */
+    zassert_equal(cfg_init(), EXIT_SUCCESS);
+    zassert_equal(settings_load_subtree_fake.call_count, 1U);
 }
 
 /** 読み込みに失敗したら, そのエラーを返す */
