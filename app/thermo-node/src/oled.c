@@ -81,17 +81,18 @@ LOG_MODULE_REGISTER(oled_thermo_node, THERMO_LOG_LEVEL);
 #define BOOT_MOUTH_PERIOD 4U
 #endif
 /** 画面の幅 [ドット] (グラフの点の数と同じ) */
-#define OLED_WIDTH               128U
+#define OLED_WIDTH            128U
 /** グラフの一番上の y 座標 (上の文字の行の下. 16 ドットの文字の行と少し間をあける) */
-#define OLED_GRAPH_TOP           20
+#define OLED_GRAPH_TOP        20
 /** グラフの一番下の y 座標 (画面の一番下) */
-#define OLED_GRAPH_BOTTOM        63
-/** グラフの縦軸の最小の幅 [10 分の 1 の単位] (1.0 ℃. 小さな変化を拡大しすぎない) */
-#define OLED_GRAPH_MIN_RANGE_X10 10
+#define OLED_GRAPH_BOTTOM     63
+/** グラフの縦軸の余白 [10 分の 1 の単位] (5.0. 最小の下と最大の上に足す. 変化がなくても線が見える)
+ */
+#define OLED_GRAPH_MARGIN_X10 50
 /** データがないときの文字を出す行 (上から) [行] */
-#define OLED_ROW_NO_DATA         1U
+#define OLED_ROW_NO_DATA      1U
 /** 10 分の 1 の単位から, 整数部と小数部を取り出すための値 */
-#define OLED_X10_DIVISOR         10U
+#define OLED_X10_DIVISOR      10U
 
 /** Devicetree (alias thermo-display) から取得した OLED */
 static const struct device *const oled_dev = DEVICE_DT_GET(DT_ALIAS(thermo_display));
@@ -110,7 +111,7 @@ static int draw_now(const struct oled_view *view);
 
 static int draw_graph(const struct oled_view *view);
 
-static int draw_polyline(const int16_t *points, unsigned int count, int16_t low, int range);
+static int draw_polyline(const int16_t *points, unsigned int count, int low, int range);
 
 static unsigned int format_lines(const struct oled_view *view, char lines[][OLED_LINE_SIZE]);
 
@@ -334,6 +335,7 @@ static int draw_graph(const struct oled_view *view)
     char low_text[OLED_NUM_SIZE] = {0};                              /* 最小の文字列 */
     char high_text[OLED_NUM_SIZE] = {0};                             /* 最大の文字列 */
     char line[OLED_LINE_SIZE] = {0};                                 /* 1 行目の文字列 */
+    bool has_value = false;                                          /* 測定値のある点があるか */
     unsigned int i = 0U;                                             /* 点の番号 */
     int err = EXIT_SUCCESS;                                          /* エラーコード */
 
@@ -341,19 +343,22 @@ static int draw_graph(const struct oled_view *view)
         count = history_get(history, points, HISTORY_SIZE);
     }
 
-    if (count == 0U) {
-        return draw_line("No data", (uint16_t)OLED_ROW_NO_DATA);
-    }
-
-    low = points[0];
-    high = points[0];
-    for (i = 1U; i < count; i++) {
-        if (points[i] < low) {
+    /* 最小と最大は, 測定値のある点 (HISTORY_NONE でない点) だけで求める */
+    for (i = 0U; i < count; i++) {
+        if (points[i] == HISTORY_NONE) {
+            continue;
+        }
+        if ((!has_value) || (points[i] < low)) {
             low = points[i];
         }
-        if (points[i] > high) {
+        if ((!has_value) || (points[i] > high)) {
             high = points[i];
         }
+        has_value = true;
+    }
+
+    if (!has_value) {
+        return draw_line("No data", (uint16_t)OLED_ROW_NO_DATA);
     }
 
     format_x10(low_text, sizeof(low_text), low);
@@ -364,10 +369,9 @@ static int draw_graph(const struct oled_view *view)
         return err;
     }
 
-    /* 縦軸は, 最小から最大 (最小の幅は, OLED_GRAPH_MIN_RANGE_X10) */
-    return draw_polyline(
-            points, count, low,
-            (((high - low) > OLED_GRAPH_MIN_RANGE_X10) ? (high - low) : OLED_GRAPH_MIN_RANGE_X10));
+    /* 縦軸は, 最小の下から最大の上まで (どちらにも OLED_GRAPH_MARGIN_X10 の余白) */
+    return draw_polyline(points, count, (low - OLED_GRAPH_MARGIN_X10),
+                         ((high - low) + (2 * OLED_GRAPH_MARGIN_X10)));
 }
 
 /**
@@ -381,27 +385,34 @@ static int draw_graph(const struct oled_view *view)
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
  */
-static int draw_polyline(const int16_t *points, unsigned int count, int16_t low, int range)
+static int draw_polyline(const int16_t *points, unsigned int count, int low, int range)
 {
     struct cfb_position prev = {0}; /* 前の点の位置 */
     struct cfb_position cur = {0};  /* 今の点の位置 */
+    bool has_prev = false;          /* 前の点があるか (HISTORY_NONE の点の次は, ない) */
     unsigned int i = 0U;            /* 点の番号 */
     int err = EXIT_SUCCESS;         /* エラーコード */
 
     for (i = 0U; i < count; i++) {
+        if (points[i] == HISTORY_NONE) {
+            /* 測定値のない点は, 描かない (前の点とは, 線でつながない) */
+            has_prev = false;
+            continue;
+        }
         cur.x = (uint16_t)((OLED_WIDTH - count) + i);
         cur.y = (uint16_t)(OLED_GRAPH_BOTTOM -
                            (((points[i] - low) * (OLED_GRAPH_BOTTOM - OLED_GRAPH_TOP)) / range));
-        if (i == 0U) {
-            err = cfb_draw_point(oled_dev, &cur);
-        } else {
+        if (has_prev) {
             err = cfb_draw_line(oled_dev, &prev, &cur);
+        } else {
+            err = cfb_draw_point(oled_dev, &cur);
         }
         if (err != 0) {
             LOG_ERR("Could not draw the graph on the OLED (%d)", err);
             return err;
         }
         prev = cur;
+        has_prev = true;
     }
 
     return EXIT_SUCCESS;

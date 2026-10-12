@@ -1,0 +1,8 @@
+# thermo-node の単体テスト: history_store.c (グラフの履歴の, SD カードの記録からの復元. backlog と node_time は FFF のモック).
+# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-node).
+tests:
+  thermo_node.history_store:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - thermo_node

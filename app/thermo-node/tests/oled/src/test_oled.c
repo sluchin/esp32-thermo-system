@@ -17,7 +17,7 @@
  *  - 起動画面 (oled_show_boot) が題名, ドット, 走る絵, 追う絵を正しい位置に描くこと
  *    (はみ出しの切り取り, 口の開き方, フレームの範囲, 各段階の失敗)
  *  - 温度と湿度のグラフのページが履歴の最小と最大の文字列と折れ線 (位置) を描くこと
- *    (履歴なし, 点が 1 つ, 縦軸の最小の幅, 各段階の失敗)
+ *    (履歴なし, 点が 1 つ, 縦軸の余白, 各段階の失敗)
  */
 
 /** 偽の表示装置のドライバが使う compatible (vnd,test-display) */
@@ -585,16 +585,16 @@ ZTEST(oled, test_graph_temperature)
 
     zassert_equal(cfb_print_fake.call_count, 1U);
     zassert_str_equal(printed[0], "20.0~25.0 C");
-    /* 3 点は, 右端の 125 から 127. 縦は, 最小 (20.0) が 63, 最大 (25.0) が 20 */
+    /* 3 点は, 右端の 125 から 127. 縦軸は 15.0 から 30.0 (最小 - 5.0 から最大 + 5.0) */
     zassert_equal(drawn_point.x, 125U);
-    zassert_equal(drawn_point.y, 63U);
+    zassert_equal(drawn_point.y, 49U);
     zassert_equal(cfb_draw_line_fake.call_count, 2U);
     zassert_equal(line_from[0].x, 125U);
-    zassert_equal(line_from[0].y, 63U);
+    zassert_equal(line_from[0].y, 49U);
     zassert_equal(line_to[0].x, 126U);
-    zassert_equal(line_to[0].y, 20U);
+    zassert_equal(line_to[0].y, 35U);
     zassert_equal(line_from[1].x, 126U);
-    zassert_equal(line_from[1].y, 20U);
+    zassert_equal(line_from[1].y, 35U);
     zassert_equal(line_to[1].x, 127U);
     zassert_equal(line_to[1].y, 42U);
     zassert_equal(cfb_framebuffer_finalize_fake.call_count, 1U);
@@ -651,13 +651,14 @@ ZTEST(oled, test_graph_single_point)
     zassert_equal(show_graph(OLED_PAGE_TEMP_GRAPH, &h), EXIT_SUCCESS);
 
     zassert_str_equal(printed[0], "23.5~23.5 C");
+    /* 縦軸は 18.5 から 28.5: 点は, 真ん中 (63 - 5.0 * 43 / 10.0 = 42) */
     zassert_equal(drawn_point.x, 127U);
-    zassert_equal(drawn_point.y, 63U);
+    zassert_equal(drawn_point.y, 42U);
     zassert_equal(cfb_draw_line_fake.call_count, 0U);
 }
 
-/** 変化が小さいとき (1.0 ℃ 未満) は, 縦軸の幅を 1.0 ℃ にして, 拡大しすぎない */
-ZTEST(oled, test_graph_small_range_is_not_magnified)
+/** 縦軸は, 最小の下と最大の上に 5.0 の余白を足すので, 変化が小さくても, 拡大しすぎない */
+ZTEST(oled, test_graph_small_range_has_margin)
 {
     static struct history h;             /* 履歴 */
     const int16_t values[] = {200, 203}; /* 履歴に入れる温度 [℃ の 10 倍] */
@@ -665,8 +666,45 @@ ZTEST(oled, test_graph_small_range_is_not_magnified)
     fill_history(&h, values, ARRAY_SIZE(values));
     zassert_equal(show_graph(OLED_PAGE_TEMP_GRAPH, &h), EXIT_SUCCESS);
 
-    /* 幅 3 (0.3 ℃) でなく, 幅 10 (1.0 ℃) を 43 ドットにする: 3 * 43 / 10 = 12 ドット上 */
-    zassert_equal(line_to[0].y, 63U - 12U);
+    /* 縦軸は 15.0 から 25.3 (幅 103) を 43 ドット: 63 - 50 * 43 / 103 = 43, 63 - 53 * 43 / 103 = 41
+     */
+    zassert_equal(line_from[0].y, 43U);
+    zassert_equal(line_to[0].y, 41U);
+}
+
+/** 測定値のない点 (HISTORY_NONE) は, 最小と最大に含めず, 描かない. 前後の点は, 線でつながない */
+ZTEST(oled, test_graph_skips_none_points)
+{
+    static struct history h; /* 履歴 */
+
+    (void)memset(&h, 0, sizeof(h));
+    history_add(&h, 200, 0, STEP_MS);
+    history_add(&h, 250, 2 * STEP_MS, STEP_MS);
+    history_add(&h, 230, 3 * STEP_MS, STEP_MS);
+    zassert_equal(show_graph(OLED_PAGE_TEMP_GRAPH, &h), EXIT_SUCCESS);
+
+    /* 点は [200, なし, 250, 230]: 右端の 4 点 (x = 124 から 127) */
+    zassert_str_equal(printed[0], "20.0~25.0 C");
+    zassert_equal(cfb_draw_point_fake.call_count, 2U);
+    zassert_equal(drawn_points[0].x, 124U);
+    zassert_equal(drawn_points[1].x, 126U);
+    zassert_equal(cfb_draw_line_fake.call_count, 1U);
+    zassert_equal(line_from[0].x, 126U);
+    zassert_equal(line_to[0].x, 127U);
+}
+
+/** 履歴の点が, 全て測定値なしなら, グラフは描かずに No data を表示する */
+ZTEST(oled, test_graph_all_none)
+{
+    static struct history h; /* 履歴 */
+
+    (void)memset(&h, 0, sizeof(h));
+    history_restore(&h, 0, HISTORY_NONE);
+    zassert_equal(show_graph(OLED_PAGE_TEMP_GRAPH, &h), EXIT_SUCCESS);
+
+    zassert_str_equal(printed[0], "No data");
+    zassert_equal(cfb_draw_point_fake.call_count, 0U);
+    zassert_equal(cfb_draw_line_fake.call_count, 0U);
 }
 
 /** 最小と最大の行を描くのに失敗したら, その値を返し, 折れ線は描かない */

@@ -12,17 +12,18 @@
  * @brief ゲートウェイにつながらないときの, WiFi での AWS IoT Core への直接の送信 (MQTT) と,
  * SD カードへの保存, あとからの送信
  *
- * BLE がゲートウェイにつながっていない測定が, DIRECT_BLE_FAIL_LIMIT 回続いたら, WiFi と MQTT
- * (cloud.h) を動かして, 測定値を, DIRECT_PUBLISH_EVERY 回の測定ごと (10 秒) に送る.
- * ゲートウェイにつながったら, 止めて, WiFi を切る (ゲートウェイが送るので, 重複させない).
- * WiFi か MQTT の接続が, DIRECT_ATTEMPT_LIMIT 回続けて失敗したら, あきらめて, ゲートウェイに
- * つながるまで, やり直さない.
+ * 測定値 (5 秒ごと) は, 全て SD カードに保存する (backlog.h. 測った UNIX 時刻と, 送信済み
+ * フラグつき). ゲートウェイ (BLE) につながっている間の測定値は, ゲートウェイが AWS IoT Core へ
+ * 送るので, 送信済みとして保存する. BLE がゲートウェイにつながっていない測定が,
+ * DIRECT_BLE_FAIL_LIMIT 回続いたら, WiFi と MQTT (cloud.h) を動かして, 未送信の記録を,
+ * 古い順に送る (測った時刻を, そのまま payload に入れる). BLE にも WiFi にもつながっていない間も,
+ * 保存し続ける (最大 CONFIG_THERMO_BACKLOG_MAX_RECORDS 件. 超えたら, 古い記録から上書きする).
+ * ゲートウェイにつながったときに, 未送信の記録があれば, WiFi と MQTT で送って, 送り終えたら,
+ * WiFi を切る. WiFi か MQTT の接続が, DIRECT_ATTEMPT_LIMIT 回続けて失敗したら, あきらめて,
+ * ゲートウェイにつながるまで, やり直さない.
  *
- * ゲートウェイにつながっていない間の測定値 (10 秒ごと) は, まだ MQTT につながっていないとき,
- * または, 先に送る記録があるときは, SD カードに溜める (backlog.h. 測った UNIX 時刻つき).
- * SD カードに送っていない記録があるときは, ゲートウェイにつながっていても, WiFi と MQTT を
- * 動かして, 古い順に送る (測った時刻を, そのまま payload に入れる). 送り終えて,
- * ゲートウェイにつながっていれば, WiFi を切る.
+ * SD カードや RTC の時刻がなくて保存できないときは, WiFi と MQTT を動かしていて, MQTT に
+ * つながっていれば, 測定値を, そのまま送る (保存しない. ゲートウェイにつながったら, 止める).
  *
  * 使わないときは, CONFIG_THERMO_DIRECT_MQTT=n でビルドする (main.c は, このファイルの関数を
  * 呼ばない). SD カードを使わないときは, CONFIG_THERMO_BACKLOG=n (溜めない).
@@ -33,8 +34,6 @@
 
 /** BLE がゲートウェイにつながっていない測定が, この回数続いたら, 直接の送信を始める */
 #define DIRECT_BLE_FAIL_LIMIT 5U
-/** 直接の送信を始めたあと, この回数の測定ごとに, 1 回送る (測定は 5 秒ごと. 10 秒) */
-#define DIRECT_PUBLISH_EVERY  2U
 /** WiFi か MQTT の接続が, この回数続けて失敗したら, あきらめる */
 #define DIRECT_ATTEMPT_LIMIT  5U
 
@@ -43,5 +42,9 @@ int direct_init(void);
 void direct_sample(int16_t temp_x10, uint16_t humidity_x10);
 
 bool direct_active(void);
+
+int direct_sd_check(unsigned int *pending);
+
+int direct_init_status(void);
 
 #endif /* THERMO_NODE_DIRECT_H */

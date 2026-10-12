@@ -37,6 +37,7 @@
 #ifdef CONFIG_THERMO_DISPLAY
 #include "button.h"
 #include "history.h"
+#include "history_store.h"
 #include "oled.h"
 #endif
 #include "sensor.h"
@@ -246,6 +247,9 @@ int main(void)
                 if (humidity_x10 != THERMO_HUMIDITY_NONE) {
                     history_add(&humidity_history, (int16_t)humidity_x10, now_ms, GRAPH_STEP_MS);
                 }
+                /* 区切りが終わった点を SD カードに保存する (起動のあとは, 保存してあった点を戻す)
+                 */
+                history_store_update(&temp_history, &humidity_history, now_ms, GRAPH_STEP_MS);
             }
 #endif
         }

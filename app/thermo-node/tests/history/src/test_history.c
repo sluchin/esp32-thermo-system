@@ -111,4 +111,72 @@ ZTEST(history, test_get_limited_returns_newest)
     zassert_equal(out[1], 30);
 }
 
+/** 測定値のなかった区切りは, HISTORY_NONE の点になる (途中の区切りも, 今の区切りの手前も) */
+ZTEST(history, test_gap_becomes_none)
+{
+    history_add(&h, 10, 0, STEP_MS);
+    history_add(&h, 40, 3 * STEP_MS, STEP_MS);
+
+    /* 区切り 1 と 2 は, 測定値なし */
+    zassert_equal(history_get(&h, out, HISTORY_SIZE), 4U);
+    zassert_equal(out[0], 10);
+    zassert_equal(out[1], HISTORY_NONE);
+    zassert_equal(out[2], HISTORY_NONE);
+    zassert_equal(out[3], 40);
+
+    /* 次の点が覚えられても, 間は, 同じ */
+    history_add(&h, 50, 5 * STEP_MS, STEP_MS);
+    zassert_equal(history_get(&h, out, HISTORY_SIZE), 6U);
+    zassert_equal(out[3], 40);
+    zassert_equal(out[4], HISTORY_NONE);
+    zassert_equal(out[5], 50);
+    zassert_equal(history_last(&h), 40);
+}
+
+/** 測定値のない区切りが多すぎても, 点の数は, HISTORY_SIZE まで (最新の点が最後) */
+ZTEST(history, test_gap_is_limited)
+{
+    unsigned int n = 0U; /* 取り出した点の数 */
+
+    history_add(&h, 10, 0, STEP_MS);
+    history_add(&h, 20, 1000 * STEP_MS, STEP_MS);
+    history_add(&h, 30, 2000 * STEP_MS, STEP_MS);
+
+    n = history_get(&h, out, HISTORY_SIZE);
+    zassert_equal(n, HISTORY_SIZE);
+    zassert_equal(out[0], HISTORY_NONE);
+    zassert_equal(out[HISTORY_SIZE - 2U], HISTORY_NONE);
+    zassert_equal(out[HISTORY_SIZE - 1U], 30);
+    zassert_equal(history_last(&h), 20);
+}
+
+/** 保存してあった点を戻す: 間の区切りは HISTORY_NONE. 今の区切りの測定値は, 変わらない */
+ZTEST(history, test_restore)
+{
+    history_restore(&h, 2, 20);
+    history_restore(&h, 5, 50);
+    zassert_equal(history_last(&h), 50);
+
+    /* 戻しただけでは, 今の区切りの点はない */
+    zassert_equal(history_get(&h, out, HISTORY_SIZE), 4U);
+    zassert_equal(out[0], 20);
+    zassert_equal(out[1], HISTORY_NONE);
+    zassert_equal(out[2], HISTORY_NONE);
+    zassert_equal(out[3], 50);
+
+    /* 区切り 6 から 8 までの間は測定値なし. 区切り 9 の測定値が, 今の点 */
+    history_add(&h, 90, 9 * STEP_MS, STEP_MS);
+    zassert_equal(history_get(&h, out, HISTORY_SIZE), 8U);
+    zassert_equal(out[3], 50);
+    zassert_equal(out[4], HISTORY_NONE);
+    zassert_equal(out[6], HISTORY_NONE);
+    zassert_equal(out[7], 90);
+
+    /* 区切り 9 の次の区切り 10 の測定値で, 区切り 9 の点が覚えられる (間はない) */
+    history_add(&h, 100, 10 * STEP_MS, STEP_MS);
+    zassert_equal(history_get(&h, out, HISTORY_SIZE), 9U);
+    zassert_equal(out[7], 90);
+    zassert_equal(out[8], 100);
+}
+
 ZTEST_SUITE(history, NULL, NULL, before, NULL, NULL);
