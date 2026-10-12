@@ -40,6 +40,7 @@
 #include "history_store.h"
 #include "oled.h"
 #endif
+#include "sdlog.h"
 #include "sensor.h"
 #include "thermo_ble_uuid.h"
 #include "thermo_log.h"
@@ -209,6 +210,8 @@ int main(void)
         LOG_ERR("Direct publish is not available (err %d)", ret);
     }
 #endif
+    /* ここまでのログを, SD カードに書く (起動画面の約 3 秒の間に, 溜まりすぎないように) */
+    sdlog_flush();
     boot_sequence(&devs);
     /* 起動画面の間 (約 3 秒) を除いて, ループの時間を数える */
     start_ms = k_uptime_get();
@@ -307,6 +310,8 @@ int main(void)
 
         if (now_ms >= next_redraw_ms) {
             next_redraw_ms = next_grid_ms(start_ms, now_ms, REDRAW_INTERVAL_MS);
+            /* 溜めたログを SD カードに書く (カードがないときは, 何もしない) */
+            sdlog_flush();
 #ifdef CONFIG_THERMO_RTC
             if (devs.rtc_ready) {
                 /* 未設定や読み取りの失敗のときは, datetime.valid が false (時刻なしと表示する) */

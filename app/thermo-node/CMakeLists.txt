@@ -73,6 +73,8 @@ target_sources_ifdef(CONFIG_THERMO_WIFI_TIME app PRIVATE
 target_sources_ifdef(CONFIG_THERMO_DIRECT_MQTT app PRIVATE src/direct.c)
 # SD カードに溜める, 送れなかった測定値 (CONFIG_THERMO_BACKLOG=n のときは, ビルドしない)
 target_sources_ifdef(CONFIG_THERMO_BACKLOG app PRIVATE src/backlog.c)
+# ログの SD カードへの保存 (CONFIG_THERMO_SDLOG=n のときは, ビルドしない)
+target_sources_ifdef(CONFIG_THERMO_SDLOG app PRIVATE src/sdlog.c)
 # グラフの履歴の SD カードへの保存と復元 (CONFIG_THERMO_HISTORY_STORE=n のときは, ビルドしない)
 target_sources_ifdef(CONFIG_THERMO_HISTORY_STORE app PRIVATE src/history_store.c)
 

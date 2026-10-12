@@ -35,6 +35,7 @@
 #include <stdlib.h>  /* EXIT_SUCCESS */
 
 #include "backlog.h"
+#include "sdlog.h"
 #include "thermo_log.h"
 
 LOG_MODULE_REGISTER(thermo_backlog, THERMO_LOG_LEVEL);
@@ -129,6 +130,8 @@ int backlog_init(void)
     }
     scan(slots);
     LOG_INF("SD card ready: %u records, %u not sent", count, pending);
+    /* マウントできたので, ログ (boot.log と error.log) も保存できる */
+    sdlog_start();
 
     return EXIT_SUCCESS;
 }

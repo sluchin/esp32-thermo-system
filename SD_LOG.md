@@ -121,6 +121,23 @@ for i in range(len(data) // RECORD_SIZE):
 | 古い形式のファイル (以前の `backlog.bin` と `backlog.pos`) | 新しい形式の記録として読めない。カードに残っているときは、消す (`fs rm /SD:/backlog.bin`、`fs rm /SD:/backlog.pos`) |
 | SD カードがない、または FAT でない | 保存しない。ほかの機能 (BLE、OLED) は、続ける |
 
+## ログのファイル (boot.log と error.log)
+
+測定値の記録 (`backlog.bin`) とは別に、ノードのログ (シリアルに出るログと同じ文字列) を、テキストで、SD カードに保存します。実装は `app/thermo-node/src/sdlog.c` です (Zephyr のログのバックエンド)。
+
+| ファイル (FAT の表示) | 内容 |
+|:---|:---|
+| `/SD:/boot.log` (`BOOT.LOG`) | 起動から 60 秒の間の、全てのレベル (`<inf>` `<wrn>` `<err>`) のログ。起動のたびに、作り直します (前の起動のログは、消えます) |
+| `/SD:/error.log` (`ERROR.LOG`) | エラー (`<err>`) のログ。60 秒のあとも、書き続けます。起動をまたいで、追記します |
+| `/SD:/error.old` (`ERROR.OLD`) | `error.log` が 64 KB に達したときの、古い `error.log` (1 世代だけ。その前の `error.old` は、消えます) |
+
+- 1 行は、シリアルのログと同じ形です (例: `[00:00:12.345,000] <err> thermo_node: Failed to read the sensor`)。時刻は、起動からの時間です (UNIX 時刻ではありません)。
+- ログは、いったん RAM に溜めて、メインループが 1 秒ごとに書きます。SD カードをマウントできるまでは、RAM に溜めたままで、マウントできたときに書きます。電源が切れると、直前の 1 秒ほどのログは、失われます。
+- RAM に溜め切れなかったログは、捨てて、`The boot log buffer was full, N bytes were not saved` のようなエラーを出します。
+- 書き込みに失敗したとき (カードが外れた、容量がない) は、`Could not write the log to the SD card` を出して、止めます。`thermo sd` で、マウントし直すと、再開します (`SD card ready` のときに、再開します)。
+- 設定: `CONFIG_THERMO_SDLOG` (保存するか)、`CONFIG_THERMO_SDLOG_BOOT_SEC` (60)、`CONFIG_THERMO_SDLOG_BOOT_BUF_SIZE` (768)、`CONFIG_THERMO_SDLOG_ERROR_BUF_SIZE` (256)、`CONFIG_THERMO_SDLOG_ERROR_MAX_BYTES` (65536)。保存しないときは、`-DCONFIG_THERMO_SDLOG=n` でビルドします。
+- 読み方: ノードのシェルで `fs cat /SD:/boot.log`、または、SD カードを PC に挿して読みます。`fs cat` は、書き込み中でも使えますが、`fs rm` は、書き込み中には実行しないでください。
+
 ## 関連する文書
 
 - [SETUP.md](SETUP.md): SD カードの配線と、シェルの使い方
