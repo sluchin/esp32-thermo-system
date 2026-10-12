@@ -459,14 +459,14 @@ thermo set ssid <SSID>            (スマートフォンのテザリングなら
 thermo set psk <パスワード>
 thermo set endpoint <AWS IoT のエンドポイント>
 thermo set client_id <クライアント ID>    (ノードごとに、別の ID にする。ゲートウェイとも、重ねない。例: node-01)
-cred add ...                      (CA 証明書、デバイス証明書、秘密鍵。ゲートウェイと同じ手順。AWS_SETUP.md)
+cred add ...                      (CA 証明書、デバイス証明書、秘密鍵。送り方は、ゲートウェイと同じ。ただし、CA 以外は、ノード専用のものを使う。AWS_SETUP.md の 7 章)
 thermo save-certs
 thermo show                       (ready to connect: yes になれば、揃っている)
 ```
 
 **スマートフォンのテザリングに切り替える** (元の設定を残して、戻せる): `thermo tether <SSID> [パスワード]` は、今の SSID とパスワードを、フラッシュに保存してから (1 項目。`tether_bak`)、テザリングの SSID とパスワードを設定します。続けて、`thermo apply` で反映します。すでに切り替えているときに、もう一度実行しても、最初の元の設定は、上書きしません。`thermo restore` は、元の SSID とパスワードに戻して、保存した元の設定を消します (続けて、`thermo apply`)。`thermo show` の `tether backup:` に、元の SSID が出ます (なければ `(none)`)。パスワードは、基板の外に、出しません。Android アプリ [thermo-term](https://github.com/sluchin/thermo-term) が、USB ケーブル (Type-C) で、この 2 つのコマンドを送ります。
 
-文字が欠けないように、`scripts/send-cred.sh` と `scripts/send-wifi.sh` で、少しずつ送ります。**証明書とポリシーは、ノードごとに、別のものを作ります** (ゲートウェイと共有しません。1 台が漏れても、その 1 台だけ、無効にできます)。作り方は、[AWS_SETUP.md](AWS_SETUP.md) の 7 章です。
+文字が欠けないように、`scripts/send-cred.sh` と `scripts/send-wifi.sh` で、少しずつ送ります。**証明書、秘密鍵、ポリシー、クライアント ID は、ノードごとに、別のものを作ります** (ゲートウェイと共有しません。1 台が漏れても、その 1 台だけ、無効にできます。クライアント ID を重ねると、AWS IoT Core が、先の接続を切るので、奪い合いになります)。共有してよいのは、ルート CA とエンドポイントだけです。作り方は、[AWS_SETUP.md](AWS_SETUP.md) の 7 章です。
 
 **SD カード** (拡張ボードの SD カードスロット。SPI。CS は D2)
 
