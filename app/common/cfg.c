@@ -15,7 +15,7 @@
 #include <stdint.h> /* uint8_t */
 #include <stdio.h>  /* snprintf */
 #include <stdlib.h> /* EXIT_SUCCESS */
-#include <string.h> /* strcmp strlen strnlen memcpy */
+#include <string.h> /* strcmp strlen memchr memcpy */
 
 #include "cfg.h"
 #include "thermo_log.h"
@@ -83,6 +83,7 @@ static bool backup_present;
 static uint8_t save_buf[CFG_KEY_PEM_MAX];
 
 static void settings_name(char *out, const char *name);
+static size_t bounded_len(const uint8_t *data, size_t max);
 static void clear_backup(void);
 static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, void *cb_arg);
 static void load_credential(enum cfg_cred cred, size_t len, settings_read_cb read_cb, void *cb_arg);
@@ -494,6 +495,21 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
 }
 
 /**
+ * 文字列の長さを、最大 max までで数える (strnlen と同じ. native_sim の C の規格の設定では、
+ * strnlen の宣言が見えないので、使わない)
+ *
+ * @param[in] data 文字列の先頭
+ * @param[in] max  数える最大の長さ [バイト]
+ * @return NUL までの長さ. max までに NUL がなければ、max
+ */
+static size_t bounded_len(const uint8_t *data, size_t max)
+{
+    const uint8_t *nul = (const uint8_t *)memchr(data, 0, max); /* 最初の NUL */
+
+    return ((nul != NULL) ? (size_t)(nul - data) : max);
+}
+
+/**
  * テザリングに切り替える前の設定を、消す (RAM だけ)
  */
 static void clear_backup(void)
@@ -529,12 +545,12 @@ static void load_backup(size_t len, settings_read_cb read_cb, void *cb_arg)
     }
 
     /* 並びは、SSID、NUL、パスワード、NUL. 終わりの NUL がなければ、壊れている */
-    ssid_len = strnlen((const char *)blob, len);
+    ssid_len = bounded_len(blob, len);
     if (len <= (ssid_len + 1U)) {
         LOG_WRN("Ignoring the broken '%s'", BACKUP_NAME);
         return;
     }
-    psk_len = strnlen((const char *)&blob[ssid_len + 1U], len - ssid_len - 1U);
+    psk_len = bounded_len(&blob[ssid_len + 1U], len - ssid_len - 1U);
     if ((CFG_SSID_MAX < ssid_len) || (CFG_PSK_MAX < psk_len) ||
         (len != (ssid_len + psk_len + 2U))) {
         LOG_WRN("Ignoring the broken '%s'", BACKUP_NAME);
