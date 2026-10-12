@@ -326,11 +326,16 @@ static void pack_value(uint8_t *out, int16_t temp_x10, uint16_t humidity_x10)
 /**
  * 接続のコールバック
  *
+ * 接続できる数 (CONFIG_BT_MAX_CONN) に空きがあれば, アドバタイズを続ける (Zephyr は, 接続すると,
+ * アドバタイズを止めるため).
+ *
  * @param[in] conn 接続
  * @param[in] err 接続の結果 (0 なら成功)
  */
 static void connected(struct bt_conn *conn, uint8_t err)
 {
+    int ret = EXIT_SUCCESS; /* アドバタイズを再開した戻り値 */
+
     ARG_UNUSED(conn);
 
     if (err != 0U) {
@@ -339,6 +344,15 @@ static void connected(struct bt_conn *conn, uint8_t err)
     }
     connection_count++;
     LOG_INF("Connected");
+
+    /* 空きがあれば, ほかの機器 (スマートフォンなど) が見つけられるよう, アドバタイズを続ける */
+    if (connection_count < CONFIG_BT_MAX_CONN) {
+        ret = ble_advertise();
+        /* すでにアドバタイズしている (EALREADY) ときは, 何もしなくてよい */
+        if ((ret != EXIT_SUCCESS) && (ret != -EALREADY)) {
+            LOG_ERR("Failed to continue advertising (err %d)", ret);
+        }
+    }
 }
 
 /**

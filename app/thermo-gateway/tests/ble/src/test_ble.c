@@ -554,20 +554,50 @@ ZTEST(ble_gateway, test_scan_respects_max_nodes)
     zassert_equal(bt_conn_le_create_fake.call_count, (unsigned int)MAX_NODES);
 }
 
-/** スキャンを止められなかったら (EBUSY 以外), 接続しない. 次に見つけたときにやり直す */
+/** スキャンを止められなかったら (EBUSY, EALREADY 以外), 接続せず, スキャンを再開する */
 ZTEST(ble_gateway, test_scan_stop_failure)
 {
-    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+    scan_cb_ptr_t scan_cb = start_scanning();               /* スキャン結果のコールバック */
+    unsigned int starts = bt_le_scan_start_fake.call_count; /* ここまでのスキャン開始の回数 */
 
     bt_le_scan_stop_fake.return_val = -EIO;
     find_node(scan_cb, 0U);
 
-    /* 期待: スキャンを止められなければ, 接続しない (次に見つけたときにやり直す) */
+    /* 期待: スキャンを止められなければ, 接続しないで, スキャンを再開する */
     zassert_equal(bt_le_scan_stop_fake.call_count, 1U);
     zassert_equal(bt_conn_le_create_fake.call_count, 0U);
+    zassert_equal(bt_le_scan_start_fake.call_count, starts + 1U);
 
     bt_le_scan_stop_fake.return_val = 0;
     find_node(scan_cb, 0U);
+    zassert_equal(bt_conn_le_create_fake.call_count, 1U);
+}
+
+/** スキャンの再開に失敗しても, ログを出すだけ (次に見つけたときに, やり直す) */
+ZTEST(ble_gateway, test_scan_stop_failure_restart_failure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+
+    bt_le_scan_stop_fake.return_val = -EIO;
+    bt_le_scan_start_fake.return_val = -ENOMEM;
+    find_node(scan_cb, 0U);
+
+    zassert_equal(bt_conn_le_create_fake.call_count, 0U);
+
+    bt_le_scan_stop_fake.return_val = 0;
+    bt_le_scan_start_fake.return_val = 0;
+    find_node(scan_cb, 0U);
+    zassert_equal(bt_conn_le_create_fake.call_count, 1U);
+}
+
+/** スキャンがすでに止まっていても (EALREADY), 接続する */
+ZTEST(ble_gateway, test_scan_stop_already_stopped_connects)
+{
+    scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
+
+    bt_le_scan_stop_fake.return_val = -EALREADY;
+    find_node(scan_cb, 0U);
+
     zassert_equal(bt_conn_le_create_fake.call_count, 1U);
 }
 

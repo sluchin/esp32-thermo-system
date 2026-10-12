@@ -13,6 +13,8 @@ target_sources(app PRIVATE
 # CONFIG_BT_DEVICE_NAME は, Bluetooth を有効にしたときだけ, Kconfig が定義する.
 # ここでは Bluetooth スタックを使わないので, 自分で定義する.
 target_compile_definitions(app PRIVATE "CONFIG_BT_DEVICE_NAME=\"Thermo-Node\"")
+# CONFIG_BT_MAX_CONN も, Bluetooth を有効にしたときだけ, Kconfig が定義する (接続の空きで, アドバタイズを続けるかが決まる)
+target_compile_definitions(app PRIVATE CONFIG_BT_MAX_CONN=2)
 # CONFIG_THERMO_RTC は, 時刻の特性 (ゲートウェイから受け取る時刻) を有効にする (アプリの Kconfig が定義する)
 target_compile_definitions(app PRIVATE CONFIG_THERMO_RTC=1)
 
