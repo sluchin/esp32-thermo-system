@@ -480,7 +480,7 @@ ZTEST(cfg, test_reset)
 
     zassert_equal(cfg_reset(), EXIT_SUCCESS);
 
-    zassert_equal(settings_delete_fake.call_count, 7U); /* 項目 4 つと, 証明書 3 つ */
+    zassert_equal(settings_delete_fake.call_count, 8U); /* 項目 4 つと, 証明書 3 つと, 元の設定 */
     zassert_equal(tls_credential_delete_fake.call_count, 3U);
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "");
     zassert_str_equal(cfg_get(CFG_KEY_CLIENT_ID), "");
@@ -498,7 +498,7 @@ ZTEST(cfg, test_reset_failure_returns_first_error)
     SET_RETURN_SEQ(settings_delete, results, ARRAY_SIZE(results));
 
     zassert_equal(cfg_reset(), -EIO);
-    zassert_equal(settings_delete_fake.call_count, 7U);
+    zassert_equal(settings_delete_fake.call_count, 8U);
     zassert_str_equal(cfg_get(CFG_KEY_PSK), ""); /* 失敗しても値は空にする */
 }
 
@@ -512,6 +512,244 @@ ZTEST(cfg, test_reset_failure_in_credentials)
 
     /* 期待: 項目は成功して, 証明書の削除の失敗 (最初のエラー) を返す */
     zassert_equal(cfg_reset(), -ENOMEM);
+}
+
+/** 元の設定の削除だけが失敗した場合も, そのエラーを返す */
+ZTEST(cfg, test_reset_failure_in_backup)
+{
+    int results[] = {0, 0, 0, 0, 0, 0, 0, -EIO}; /* モックが順に返す戻り値 */
+
+    RESET_FAKE(settings_delete);
+    SET_RETURN_SEQ(settings_delete, results, ARRAY_SIZE(results));
+
+    zassert_equal(cfg_reset(), -EIO);
+}
+
+/** 設定を消すと, テザリングの前の設定も, 消える */
+ZTEST(cfg, test_reset_clears_backup)
+{
+    zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
+    zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
+    zassert_true(cfg_has_backup());
+
+    zassert_equal(cfg_reset(), EXIT_SUCCESS);
+
+    zassert_false(cfg_has_backup());
+    zassert_str_equal(cfg_backup_ssid(), "");
+}
+
+/** テザリングに切り替えると, 元の SSID とパスワードを保存して, 新しい値を設定する */
+ZTEST(cfg, test_tether_saves_backup)
+{
+    zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
+    zassert_equal(cfg_set(CFG_KEY_PSK, "secret"), EXIT_SUCCESS);
+    save_count = 0U;
+
+    zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
+
+    /* 期待: 元の値 (SSID, NUL, パスワード, NUL) を 1 つの項目に保存してから, 新しい値を保存する */
+    zassert_equal(save_count, 3U);
+    zassert_str_equal(saves[0].name, "thermo/tether_bak");
+    zassert_equal(saves[0].len, 15U);
+    zassert_mem_equal(saves[0].data, "home-ap\0secret", 15U);
+    zassert_str_equal(saves[1].name, "thermo/ssid");
+    zassert_str_equal(saves[2].name, "thermo/psk");
+    zassert_str_equal(cfg_get(CFG_KEY_SSID), "phone");
+    zassert_str_equal(cfg_get(CFG_KEY_PSK), "pw");
+    zassert_true(cfg_has_backup());
+    zassert_str_equal(cfg_backup_ssid(), "home-ap");
+}
+
+/** 続けて切り替えても, 最初の元の設定を残す (上書きしない) */
+ZTEST(cfg, test_tether_keeps_first_backup)
+{
+    zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
+    zassert_equal(cfg_set(CFG_KEY_PSK, "secret"), EXIT_SUCCESS);
+    zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
+    save_count = 0U;
+
+    zassert_equal(cfg_tether("phone2", ""), EXIT_SUCCESS);
+
+    /* 期待: 元の設定は保存し直さない (SSID とパスワードの 2 つだけ) */
+    zassert_equal(save_count, 2U);
+    zassert_str_equal(cfg_backup_ssid(), "home-ap");
+    zassert_str_equal(cfg_get(CFG_KEY_SSID), "phone2");
+    zassert_str_equal(cfg_get(CFG_KEY_PSK), "");
+}
+
+/** SSID が空か長すぎる, パスワードが長すぎるときは, -EINVAL (何も保存しない) */
+ZTEST(cfg, test_tether_invalid)
+{
+    static char long_ssid[CFG_SSID_MAX + 2U]; /* 上限を超える SSID */
+    static char long_psk[CFG_PSK_MAX + 2U];   /* 上限を超えるパスワード */
+
+    (void)memset(long_ssid, 'a', sizeof(long_ssid) - 1U);
+    (void)memset(long_psk, 'b', sizeof(long_psk) - 1U);
+
+    zassert_equal(cfg_tether("", "pw"), -EINVAL);
+    zassert_equal(cfg_tether(long_ssid, "pw"), -EINVAL);
+    zassert_equal(cfg_tether("phone", long_psk), -EINVAL);
+
+    zassert_equal(save_count, 0U);
+    zassert_false(cfg_has_backup());
+}
+
+/** 元の設定の保存に失敗したら, そのエラーを返して, 設定は変えない */
+ZTEST(cfg, test_tether_backup_save_failure)
+{
+    zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
+    save_count = 0U;
+    save_fail_index = 0;
+
+    zassert_equal(cfg_tether("phone", "pw"), -EIO);
+
+    zassert_false(cfg_has_backup());
+    zassert_str_equal(cfg_get(CFG_KEY_SSID), "home-ap");
+}
+
+/** SSID の保存に失敗したら, そのエラーを返す */
+ZTEST(cfg, test_tether_ssid_save_failure)
+{
+    save_fail_index = 1;
+
+    zassert_equal(cfg_tether("phone", "pw"), -EIO);
+}
+
+/** パスワードの保存に失敗したら, そのエラーを返す */
+ZTEST(cfg, test_tether_psk_save_failure)
+{
+    save_fail_index = 2;
+
+    zassert_equal(cfg_tether("phone", "pw"), -EIO);
+}
+
+/** 戻すと, 元の SSID とパスワードに戻して, 元の設定を消す */
+ZTEST(cfg, test_restore)
+{
+    zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
+    zassert_equal(cfg_set(CFG_KEY_PSK, "secret"), EXIT_SUCCESS);
+    zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
+    RESET_FAKE(settings_delete);
+
+    zassert_equal(cfg_restore(), EXIT_SUCCESS);
+
+    zassert_str_equal(cfg_get(CFG_KEY_SSID), "home-ap");
+    zassert_str_equal(cfg_get(CFG_KEY_PSK), "secret");
+    zassert_equal(settings_delete_fake.call_count, 1U);
+    zassert_str_equal(settings_delete_fake.arg0_val, "thermo/tether_bak");
+    zassert_false(cfg_has_backup());
+    zassert_str_equal(cfg_backup_ssid(), "");
+}
+
+/** 元の設定がなければ, -ENOENT */
+ZTEST(cfg, test_restore_without_backup)
+{
+    zassert_equal(cfg_restore(), -ENOENT);
+}
+
+/** SSID の保存に失敗したら, そのエラーを返して, 元の設定を残す */
+ZTEST(cfg, test_restore_ssid_save_failure)
+{
+    zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
+    save_count = 0U;
+    save_fail_index = 0;
+
+    zassert_equal(cfg_restore(), -EIO);
+
+    zassert_true(cfg_has_backup());
+}
+
+/** パスワードの保存に失敗したら, そのエラーを返して, 元の設定を残す */
+ZTEST(cfg, test_restore_psk_save_failure)
+{
+    zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
+    save_count = 0U;
+    save_fail_index = 1;
+
+    zassert_equal(cfg_restore(), -EIO);
+
+    zassert_true(cfg_has_backup());
+}
+
+/** 元の設定の削除に失敗したら, そのエラーを返して, もう一度戻せる */
+ZTEST(cfg, test_restore_delete_failure)
+{
+    zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
+    zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
+    settings_delete_fake.return_val = -EIO;
+
+    zassert_equal(cfg_restore(), -EIO);
+
+    zassert_true(cfg_has_backup());
+    settings_delete_fake.return_val = 0;
+    zassert_equal(cfg_restore(), EXIT_SUCCESS);
+    zassert_false(cfg_has_backup());
+}
+
+/** フラッシュに保存された元の設定は, 読み込まれて, 戻せる */
+ZTEST(cfg, test_load_backup)
+{
+    static const char blob[] = "home-ap\0secret"; /* SSID, NUL, パスワード, NUL */
+
+    load("tether_bak", blob, sizeof(blob));
+
+    zassert_true(cfg_has_backup());
+    zassert_str_equal(cfg_backup_ssid(), "home-ap");
+    zassert_equal(cfg_restore(), EXIT_SUCCESS);
+    zassert_str_equal(cfg_get(CFG_KEY_PSK), "secret");
+}
+
+/** 長さが合わない元の設定は, 無視する */
+ZTEST(cfg, test_load_backup_invalid_length_ignored)
+{
+    static char big[CFG_BACKUP_MAX + 1U]; /* 上限を超える長さ */
+
+    (void)memset(big, 'a', sizeof(big));
+    load("tether_bak", big, 1U);
+    zassert_false(cfg_has_backup());
+
+    load("tether_bak", big, sizeof(big));
+    zassert_false(cfg_has_backup());
+}
+
+/** 読み出しに失敗した元の設定は, 無視する */
+ZTEST(cfg, test_load_backup_read_failure)
+{
+    struct settings_handler *h = handler_of(); /* settings のハンドラ */
+
+    source.err = -EIO;
+
+    zassert_equal(h->h_set("tether_bak", 10U, read_source, NULL), 0);
+    zassert_false(cfg_has_backup());
+}
+
+/** 壊れた元の設定 (終わりの NUL がない, 長さが合わない, 長すぎる) は, 無視する */
+ZTEST(cfg, test_load_backup_broken_ignored)
+{
+    static const char no_psk[] = "ab";                  /* パスワードの部分がない */
+    static const char no_end[] = {'a', '\0', 'b', 'c'}; /* 終わりの NUL がない */
+    static const char extra[] = "a\0b\0c";              /* NUL のあとに余りがある */
+    static char long_ssid[CFG_SSID_MAX + 4U]; /* 上限を超える SSID (パスワードは空) */
+    static char long_psk[CFG_PSK_MAX + 4U];   /* 上限を超えるパスワード */
+
+    (void)memset(long_ssid, 'a', sizeof(long_ssid));
+    long_ssid[sizeof(long_ssid) - 2U] = '\0';
+    long_ssid[sizeof(long_ssid) - 1U] = '\0';
+    (void)memset(long_psk, 'b', sizeof(long_psk));
+    long_psk[0] = 'a';
+    long_psk[1] = '\0';
+    long_psk[sizeof(long_psk) - 1U] = '\0';
+
+    load("tether_bak", no_psk, sizeof(no_psk));
+    zassert_false(cfg_has_backup());
+    load("tether_bak", no_end, sizeof(no_end));
+    zassert_false(cfg_has_backup());
+    load("tether_bak", extra, sizeof(extra));
+    zassert_false(cfg_has_backup());
+    load("tether_bak", long_ssid, sizeof(long_ssid));
+    zassert_false(cfg_has_backup());
+    load("tether_bak", long_psk, sizeof(long_psk));
+    zassert_false(cfg_has_backup());
 }
 
 /** 起動時は settings を初期化して, ハンドラを登録して, "thermo" 以下を読み込む */

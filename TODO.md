@@ -4,7 +4,7 @@
 
 - [x] **AWS IoT Core への送信** (XIAO ESP32C3。外付けアンテナあり): WiFi、SNTP、TLS (相互認証)、MQTT で、SwitchBot の値を、10 秒ごとに送る。手順は [AWS_SETUP.md](AWS_SETUP.md)。TLS の設定 (PEM、ECDHE-RSA、AES-GCM、PSA、バッファ 6144、時間制限 30 秒) は、[AWS_SETUP.md](AWS_SETUP.md) の 5.1。
   - [ ] 残り: 長時間 (数時間) 動かして、再接続とメモリ (`CONFIG_MBEDTLS_HEAP_SIZE`) を確認する。(外付けアンテナなしでは、WiFi が不安定なので、アンテナは必須)
-- [ ] **スマートフォンのテザリングで、簡単につなぐ** (Android アプリから SSID を書き込む): ノードとゲートウェイを、スマートフォンのテザリングで、ネットにつなぐとき、シェルの `thermo set ssid ...` を、手で打たずに、Android アプリから、SSID (とパスワード) を、書き込めるようにする。
+- [ ] **スマートフォンのテザリングで、簡単につなぐ** (Android アプリから SSID を書き込む。ファームウェアの `thermo tether` と `thermo restore` と、Android アプリ [thermo-term](https://github.com/sluchin/thermo-term) は、実装した。**実機では、まだ確認していない**): ノードとゲートウェイを、スマートフォンのテザリングで、ネットにつなぐとき、シェルの `thermo set ssid ...` を、手で打たずに、Android アプリから、SSID (とパスワード) を、書き込めるようにする。
   - **先に確認すること**: Android の「USB テザリング」は、相手が USB のホストで、RNDIS/NCM に対応しているときだけ使える。XIAO ESP32C3 の USB は、デバイス側 (USB シリアル/JTAG) なので、**USB テザリングでは、つなげない** (ネットを共有してもらう通信は、基板が USB ホストになる必要がある)。使うのは、スマートフォンの **Wi-Fi テザリング (ホットスポット)**。USB ケーブルは、SSID を書き込むときだけに使う。ホットスポットは、**2.4 GHz** に設定する (ESP32-C3 は 5 GHz に対応しない。Android の既定が 5 GHz のことがある)。暗号化は、WPA2-PSK を使う (WPA3 だけの設定は、つながらないことがある)。
   - **書き込みの方法**: スマートフォンと基板を、**USB ケーブル (Type-C と Type-C)** でつないで、スマートフォンが USB のホスト (OTG) になり、基板の USB シリアル (CDC ACM) に、`thermo set ssid` / `thermo set psk` を送る (ノードもゲートウェイも、同じシェルなので、共通で使える。BLE のペアリングが要らない)。Android アプリは、USB シリアルのライブラリ (例: usb-serial-for-android) を使う。ケーブルは、データ通信に対応したものを使う (充電専用は、不可)。
   - 候補 (B): BLE の書き込み用の特性 (暗号化、ボンディング) を、ノードに足す (ノードだけ。ゲートウェイは、セントラルなので、別の対応が要る)。A (USB シリアル) を先に進める。
