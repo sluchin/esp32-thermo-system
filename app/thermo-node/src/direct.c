@@ -12,7 +12,6 @@
 
 #include <zephyr/bluetooth/addr.h>
 #include <zephyr/logging/log.h>
-#include <errno.h>   /* ENOENT EBADMSG */
 #include <stdbool.h> /* bool */
 #include <stdint.h>  /* int16_t uint16_t int64_t uint32_t */
 #include <stdlib.h>  /* EXIT_SUCCESS */
@@ -42,12 +41,12 @@ static bool gave_up;
 static bool warned_incomplete;
 /** 時刻がなくて, SD カードに溜められないことを, 知らせたか */
 static bool warned_no_time;
-/** ゲートウェイにつながっていない測定の数 (DIRECT_PUBLISH_EVERY ごとに, 1 回, 送るか, 溜める) */
-static unsigned int tick;
 /** このノードの BLE のアドレス (ゲートウェイが見るアドレスと同じ. トピックと payload に使う) */
 static bt_addr_le_t node_addr;
 /** node_addr を取れたか */
 static bool addr_ready;
+/** direct_init() の結果 (成功は 0. まだ呼んでいなければ -EAGAIN) */
+static int init_status = -EAGAIN;
 /** SD カードを使えるか */
 static bool backlog_ready;
 /** SD カードの記録のうち, 送信のキューに入れて, まだ, 送り終えたことにしていない数 */
@@ -57,8 +56,8 @@ static uint32_t sent_mark;
 
 static void stop_sending(void);
 static void start_sending(void);
-static void handle_value(int16_t temp_x10, uint16_t humidity_x10);
-static void save_value(int16_t temp_x10, uint16_t humidity_x10);
+static bool save_value(int16_t temp_x10, uint16_t humidity_x10, bool sent);
+static void publish_live(int16_t temp_x10, uint16_t humidity_x10);
 static void flush_backlog(void);
 
 /**
@@ -76,25 +75,27 @@ int direct_init(void)
 
     /* 状態を最初に戻す (やり直しても, 前の状態を引き継がない) */
     addr_ready = false;
+    init_status = -EAGAIN;
     ble_failures = 0U;
     was_connected = false;
     active = false;
     gave_up = false;
     warned_incomplete = false;
     warned_no_time = false;
-    tick = 0U;
     queued = 0U;
     sent_mark = 0U;
 
     err = ble_get_address(&node_addr);
     if (err != EXIT_SUCCESS) {
         LOG_ERR("Could not get the BLE address (err %d), no direct publish", err);
+        init_status = err;
         return err;
     }
 
     err = cloud_init(false);
     if (err != EXIT_SUCCESS) {
         LOG_ERR("Could not start the cloud thread (err %d), no direct publish", err);
+        init_status = err;
         return err;
     }
     cloud_set_attempt_limit(DIRECT_ATTEMPT_LIMIT);
@@ -104,6 +105,7 @@ int direct_init(void)
         LOG_WRN("No SD card, the values are not saved while no connection is available");
     }
     addr_ready = true;
+    init_status = EXIT_SUCCESS;
 
     return EXIT_SUCCESS;
 }
@@ -111,10 +113,11 @@ int direct_init(void)
 /**
  * @brief 測定値を知らせる (測定のたびに呼ぶ)
  *
- * BLE がゲートウェイにつながっていない測定が続いたら, または, SD カードに送っていない記録が
- * あるときは, WiFi と MQTT を動かす. ゲートウェイにつながっていない間は, 一定の間隔で, 測定値を,
- * MQTT で送る (まだ接続していない, または, SD カードに送っていない記録が残っているときは,
- * SD カードに溜める). 動かしている間は, SD カードの記録を, 古い順に送る.
+ * 測定値は, SD カードに保存する (ゲートウェイにつながっているときは, 送信済みとして. つながって
+ * いないときは, 未送信として). BLE がゲートウェイにつながっていない測定が続いたら, または,
+ * ゲートウェイにつながっていて, SD カードに未送信の記録があるときは, WiFi と MQTT を動かして,
+ * 未送信の記録を, 古い順に送る (測った時刻を, そのまま payload に入れる). SD カードや時刻が
+ * ないときは, 保存できないので, 動かしていて MQTT につながっていれば, 測定値をそのまま送る.
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
@@ -122,6 +125,7 @@ int direct_init(void)
 void direct_sample(int16_t temp_x10, uint16_t humidity_x10)
 {
     bool connected = false;   /* ゲートウェイにつながっているか */
+    bool saved = false;       /* SD カードに保存したか */
     bool wifi_wanted = false; /* WiFi と MQTT が要るか */
 
     if (!addr_ready) {
@@ -136,15 +140,17 @@ void direct_sample(int16_t temp_x10, uint16_t humidity_x10)
         }
         ble_failures = 0U;
         warned_incomplete = false;
-        tick = 0U;
     } else if (ble_failures < DIRECT_BLE_FAIL_LIMIT) {
         ble_failures++;
     }
     was_connected = connected;
 
-    /* WiFi が要るのは, つながらない測定が続くときと, 送っていない記録があるとき */
-    wifi_wanted =
-            ((!connected) && (ble_failures >= DIRECT_BLE_FAIL_LIMIT)) || (backlog_pending() > 0U);
+    /* 測定値を保存する (ゲートウェイにつながっていれば, ゲートウェイが送るので, 送信済み) */
+    saved = save_value(temp_x10, humidity_x10, connected);
+
+    /* WiFi が要るのは, つながらない測定が続くときと, つながっていて, 未送信の記録があるとき */
+    wifi_wanted = ((!connected) && (ble_failures >= DIRECT_BLE_FAIL_LIMIT)) ||
+                  (connected && (backlog_pending() > 0U));
 
     if (!wifi_wanted) {
         if (active) {
@@ -162,13 +168,9 @@ void direct_sample(int16_t temp_x10, uint16_t humidity_x10)
         LOG_ERR("Could not connect, give up sending directly until the gateway connects");
     }
 
-    /* ゲートウェイにつながっていない間は, 一定の間隔で, 測定値を送るか, 溜める */
-    if (!connected) {
-        tick++;
-        if (tick >= DIRECT_PUBLISH_EVERY) {
-            tick = 0U;
-            handle_value(temp_x10, humidity_x10);
-        }
+    /* 保存できなかった測定値は, 送れるときだけ, そのまま送る */
+    if ((!saved) && (!connected)) {
+        publish_live(temp_x10, humidity_x10);
     }
 
     if (active) {
@@ -208,47 +210,48 @@ static void start_sending(void)
 
     cloud_set_enabled(true);
     active = true;
-    tick = 0U;
     queued = 0U;
     LOG_WRN("Start sending over WiFi (%u samples without the gateway, %u records on the SD card)",
             ble_failures, backlog_pending());
 }
 
 /**
- * 測定値を 1 件, 送る (MQTT につながっていて, SD カードの記録がなければ) か, SD カードに溜める
+ * 測定値を 1 件, そのまま送る (動かしていて, MQTT につながっていて, 先に送る記録がなければ)
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
  */
-static void handle_value(int16_t temp_x10, uint16_t humidity_x10)
+static void publish_live(int16_t temp_x10, uint16_t humidity_x10)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
     /* つながっていて, 先に送る記録がなければ, すぐに送る (順序を保つ) */
-    if (active && cloud_is_connected() && (backlog_pending() == 0U)) {
-        err = cloud_publish_temperature(&node_addr, temp_x10, humidity_x10);
-        if (err != EXIT_SUCCESS) {
-            LOG_WRN("Could not queue the temperature (err %d)", err);
-        }
+    if (!(active && cloud_is_connected() && (backlog_pending() == 0U))) {
         return;
     }
-
-    save_value(temp_x10, humidity_x10);
+    err = cloud_publish_temperature(&node_addr, temp_x10, humidity_x10);
+    if (err != EXIT_SUCCESS) {
+        LOG_WRN("Could not queue the temperature (err %d)", err);
+    }
 }
 
 /**
- * 測定値を, SD カードに溜める (SD カードがない, または, 時刻がないときは, 捨てる)
+ * 測定値を, SD カードに保存する (SD カードがない, または, 時刻がないときは, 保存しない)
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
+ * @param[in] sent         送信済みとして保存するか
+ *
+ * @retval true  保存した
+ * @retval false 保存しなかった (SD カードがない, 時刻がない, 失敗)
  */
-static void save_value(int16_t temp_x10, uint16_t humidity_x10)
+static bool save_value(int16_t temp_x10, uint16_t humidity_x10, bool sent)
 {
-    struct backlog_record rec = {0}; /* 溜める記録 */
+    struct backlog_record rec = {0}; /* 保存する記録 */
     int err = EXIT_SUCCESS;          /* エラーコード */
 
     if (!backlog_ready) {
-        return;
+        return false;
     }
 
     /* 測った UNIX 時刻が要る (あとから送るときに, そのまま payload に入れる) */
@@ -258,16 +261,19 @@ static void save_value(int16_t temp_x10, uint16_t humidity_x10)
             LOG_WRN("No time in the RTC, the values cannot be saved on the SD card");
             warned_no_time = true;
         }
-        return;
+        return false;
     }
     warned_no_time = false;
 
     rec.temp_x10 = temp_x10;
     rec.humidity_x10 = humidity_x10;
-    err = backlog_append(&rec);
+    err = backlog_append(&rec, sent);
     if (err != EXIT_SUCCESS) {
         LOG_ERR("Could not save the value on the SD card (err %d)", err);
+        return false;
     }
+
+    return true;
 }
 
 /**
@@ -299,15 +305,6 @@ static void flush_backlog(void)
     /* 先の記録を, キューに入れる (キューを, 満杯にしない) */
     while ((queued < backlog_pending()) && (cloud_pending() < FLUSH_QUEUE_MAX)) {
         err = backlog_read(&rec, queued);
-        if (err == -EBADMSG) {
-            /* 壊れた記録: 先に入れた記録を送り終えたら, 捨てる (途中は, 数えられない) */
-            if (queued == 0U) {
-                LOG_ERR("The record on the SD card is broken, drop it");
-                (void)backlog_commit(1U);
-                continue;
-            }
-            break;
-        }
         if (err != EXIT_SUCCESS) {
             break;
         }
@@ -321,4 +318,46 @@ static void flush_backlog(void)
         }
         queued++;
     }
+}
+
+/**
+ * @brief SD カードが使えるかを確かめる (使えなければ, マウントをやり直す. シェルの `thermo sd` 用)
+ *
+ * 起動のときに SD カードをマウントできなかったときも, カードを挿し直したあとに, 再起動せずに
+ * 確かめられる. 失敗の理由は, backlog_init() のログに出る. すでに使えているときは,
+ * マウントし直さない (測定値の保存の途中に, 外さないため).
+ *
+ * @param[out] pending 未送信の記録の数 (成功のときだけ)
+ *
+ * @retval EXIT_SUCCESS SD カードが使える
+ * @retval -ENODEV      SD カードがない (または, マウントできない)
+ */
+int direct_sd_check(unsigned int *pending)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    if (!backlog_ready) {
+        err = backlog_init();
+        if (err != EXIT_SUCCESS) {
+            return err;
+        }
+        backlog_ready = true;
+    }
+    *pending = backlog_pending();
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * @brief direct_init() の結果を返す (シェルの `thermo sd` 用)
+ *
+ * 失敗していると, 測定値を保存しない (SD カードがマウントできていても). 理由は, 起動のログの
+ * direct_init() の失敗にも出る.
+ *
+ * @retval EXIT_SUCCESS direct_init() が成功した
+ * @retval negative     direct_init() が失敗した (負の errno). まだ呼んでいなければ -EAGAIN
+ */
+int direct_init_status(void)
+{
+    return init_status;
 }

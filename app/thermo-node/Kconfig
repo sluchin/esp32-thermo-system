@@ -139,7 +139,7 @@ config THERMO_DIRECT_MQTT
       a client ID of its own for each node.
 
 config THERMO_BACKLOG
-    bool "Save the values on the SD card while no connection is available"
+    bool "Save the values on the SD card, and send them later"
     default y if $(dt_nodelabel_enabled,sdhc0)
     depends on THERMO_DIRECT_MQTT
     select DISK_ACCESS
@@ -147,13 +147,15 @@ config THERMO_BACKLOG
     select FAT_FILESYSTEM_ELM
     select CRC
     help
-      While BLE is not connected to the gateway and the values cannot be
-      sent over WiFi, save them (UNIX time, temperature, humidity) on the
-      SD card of the expansion board (FAT, SPI). When the gateway or WiFi
-      is available again, send them to AWS IoT Core in the order of the
-      time with MQTT. The default is y when the SD card is in the
-      Devicetree (the node label sdhc0). The card must be formatted
-      with FAT.
+      Save every measurement (UNIX time, temperature, humidity and a
+      "sent" flag) on the SD card of the expansion board (FAT, SPI).
+      The values measured while BLE is connected to the gateway are
+      saved as sent (the gateway sends them). The values measured while
+      neither BLE nor WiFi is connected are saved as not sent, and sent
+      to AWS IoT Core in the order of the time with MQTT when the
+      gateway or WiFi is available again. The default is y when the SD
+      card is in the Devicetree (the node label sdhc0). The card must be
+      formatted with FAT.
 
 config THERMO_BACKLOG_MAX_RECORDS
     int "Maximum number of the values on the SD card"
@@ -161,9 +163,11 @@ config THERMO_BACKLOG_MAX_RECORDS
     range 10 4000000
     depends on THERMO_BACKLOG
     help
-      One value takes 16 bytes. The default 100000 is about 1.6 MB, and
-      about 5.8 days of the values saved every 5 seconds. When it is
-      full, the new values are dropped.
+      One value takes 16 bytes. The file is a ring of this many values:
+      when it is full, the oldest values are overwritten. The default
+      100000 is about 1.6 MB, and about 5.8 days of the values saved
+      every 5 seconds. The file is read once at the start (a few
+      seconds for the default).
 
 config THERMO_BACKLOG_MOUNT
     string "Mount point of the SD card"
@@ -174,13 +178,24 @@ config THERMO_BACKLOG_MOUNT
 
 config THERMO_GRAPH_STEP_SEC
     int "Time per point of the graph on the OLED display [seconds]"
-    default 30
+    default 170
     range 5 600
     depends on THERMO_DISPLAY
     help
       The graph pages of the OLED display (temperature and humidity)
       show the last 128 points, one point per this time (the average of
-      the measurements in the time). The default 30 shows the last 64
-      minutes. 60 shows 2 hours and 8 minutes.
+      the measurements in the time). The default 170 shows the last 6
+      hours. 30 shows 64 minutes.
+
+config THERMO_HISTORY_STORE
+    bool "Restore the graph history from the SD card"
+    default y
+    depends on THERMO_BACKLOG && THERMO_DISPLAY && THERMO_RTC
+    help
+      When the node starts and the RTC has the time, rebuild the points
+      of the graph (the average of the temperature and the humidity in a
+      time step) from the records on the SD card, which are saved for
+      every measurement. The time while the node was off is shown as a
+      gap in the graph.
 
 source "Kconfig.zephyr"

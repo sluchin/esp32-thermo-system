@@ -16,9 +16,10 @@
 #include <zephyr/fff.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/shell/shell_dummy.h>
-#include <errno.h>  /* ENOENT EINVAL EIO ETIMEDOUT */
+#include <errno.h>  /* ENODEV ENOENT EINVAL EIO ETIMEDOUT */
 #include <string.h> /* strcmp memset strstr */
 
+#include "direct.h"
 #include "node_time.h"
 #include "shell_extra.h"
 #include "wifi_time.h"
@@ -33,6 +34,8 @@ SHELL_CMD_REGISTER(thermo, &thermo_cmds, "Test of thermo", NULL);
 /* FAKE_*: FFF のモック (実物の代わりの関数. 呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, wifi_time_fetch, int64_t *)
 FAKE_VALUE_FUNC(int, node_time_set, int64_t)
+FAKE_VALUE_FUNC(int, direct_sd_check, unsigned int *)
+FAKE_VALUE_FUNC(int, direct_init_status)
 
 /** wifi_time_fetch() が返す時刻 [s] */
 #define FETCHED_SEC 1790000000
@@ -94,6 +97,8 @@ static void before(void *fixture)
     ARG_UNUSED(fixture);
     RESET_FAKE(wifi_time_fetch);
     RESET_FAKE(node_time_set);
+    RESET_FAKE(direct_sd_check);
+    RESET_FAKE(direct_init_status);
     FFF_RESET_HISTORY();
     wifi_time_fetch_fake.custom_fake = fake_fetch;
 }
@@ -138,6 +143,61 @@ ZTEST(thermo_wifi_shell, test_sync_set_failure)
 
     zassert_equal(ret, -EIO);
     zassert_not_null(strstr(out, "Failed to set the RTC"));
+}
+
+/**
+ * direct_sd_check() のモック動作 (未送信の記録 3 件)
+ *
+ * @param[out] pending 未送信の記録の数
+ * @return 0
+ */
+static int fake_sd_check(unsigned int *pending)
+{
+    *pending = 3U;
+
+    return 0;
+}
+
+/** `thermo sd` は, SD カードが使えることと, 未送信の数を表示する */
+ZTEST(thermo_wifi_shell, test_sd)
+{
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
+
+    direct_sd_check_fake.custom_fake = fake_sd_check;
+    out = run("thermo sd", &ret);
+
+    zassert_equal(ret, 0);
+    zassert_equal(direct_sd_check_fake.call_count, 1U);
+    zassert_not_null(strstr(out, "SD card is ready (3 not sent)"));
+    zassert_is_null(strstr(out, "Saving is off"));
+}
+
+/** SD カードが使えても, direct_init() が失敗していたら, 保存しないことを表示する */
+ZTEST(thermo_wifi_shell, test_sd_saving_off)
+{
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
+
+    direct_sd_check_fake.custom_fake = fake_sd_check;
+    direct_init_status_fake.return_val = -ENOENT;
+    out = run("thermo sd", &ret);
+
+    zassert_equal(ret, 0);
+    zassert_not_null(strstr(out, "Saving is off: direct_init() failed at the start (err -2)"));
+}
+
+/** SD カードが使えなければ, そのエラーを返して, 表示する */
+ZTEST(thermo_wifi_shell, test_sd_failure)
+{
+    int ret = 0;            /* 戻り値 */
+    const char *out = NULL; /* シェルの出力 */
+
+    direct_sd_check_fake.return_val = -ENODEV;
+    out = run("thermo sd", &ret);
+
+    zassert_equal(ret, -ENODEV);
+    zassert_not_null(strstr(out, "SD card is not available (err -19"));
 }
 
 ZTEST_SUITE(thermo_wifi_shell, NULL, setup, before, NULL, NULL);

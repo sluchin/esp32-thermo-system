@@ -12,7 +12,8 @@
  * @brief `thermo` コマンドに足す, thermo-node 固有のサブコマンド
  *
  * app/common/cfg_shell.c が, このファイルがあれば読み込んで, THERMO_SHELL_EXTRA を, サブコマンドの
- * 並びの最後に足す. thermo-node は, `thermo sync` (WiFi で時刻を取って RTC に設定する) を足す.
+ * 並びの最後に足す. thermo-node は, `thermo sync` (WiFi で時刻を取って RTC に設定する) と,
+ * `thermo sd` (SD カードが使えるかを確かめる. CONFIG_THERMO_DIRECT_MQTT のとき) を足す.
  */
 
 #include <zephyr/shell/shell.h>
@@ -20,8 +21,18 @@
 
 int node_cmd_sync(const struct shell *sh, size_t argc, char **argv);
 
+#ifdef CONFIG_THERMO_DIRECT_MQTT
+int node_cmd_sd(const struct shell *sh, size_t argc, char **argv);
+
+/** サブコマンドに足す (末尾のコンマを含む) */
+#define THERMO_SHELL_EXTRA                                                                         \
+    SHELL_CMD(sync, NULL, "get the time over WiFi now and set the RTC", node_cmd_sync),            \
+            SHELL_CMD(sd, NULL, "check the SD card (mount it again if it is not ready)",           \
+                      node_cmd_sd),
+#else
 /** サブコマンドに足す (末尾のコンマを含む) */
 #define THERMO_SHELL_EXTRA                                                                         \
     SHELL_CMD(sync, NULL, "get the time over WiFi now and set the RTC", node_cmd_sync),
+#endif
 
 #endif /* THERMO_NODE_SHELL_EXTRA_H */

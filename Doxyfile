@@ -26,6 +26,8 @@ INPUT                  = README.md \
                          CODING_STYLE.md \
                          MISRA.md \
                          TODO.md \
+                         SD_LOG.md \
+                         TEST_INTEGRATION.md \
                          .claude/CLAUDE.md \
                          app/common \
                          app/$(DOCS_APP)
