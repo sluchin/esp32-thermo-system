@@ -55,6 +55,10 @@ trap 'kill $READER 2>/dev/null || true' EXIT
 printf '\n' >&3
 sleep 0.5
 
+# 前の失敗で, バッファに残った中身を捨てる (残っていると, 今回の分が入りきらず, 溢れる)
+printf 'cred buf clear\n' >&3
+sleep 0.5
+
 printf 'cred buf load\n' >&3
 sleep 0.5
 
