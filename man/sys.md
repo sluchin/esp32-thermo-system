@@ -17,7 +17,7 @@ atomic_val_t atomic_add(atomic_t *target, atomic_val_t value);
 - `target`: アトミック変数のアドレス。`value`: 足す値。
 - 戻り値: `target` の、足す前の値。
 
-使用箇所: `app/thermo-node/src/sdlog.c:220`
+使用箇所: [`app/thermo-node/src/sdlog.c:220`](../app/thermo-node/src/sdlog.c#L220)
 
 ### atomic_set
 
@@ -29,7 +29,7 @@ atomic_val_t atomic_set(atomic_t *target, atomic_val_t value);
 
 - 戻り値: `target` の、設定する前の値。
 
-使用箇所: `app/thermo-node/src/sdlog.c:325`
+使用箇所: [`app/thermo-node/src/sdlog.c:325`](../app/thermo-node/src/sdlog.c#L325)
 
 ## バイトオーダー
 
@@ -41,7 +41,7 @@ static inline uint16_t sys_get_le16(const uint8_t src[2]);
 
 リトルエンディアンで置かれた 16 ビットの整数を、ホストのバイトオーダーで取り出す。アラインメントされていないメモリでもよい。
 
-使用箇所: `app/thermo-gateway/src/ble.c:367` (ほか 1 行), `app/thermo-node/src/backlog.c:442` (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:367`](../app/thermo-gateway/src/ble.c#L367) (ほか 1 行), [`app/thermo-node/src/backlog.c:442`](../app/thermo-node/src/backlog.c#L442) (ほか 1 行)
 
 ### sys_get_le32
 
@@ -51,7 +51,7 @@ static inline uint32_t sys_get_le32(const uint8_t src[4]);
 
 リトルエンディアンで置かれた 32 ビットの整数を、ホストのバイトオーダーで取り出す。アラインメントされていないメモリでもよい。
 
-使用箇所: `app/thermo-node/src/backlog.c:438` (ほか 1 行), `app/thermo-node/src/ble.c:296`
+使用箇所: [`app/thermo-node/src/backlog.c:438`](../app/thermo-node/src/backlog.c#L438) (ほか 1 行), [`app/thermo-node/src/ble.c:296`](../app/thermo-node/src/ble.c#L296)
 
 ### sys_put_le16
 
@@ -61,7 +61,7 @@ static inline void sys_put_le16(uint16_t val, uint8_t dst[2]);
 
 ホストのバイトオーダーの 16 ビットの整数を、リトルエンディアンで置く。アラインメントされていないメモリでもよい。
 
-使用箇所: `app/thermo-node/src/backlog.c:459` (ほか 1 行), `app/thermo-node/src/ble.c:322` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/backlog.c:459`](../app/thermo-node/src/backlog.c#L459) (ほか 1 行), [`app/thermo-node/src/ble.c:322`](../app/thermo-node/src/ble.c#L322) (ほか 1 行)
 
 ### sys_put_le32
 
@@ -71,7 +71,7 @@ static inline void sys_put_le32(uint32_t val, uint8_t dst[4]);
 
 ホストのバイトオーダーの 32 ビットの整数を、リトルエンディアンで置く。アラインメントされていないメモリでもよい。
 
-使用箇所: `app/thermo-gateway/src/ble.c:513`, `app/thermo-node/src/backlog.c:458` (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:513`](../app/thermo-gateway/src/ble.c#L513), [`app/thermo-node/src/backlog.c:458`](../app/thermo-node/src/backlog.c#L458) (ほか 1 行)
 
 ## CRC
 
@@ -86,7 +86,7 @@ IEEE 準拠の CRC32 を計算する。
 - `data`: 計算するデータ。`len`: データの長さ。
 - 戻り値: CRC32 の値。
 
-使用箇所: `app/thermo-node/src/backlog.c:438` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/backlog.c:438`](../app/thermo-node/src/backlog.c#L438) (ほか 1 行)
 
 ## リングバッファ
 
@@ -100,7 +100,7 @@ IEEE 準拠の CRC32 を計算する。
 
 - `name`: 名前。`size8`: バッファの大きさ [バイト]。
 
-使用箇所: `app/thermo-node/src/sdlog.c:59` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/sdlog.c:59`](../app/thermo-node/src/sdlog.c#L59) (ほか 1 行)
 
 ### ring_buf_put
 
@@ -113,7 +113,7 @@ uint32_t ring_buf_put(struct ring_buf *buf, const uint8_t *data, uint32_t size);
 - 複数の書き手が、同時に書かないようにする (プリエンプトを防ぐか、ミューテックスで守る)。バイト単位の操作と、アイテム単位 (`ring_buf_item_*`) の操作は混ぜない。
 - 戻り値: 書いたバイト数 (空きが足りなければ、`size` より少ない)。
 
-使用箇所: `app/thermo-node/src/sdlog.c:217`
+使用箇所: [`app/thermo-node/src/sdlog.c:217`](../app/thermo-node/src/sdlog.c#L217)
 
 ### ring_buf_get
 
@@ -126,7 +126,7 @@ uint32_t ring_buf_get(struct ring_buf *buf, uint8_t *data, uint32_t size);
 - `data`: 出力のバッファ。`NULL` なら、データを捨てる。複数の読み手が、同時に読まないようにする。
 - 戻り値: 出力のバッファに書いたバイト数。
 
-使用箇所: `app/thermo-node/src/sdlog.c:253`
+使用箇所: [`app/thermo-node/src/sdlog.c:253`](../app/thermo-node/src/sdlog.c#L253)
 
 ### ring_buf_is_empty
 
@@ -138,7 +138,7 @@ static inline bool ring_buf_is_empty(const struct ring_buf *buf);
 
 - 戻り値: 空なら `true`、そうでなければ `false`。
 
-使用箇所: `app/thermo-node/src/sdlog.c:252` (ほか 2 行)
+使用箇所: [`app/thermo-node/src/sdlog.c:252`](../app/thermo-node/src/sdlog.c#L252) (ほか 2 行)
 
 ## 時刻と乱数
 
@@ -153,7 +153,7 @@ int sys_clock_gettime(int clock_id, struct timespec *tp);
 - `clock_id`: 時計 (`SYS_CLOCK_REALTIME` など)。`tp`: 時刻を入れる領域。
 - 戻り値: 成功は 0。`clock_id` が不正なら `-EINVAL`。
 
-使用箇所: `app/common/ntp.c:119`
+使用箇所: [`app/common/ntp.c:119`](../app/common/ntp.c#L119)
 
 ### sys_clock_settime
 
@@ -166,7 +166,7 @@ int sys_clock_settime(int clock_id, const struct timespec *tp);
 - `tp`: 設定する時刻。
 - 戻り値: 成功は 0。`clock_id` が不正、または `tp` のナノ秒が `[0, 999999999]` の外なら `-EINVAL`。
 
-使用箇所: `app/common/ntp.c:85`
+使用箇所: [`app/common/ntp.c:85`](../app/common/ntp.c#L85)
 
 ### sys_rand32_get
 
@@ -178,7 +178,7 @@ static inline uint32_t sys_rand32_get(void);
 
 - 暗号に使える乱数ではない。
 
-使用箇所: 直接の呼び出しなし (マクロの内側や、別のマクロ経由で使う)
+使用箇所: [`app/thermo-node/src/sensor.c:175`](../app/thermo-node/src/sensor.c#L175) (ほか 1 行)
 
 ## ユーティリティ
 
@@ -190,7 +190,7 @@ static inline uint8_t bcd2bin(uint8_t bcd);
 
 BCD (8421) の値を、2 進数にする。PCF8563 のレジスタの読み出しに使う。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:191` (ほか 5 行)
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:191`](../app/thermo-node/drivers/rtc_pcf8563.c#L191) (ほか 5 行)
 
 ### bin2bcd
 
@@ -200,7 +200,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 2 進数の値を、BCD (8421) にする。PCF8563 のレジスタへの書き込みに使う。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:138` (ほか 5 行)
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:138`](../app/thermo-node/drivers/rtc_pcf8563.c#L138) (ほか 5 行)
 
 ### ARRAY_SIZE
 
@@ -210,7 +210,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 配列の要素の数を返す。配列でない引数 (ポインタなど) は、コンパイルエラーにする。
 
-使用箇所: `app/common/cfg.c:103` (ほか 5 行), `app/common/cloud.c:530`, `app/thermo-gateway/src/ble.c:272` (ほか 1 行), `app/thermo-gateway/src/switchbot.c:207` ほか 3 ファイル
+使用箇所: [`app/common/cfg.c:103`](../app/common/cfg.c#L103) (ほか 5 行), [`app/common/cloud.c:530`](../app/common/cloud.c#L530), [`app/thermo-gateway/src/ble.c:272`](../app/thermo-gateway/src/ble.c#L272) (ほか 1 行), [`app/thermo-gateway/src/switchbot.c:207`](../app/thermo-gateway/src/switchbot.c#L207) ほか 3 ファイル
 
 ### MIN
 
@@ -220,7 +220,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 2 つの値の小さい方を返す。
 
-使用箇所: `app/common/cloud.c:196`, `app/thermo-node/src/backlog.c:129`, `app/thermo-node/src/history.c:12` (ほか 2 行)
+使用箇所: [`app/common/cloud.c:196`](../app/common/cloud.c#L196), [`app/thermo-node/src/backlog.c:129`](../app/thermo-node/src/backlog.c#L129), [`app/thermo-node/src/history.c:12`](../app/thermo-node/src/history.c#L12) (ほか 2 行)
 
 ### BIT
 
@@ -230,7 +230,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 ビット `n` だけが立った値を返す。
 
-使用箇所: `app/thermo-node/src/sensor.c:155`
+使用箇所: [`app/thermo-node/src/sensor.c:155`](../app/thermo-node/src/sensor.c#L155)
 
 ### CONTAINER_OF
 
@@ -240,7 +240,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 構造体のメンバーへのポインタから、構造体の先頭へのポインタを得る。
 
-使用箇所: `app/thermo-gateway/src/ble.c:389` (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:389`](../app/thermo-gateway/src/ble.c#L389) (ほか 1 行)
 
 ### ARG_UNUSED
 
@@ -250,7 +250,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 使わない引数や変数の、未使用の警告を出さないようにする。
 
-使用箇所: `app/common/cfg_shell.c:56` (ほか 10 行), `app/common/cloud.c:420` (ほか 3 行), `app/common/wifi_link.c:161`, `app/thermo-gateway/src/ble.c:539` (ほか 3 行) ほか 7 ファイル
+使用箇所: [`app/common/cfg_shell.c:56`](../app/common/cfg_shell.c#L56) (ほか 10 行), [`app/common/cloud.c:420`](../app/common/cloud.c#L420) (ほか 3 行), [`app/common/wifi_link.c:161`](../app/common/wifi_link.c#L161), [`app/thermo-gateway/src/ble.c:539`](../app/thermo-gateway/src/ble.c#L539) (ほか 3 行) ほか 7 ファイル
 
 ### BUILD_ASSERT
 
@@ -260,4 +260,4 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 コンパイル時の表明。`EXPR` が偽なら、コンパイルエラーにする。`MSG` は省略できる。
 
-使用箇所: `app/common/cloud.c:60`
+使用箇所: [`app/common/cloud.c:60`](../app/common/cloud.c#L60)

@@ -18,7 +18,7 @@ Bluetooth を有効にする。ローカルの Bluetooth ハードウェアと�
 - `CONFIG_BT_SETTINGS` が有効なときは、この API が成功したあとに、`settings_load()` か `settings_load_subtree("bt")` で、Bluetooth の設定を読み込む。呼ぶ前に読み込んでも足りない。
 - 戻り値: 成功は 0、失敗は負のエラーコード。
 
-使用箇所: `app/thermo-gateway/src/ble.c:167`, `app/thermo-node/src/ble.c:111`
+使用箇所: [`app/thermo-gateway/src/ble.c:167`](../app/thermo-gateway/src/ble.c#L167), [`app/thermo-node/src/ble.c:111`](../app/thermo-node/src/ble.c#L111)
 
 ### bt_id_get
 
@@ -32,7 +32,7 @@ void bt_id_get(bt_addr_le_t *addrs, size_t *count);
 - `count`: 入力は配列の要素数 (`CONFIG_BT_ID_MAX` 以上にする)。出力は、返したアドレスの数。
 - 削除されたアドレスは、`BT_ADDR_LE_ANY` として返ることがある。
 
-使用箇所: `app/thermo-node/src/ble.c:158`
+使用箇所: [`app/thermo-node/src/ble.c:158`](../app/thermo-node/src/ble.c#L158)
 
 ## アドバタイズ (ノード側)
 
@@ -52,7 +52,7 @@ int bt_le_adv_start(const struct bt_le_adv_param *param,
 - 拡張アドバタイズ (`BT_LE_ADV_OPT_EXT_ADV`) には使えない。`bt_le_ext_adv_*` を使う。
 - 戻り値: 成功は 0。`-ENOMEM` は、接続可能なアドバタイズに使える接続オブジェクトがない。`-ECONNREFUSED` は、接続可能なアドバタイズを求めたが、コントローラの接続数が上限に達している (Zephyr のコントローラのときだけ確実。ほかでは `-EIO` になることがある)。
 
-使用箇所: `app/thermo-node/src/ble.c:181`
+使用箇所: [`app/thermo-node/src/ble.c:181`](../app/thermo-node/src/ble.c#L181)
 
 ## スキャン (ゲートウェイ側)
 
@@ -71,7 +71,7 @@ LE スキャンを、指定のパラメータで始めて、結果をコール�
 - `CONFIG_BT_EXT_ADV` が有効なら、拡張アドバタイズのパケットも自動でスキャンする。
 - 戻り値: 成功は 0。失敗は、プロトコルのエラーなら正の値、スタック内部のエラーなら負の値 (POSIX)。`-EBUSY` は、別のスレッドからスキャンを始めている最中。
 
-使用箇所: `app/thermo-gateway/src/ble.c:249`
+使用箇所: [`app/thermo-gateway/src/ble.c:249`](../app/thermo-gateway/src/ble.c#L249)
 
 ### bt_le_scan_stop
 
@@ -83,7 +83,7 @@ int bt_le_scan_stop(void);
 
 - 戻り値: 成功は 0。失敗は、プロトコルのエラーなら正の値、スタック内部のエラーなら負の値。
 
-使用箇所: `app/thermo-gateway/src/ble.c:688`
+使用箇所: [`app/thermo-gateway/src/ble.c:688`](../app/thermo-gateway/src/ble.c#L688)
 
 ### bt_data_parse
 
@@ -99,7 +99,7 @@ void bt_data_parse(struct net_buf_simple *ad,
 - `func`: 見つかった要素ごとに呼ばれるコールバック。続けるなら `true`、止めるなら `false` を返す。
 - `user_data`: コールバックに渡す値。
 
-使用箇所: `app/thermo-gateway/src/ble.c:749`
+使用箇所: [`app/thermo-gateway/src/ble.c:749`](../app/thermo-gateway/src/ble.c#L749)
 
 ## 接続
 
@@ -114,7 +114,7 @@ int bt_conn_cb_register(struct bt_conn_cb *cb);
 - `cb`: コールバックの構造体。呼び出し後も有効なメモリに置く (`static` など)。
 - 戻り値: 成功は 0。同じ `cb` を登録済みなら `-EEXIST`。
 
-使用箇所: `app/thermo-gateway/src/ble.c:173`, `app/thermo-node/src/ble.c:123`
+使用箇所: [`app/thermo-gateway/src/ble.c:173`](../app/thermo-gateway/src/ble.c#L173), [`app/thermo-node/src/ble.c:123`](../app/thermo-node/src/ble.c#L123)
 
 ### bt_conn_le_create
 
@@ -132,7 +132,7 @@ int bt_conn_le_create(const bt_addr_le_t *peer,
 - `CONFIG_BT_SCAN_AND_INITIATE_IN_PARALLEL` が無効なら、接続を始める前に、明示的なスキャンを止める (このプロジェクトでは、ゲートウェイが接続の前に `bt_le_scan_stop()` を呼ぶ)。
 - 戻り値: 成功は 0、失敗は負のエラーコード。
 
-使用箇所: `app/thermo-gateway/src/ble.c:709`
+使用箇所: [`app/thermo-gateway/src/ble.c:709`](../app/thermo-gateway/src/ble.c#L709)
 
 ### bt_conn_disconnect
 
@@ -146,7 +146,7 @@ int bt_conn_disconnect(struct bt_conn *conn, uint8_t reason);
 - 指定できる理由は、`BT_HCI_ERR_AUTH_FAIL`、`BT_HCI_ERR_REMOTE_USER_TERM_CONN`、`BT_HCI_ERR_REMOTE_LOW_RESOURCES`、`BT_HCI_ERR_REMOTE_POWER_OFF`、`BT_HCI_ERR_UNSUPP_REMOTE_FEATURE`、`BT_HCI_ERR_PAIRING_NOT_SUPPORTED`、`BT_HCI_ERR_UNACCEPT_CONN_PARAM`。
 - 戻り値: 成功は 0、失敗は負のエラーコード。
 
-使用箇所: `app/thermo-gateway/src/ble.c:400` (ほか 2 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:400`](../app/thermo-gateway/src/ble.c#L400) (ほか 2 行)
 
 ### bt_conn_ref
 
@@ -158,7 +158,7 @@ struct bt_conn *bt_conn_ref(struct bt_conn *conn);
 
 - 戻り値: 参照を増やした接続オブジェクト。参照カウントが 0 なら `NULL`。増やした参照は、`bt_conn_unref()` で戻す。
 
-使用箇所: `app/thermo-gateway/src/ble.c:610`
+使用箇所: [`app/thermo-gateway/src/ble.c:610`](../app/thermo-gateway/src/ble.c#L610)
 
 ### bt_conn_unref
 
@@ -170,7 +170,7 @@ void bt_conn_unref(struct bt_conn *conn);
 
 - `conn`: 接続オブジェクト。`bt_conn_ref()`、`bt_conn_le_create()`、`bt_conn_lookup_addr_le()` で得た参照は、使い終わったら必ず戻す。
 
-使用箇所: `app/thermo-gateway/src/ble.c:306` (ほか 2 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:306`](../app/thermo-gateway/src/ble.c#L306) (ほか 2 行)
 
 ### bt_conn_lookup_addr_le
 
@@ -183,7 +183,7 @@ struct bt_conn *bt_conn_lookup_addr_le(uint8_t id, const bt_addr_le_t *peer);
 - `id`: アイデンティティ (通常は `BT_ID_DEFAULT`)。`peer`: 相手のアドレス。
 - 戻り値: 見つかれば、参照を増やした接続オブジェクト (使い終わったら `bt_conn_unref()`)。なければ `NULL`。
 
-使用箇所: `app/thermo-gateway/src/ble.c:768`
+使用箇所: [`app/thermo-gateway/src/ble.c:768`](../app/thermo-gateway/src/ble.c#L768)
 
 ### bt_conn_get_dst
 
@@ -195,7 +195,7 @@ const bt_addr_le_t *bt_conn_get_dst(const struct bt_conn *conn);
 
 - 戻り値: `conn` が有効な LE 接続 (`BT_CONN_TYPE_LE`) なら、相手のアドレスへのポインタ。
 
-使用箇所: `app/thermo-gateway/src/ble.c:370` (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:370`](../app/thermo-gateway/src/ble.c#L370) (ほか 1 行)
 
 ## アドレスの補助関数
 
@@ -209,7 +209,7 @@ LE アドレスをコピーする。
 
 - `dst`: コピー先。`src`: コピー元。
 
-使用箇所: `app/thermo-gateway/src/ble.c:782`, `app/thermo-gateway/src/switchbot.c:218`
+使用箇所: [`app/thermo-gateway/src/ble.c:782`](../app/thermo-gateway/src/ble.c#L782), [`app/thermo-gateway/src/switchbot.c:218`](../app/thermo-gateway/src/switchbot.c#L218)
 
 ### bt_addr_le_eq
 
@@ -221,7 +221,7 @@ static inline bool bt_addr_le_eq(const bt_addr_le_t *a, const bt_addr_le_t *b);
 
 - 戻り値: 等しければ `true`、違えば `false`。
 
-使用箇所: `app/thermo-gateway/src/ble.c:608`, `app/thermo-gateway/src/switchbot.c:208`
+使用箇所: [`app/thermo-gateway/src/ble.c:608`](../app/thermo-gateway/src/ble.c#L608), [`app/thermo-gateway/src/switchbot.c:208`](../app/thermo-gateway/src/switchbot.c#L208)
 
 ### bt_addr_le_to_str
 
@@ -234,7 +234,7 @@ LE アドレスを、文字列にする。
 - `addr`: 変換するアドレス。`str`: 文字列を入れるバッファ。`len`: バッファの長さ (`BT_ADDR_LE_STR_LEN` を使う)。
 - 戻り値: 書き込めたバイト数。
 
-使用箇所: `app/thermo-gateway/src/ble.c:779`, `app/thermo-gateway/src/main.c:117` (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:779`](../app/thermo-gateway/src/ble.c#L779), [`app/thermo-gateway/src/main.c:117`](../app/thermo-gateway/src/main.c#L117) (ほか 1 行)
 
 ## GATT サーバ (ノード側)
 
@@ -251,7 +251,7 @@ GATT サービスを登録する。サービスは、`BT_GATT_PRIMARY_SERVICE`�
 - 呼べるのは、`bt_init()` の前か、`settings_load()` のあと。途中で呼ぶとエラーになる。
 - 戻り値: 成功は 0、失敗は負の値。`bt_init()` は済んだが `settings_load()` がまだなら `-EAGAIN`。
 
-使用箇所: `app/thermo-node/src/ble.c:117`
+使用箇所: [`app/thermo-node/src/ble.c:117`](../app/thermo-node/src/ble.c#L117)
 
 ### bt_gatt_attr_read
 
@@ -266,7 +266,7 @@ ssize_t bt_gatt_attr_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 - `conn`: 接続。`attr`: 読む属性。`buf` / `buf_len`: 値を入れるバッファと、その長さ。`offset`: 読み始める位置。`value` / `value_len`: 属性の値と、その長さ。
 - 戻り値: 成功は読んだバイト数、失敗は負の値。
 
-使用箇所: `app/thermo-node/src/ble.c:257`
+使用箇所: [`app/thermo-node/src/ble.c:257`](../app/thermo-node/src/ble.c#L257)
 
 ### bt_gatt_attr_value_handle
 
@@ -279,7 +279,7 @@ uint16_t bt_gatt_attr_value_handle(const struct bt_gatt_attr *attr);
 - `attr`: キャラクタリスティックの属性 (`user_data` が `bt_gatt_chrc` で、`uuid` が `BT_UUID_GATT_CHRC`)。
 - 戻り値: 値のハンドル。`attr` がキャラクタリスティックでなければ 0 (無効なハンドル)。
 
-使用箇所: `app/thermo-gateway/src/ble.c:419` (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:419`](../app/thermo-gateway/src/ble.c#L419) (ほか 1 行)
 
 ### bt_gatt_notify
 
@@ -294,7 +294,7 @@ static inline int bt_gatt_notify(struct bt_conn *conn, const struct bt_gatt_attr
 - `attr`: キャラクタリスティックの宣言 (`BT_GATT_CHARACTERISTIC` に `BT_GATT_CCC` が続くもの) か、値の宣言。`data` / `len`: 送る値と、その長さ。
 - 戻り値: 成功は 0、失敗は負の値。
 
-使用箇所: `app/thermo-node/src/ble.c:213`
+使用箇所: [`app/thermo-node/src/ble.c:213`](../app/thermo-node/src/ble.c#L213)
 
 ## GATT クライアント (ゲートウェイ側)
 
@@ -310,7 +310,7 @@ int bt_gatt_discover(struct bt_conn *conn, struct bt_gatt_discover_params *param
 - 応答は、`params->func` に届く。コールバックは、BT の受信スレッドから呼ばれる。`params` は、`attr` が `NULL` のコールバックが始まるまで (または、コールバックが `BT_GATT_ITER_STOP` を返すまで) 有効にしておく。
 - 戻り値: 要求を積めたら 0 (結果は `params->func` に届く)。`-ENOMEM` は、ATT 要求のキューが満杯。要求が終わるのを待ってやり直すか、別のスレッドから呼ぶ。キューの大きさは `CONFIG_BT_ATT_TX_COUNT`。
 
-使用箇所: `app/thermo-gateway/src/ble.c:416` (ほか 3 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:416`](../app/thermo-gateway/src/ble.c#L416) (ほか 3 行)
 
 ### bt_gatt_subscribe
 
@@ -323,7 +323,7 @@ CCC のハンドルを使って、値の通知を購読する。通知が届く�
 - `params`: 購読のパラメータ。応答は `params->subscribe` に、通知は `params->notify` に届く (どちらも BT の受信スレッドなどから呼ばれる)。購読している間は有効にしておき、別の購読には使い回せない。
 - 戻り値: 要求を積めたら 0。`-ENOMEM`: ATT 要求のキューが満杯。`-EALREADY`: その `params` で、すでに購読している。`-EBUSY`: `params.ccc_handle` が 0 で、`CONFIG_BT_GATT_AUTO_DISCOVER_CCC` が有効なとき、その `params` の探索が進行中。
 
-使用箇所: `app/thermo-gateway/src/ble.c:429`
+使用箇所: [`app/thermo-gateway/src/ble.c:429`](../app/thermo-gateway/src/ble.c#L429)
 
 ### bt_gatt_write
 
@@ -336,7 +336,7 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 - `params`: 書き込みのパラメータ。応答は `params->func` に届く。`params` は、コールバックが始まるまで有効にしておく。
 - 戻り値: 要求を積めたら 0。`-ENOMEM`: ATT 要求のキューが満杯 (待ってやり直すか、別のスレッドから呼ぶ)。
 
-使用箇所: `app/thermo-gateway/src/ble.c:521`
+使用箇所: [`app/thermo-gateway/src/ble.c:521`](../app/thermo-gateway/src/ble.c#L521)
 
 ## マクロ
 
@@ -350,7 +350,7 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 
 - `BT_DATA_NAME_COMPLETE` (名前)、`BT_DATA_MANUFACTURER_DATA` (製造者データ) などの種類を使う。
 
-使用箇所: `app/thermo-node/src/ble.c:33`
+使用箇所: [`app/thermo-node/src/ble.c:33`](../app/thermo-node/src/ble.c#L33)
 
 ### BT_DATA_BYTES
 
@@ -360,7 +360,7 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 
 アドバタイズのデータの 1 要素を、バイト列の並びで作る (`BT_DATA_FLAGS` に `BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR` を渡す、など)。
 
-使用箇所: `app/thermo-node/src/ble.c:32` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/ble.c:32`](../app/thermo-node/src/ble.c#L32) (ほか 1 行)
 
 ### BT_GATT_PRIMARY_SERVICE
 
@@ -370,7 +370,7 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 
 プライマリサービスの宣言の属性を作る。`_service` は、サービスの UUID。
 
-使用箇所: `app/thermo-node/src/ble.c:76`
+使用箇所: [`app/thermo-node/src/ble.c:76`](../app/thermo-node/src/ble.c#L76)
 
 ### BT_GATT_CHARACTERISTIC
 
@@ -382,7 +382,7 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 
 - `_props`: `BT_GATT_CHRC_READ` `BT_GATT_CHRC_WRITE` `BT_GATT_CHRC_NOTIFY` など。`_perm`: `BT_GATT_PERM_READ` `BT_GATT_PERM_WRITE` など。`_read` / `_write`: 読み出しと書き込みのコールバック。
 
-使用箇所: `app/thermo-node/src/ble.c:77` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/ble.c:77`](../app/thermo-node/src/ble.c#L77) (ほか 1 行)
 
 ### BT_GATT_CCC
 
@@ -392,7 +392,7 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 
 Client Characteristic Configuration (CCC) のディスクリプタを作る。通知 (`BT_GATT_CCC_NOTIFY`) の有効・無効を、相手が書き換えられるようにする。`_changed` は、値が変わったときのコールバック。
 
-使用箇所: `app/thermo-node/src/ble.c:79`
+使用箇所: [`app/thermo-node/src/ble.c:79`](../app/thermo-node/src/ble.c#L79)
 
 ### BT_GATT_SERVICE
 
@@ -402,7 +402,7 @@ Client Characteristic Configuration (CCC) のディスクリプタを作る。�
 
 属性の配列から、`struct bt_gatt_service` の初期化子を作る。`bt_gatt_service_register()` に渡す。
 
-使用箇所: `app/thermo-node/src/ble.c:90`
+使用箇所: [`app/thermo-node/src/ble.c:90`](../app/thermo-node/src/ble.c#L90)
 
 ### BT_GATT_ERR
 
@@ -412,7 +412,7 @@ Client Characteristic Configuration (CCC) のディスクリプタを作る。�
 
 ATT のエラーコードを、GATT のコールバックの戻り値に変える。`BT_ATT_ERR_INVALID_OFFSET` `BT_ATT_ERR_INVALID_ATTRIBUTE_LEN` `BT_ATT_ERR_VALUE_NOT_ALLOWED` `BT_ATT_ERR_WRITE_NOT_PERMITTED` `BT_ATT_ERR_UNLIKELY` などを渡す。
 
-使用箇所: `app/thermo-node/src/ble.c:287` (ほか 4 行)
+使用箇所: [`app/thermo-node/src/ble.c:287`](../app/thermo-node/src/ble.c#L287) (ほか 4 行)
 
 ### BT_UUID_INIT_128
 
@@ -422,7 +422,7 @@ ATT のエラーコードを、GATT のコールバックの戻り値に変え�
 
 128 ビットの UUID の初期化子を作る。`BT_UUID_128_ENCODE()` と組み合わせる。
 
-使用箇所: `app/thermo-gateway/src/ble.c:66` (ほか 2 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:66`](../app/thermo-gateway/src/ble.c#L66) (ほか 2 行)
 
 ### BT_UUID_INIT_16
 
@@ -432,4 +432,4 @@ ATT のエラーコードを、GATT のコールバックの戻り値に変え�
 
 16 ビットの UUID の初期化子を作る。
 
-使用箇所: `app/thermo-gateway/src/ble.c:72`
+使用箇所: [`app/thermo-gateway/src/ble.c:72`](../app/thermo-gateway/src/ble.c#L72)

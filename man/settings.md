@@ -17,7 +17,7 @@ int settings_subsys_init(void);
 - バックエンドがファイルシステムのときは、ファイルシステムをマウントしたあとに呼ぶ。FCB (NVS など) のバックエンドには、この制限はない。
 - 戻り値: 成功は 0、失敗は 0 以外。
 
-使用箇所: `app/common/cfg.c:437`
+使用箇所: [`app/common/cfg.c:437`](../app/common/cfg.c#L437)
 
 ### settings_register
 
@@ -30,7 +30,7 @@ RAM にある設定項目のハンドラを、既定のコミット優先度で�
 - `cf`: 登録の情報を持つ構造体。
 - 戻り値: 成功は 0、失敗は 0 以外。
 
-使用箇所: `app/common/cfg.c:445`
+使用箇所: [`app/common/cfg.c:445`](../app/common/cfg.c#L445)
 
 ## 読み書き
 
@@ -45,7 +45,7 @@ int settings_save_one(const char *name, const void *value, size_t val_len);
 - `name`: 設定項目の名前 (キー)。`value` / `val_len`: 値と、その長さ。値は、`settings_handler::h_export` のハンドラに渡される。
 - 戻り値: 成功は 0、失敗は 0 以外。
 
-使用箇所: `app/common/cfg.c:155` (ほか 2 行)
+使用箇所: [`app/common/cfg.c:155`](../app/common/cfg.c#L155) (ほか 2 行)
 
 ### settings_delete
 
@@ -58,7 +58,7 @@ int settings_delete(const char *name);
 - `name`: 設定項目の名前 (キー)。
 - 戻り値: 成功は 0、失敗は 0 以外。
 
-使用箇所: `app/common/cfg.c:288` (ほか 3 行)
+使用箇所: [`app/common/cfg.c:288`](../app/common/cfg.c#L288) (ほか 3 行)
 
 ### settings_load_subtree
 
@@ -71,4 +71,4 @@ int settings_load_subtree(const char *subtree);
 - `subtree`: 読み込むサブツリーの名前。
 - 戻り値: 成功は 0、失敗は 0 以外。
 
-使用箇所: `app/common/cfg.c:451`
+使用箇所: [`app/common/cfg.c:451`](../app/common/cfg.c#L451)
