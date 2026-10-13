@@ -18,7 +18,7 @@ int fs_mount(struct fs_mount_t *mp);
 - ELM FAT のドライバが使えるマウントポイントは、`"/RAM:"` `"/NAND:"` `"/CF:"` `"/SD:"` `"/SD2:"` `"/USB:"` `"/USB2:"` `"/USB3:"` と、1 桁の数字 (`"/0:"` など)。SD カードは `"/SD:"`。
 - 戻り値: 成功は 0。`-ENOENT`: その種類のファイルシステムが登録されていない。`-ENOTSUP`: ドライバが対応していない (`FS_MOUNT_FLAG_USE_DISK_ACCESS` を指定したが、ドライバが対応していない場合を含む)。`-EROFS`: フォーマットが必要だが `FS_MOUNT_FLAG_READ_ONLY` が指定されている。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:121`
+使用箇所: [`app/thermo-node/src/backlog.c:121`](../app/thermo-node/src/backlog.c#L121)
 
 ### fs_unmount
 
@@ -30,7 +30,7 @@ int fs_unmount(struct fs_mount_t *mp);
 
 - 戻り値: 成功は 0。`-EINVAL`: そのマウントポイントに、何もマウントされていない。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:113`
+使用箇所: [`app/thermo-node/src/backlog.c:113`](../app/thermo-node/src/backlog.c#L113)
 
 ## ファイル
 
@@ -42,7 +42,7 @@ static inline void fs_file_t_init(struct fs_file_t *zfp);
 
 `fs_file_t` を初期化する。`fs_open()` の前に、一度、呼ぶ必要がある。
 
-使用箇所: `app/thermo-node/src/backlog.c:481`, `app/thermo-node/src/sdlog.c:246`
+使用箇所: [`app/thermo-node/src/backlog.c:481`](../app/thermo-node/src/backlog.c#L481), [`app/thermo-node/src/sdlog.c:246`](../app/thermo-node/src/sdlog.c#L246)
 
 ### fs_open
 
@@ -56,7 +56,7 @@ int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags);
 - `flags` を 0 にすると、あれば開くが、読み書きはできない。
 - 戻り値: 成功は 0。`-EBUSY`: `zfp` が使用中。`-EINVAL`: ファイル名が不正。`-EROFS`: 読み込み専用のファイルを書き込みで開いた、または、`FS_MOUNT_FLAG_READ_ONLY` でマウントしたところに作ろうとした。`-ENOENT`: ファイルがない。`-ENOTSUP`: ドライバが対応していない。`-EACCES`: 書き込みで開かずに、`FS_O_TRUNC` を指定した。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:482`, `app/thermo-node/src/sdlog.c:247`
+使用箇所: [`app/thermo-node/src/backlog.c:482`](../app/thermo-node/src/backlog.c#L482), [`app/thermo-node/src/sdlog.c:247`](../app/thermo-node/src/sdlog.c#L247)
 
 ### fs_close
 
@@ -68,7 +68,7 @@ int fs_close(struct fs_file_t *zfp);
 
 - 戻り値: 成功は 0。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:180` (ほか 5 行), `app/thermo-node/src/sdlog.c:259`
+使用箇所: [`app/thermo-node/src/backlog.c:180`](../app/thermo-node/src/backlog.c#L180) (ほか 5 行), [`app/thermo-node/src/sdlog.c:259`](../app/thermo-node/src/sdlog.c#L259)
 
 ### fs_read
 
@@ -81,7 +81,7 @@ ssize_t fs_read(struct fs_file_t *zfp, void *ptr, size_t size);
 - `ptr`: 読んだデータを入れるバッファ。`size`: 読むバイト数。
 - 戻り値: 成功は読んだバイト数 (0 以上)。`-EBADF`: 開いていない (閉じた) ファイル。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:418` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/backlog.c:418`](../app/thermo-node/src/backlog.c#L418) (ほか 1 行)
 
 ### fs_write
 
@@ -94,7 +94,7 @@ ssize_t fs_write(struct fs_file_t *zfp, const void *ptr, size_t size);
 - `ptr`: 書くデータ。`size`: 書くバイト数。
 - 戻り値: 成功は書いたバイト数 (0 以上)。`size` より少ないときは、空き容量がないことがあるので、グローバルの `errno` を調べる。`-EBADF`: 開いていない (閉じた) ファイル。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:562` (ほか 1 行), `app/thermo-node/src/sdlog.c:254`
+使用箇所: [`app/thermo-node/src/backlog.c:562`](../app/thermo-node/src/backlog.c#L562) (ほか 1 行), [`app/thermo-node/src/sdlog.c:254`](../app/thermo-node/src/sdlog.c#L254)
 
 ### fs_seek
 
@@ -107,7 +107,7 @@ int fs_seek(struct fs_file_t *zfp, off_t offset, int whence);
 - `whence`: `FS_SEEK_SET` (先頭から)、`FS_SEEK_CUR` (今の位置から)、`FS_SEEK_END` (末尾から)。
 - 戻り値: 成功は 0。`-EBADF`: 開いていないファイル。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:414` (ほか 2 行)
+使用箇所: [`app/thermo-node/src/backlog.c:414`](../app/thermo-node/src/backlog.c#L414) (ほか 2 行)
 
 ## パス
 
@@ -123,7 +123,7 @@ int fs_stat(const char *path, struct fs_dirent *entry);
 - ストレージ上のファイルは、閉じるまで、更新されていないことがある。
 - 戻り値: 成功は 0。`-EINVAL`: パスが不正。`-ENOENT`: ない。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:128`, `app/thermo-node/src/sdlog.c:309`
+使用箇所: [`app/thermo-node/src/backlog.c:128`](../app/thermo-node/src/backlog.c#L128), [`app/thermo-node/src/sdlog.c:309`](../app/thermo-node/src/sdlog.c#L309)
 
 ### fs_rename
 
@@ -137,7 +137,7 @@ int fs_rename(const char *from, const char *to);
 - マウントポイントをまたぐ移動はできない。
 - 戻り値: 成功は 0。`-EINVAL`: 名前が不正、またはマウントポイントをまたぐ。`-EROFS`: 読み込み専用のファイル、または読み込み専用でマウントしている。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/sdlog.c:313`
+使用箇所: [`app/thermo-node/src/sdlog.c:313`](../app/thermo-node/src/sdlog.c#L313)
 
 ### fs_unlink
 
@@ -149,7 +149,7 @@ int fs_unlink(const char *path);
 
 - 戻り値: 成功は 0。`-EINVAL`: 名前が不正。`-EROFS`: 読み込み専用のファイル、または読み込み専用でマウントしている。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/sdlog.c:312`
+使用箇所: [`app/thermo-node/src/sdlog.c:312`](../app/thermo-node/src/sdlog.c#L312)
 
 ## 定数と型
 
@@ -161,7 +161,7 @@ FS_FATFS  /* enum fs_type */
 
 `fs_mount_t` の `type` に指定する、FAT ファイルシステムの種類。
 
-使用箇所: `app/thermo-node/src/backlog.c:70`
+使用箇所: [`app/thermo-node/src/backlog.c:70`](../app/thermo-node/src/backlog.c#L70)
 
 ### fs_mount_t
 
@@ -171,4 +171,4 @@ struct fs_mount_t
 
 マウントの情報 (種類 `type`、マウントポイント `mnt_point`、ファイルシステムのデータ `fs_data`、記憶装置の名前 `storage_dev`、フラグ `flags`)。`fs_mount()` に渡す。マウント中は、中身を変えない。
 
-使用箇所: `app/thermo-node/src/backlog.c:69`
+使用箇所: [`app/thermo-node/src/backlog.c:69`](../app/thermo-node/src/backlog.c#L69)

@@ -17,7 +17,7 @@ bool device_is_ready(const struct device *dev);
 - 少なくとも、デバイスの初期化が成功していることを確かめる。
 - 戻り値: 使えれば `true`。使えない、または `NULL` を渡したら `false`。
 
-使用箇所: `app/thermo-node/src/node_time.c:84`, `app/thermo-node/src/oled.c:137`, `app/thermo-node/src/sensor.c:73`
+使用箇所: [`app/thermo-node/src/node_time.c:84`](../app/thermo-node/src/node_time.c#L84), [`app/thermo-node/src/oled.c:137`](../app/thermo-node/src/oled.c#L137), [`app/thermo-node/src/sensor.c:73`](../app/thermo-node/src/sensor.c#L73)
 
 ## ADC
 
@@ -31,7 +31,7 @@ Devicetree から得た ADC のデバイスが使えるかを調べる。
 
 - 戻り値: 使えれば `true`、使えなければ `false`。
 
-使用箇所: `app/thermo-node/src/sensor.c:83`
+使用箇所: [`app/thermo-node/src/sensor.c:83`](../app/thermo-node/src/sensor.c#L83)
 
 ### adc_channel_setup_dt
 
@@ -43,7 +43,7 @@ static inline int adc_channel_setup_dt(const struct adc_dt_spec *spec);
 
 - 戻り値: `adc_channel_setup()` の値。Devicetree の情報が正しくなければ `-ENOTSUP`。
 
-使用箇所: `app/thermo-node/src/sensor.c:89`
+使用箇所: [`app/thermo-node/src/sensor.c:89`](../app/thermo-node/src/sensor.c#L89)
 
 ### adc_read_dt
 
@@ -56,7 +56,7 @@ static inline int adc_read_dt(const struct adc_dt_spec *spec, const struct adc_s
 - `sequence`: 要求するサンプリングの手順。
 - 戻り値: `adc_read()` の値。
 
-使用箇所: `app/thermo-node/src/sensor.c:159`
+使用箇所: [`app/thermo-node/src/sensor.c:159`](../app/thermo-node/src/sensor.c#L159)
 
 ### adc_raw_to_millivolts_dt
 
@@ -69,7 +69,7 @@ ADC の生の値を、`struct adc_dt_spec` の情報を使って、ミリボル�
 - `valp` (入出力): 入力は生の値。成功すると、ミリボルトの値になる。失敗したら、値は変わらない。
 - 戻り値: `adc_raw_to_millivolts()` の値。Devicetree の情報が正しくなければ `-ENOTSUP`。
 
-使用箇所: `app/thermo-node/src/sensor.c:167`
+使用箇所: [`app/thermo-node/src/sensor.c:167`](../app/thermo-node/src/sensor.c#L167)
 
 ## GPIO
 
@@ -83,7 +83,7 @@ GPIO のポートが使えるかを調べる。
 
 - 戻り値: 使えれば `true`、使えなければ `false`。
 
-使用箇所: `app/thermo-node/src/button.c:41`
+使用箇所: [`app/thermo-node/src/button.c:41`](../app/thermo-node/src/button.c#L41)
 
 ### gpio_pin_configure_dt
 
@@ -96,7 +96,7 @@ static inline int gpio_pin_configure_dt(const struct gpio_dt_spec *spec, gpio_fl
 - `extra_flags`: 追加のフラグ (入力は `GPIO_INPUT`)。
 - 戻り値: `gpio_pin_configure()` の値。
 
-使用箇所: `app/thermo-node/src/button.c:46`
+使用箇所: [`app/thermo-node/src/button.c:46`](../app/thermo-node/src/button.c#L46)
 
 ### gpio_pin_get_dt
 
@@ -108,7 +108,7 @@ static inline int gpio_pin_get_dt(const struct gpio_dt_spec *spec);
 
 - 戻り値: `gpio_pin_get()` の値 (論理レベルが 1 なら正、0 なら 0、失敗なら負)。
 
-使用箇所: `app/thermo-node/src/button.c:53` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/button.c:53`](../app/thermo-node/src/button.c#L53) (ほか 1 行)
 
 ## I2C
 
@@ -122,7 +122,7 @@ I2C のバスが使えるかを調べる。
 
 - 戻り値: 使えれば `true`、使えなければ `false`。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:233`
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:233`](../app/thermo-node/drivers/rtc_pcf8563.c#L233)
 
 ### i2c_burst_read_dt
 
@@ -135,7 +135,7 @@ I2C デバイスの内部アドレスから、複数バイトを読む。`i2c_bu
 - `start_addr`: 読み始める内部アドレス。`buf`: 読んだデータを入れる領域。`num_bytes`: 読むバイト数。
 - 戻り値: `i2c_burst_read()` の値。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:180`
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:180`](../app/thermo-node/drivers/rtc_pcf8563.c#L180)
 
 ### i2c_burst_write_dt
 
@@ -148,7 +148,7 @@ I2C デバイスの内部アドレスへ、複数バイトを書く。`i2c_burst
 - `start_addr`: 書き始める内部アドレス。`buf`: 書くデータ。`num_bytes`: 書くバイト数。
 - 戻り値: `i2c_burst_write()` の値。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:152`
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:152`](../app/thermo-node/drivers/rtc_pcf8563.c#L152)
 
 ### i2c_reg_write_byte_dt
 
@@ -160,7 +160,7 @@ I2C デバイスの内部レジスタに、1 バイトを書く。`i2c_reg_write
 
 - 戻り値: `i2c_reg_write_byte()` の値。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:146`
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:146`](../app/thermo-node/drivers/rtc_pcf8563.c#L146)
 
 ## PWM
 
@@ -174,7 +174,7 @@ PWM のデバイスが使えるかを調べる。
 
 - 戻り値: 使えれば `true`、使えなければ `false`。
 
-使用箇所: `app/thermo-node/src/buzzer.c:49`
+使用箇所: [`app/thermo-node/src/buzzer.c:49`](../app/thermo-node/src/buzzer.c#L49)
 
 ### pwm_set_dt
 
@@ -187,7 +187,7 @@ static inline int pwm_set_dt(const struct pwm_dt_spec *spec, uint32_t period, ui
 - `period`: 周期 [ns]。`pulse`: パルス幅 [ns]。0 にすると、出力が止まる。
 - 戻り値: `pwm_set()` の値。
 
-使用箇所: `app/thermo-node/src/buzzer.c:136`
+使用箇所: [`app/thermo-node/src/buzzer.c:136`](../app/thermo-node/src/buzzer.c#L136)
 
 ### pwm_set_pulse_dt
 
@@ -199,7 +199,7 @@ static inline int pwm_set_pulse_dt(const struct pwm_dt_spec *spec, uint32_t puls
 
 - 戻り値: `pwm_set()` の値。
 
-使用箇所: `app/thermo-node/src/buzzer.c:131`
+使用箇所: [`app/thermo-node/src/buzzer.c:131`](../app/thermo-node/src/buzzer.c#L131)
 
 ## RTC
 
@@ -214,7 +214,7 @@ RTC の時刻を取得する。
 - `timeptr`: 時刻を入れる領域。`struct rtc_time` の月は 0 から 11、年は 1900 年からの年数。
 - 戻り値: 成功は 0。`-ENODATA`: RTC に時刻が設定されていない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/node_time.c:225`
+使用箇所: [`app/thermo-node/src/node_time.c:225`](../app/thermo-node/src/node_time.c#L225)
 
 ### rtc_set_time
 
@@ -226,7 +226,7 @@ RTC の時刻を設定する。
 
 - 戻り値: 成功は 0。`-EINVAL`: 時刻が不正、または、ハードウェアの範囲を超えている。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/node_time.c:200`
+使用箇所: [`app/thermo-node/src/node_time.c:200`](../app/thermo-node/src/node_time.c#L200)
 
 ## センサ
 
@@ -242,7 +242,7 @@ int sensor_sample_fetch(const struct device *dev);
 - 値は、続けて `sensor_channel_get()` で取り出す。
 - 戻り値: 成功は 0、失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/sensor.c:123`
+使用箇所: [`app/thermo-node/src/sensor.c:123`](../app/thermo-node/src/sensor.c#L123)
 
 ### sensor_channel_get
 
@@ -255,7 +255,7 @@ int sensor_channel_get(const struct device *dev, enum sensor_channel chan, struc
 - `chan`: チャンネル (`SENSOR_CHAN_AMBIENT_TEMP` `SENSOR_CHAN_HUMIDITY`)。`val`: 値を入れる領域 (`val1` が整数部、`val2` が小数部 [百万分の 1])。
 - 戻り値: 成功は 0、失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/sensor.c:129` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/sensor.c:129`](../app/thermo-node/src/sensor.c#L129) (ほか 1 行)
 
 ### sensor_value_to_milli
 
@@ -267,7 +267,7 @@ static inline int64_t sensor_value_to_milli(const struct sensor_value *val);
 
 - 戻り値: 変換した値。
 
-使用箇所: 直接の呼び出しなし (マクロの内側や、別のマクロ経由で使う)
+使用箇所: [`app/thermo-node/src/sensor.c:134`](../app/thermo-node/src/sensor.c#L134) (ほか 1 行)
 
 ## Devicetree
 
@@ -279,7 +279,7 @@ static inline int64_t sensor_value_to_milli(const struct sensor_value *val);
 
 Devicetree のノードから、デバイスへのポインタを得る (コンパイル時に決まる)。使う前に、`device_is_ready()` で確かめる。
 
-使用箇所: `app/thermo-node/src/node_time.c:61`, `app/thermo-node/src/oled.c:98`, `app/thermo-node/src/sensor.c:42`
+使用箇所: [`app/thermo-node/src/node_time.c:61`](../app/thermo-node/src/node_time.c#L61), [`app/thermo-node/src/oled.c:98`](../app/thermo-node/src/oled.c#L98), [`app/thermo-node/src/sensor.c:42`](../app/thermo-node/src/sensor.c#L42)
 
 ### DT_ALIAS
 
@@ -289,7 +289,7 @@ Devicetree のノードから、デバイスへのポインタを得る (コン�
 
 Devicetree の alias から、ノードの識別子を得る (例: `DT_ALIAS(rtc0)`)。
 
-使用箇所: `app/thermo-node/src/button.c:25`, `app/thermo-node/src/buzzer.c:25`, `app/thermo-node/src/node_time.c:61`, `app/thermo-node/src/oled.c:98` ほか 1 ファイル
+使用箇所: [`app/thermo-node/src/button.c:25`](../app/thermo-node/src/button.c#L25), [`app/thermo-node/src/buzzer.c:25`](../app/thermo-node/src/buzzer.c#L25), [`app/thermo-node/src/node_time.c:61`](../app/thermo-node/src/node_time.c#L61), [`app/thermo-node/src/oled.c:98`](../app/thermo-node/src/oled.c#L98) ほか 1 ファイル
 
 ### DT_HAS_ALIAS
 
@@ -299,7 +299,7 @@ Devicetree の alias から、ノードの識別子を得る (例: `DT_ALIAS(rtc
 
 alias があって、ノードが有効なら 1、なければ 0 になる。`#if` や `COND_CODE_1` で、オプションの部品の有無を切り替えるのに使う。
 
-使用箇所: `app/thermo-node/src/sensor.c:24`
+使用箇所: [`app/thermo-node/src/sensor.c:24`](../app/thermo-node/src/sensor.c#L24)
 
 ### DT_PATH
 
@@ -309,7 +309,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 ノードのパスから、ノードの識別子を得る (例: `DT_PATH(zephyr_user)`)。
 
-使用箇所: `app/thermo-node/src/sensor.c:28` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/sensor.c:28`](../app/thermo-node/src/sensor.c#L28) (ほか 1 行)
 
 ### DT_NODE_HAS_PROP
 
@@ -319,7 +319,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 ノードが、そのプロパティを持っていれば 1、なければ 0 になる。
 
-使用箇所: `app/thermo-node/src/sensor.c:28`
+使用箇所: [`app/thermo-node/src/sensor.c:28`](../app/thermo-node/src/sensor.c#L28)
 
 ### ADC_DT_SPEC_GET
 
@@ -329,7 +329,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 ノードの `io-channels` の最初のチャンネルから、`struct adc_dt_spec` の初期化子を作る。
 
-使用箇所: `app/thermo-node/src/sensor.c:48`
+使用箇所: [`app/thermo-node/src/sensor.c:48`](../app/thermo-node/src/sensor.c#L48)
 
 ### GPIO_DT_SPEC_GET
 
@@ -339,7 +339,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 ノードのプロパティ (例: `gpios`) から、`struct gpio_dt_spec` の初期化子を作る。
 
-使用箇所: `app/thermo-node/src/button.c:25`
+使用箇所: [`app/thermo-node/src/button.c:25`](../app/thermo-node/src/button.c#L25)
 
 ### PWM_DT_SPEC_GET
 
@@ -349,7 +349,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 ノードの `pwms` の最初の要素から、`struct pwm_dt_spec` の初期化子を作る。
 
-使用箇所: `app/thermo-node/src/buzzer.c:25`
+使用箇所: [`app/thermo-node/src/buzzer.c:25`](../app/thermo-node/src/buzzer.c#L25)
 
 ### I2C_DT_SPEC_INST_GET
 
@@ -359,7 +359,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 ドライバのインスタンスの番号から、`struct i2c_dt_spec` (バスとアドレス) の初期化子を作る。`drivers/rtc_pcf8563.c` で使う。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:263`
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:263`](../app/thermo-node/drivers/rtc_pcf8563.c#L263)
 
 ### DEVICE_DT_INST_DEFINE
 
@@ -369,7 +369,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 ドライバのインスタンスの番号から、デバイスを定義する。初期化の関数、データ、設定、初期化の段階と優先度、API の構造体を指定する。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:265`
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:265`](../app/thermo-node/drivers/rtc_pcf8563.c#L265)
 
 ### DT_INST_FOREACH_STATUS_OKAY
 
@@ -379,7 +379,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 `status = "okay"` の全てのインスタンスについて、`fn(inst)` を展開する。ドライバの末尾で、`DEVICE_DT_INST_DEFINE()` を呼ぶマクロを渡す。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:275`
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:275`](../app/thermo-node/drivers/rtc_pcf8563.c#L275)
 
 ### DEVICE_API
 
@@ -389,4 +389,4 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 デバイスの API の構造体を、`static const struct <_class>_driver_api _name` として定義する。ドライバ (`drivers/rtc_pcf8563.c`) の API の表に使う。
 
-使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:102`
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:102`](../app/thermo-node/drivers/rtc_pcf8563.c#L102)

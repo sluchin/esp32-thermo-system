@@ -21,7 +21,7 @@ k_tid_t k_thread_create(struct k_thread *new_thread, k_thread_stack_t *stack,
 - `entry` / `p1` `p2` `p3`: スレッドの入口の関数と、その 3 つの引数。`prio`: 優先度。`options`: スレッドのオプション (アーキテクチャ依存。`K_ESSENTIAL` `K_FP_REGS` など。`|` で複数指定)。`delay`: 開始までの遅延。遅延なしは `K_NO_WAIT`。
 - 戻り値: 新しいスレッドの ID。
 
-使用箇所: `app/common/cloud.c:240`
+使用箇所: [`app/common/cloud.c:240`](../app/common/cloud.c#L240)
 
 ### k_thread_name_set
 
@@ -34,7 +34,7 @@ int k_thread_name_set(k_tid_t thread, const char *str);
 - `thread`: 名前を付けるスレッド。`NULL` なら、今のスレッド。
 - 戻り値: 成功は 0。`-EFAULT`: 文字列のメモリにアクセスできない。`-ENOSYS`: スレッド名の設定が無効。`-EINVAL`: 名前が長すぎる。
 
-使用箇所: `app/common/cloud.c:242`
+使用箇所: [`app/common/cloud.c:242`](../app/common/cloud.c#L242)
 
 ### k_thread_abort
 
@@ -47,7 +47,7 @@ void k_thread_abort(k_tid_t thread);
 - `thread`: 止めるスレッドの ID。
 - 戻り値が返った後は、そのスレッドが、動いていないことと、動けるようにならないことが保証される。
 
-使用箇所: `app/common/cloud.c:254`
+使用箇所: [`app/common/cloud.c:254`](../app/common/cloud.c#L254)
 
 ## スリープと時刻
 
@@ -62,7 +62,7 @@ int32_t k_sleep(k_timeout_t timeout);
 - `timeout`: 眠る時間 (`K_MSEC()` `K_SECONDS()` など)。
 - 戻り値: 時間が経ったら 0。`k_wakeup()` で起こされたら、残りの時間 (ミリ秒に切り上げ。`INT_MAX` で切り詰める)。
 
-使用箇所: `app/common/cloud.c:155` (ほか 3 行), `app/thermo-gateway/src/main.c:93`
+使用箇所: [`app/common/cloud.c:155`](../app/common/cloud.c#L155) (ほか 3 行), [`app/thermo-gateway/src/main.c:93`](../app/thermo-gateway/src/main.c#L93)
 
 ### k_msleep
 
@@ -75,7 +75,7 @@ int32_t k_msleep(int32_t ms);
 - `ms`: 眠るミリ秒。
 - 戻り値: 時間が経ったか、`k_wakeup()` で起こされたら 0。そうでなければ、残りの時間 (ミリ秒に切り上げ)。
 
-使用箇所: `app/thermo-node/src/main.c:335` (ほか 1 行)
+使用箇所: [`app/thermo-node/src/main.c:335`](../app/thermo-node/src/main.c#L335) (ほか 1 行)
 
 ### k_uptime_get
 
@@ -87,7 +87,7 @@ int64_t k_uptime_get(void);
 
 - 単位はミリ秒だが、分解能がミリ秒とは限らない。実際の分解能は、`CONFIG_SYS_CLOCK_TICKS_PER_SEC` で決まる。
 
-使用箇所: `app/common/ntp.c:59` (ほか 1 行), `app/thermo-gateway/src/ble.c:543` (ほか 1 行), `app/thermo-node/src/main.c:146` (ほか 2 行), `app/thermo-node/src/sdlog.c:165`
+使用箇所: [`app/common/ntp.c:59`](../app/common/ntp.c#L59) (ほか 1 行), [`app/thermo-gateway/src/ble.c:543`](../app/thermo-gateway/src/ble.c#L543) (ほか 1 行), [`app/thermo-node/src/main.c:146`](../app/thermo-node/src/main.c#L146) (ほか 2 行), [`app/thermo-node/src/sdlog.c:165`](../app/thermo-node/src/sdlog.c#L165)
 
 ### k_uptime_get_32
 
@@ -99,7 +99,7 @@ uint32_t k_uptime_get_32(void);
 
 - `k_uptime_get()` に比べて、利点はほとんどない (アプリが `2^32` ティックを超えて動かないと分かっているときだけ)。割り込みを止めて、64 ビットの計算をすることがある。
 
-使用箇所: `app/common/cloud.c:274` (ほか 3 行), `app/thermo-gateway/src/main.c:154`
+使用箇所: [`app/common/cloud.c:274`](../app/common/cloud.c#L274) (ほか 3 行), [`app/thermo-gateway/src/main.c:154`](../app/thermo-gateway/src/main.c#L154)
 
 ## セマフォ
 
@@ -114,7 +114,7 @@ int k_sem_take(struct k_sem *sem, k_timeout_t timeout);
 - `sem`: セマフォ。`timeout`: 待つ時間 (`K_NO_WAIT` `K_FOREVER` か、時間)。割り込みから呼ぶときは `K_NO_WAIT`。
 - 戻り値: 取れたら 0。`-EBUSY`: 待たずに戻った (取れなかった)。`-EAGAIN`: 待ち時間が切れた、または待っている間にセマフォがリセットされた。
 
-使用箇所: `app/common/wifi_link.c:108`
+使用箇所: [`app/common/wifi_link.c:108`](../app/common/wifi_link.c#L108)
 
 ### k_sem_give
 
@@ -124,7 +124,7 @@ void k_sem_give(struct k_sem *sem);
 
 セマフォを与える。最大のカウントに達していたら、何もしない。割り込みから呼べる。
 
-使用箇所: `app/common/wifi_link.c:168` (ほか 1 行)
+使用箇所: [`app/common/wifi_link.c:168`](../app/common/wifi_link.c#L168) (ほか 1 行)
 
 ### k_sem_reset
 
@@ -134,7 +134,7 @@ void k_sem_reset(struct k_sem *sem);
 
 セマフォのカウントを 0 にする。待っている `k_sem_take()` は、`-EAGAIN` で中止される。
 
-使用箇所: `app/common/wifi_link.c:99`
+使用箇所: [`app/common/wifi_link.c:99`](../app/common/wifi_link.c#L99)
 
 ## メッセージキュー
 
@@ -149,7 +149,7 @@ int k_msgq_put(struct k_msgq *msgq, const void *data, k_timeout_t timeout);
 - `timeout`: 待つ時間 (`K_NO_WAIT` `K_FOREVER` か、時間)。割り込みから呼ぶときは `K_NO_WAIT`。
 - 戻り値: 送れたら 0。`-ENOMSG`: 待たずに戻った (キューが満杯)、またはキューが空にされた。`-EAGAIN`: 待ち時間が切れた。
 
-使用箇所: `app/common/cloud.c:714`
+使用箇所: [`app/common/cloud.c:714`](../app/common/cloud.c#L714)
 
 ### k_msgq_get
 
@@ -162,7 +162,7 @@ int k_msgq_get(struct k_msgq *msgq, void *data, k_timeout_t timeout);
 - `data`: 受け取ったメッセージを入れる領域。`timeout`: 待つ時間。
 - 戻り値: 受け取れたら 0。`-ENOMSG`: 待たずに戻った (キューが空)、またはキューが空にされた。`-EAGAIN`: 待ち時間が切れた。
 
-使用箇所: `app/common/cloud.c:642`
+使用箇所: [`app/common/cloud.c:642`](../app/common/cloud.c#L642)
 
 ### k_msgq_num_used_get
 
@@ -172,7 +172,7 @@ uint32_t k_msgq_num_used_get(struct k_msgq *msgq);
 
 メッセージキューに入っているメッセージの数を返す。
 
-使用箇所: `app/common/cloud.c:388`
+使用箇所: [`app/common/cloud.c:388`](../app/common/cloud.c#L388)
 
 ### k_msgq_purge
 
@@ -182,7 +182,7 @@ void k_msgq_purge(struct k_msgq *msgq);
 
 メッセージキューの、受け取っていないメッセージを、全て捨てる。キューに送ろうとして待っているスレッドは、`-ENOMSG` で起こされる。
 
-使用箇所: `app/common/cloud.c:341`
+使用箇所: [`app/common/cloud.c:341`](../app/common/cloud.c#L341)
 
 ## ワーク (遅延実行)
 
@@ -197,7 +197,7 @@ int k_work_schedule(struct k_work_delayable *dwork, k_timeout_t delay);
 - `dwork`: 遅延ワーク。`delay`: 登録するまでの時間。`K_NO_WAIT` なら、すぐ登録する。
 - 戻り値: `k_work_schedule_for_queue()` と同じ。
 
-使用箇所: `app/thermo-gateway/src/ble.c:786`, `app/thermo-node/src/buzzer.c:78` (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:786`](../app/thermo-gateway/src/ble.c#L786), [`app/thermo-node/src/buzzer.c:78`](../app/thermo-node/src/buzzer.c#L78) (ほか 1 行)
 
 ### k_work_reschedule
 
@@ -210,7 +210,7 @@ int k_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay);
 - `dwork`: 遅延ワーク。`delay`: 登録するまでの時間。
 - 戻り値: `k_work_reschedule_for_queue()` と同じ。
 
-使用箇所: `app/thermo-gateway/src/ble.c:467` (ほか 2 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:467`](../app/thermo-gateway/src/ble.c#L467) (ほか 2 行)
 
 ### k_work_cancel_delayable
 
@@ -224,7 +224,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 - 取り消しても、再び登録することは防げない。取り消しが終わるまで、実行の登録だけを防ぐ。
 - 戻り値: 取り消しの手順が済んだあとの、`k_work_delayable_busy_get()` の状態。
 
-使用箇所: `app/thermo-node/src/buzzer.c:73`
+使用箇所: [`app/thermo-node/src/buzzer.c:73`](../app/thermo-node/src/buzzer.c#L73)
 
 ## マクロ
 
@@ -236,7 +236,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 ミリ秒を、`k_timeout_t` にする。
 
-使用箇所: `app/common/cloud.c:155` (ほか 2 行), `app/thermo-gateway/src/ble.c:691`, `app/thermo-node/src/buzzer.c:113`
+使用箇所: [`app/common/cloud.c:155`](../app/common/cloud.c#L155) (ほか 2 行), [`app/thermo-gateway/src/ble.c:691`](../app/thermo-gateway/src/ble.c#L691), [`app/thermo-node/src/buzzer.c:113`](../app/thermo-node/src/buzzer.c#L113)
 
 ### K_SECONDS
 
@@ -246,7 +246,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 秒を、`k_timeout_t` にする。
 
-使用箇所: `app/common/cloud.c:161` (ほか 3 行), `app/thermo-gateway/src/ble.c:583`, `app/thermo-gateway/src/main.c:93`, `app/thermo-node/src/wifi_time.c:73` (ほか 1 行)
+使用箇所: [`app/common/cloud.c:161`](../app/common/cloud.c#L161) (ほか 3 行), [`app/thermo-gateway/src/ble.c:583`](../app/thermo-gateway/src/ble.c#L583), [`app/thermo-gateway/src/main.c:93`](../app/thermo-gateway/src/main.c#L93), [`app/thermo-node/src/wifi_time.c:73`](../app/thermo-node/src/wifi_time.c#L73) (ほか 1 行)
 
 ### K_SEM_DEFINE
 
@@ -256,7 +256,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 セマフォを、静的に定義して、初期化する。初期のカウントと、カウントの上限を指定する。
 
-使用箇所: `app/common/wifi_link.c:31`
+使用箇所: [`app/common/wifi_link.c:31`](../app/common/wifi_link.c#L31)
 
 ### K_MSGQ_DEFINE
 
@@ -266,7 +266,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 メッセージキューを、静的に定義して、初期化する。メッセージの大きさ、最大の数、アラインメントを指定する。
 
-使用箇所: `app/common/cloud.c:89`
+使用箇所: [`app/common/cloud.c:89`](../app/common/cloud.c#L89)
 
 ### K_THREAD_STACK_DEFINE
 
@@ -276,7 +276,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 スレッドのスタックを、静的に定義する。`k_thread_create()` に渡す。
 
-使用箇所: `app/common/cloud.c:124`
+使用箇所: [`app/common/cloud.c:124`](../app/common/cloud.c#L124)
 
 ### K_THREAD_STACK_SIZEOF
 
@@ -286,7 +286,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 `K_THREAD_STACK_DEFINE()` で定義したスタックの大きさを返す。`k_thread_create()` の `stack_size` に使う。
 
-使用箇所: `app/common/cloud.c:240`
+使用箇所: [`app/common/cloud.c:240`](../app/common/cloud.c#L240)
 
 ### K_WORK_DELAYABLE_DEFINE
 
@@ -296,4 +296,4 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 遅延ワークを、静的に定義して、初期化する。`work_handler` は、ワークキューのスレッドで実行される。
 
-使用箇所: `app/thermo-gateway/src/ble.c:112` (ほか 1 行), `app/thermo-node/src/buzzer.c:39`
+使用箇所: [`app/thermo-gateway/src/ble.c:112`](../app/thermo-gateway/src/ble.c#L112) (ほか 1 行), [`app/thermo-node/src/buzzer.c:39`](../app/thermo-node/src/buzzer.c#L39)
