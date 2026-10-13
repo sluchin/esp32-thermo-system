@@ -62,7 +62,7 @@ int32_t k_sleep(k_timeout_t timeout);
 - `timeout`: 眠る時間 (`K_MSEC()` `K_SECONDS()` など)。
 - 戻り値: 時間が経ったら 0。`k_wakeup()` で起こされたら、残りの時間 (ミリ秒に切り上げ。`INT_MAX` で切り詰める)。
 
-使用箇所: `app/common/cloud.c:155 (ほか 3 行)`, `app/thermo-gateway/src/main.c:93`
+使用箇所: `app/common/cloud.c:155` (ほか 3 行), `app/thermo-gateway/src/main.c:93`
 
 ### k_msleep
 
@@ -75,7 +75,7 @@ int32_t k_msleep(int32_t ms);
 - `ms`: 眠るミリ秒。
 - 戻り値: 時間が経ったか、`k_wakeup()` で起こされたら 0。そうでなければ、残りの時間 (ミリ秒に切り上げ)。
 
-使用箇所: `app/thermo-node/src/main.c:335 (ほか 1 行)`
+使用箇所: `app/thermo-node/src/main.c:335` (ほか 1 行)
 
 ### k_uptime_get
 
@@ -87,7 +87,7 @@ int64_t k_uptime_get(void);
 
 - 単位はミリ秒だが、分解能がミリ秒とは限らない。実際の分解能は、`CONFIG_SYS_CLOCK_TICKS_PER_SEC` で決まる。
 
-使用箇所: `app/common/ntp.c:59 (ほか 1 行)`, `app/thermo-gateway/src/ble.c:543 (ほか 1 行)`, `app/thermo-node/src/main.c:146 (ほか 2 行)`, `app/thermo-node/src/sdlog.c:165`
+使用箇所: `app/common/ntp.c:59` (ほか 1 行), `app/thermo-gateway/src/ble.c:543` (ほか 1 行), `app/thermo-node/src/main.c:146` (ほか 2 行), `app/thermo-node/src/sdlog.c:165`
 
 ### k_uptime_get_32
 
@@ -99,7 +99,7 @@ uint32_t k_uptime_get_32(void);
 
 - `k_uptime_get()` に比べて、利点はほとんどない (アプリが `2^32` ティックを超えて動かないと分かっているときだけ)。割り込みを止めて、64 ビットの計算をすることがある。
 
-使用箇所: `app/common/cloud.c:274 (ほか 3 行)`, `app/thermo-gateway/src/main.c:154`
+使用箇所: `app/common/cloud.c:274` (ほか 3 行), `app/thermo-gateway/src/main.c:154`
 
 ## セマフォ
 
@@ -124,7 +124,7 @@ void k_sem_give(struct k_sem *sem);
 
 セマフォを与える。最大のカウントに達していたら、何もしない。割り込みから呼べる。
 
-使用箇所: `app/common/wifi_link.c:168 (ほか 1 行)`
+使用箇所: `app/common/wifi_link.c:168` (ほか 1 行)
 
 ### k_sem_reset
 
@@ -197,7 +197,7 @@ int k_work_schedule(struct k_work_delayable *dwork, k_timeout_t delay);
 - `dwork`: 遅延ワーク。`delay`: 登録するまでの時間。`K_NO_WAIT` なら、すぐ登録する。
 - 戻り値: `k_work_schedule_for_queue()` と同じ。
 
-使用箇所: `app/thermo-gateway/src/ble.c:786`, `app/thermo-node/src/buzzer.c:78 (ほか 1 行)`
+使用箇所: `app/thermo-gateway/src/ble.c:786`, `app/thermo-node/src/buzzer.c:78` (ほか 1 行)
 
 ### k_work_reschedule
 
@@ -210,7 +210,7 @@ int k_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay);
 - `dwork`: 遅延ワーク。`delay`: 登録するまでの時間。
 - 戻り値: `k_work_reschedule_for_queue()` と同じ。
 
-使用箇所: `app/thermo-gateway/src/ble.c:467 (ほか 2 行)`
+使用箇所: `app/thermo-gateway/src/ble.c:467` (ほか 2 行)
 
 ### k_work_cancel_delayable
 
@@ -236,7 +236,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 ミリ秒を、`k_timeout_t` にする。
 
-使用箇所: `app/common/cloud.c:155 (ほか 2 行)`, `app/thermo-gateway/src/ble.c:691`, `app/thermo-node/src/buzzer.c:113`
+使用箇所: `app/common/cloud.c:155` (ほか 2 行), `app/thermo-gateway/src/ble.c:691`, `app/thermo-node/src/buzzer.c:113`
 
 ### K_SECONDS
 
@@ -246,7 +246,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 秒を、`k_timeout_t` にする。
 
-使用箇所: `app/common/cloud.c:161 (ほか 3 行)`, `app/thermo-gateway/src/ble.c:583`, `app/thermo-gateway/src/main.c:93`, `app/thermo-node/src/wifi_time.c:73 (ほか 1 行)`
+使用箇所: `app/common/cloud.c:161` (ほか 3 行), `app/thermo-gateway/src/ble.c:583`, `app/thermo-gateway/src/main.c:93`, `app/thermo-node/src/wifi_time.c:73` (ほか 1 行)
 
 ### K_SEM_DEFINE
 
@@ -296,4 +296,4 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 遅延ワークを、静的に定義して、初期化する。`work_handler` は、ワークキューのスレッドで実行される。
 
-使用箇所: `app/thermo-gateway/src/ble.c:112 (ほか 1 行)`, `app/thermo-node/src/buzzer.c:39`
+使用箇所: `app/thermo-gateway/src/ble.c:112` (ほか 1 行), `app/thermo-node/src/buzzer.c:39`
