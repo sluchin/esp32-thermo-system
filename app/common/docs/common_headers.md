@@ -1,6 +1,6 @@
 # 共通のヘッダの解析
 
-対象: `app/common/thermo_ble_uuid.h` (61 行)、`thermo_log.h` (25 行)、`switchbot_sample.h` (29 行)
+対象: `app/common/thermo_ble_uuid.h` (61 行)、`thermo_log.h` (25 行)、`thermo_version.h` (28 行)、`switchbot_sample.h` (29 行)
 
 処理を持たない、定義だけのヘッダです。ノードとゲートウェイが、同じ値を使うために、共通の場所に置いています。
 
@@ -33,6 +33,10 @@ Thermo サービスの UUID (128 ビット) は、`9F3C1A00-7B6E-4C3A-9D5E-2A6F0
 ```
 
 各ソースの `LOG_MODULE_REGISTER(名前, THERMO_LOG_LEVEL)` が使います。通常は、Zephyr の既定のレベルです。CMake の `THERMO_DEBUG_LOG` を ON にすると、`THERMO_LOG_LEVEL=4` (デバッグ) を定義して、このアプリのモジュールだけのレベルを、まとめて上げます (`DEBUG_LOG.md` を参照)。
+
+## thermo_version.h: バージョンと git のハッシュ
+
+`THERMO_VERSION` (リポジトリ直下の `VERSION` の値) と `THERMO_GIT_HASH` (`git describe --always --dirty --abbrev=12` の出力) を定義します。値は、ビルドのときに、`app/version.cmake` が、マクロとして渡します (CMake を実行したときの値。git の `HEAD` と `index` が変わると、CMake がやり直されます)。渡されなかったとき (単体テスト、git が使えないビルド) は、`unknown` です。コミットしていない変更があると、ハッシュの末尾に `-dirty` が付きます。両方のアプリの `main()` が、起動のログに出します (`Version 0.1.0 (git 584daa5c1f2e)`)。ログは、SD カードの `boot.log` にも残ります。
 
 ## switchbot_sample.h: SwitchBot の値
 

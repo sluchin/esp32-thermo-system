@@ -31,3 +31,4 @@ endif()
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../version.cmake)

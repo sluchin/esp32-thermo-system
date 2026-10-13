@@ -8,6 +8,7 @@
 
 ```text
 main()
+  ├─ 起動のログ                      「started」と「Version <バージョン> (git <ハッシュ>)」を出す
   ├─ ble_init()                      Bluetooth を有効にして、接続のコールバックを登録
   ├─ cloud_init(true)                (CONFIG_THERMO_CLOUD) 設定を読んで、送信のスレッドを起動
   ├─ ble_set_temperature_callback()  ノードの温度 → on_temperature()

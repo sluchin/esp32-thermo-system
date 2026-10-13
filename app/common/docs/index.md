@@ -10,7 +10,7 @@
 | [wifi_link.md](wifi_link.md) | `wifi_link.c` | WiFi の接続 |
 | [ntp.md](ntp.md) | `ntp.c` | SNTP によるシステム時計の同期 |
 | [payload.md](payload.md) | `payload.c` | MQTT のトピックと JSON のペイロード |
-| [common_headers.md](common_headers.md) | `thermo_ble_uuid.h` `thermo_log.h` `switchbot_sample.h` | UUID、ログのレベル、SwitchBot の値 |
+| [common_headers.md](common_headers.md) | `thermo_ble_uuid.h` `thermo_log.h` `thermo_version.h` `switchbot_sample.h` | UUID、ログのレベル、バージョンと git のハッシュ、SwitchBot の値 |
 | [observations.md](observations.md) | (全体) | ノード、ゲートウェイ、共通のコードを読んで気づいた点のまとめ |
 
 ## 呼び出しの関係

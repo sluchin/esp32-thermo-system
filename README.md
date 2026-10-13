@@ -32,7 +32,9 @@ esp32-thermo-system/
 │   │   ├── src/
 │   │   └── tests/
 │   ├── common/                 # 両方のアプリが使う、BLE の UUID とログのレベル
+│   ├── version.cmake           # VERSION と git のハッシュを、ファームウェアに渡す (起動のログに出る)
 │   └── warnings.txt            # コンパイラの警告オプション (warnings.cmake が読み込む)
+├── VERSION                     # ファームウェアのバージョン (起動のログに出る)
 ├── man/                        # 使っている Zephyr の API の日本語訳 (index.md から読む)
 ├── scripts/                    # ビルド、テスト、整形、書き込み、WiFi の設定などの補助スクリプト
 ├── .github/                    # GitHub Actions (workflows/build.yml と、Docker イメージのアクション)

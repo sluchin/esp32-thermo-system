@@ -80,3 +80,4 @@ target_sources_ifdef(CONFIG_THERMO_HISTORY_STORE app PRIVATE src/history_store.c
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_SOURCE_DIR}/../warnings.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../version.cmake)

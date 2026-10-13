@@ -66,6 +66,7 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 ```
 *** Booting Zephyr OS build v3.x.x ***
 [00:00:00.000,000] <inf> thermo_node: Thermo Node started (SIMULATOR MODE)
+[00:00:00.000,500] <inf> thermo_node: Version 0.1.0 (git 584daa5c1f2e)
 [00:00:00.001,000] <wrn> sensor_thermo_node: No sensor in device tree, using simulated values
 [00:00:00.002,000] <inf> ble_thermo_node: Bluetooth initialized
 [00:00:00.003,000] <inf> ble_thermo_node: Advertising started

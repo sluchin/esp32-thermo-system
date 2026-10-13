@@ -8,6 +8,7 @@
 
 ```text
 main()
+  0. 起動のログ                「started」と「Version <バージョン> (git <ハッシュ>)」を出す (thermo_version.h)
   1. sensor_init()            失敗 → EXIT_FAILURE
   2. ble_init()               失敗 → EXIT_FAILURE
   3. ble_set_time_callback(node_time_set)      (CONFIG_THERMO_RTC) ゲートウェイが書いた時刻を RTC へ

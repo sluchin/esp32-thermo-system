@@ -44,6 +44,7 @@
 #include "sensor.h"
 #include "thermo_ble_uuid.h"
 #include "thermo_log.h"
+#include "thermo_version.h"
 
 LOG_MODULE_REGISTER(thermo_node, THERMO_LOG_LEVEL);
 
@@ -174,6 +175,7 @@ int main(void)
 #else
     LOG_INF("Thermo Node started on ESP32C3");
 #endif
+    LOG_INF("Version %s (git %s)", THERMO_VERSION, THERMO_GIT_HASH);
 
     /* センサを初期化する */
     ret = sensor_init();
