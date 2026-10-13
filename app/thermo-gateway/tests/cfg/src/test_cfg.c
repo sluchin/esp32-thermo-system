@@ -343,7 +343,7 @@ ZTEST(cfg, test_set_empty_value)
 /** 最大の長さの値は設定できて, 1 byte でも長ければ, -EINVAL (保存も更新もしない) */
 ZTEST(cfg, test_set_length_limit)
 {
-    char value[CFG_ENDPOINT_MAX + 2U]; /* 値 */
+    char value[CFG_ENDPOINT_MAX + 2U] = {0}; /* 値 */
 
     /* ちょうど最大の長さ: 設定できる */
     (void)memset(value, 'a', sizeof(value));
