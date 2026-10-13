@@ -29,7 +29,7 @@ struct net_if *net_if_get_default(void);
 - `_mgmt_request`: 要求の識別子。`_iface`: ネットワークインターフェース。`_data` / `_len`: 追加のデータと、その長さ (接続は `struct wifi_connect_req_params`。切断は `NULL` と 0)。
 - 戻り値: 成功は 0、失敗は負の errno。
 
-使用箇所: [`app/common/wifi_link.c:14`](../app/common/wifi_link.c#L14) (ほか 2 行)
+使用箇所: [`app/common/wifi_link.c:101`](../app/common/wifi_link.c#L101) (ほか 1 行)
 
 ### net_mgmt_init_event_callback
 
