@@ -45,7 +45,7 @@ int settings_save_one(const char *name, const void *value, size_t val_len);
 - `name`: 設定項目の名前 (キー)。`value` / `val_len`: 値と、その長さ。値は、`settings_handler::h_export` のハンドラに渡される。
 - 戻り値: 成功は 0、失敗は 0 以外。
 
-使用箇所: `app/common/cfg.c:155 (ほか 2 行)`
+使用箇所: `app/common/cfg.c:155` (ほか 2 行)
 
 ### settings_delete
 
@@ -58,7 +58,7 @@ int settings_delete(const char *name);
 - `name`: 設定項目の名前 (キー)。
 - 戻り値: 成功は 0、失敗は 0 以外。
 
-使用箇所: `app/common/cfg.c:288 (ほか 3 行)`
+使用箇所: `app/common/cfg.c:288` (ほか 3 行)
 
 ### settings_load_subtree
 

@@ -43,7 +43,7 @@ static inline int display_blanking_off(const struct device *dev);
 - ドライバがバックライトの制御に対応していれば、バックライトの設定を戻す。
 - 戻り値: 成功は 0、失敗は負の errno。ドライバが実装していなければ `-ENOSYS`。
 
-使用箇所: `app/thermo-node/src/oled.c:169 (ほか 1 行)`
+使用箇所: `app/thermo-node/src/oled.c:169` (ほか 1 行)
 
 ## 文字のフレームバッファ (CFB)
 
@@ -93,7 +93,7 @@ int cfb_framebuffer_clear(const struct device *dev, bool clear_display);
 - `clear_display`: `true` なら、表示装置の画面も消す。
 - 戻り値: 成功は 0、失敗は負の値。
 
-使用箇所: `app/thermo-node/src/oled.c:163 (ほか 2 行)`
+使用箇所: `app/thermo-node/src/oled.c:163` (ほか 2 行)
 
 ### cfb_print
 
@@ -106,7 +106,7 @@ int cfb_print(const struct device *dev, const char *const str, uint16_t x, uint1
 - `str`: 描く文字列。`x` `y`: 文字列の先頭の位置 (X 方向と Y 方向。ピクセル)。
 - 戻り値: 成功は 0、失敗は負の値。
 
-使用箇所: `app/thermo-node/src/oled.c:434 (ほか 1 行)`
+使用箇所: `app/thermo-node/src/oled.c:434` (ほか 1 行)
 
 ### cfb_draw_point
 
@@ -119,7 +119,7 @@ int cfb_draw_point(const struct device *dev, const struct cfb_position *pos);
 - `pos`: 点の位置。
 - 戻り値: 成功は 0、失敗は負の値。
 
-使用箇所: `app/thermo-node/src/oled.c:408 (ほか 2 行)`
+使用箇所: `app/thermo-node/src/oled.c:408` (ほか 2 行)
 
 ### cfb_draw_line
 
@@ -144,4 +144,4 @@ int cfb_framebuffer_finalize(const struct device *dev);
 
 - 戻り値: 成功は 0、失敗は負の値。
 
-使用箇所: `app/thermo-node/src/oled.c:244 (ほか 1 行)`
+使用箇所: `app/thermo-node/src/oled.c:244` (ほか 1 行)

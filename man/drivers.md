@@ -108,7 +108,7 @@ static inline int gpio_pin_get_dt(const struct gpio_dt_spec *spec);
 
 - 戻り値: `gpio_pin_get()` の値 (論理レベルが 1 なら正、0 なら 0、失敗なら負)。
 
-使用箇所: `app/thermo-node/src/button.c:53 (ほか 1 行)`
+使用箇所: `app/thermo-node/src/button.c:53` (ほか 1 行)
 
 ## I2C
 
@@ -255,7 +255,7 @@ int sensor_channel_get(const struct device *dev, enum sensor_channel chan, struc
 - `chan`: チャンネル (`SENSOR_CHAN_AMBIENT_TEMP` `SENSOR_CHAN_HUMIDITY`)。`val`: 値を入れる領域 (`val1` が整数部、`val2` が小数部 [百万分の 1])。
 - 戻り値: 成功は 0、失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/sensor.c:129 (ほか 1 行)`
+使用箇所: `app/thermo-node/src/sensor.c:129` (ほか 1 行)
 
 ### sensor_value_to_milli
 
@@ -309,7 +309,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 ノードのパスから、ノードの識別子を得る (例: `DT_PATH(zephyr_user)`)。
 
-使用箇所: `app/thermo-node/src/sensor.c:28 (ほか 1 行)`
+使用箇所: `app/thermo-node/src/sensor.c:28` (ほか 1 行)
 
 ### DT_NODE_HAS_PROP
 

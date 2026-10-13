@@ -16,7 +16,7 @@
 
 - `_sh`: シェルのインスタンス。`_ft`: 書式文字列。`...`: 書式の引数。
 
-使用箇所: `app/common/cfg_shell.c:68 (ほか 10 行)`, `app/thermo-node/src/wifi_shell.c:62 (ほか 1 行)`
+使用箇所: `app/common/cfg_shell.c:68` (ほか 10 行), `app/thermo-node/src/wifi_shell.c:62` (ほか 1 行)
 
 ### shell_warn
 
@@ -40,7 +40,7 @@
 
 - `_sh`: シェルのインスタンス。`_ft`: 書式文字列。`...`: 書式の引数。
 
-使用箇所: `app/common/cfg_shell.c:59 (ほか 5 行)`, `app/thermo-node/src/wifi_shell.c:53 (ほか 2 行)`
+使用箇所: `app/common/cfg_shell.c:59` (ほか 5 行), `app/thermo-node/src/wifi_shell.c:53` (ほか 2 行)
 
 ## コマンドの定義
 
@@ -66,7 +66,7 @@
 
 - `mand`: 必須の引数の数 (コマンド名を含む)。`opt`: 省略できる引数の数。ほかは `SHELL_CMD_REGISTER()` と同じ。
 
-使用箇所: `app/common/cfg_shell.c:230 (ほか 1 行)`
+使用箇所: `app/common/cfg_shell.c:230` (ほか 1 行)
 
 ### SHELL_CMD
 
@@ -76,7 +76,7 @@
 
 引数の数を検査しないコマンドを初期化する (`SHELL_CMD_ARG(..., 0, 0)` と同じ)。
 
-使用箇所: `app/common/cfg_shell.c:234 (ほか 4 行)`, `app/thermo-node/src/shell_extra.h:29 (ほか 2 行)`
+使用箇所: `app/common/cfg_shell.c:234` (ほか 4 行), `app/thermo-node/src/shell_extra.h:29` (ほか 2 行)
 
 ### SHELL_STATIC_SUBCMD_SET_CREATE
 

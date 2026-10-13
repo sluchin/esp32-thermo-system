@@ -16,7 +16,7 @@ struct net_if *net_if_get_default(void);
 
 - 戻り値: 既定のインターフェース。インターフェースが 1 つもなければ `NULL`。
 
-使用箇所: `app/common/wifi_link.c:73 (ほか 1 行)`
+使用箇所: `app/common/wifi_link.c:73` (ほか 1 行)
 
 ### net_mgmt
 
@@ -29,7 +29,7 @@ struct net_if *net_if_get_default(void);
 - `_mgmt_request`: 要求の識別子。`_iface`: ネットワークインターフェース。`_data` / `_len`: 追加のデータと、その長さ (接続は `struct wifi_connect_req_params`。切断は `NULL` と 0)。
 - 戻り値: 成功は 0、失敗は負の errno。
 
-使用箇所: `app/common/wifi_link.c:14 (ほか 2 行)`
+使用箇所: `app/common/wifi_link.c:14` (ほか 2 行)
 
 ### net_mgmt_init_event_callback
 
@@ -41,7 +41,7 @@ void net_mgmt_init_event_callback(struct net_mgmt_event_callback *cb, net_mgmt_e
 
 - `cb`: アプリのコールバックの構造体。`handler`: ハンドラ関数。`mgmt_event_mask`: ハンドラが受けるイベントのマスク (`NET_EVENT_WIFI_CONNECT_RESULT` `NET_EVENT_WIFI_DISCONNECT_RESULT` など)。
 
-使用箇所: `app/common/wifi_link.c:47 (ほか 1 行)`
+使用箇所: `app/common/wifi_link.c:47` (ほか 1 行)
 
 ### net_mgmt_add_event_callback
 
@@ -53,7 +53,7 @@ void net_mgmt_add_event_callback(struct net_mgmt_event_callback *cb);
 
 - `cb`: 加えるコールバックへのポインタ (有効なままにしておく)。
 
-使用箇所: `app/common/wifi_link.c:49 (ほか 1 行)`
+使用箇所: `app/common/wifi_link.c:49` (ほか 1 行)
 
 ### wifi_connect_req_params
 
@@ -186,7 +186,7 @@ int tls_credential_get(sec_tag_t tag, enum tls_credential_type type, void *cred,
 - `cred`: 認証情報を入れるバッファ。`credlen`: 入力はバッファの大きさ。出力は認証情報の長さ。
 - 戻り値: 成功は 0。`-EACCES`: アクセスが拒否された。`-ENOENT`: 見つからない。`-EFBIG`: バッファに入らない (必要な大きさは `*credlen` に入る)。
 
-使用箇所: `app/common/cfg.c:207 (ほか 1 行)`
+使用箇所: `app/common/cfg.c:207` (ほか 1 行)
 
 ### tls_credential_delete
 
@@ -198,7 +198,7 @@ int tls_credential_delete(sec_tag_t tag, enum tls_credential_type type);
 
 - 戻り値: 成功は 0。`-EACCES`: アクセスが拒否された。`-ENOENT`: 見つからない。
 
-使用箇所: `app/common/cfg.c:302 (ほか 1 行)`
+使用箇所: `app/common/cfg.c:302` (ほか 1 行)
 
 ### TLS_PEER_VERIFY_REQUIRED
 
@@ -302,7 +302,7 @@ MQTT の接続を中止する。MQTT の切断メッセージは送らずに、�
 
 - 戻り値: 成功は 0、失敗は負の errno。
 
-使用箇所: `app/common/cloud.c:546 (ほか 1 行)`
+使用箇所: `app/common/cloud.c:546` (ほか 1 行)
 
 ### MQTT_TRANSPORT_SECURE
 

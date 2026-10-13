@@ -68,7 +68,7 @@ int fs_close(struct fs_file_t *zfp);
 
 - 戻り値: 成功は 0。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:180 (ほか 5 行)`, `app/thermo-node/src/sdlog.c:259`
+使用箇所: `app/thermo-node/src/backlog.c:180` (ほか 5 行), `app/thermo-node/src/sdlog.c:259`
 
 ### fs_read
 
@@ -81,7 +81,7 @@ ssize_t fs_read(struct fs_file_t *zfp, void *ptr, size_t size);
 - `ptr`: 読んだデータを入れるバッファ。`size`: 読むバイト数。
 - 戻り値: 成功は読んだバイト数 (0 以上)。`-EBADF`: 開いていない (閉じた) ファイル。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:418 (ほか 1 行)`
+使用箇所: `app/thermo-node/src/backlog.c:418` (ほか 1 行)
 
 ### fs_write
 
@@ -94,7 +94,7 @@ ssize_t fs_write(struct fs_file_t *zfp, const void *ptr, size_t size);
 - `ptr`: 書くデータ。`size`: 書くバイト数。
 - 戻り値: 成功は書いたバイト数 (0 以上)。`size` より少ないときは、空き容量がないことがあるので、グローバルの `errno` を調べる。`-EBADF`: 開いていない (閉じた) ファイル。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:562 (ほか 1 行)`, `app/thermo-node/src/sdlog.c:254`
+使用箇所: `app/thermo-node/src/backlog.c:562` (ほか 1 行), `app/thermo-node/src/sdlog.c:254`
 
 ### fs_seek
 
@@ -107,7 +107,7 @@ int fs_seek(struct fs_file_t *zfp, off_t offset, int whence);
 - `whence`: `FS_SEEK_SET` (先頭から)、`FS_SEEK_CUR` (今の位置から)、`FS_SEEK_END` (末尾から)。
 - 戻り値: 成功は 0。`-EBADF`: 開いていないファイル。`-ENOTSUP`: ドライバが対応していない。ほかの失敗は負の errno。
 
-使用箇所: `app/thermo-node/src/backlog.c:414 (ほか 2 行)`
+使用箇所: `app/thermo-node/src/backlog.c:414` (ほか 2 行)
 
 ## パス
 
