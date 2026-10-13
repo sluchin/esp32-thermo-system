@@ -277,7 +277,7 @@ static inline int64_t sensor_value_to_milli(const struct sensor_value *val);
 #define DEVICE_DT_GET(node_id)
 ```
 
-Devicetree のノードから、デバイスへのポインタを得る (コンパイル時に決まる)。使う前に、 で確かめる。
+Devicetree のノードから、デバイスへのポインタを得る (コンパイル時に決まる)。使う前に、`device_is_ready()` で確かめる。
 
 使用箇所: `app/thermo-node/src/node_time.c:61`, `app/thermo-node/src/oled.c:98`, `app/thermo-node/src/sensor.c:42`
 
