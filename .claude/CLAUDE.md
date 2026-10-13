@@ -54,6 +54,7 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
   - `thermo-node/`: センサノード。DHT11 (または ADC) で温度と湿度を読み取り BLE で配信し、拡張ボードの OLED に、温度、湿度、日時を表示する (日時は、拡張ボードの RTC。PCF8563 のドライバは、`drivers/rtc_pcf8563.c`)。
   - `thermo-gateway/`: ゲートウェイ。周辺ノードをスキャンしデータを集約。
   - `common/`: 2 つのアプリで共有するコード。BLE の UUID (`thermo_ble_uuid.h`)、ログのレベル (`thermo_log.h`)、設定とシェル (`cfg.c` `cfg_shell.c`。SSID、パスワード、エンドポイント、クライアント ID、証明書)、WiFi (`wifi_link.c`)、SNTP (`ntp.c`)、AWS IoT Core への MQTT (`cloud.c`)、ペイロードの作成 (`payload.c`)、SwitchBot の値 (`switchbot_sample.h`)。ゲートウェイは、起動のときから、動かし続ける。ノードは、ゲートウェイにつながらないときだけ、`cloud_set_enabled()` で動かす (`thermo-node/src/direct.c`)。ノードは、`app/thermo-node/src/shell_extra.h` で、`thermo` コマンドに `sync` を足す。
+- `man/`: このプロジェクトが使っている Zephyr の API の日本語訳 (サブシステムごとの Markdown。`man/index.md` から読む)。新しい Zephyr の API を使い始めたら、該当のファイルに足す。`docs/` は生成物で、ビルドのたびに消えるので、ここには置かない。
 - `west.yml`: West マニフェストファイル。
 - `docker-compose.yml` / `Dockerfile`: 開発環境定義。
 - `.github/workflows/`: GitHub Actions による CI 設定。
