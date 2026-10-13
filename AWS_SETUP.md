@@ -123,7 +123,7 @@ cred add 1 CA default strt
 
 #### スクリプトで送る (推奨)
 
-`scripts/send-cred.sh` が、`cred buf load` から `cred add` までを、1 行を 16 文字ずつに分けて、送ります (1 つの PEM で、約 1 分かかります)。`picocom` などで、ポートを開いたままにしないでください。
+`scripts/send-cred.sh` が、`cred buf load` から `cred add` までを、1 行を 16 文字ずつに分けて、送ります (1 つの PEM で、約 1 分かかります)。最後に、`thermo save-certs` も送るので、フラッシュに保存されます (保存しないと、リセットや、ファームウェアの書き込みで、消えます)。`picocom` などで、ポートを開いたままにしないでください。
 
 ```bash
 scripts/send-cred.sh CA     AmazonRootCA1.pem /dev/ttyACM0
@@ -132,6 +132,7 @@ scripts/send-cred.sh PK     private.pem.key   /dev/ttyACM0
 ```
 
 - 出力の `Stored N bytes.` の N が、`wc -c <ファイル>` の値と同じか、確認してください。
+- 3 つが揃うまでは、`thermo save-certs` が `Failed to save the certificates` と出します (揃っていない種類があるため)。CA、CLIENT、PK の順に送れば、登録済みの分は保存されます。3 つ目を送ったあとに、`certificates saved` と出れば、全て保存できています。
 - 登録済みの種類は、先に `cred del 1 CA` (`CLIENT`、`PK`) で消します。
 - PEM の改行は、LF だけにします (JSON の `\n` は、`jq -r` で、改行に直します)。CR が混ざると、mbedTLS が読めません。
 - 証明書と秘密鍵は、リポジトリに置いたままにしません (コミットしない)。
@@ -143,10 +144,9 @@ cred list
 thermo show
 ```
 
-登録できたら、保存します。
+登録できたら、反映します (`thermo save-certs` は、スクリプトが実行済みです。手で `cred add` したときは、自分で実行します)。
 
 ```
-thermo save-certs
 thermo apply
 ```
 

@@ -1,5 +1,6 @@
 #!/bin/bash
-# ゲートウェイのシェルに, PEM を 1 行ずつ, ゆっくり送って, cred add で登録する.
+# ゲートウェイ (またはノード) のシェルに, PEM を 1 行ずつ, ゆっくり送って, cred add で登録し,
+# thermo save-certs でフラッシュに保存する (保存しないと, リセットや書き込みで消える).
 # 貼り付けだと, シェルの受信バッファ (64 バイト) があふれて, 文字が欠けるため.
 #
 # 使い方: scripts/send-cred.sh <CA|CLIENT|PK> <PEM のファイル> [ポート]
@@ -81,5 +82,11 @@ sleep 0.5
 printf 'cred add %s %s default strt\n' "$TAG" "$TYPE" >&3
 sleep 1
 
+# フラッシュに保存する. 3 つ (CA, CLIENT, PK) が揃うまでは, 揃っていない分が "Failed to save" に
+# なるが, 登録済みの分は保存される (CA, CLIENT, PK の順に保存する). 揃うと "certificates saved"
+printf 'thermo save-certs\n' >&3
+sleep 1
+
 echo
 echo "Done. Compare 'Stored N bytes.' with: wc -c $FILE"
+echo "'Failed to save' is expected until CA, CLIENT and PK are all sent."

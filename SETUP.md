@@ -415,7 +415,7 @@ thermo set psk <パスワード>    (オープンネットワークでは、設�
 thermo set endpoint <ホスト名>  (AWS IoT Core のエンドポイント。直接の送信に使う。下の節)
 thermo set client_id <ID>      (MQTT のクライアント ID。直接の送信に使う。下の節)
 thermo show                    (設定と証明書の状態を表示する。パスワードは隠す)
-thermo save-certs              (cred add で登録した証明書をフラッシュに保存する。直接の送信に使う)
+thermo save-certs              (cred add で登録した証明書をフラッシュに保存する。直接の送信に使う。scripts/send-cred.sh は、これを自動で実行する。保存しないと、リセットや書き込みで消える)
 thermo sync                    (WiFi で時刻をすぐに取って、RTC に設定する。1 分待たずに試せる。試みの回数には数えない)
 thermo sd                      (SD カードが使えるかを確かめる。使えなければ、マウントをやり直す。未送信の数を表示する)
 thermo reset                   (設定と証明書を消す)
@@ -460,7 +460,7 @@ thermo set psk <パスワード>
 thermo set endpoint <AWS IoT のエンドポイント>
 thermo set client_id <クライアント ID>    (ノードごとに、別の ID にする。ゲートウェイとも、重ねない。例: node-01)
 cred add ...                      (CA 証明書、デバイス証明書、秘密鍵。送り方は、ゲートウェイと同じ。ただし、CA 以外は、ノード専用のものを使う。AWS_SETUP.md の 7 章)
-thermo save-certs
+thermo save-certs                 (scripts/send-cred.sh が自動で実行する。手で cred add したときだけ必要)
 thermo show                       (ready to connect: yes になれば、揃っている)
 ```
 
