@@ -1,0 +1,263 @@
+# システムのユーティリティ
+
+システムのライブラリ (`zephyr/sys/atomic.h` `byteorder.h` `crc.h` `ring_buffer.h` `clock.h` `util.h`、`zephyr/random/random.h`) の、使っている API。
+
+出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
+
+## アトミック操作
+
+### atomic_add
+
+```c
+atomic_val_t atomic_add(atomic_t *target, atomic_val_t value);
+```
+
+アトミックに足し算をする。
+
+- `target`: アトミック変数のアドレス。`value`: 足す値。
+- 戻り値: `target` の、足す前の値。
+
+使用箇所: `app/thermo-node/src/sdlog.c:220`
+
+### atomic_set
+
+```c
+atomic_val_t atomic_set(atomic_t *target, atomic_val_t value);
+```
+
+アトミックに値を設定して、前の値を返す。
+
+- 戻り値: `target` の、設定する前の値。
+
+使用箇所: `app/thermo-node/src/sdlog.c:325`
+
+## バイトオーダー
+
+### sys_get_le16
+
+```c
+static inline uint16_t sys_get_le16(const uint8_t src[2]);
+```
+
+リトルエンディアンで置かれた 16 ビットの整数を、ホストのバイトオーダーで取り出す。アラインメントされていないメモリでもよい。
+
+使用箇所: `app/thermo-gateway/src/ble.c:367 (ほか 1 行)`, `app/thermo-node/src/backlog.c:442 (ほか 1 行)`
+
+### sys_get_le32
+
+```c
+static inline uint32_t sys_get_le32(const uint8_t src[4]);
+```
+
+リトルエンディアンで置かれた 32 ビットの整数を、ホストのバイトオーダーで取り出す。アラインメントされていないメモリでもよい。
+
+使用箇所: `app/thermo-node/src/backlog.c:438 (ほか 1 行)`, `app/thermo-node/src/ble.c:296`
+
+### sys_put_le16
+
+```c
+static inline void sys_put_le16(uint16_t val, uint8_t dst[2]);
+```
+
+ホストのバイトオーダーの 16 ビットの整数を、リトルエンディアンで置く。アラインメントされていないメモリでもよい。
+
+使用箇所: `app/thermo-node/src/backlog.c:459 (ほか 1 行)`, `app/thermo-node/src/ble.c:322 (ほか 1 行)`
+
+### sys_put_le32
+
+```c
+static inline void sys_put_le32(uint32_t val, uint8_t dst[4]);
+```
+
+ホストのバイトオーダーの 32 ビットの整数を、リトルエンディアンで置く。アラインメントされていないメモリでもよい。
+
+使用箇所: `app/thermo-gateway/src/ble.c:513`, `app/thermo-node/src/backlog.c:458 (ほか 1 行)`
+
+## CRC
+
+### crc32_ieee
+
+```c
+uint32_t crc32_ieee(const uint8_t *data, size_t len);
+```
+
+IEEE 準拠の CRC32 を計算する。
+
+- `data`: 計算するデータ。`len`: データの長さ。
+- 戻り値: CRC32 の値。
+
+使用箇所: `app/thermo-node/src/backlog.c:438 (ほか 1 行)`
+
+## リングバッファ
+
+### RING_BUF_DECLARE
+
+```c
+#define RING_BUF_DECLARE(name, size8)
+```
+
+バイト単位のリングバッファを、静的に定義して、初期化する。
+
+- `name`: 名前。`size8`: バッファの大きさ [バイト]。
+
+使用箇所: `app/thermo-node/src/sdlog.c:59 (ほか 1 行)`
+
+### ring_buf_put
+
+```c
+uint32_t ring_buf_put(struct ring_buf *buf, const uint8_t *data, uint32_t size);
+```
+
+リングバッファに、データを書く (コピーする)。
+
+- 複数の書き手が、同時に書かないようにする (プリエンプトを防ぐか、ミューテックスで守る)。バイト単位の操作と、アイテム単位 (`ring_buf_item_*`) の操作は混ぜない。
+- 戻り値: 書いたバイト数 (空きが足りなければ、`size` より少ない)。
+
+使用箇所: `app/thermo-node/src/sdlog.c:217`
+
+### ring_buf_get
+
+```c
+uint32_t ring_buf_get(struct ring_buf *buf, uint8_t *data, uint32_t size);
+```
+
+リングバッファから、データを読む。
+
+- `data`: 出力のバッファ。`NULL` なら、データを捨てる。複数の読み手が、同時に読まないようにする。
+- 戻り値: 出力のバッファに書いたバイト数。
+
+使用箇所: `app/thermo-node/src/sdlog.c:253`
+
+### ring_buf_is_empty
+
+```c
+static inline bool ring_buf_is_empty(const struct ring_buf *buf);
+```
+
+リングバッファが空かを調べる。
+
+- 戻り値: 空なら `true`、そうでなければ `false`。
+
+使用箇所: `app/thermo-node/src/sdlog.c:252 (ほか 2 行)`
+
+## 時刻と乱数
+
+### sys_clock_gettime
+
+```c
+int sys_clock_gettime(int clock_id, struct timespec *tp);
+```
+
+指定の時計から、今の時刻を取得する。
+
+- `clock_id`: 時計 (`SYS_CLOCK_REALTIME` など)。`tp`: 時刻を入れる領域。
+- 戻り値: 成功は 0。`clock_id` が不正なら `-EINVAL`。
+
+使用箇所: `app/common/ntp.c:119`
+
+### sys_clock_settime
+
+```c
+int sys_clock_settime(int clock_id, const struct timespec *tp);
+```
+
+指定の時計の時刻を設定する。
+
+- `tp`: 設定する時刻。
+- 戻り値: 成功は 0。`clock_id` が不正、または `tp` のナノ秒が `[0, 999999999]` の外なら `-EINVAL`。
+
+使用箇所: `app/common/ntp.c:85`
+
+### sys_rand32_get
+
+```c
+static inline uint32_t sys_rand32_get(void);
+```
+
+一般的な乱数のテストに通る、32 ビットの乱数を返す。
+
+- 暗号に使える乱数ではない。
+
+使用箇所: 直接の呼び出しなし (マクロの内側や、別のマクロ経由で使う)
+
+## ユーティリティ
+
+### bcd2bin
+
+```c
+static inline uint8_t bcd2bin(uint8_t bcd);
+```
+
+BCD (8421) の値を、2 進数にする。PCF8563 のレジスタの読み出しに使う。
+
+使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:191 (ほか 5 行)`
+
+### bin2bcd
+
+```c
+static inline uint8_t bin2bcd(uint8_t bin);
+```
+
+2 進数の値を、BCD (8421) にする。PCF8563 のレジスタへの書き込みに使う。
+
+使用箇所: `app/thermo-node/drivers/rtc_pcf8563.c:138 (ほか 5 行)`
+
+### ARRAY_SIZE
+
+```c
+#define ARRAY_SIZE(array)
+```
+
+配列の要素の数を返す。配列でない引数 (ポインタなど) は、コンパイルエラーにする。
+
+使用箇所: `app/common/cfg.c:103 (ほか 5 行)`, `app/common/cloud.c:530`, `app/thermo-gateway/src/ble.c:272 (ほか 1 行)`, `app/thermo-gateway/src/switchbot.c:207` ほか 3 ファイル
+
+### MIN
+
+```c
+#define MIN(a, b)
+```
+
+2 つの値の小さい方を返す。
+
+使用箇所: `app/common/cloud.c:196`, `app/thermo-node/src/backlog.c:129`, `app/thermo-node/src/history.c:12 (ほか 2 行)`
+
+### BIT
+
+```c
+#define BIT(n)
+```
+
+ビット `n` だけが立った値を返す。
+
+使用箇所: `app/thermo-node/src/sensor.c:155`
+
+### CONTAINER_OF
+
+```c
+#define CONTAINER_OF(ptr, type, field)
+```
+
+構造体のメンバーへのポインタから、構造体の先頭へのポインタを得る。
+
+使用箇所: `app/thermo-gateway/src/ble.c:389 (ほか 1 行)`
+
+### ARG_UNUSED
+
+```c
+#define ARG_UNUSED(x)
+```
+
+使わない引数や変数の、未使用の警告を出さないようにする。
+
+使用箇所: `app/common/cfg_shell.c:56 (ほか 10 行)`, `app/common/cloud.c:420 (ほか 3 行)`, `app/common/wifi_link.c:161`, `app/thermo-gateway/src/ble.c:539 (ほか 3 行)` ほか 7 ファイル
+
+### BUILD_ASSERT
+
+```c
+#define BUILD_ASSERT(EXPR, MSG...)
+```
+
+コンパイル時の表明。`EXPR` が偽なら、コンパイルエラーにする。`MSG` は省略できる。
+
+使用箇所: `app/common/cloud.c:60`
