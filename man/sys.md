@@ -220,7 +220,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 2 つの値の小さい方を返す。
 
-使用箇所: [`app/common/cloud.c:196`](../app/common/cloud.c#L196), [`app/thermo-node/src/backlog.c:129`](../app/thermo-node/src/backlog.c#L129), [`app/thermo-node/src/history.c:12`](../app/thermo-node/src/history.c#L12) (ほか 2 行)
+使用箇所: [`app/common/cloud.c:196`](../app/common/cloud.c#L196), [`app/thermo-node/src/backlog.c:129`](../app/thermo-node/src/backlog.c#L129), [`app/thermo-node/src/history.c:66`](../app/thermo-node/src/history.c#L66) (ほか 1 行)
 
 ### BIT
 
