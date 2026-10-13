@@ -12,9 +12,9 @@
  * 次を確認する.
  *  - レジスタ (BCD) を Zephyr の rtc_time (月は 0 から 11, 年は 1900 年からの年数) に直すこと
  *    (12 月と 2099 年を含む)
- *  - 時刻が未設定 (電圧低下のビット) や範囲外の値は, -ENODATA にすること. 世紀のビットは無視
+ *  - 時刻が未設定 (電圧低下のビット) や範囲外の値は -ENODATA にすること. 世紀のビットは無視
  *  - rtc_time を設定すると, 正しい BCD がレジスタに書かれて, 電圧低下のビットが消えること
- *  - 範囲外の時刻の設定は, 何も書かずに -EINVAL にすること. I2C の通信の失敗が伝わること
+ *  - 範囲外の時刻の設定は何も書かずに -EINVAL にすること. I2C の通信の失敗が伝わること
  */
 
 /** 偽の I2C コントローラのドライバが使う compatible (vnd,test-i2c) */
@@ -47,14 +47,14 @@
 static uint8_t regs[REG_COUNT];
 /** 偽のコントローラが受けた転送の回数 */
 static unsigned int transfers;
-/** 失敗させる転送の番号 (1 始まり. 0 のときは, 失敗させない) */
+/** 失敗させる転送の番号 (1 始まり. 0 のときは失敗させない) */
 static unsigned int fail_at;
 
 /**
  * 偽の I2C コントローラの転送 (PCF8563 のレジスタの読み書きを模擬する)
  *
- * 最初の書き込みの 1 バイト目がレジスタのアドレス. 続くバイトは, アドレスを増やしながら書く.
- * 読み出しは, 設定したアドレスから, 増やしながら読む.
+ * 最初の書き込みの 1 バイト目がレジスタのアドレス. 続くバイトはアドレスを増やしながら書く.
+ * 読み出しは設定したアドレスから, 増やしながら読む.
  *
  * @param[in]     dev      コントローラ (使用しない)
  * @param[in,out] msgs     メッセージ
@@ -62,7 +62,7 @@ static unsigned int fail_at;
  * @param[in]     addr     デバイスのアドレス
  *
  * @retval 0    成功
- * @retval -EIO 失敗させる転送, または, アドレスが違う
+ * @retval -EIO 失敗させる転送, またはアドレスが違う
  */
 static int fake_transfer(const struct device *dev, struct i2c_msg *msgs, uint8_t num_msgs,
                          uint16_t addr)
@@ -220,7 +220,7 @@ ZTEST(rtc_pcf8563, test_get_december_and_last_year)
     zassert_equal(tm.tm_year, 199);
 }
 
-/** 世紀のビット (月のレジスタの bit 7) は, 無視する */
+/** 世紀のビット (月のレジスタの bit 7) は無視する */
 ZTEST(rtc_pcf8563, test_get_ignores_century_bit)
 {
     struct rtc_time tm = {0}; /* 時刻 */
@@ -231,7 +231,7 @@ ZTEST(rtc_pcf8563, test_get_ignores_century_bit)
     zassert_equal(tm.tm_mon, 9);
 }
 
-/** 曜日のレジスタが 7 (範囲外) のときは, 曜日を -1 (不明) にする */
+/** 曜日のレジスタが 7 (範囲外) のときは曜日を -1 (不明) にする */
 ZTEST(rtc_pcf8563, test_get_weekday_unknown)
 {
     struct rtc_time tm = {0}; /* 時刻 */
@@ -252,7 +252,7 @@ ZTEST(rtc_pcf8563, test_get_time_unset)
     zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
 }
 
-/** 範囲外のレジスタの値は, 信用せずに -ENODATA を返す (1 つずつ, 範囲外にする) */
+/** 範囲外のレジスタの値は信用せずに -ENODATA を返す (1 つずつ, 範囲外にする) */
 ZTEST(rtc_pcf8563, test_get_out_of_range)
 {
     struct rtc_time tm = {0}; /* 時刻 */
@@ -341,7 +341,7 @@ ZTEST(rtc_pcf8563, test_set_limits)
     zassert_equal(back.tm_sec, 59);
 }
 
-/** 範囲外の値は, 何も書かずに -EINVAL を返す (1 つずつ, 下限の外と上限の外にする) */
+/** 範囲外の値は何も書かずに -EINVAL を返す (1 つずつ, 下限の外と上限の外にする) */
 ZTEST(rtc_pcf8563, test_set_out_of_range)
 {
     struct rtc_time tm = valid_time(); /* 設定する時刻 */

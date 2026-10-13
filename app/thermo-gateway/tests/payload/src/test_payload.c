@@ -82,7 +82,7 @@ ZTEST(payload, test_payload)
     zassert_str_equal(buf, EXPECTED_PAYLOAD);
 }
 
-/** 0 ℃ 未満の温度には, 符号を付ける (-0.5 のように, 整数部が 0 でも) */
+/** 0 ℃ 未満の温度には符号を付ける (-0.5 のように, 整数部が 0 でも) */
 ZTEST(payload, test_payload_negative_temperature)
 {
     char buf[160] = {0}; /* 出力バッファ */
@@ -96,12 +96,12 @@ ZTEST(payload, test_payload_negative_temperature)
     zassert_not_null(strstr(buf, "\"temperature_c\":0.0,"));
 }
 
-/** 湿度がないとき (THERMO_HUMIDITY_NONE) は, "humidity" を出力しない */
+/** 湿度がないとき (THERMO_HUMIDITY_NONE) は "humidity" を出力しない */
 ZTEST(payload, test_payload_without_humidity)
 {
     char buf[160] = {0}; /* 出力バッファ */
 
-    /* 期待: 温度は出力して, 湿度の項目は, ない */
+    /* 期待: 温度は出力して, 湿度の項目はない */
     zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, THERMO_HUMIDITY_NONE,
                                             123456U, -1) > 0);
     zassert_str_equal(buf, "{\"node\":\"00:AA:01:00:00:42\",\"type\":\"thermo\","
@@ -135,7 +135,7 @@ ZTEST(payload, test_payload_no_space)
                   -ENOSPC);
 }
 
-/** SwitchBot のトピックは, クライアント ID と機器のアドレスから作る (switchbot の階層を挟む) */
+/** SwitchBot のトピックはクライアント ID と機器のアドレスから作る (switchbot の階層を挟む) */
 ZTEST(payload, test_switchbot_topic)
 {
     char buf[64] = {0}; /* 出力バッファ */
@@ -159,7 +159,7 @@ ZTEST(payload, test_switchbot_topic_size_limit)
                   -ENOSPC);
 }
 
-/** SwitchBot のペイロードは, 温度 (℃), 湿度, 電池残量, 稼働時間を持つ JSON */
+/** SwitchBot のペイロードは温度 (℃), 湿度, 電池残量, 稼働時間を持つ JSON */
 ZTEST(payload, test_switchbot_payload)
 {
     char buf[160] = {0}; /* 出力バッファ */
@@ -199,7 +199,7 @@ ZTEST(payload, test_switchbot_payload_zero_temperature)
     zassert_not_null(strstr(buf, "\"temperature_c\":0.0,\"humidity\":0,\"battery\":0,"));
 }
 
-/** 電池残量がわからないときは, battery の項目を出力しない */
+/** 電池残量がわからないときは battery の項目を出力しない */
 ZTEST(payload, test_switchbot_payload_unknown_battery)
 {
     char buf[160] = {0}; /* 出力バッファ */

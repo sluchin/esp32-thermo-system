@@ -22,7 +22,7 @@
 #include "thermo_ble_uuid.h"
 #include "thermo_log.h"
 
-/** 取得する BLE のアドレスの数 (ID は, 既定の 1 つだけ) */
+/** 取得する BLE のアドレスの数 (ID は既定の 1 つだけ) */
 #define ID_COUNT 1U
 
 LOG_MODULE_REGISTER(ble_thermo_node, THERMO_LOG_LEVEL);
@@ -45,7 +45,7 @@ static const struct bt_data sd[] = {
 
 /** 最後に通知した温度 [℃ の 10 倍]. 読み取り (read) で返す */
 static int16_t latest_temp_x10;
-/** 最後に通知した湿度 [% の 10 倍]. 通知の前は, 湿度なし. 読み取り (read) で返す */
+/** 最後に通知した湿度 [% の 10 倍]. 通知の前は湿度なし. 読み取り (read) で返す */
 static uint16_t latest_humidity_x10 = THERMO_HUMIDITY_NONE;
 
 /** ゲートウェイとの BLE の接続の数 */
@@ -192,7 +192,7 @@ int ble_advertise(void)
  * @brief 温度と湿度を更新して, 接続しているゲートウェイへ通知 (notify) する
  *
  * 通知を購読しているゲートウェイがいなくても, 値は更新される (読み取り (read) で取得できる).
- * 接続しているゲートウェイがいないときは, 成功を返す.
+ * 接続しているゲートウェイがいないときは成功を返す.
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
@@ -261,8 +261,8 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
 /**
  * 時刻の特性の書き込み (write) のコールバック (ゲートウェイが送った UTC の時刻を設定する)
  *
- * Bluetooth のスレッドから呼ばれる. 値は, UTC の UNIX 時刻 [s] (uint32, リトルエンディアン).
- * 認証はしないので, 近くの BLE 機器は, 誰でも書き込める (表示する時刻だけに影響する).
+ * Bluetooth のスレッドから呼ばれる. 値は UTC の UNIX 時刻 [s] (uint32, リトルエンディアン).
+ * 認証はしないので, 近くの BLE 機器は誰でも書き込める (表示する時刻だけに影響する).
  *
  * @param[in] conn   接続
  * @param[in] attr   特性の値の属性
@@ -326,7 +326,7 @@ static void pack_value(uint8_t *out, int16_t temp_x10, uint16_t humidity_x10)
 /**
  * 接続のコールバック
  *
- * 接続できる数 (CONFIG_BT_MAX_CONN) に空きがあれば, アドバタイズを続ける (Zephyr は, 接続すると,
+ * 接続できる数 (CONFIG_BT_MAX_CONN) に空きがあれば, アドバタイズを続ける (Zephyr は接続すると,
  * アドバタイズを止めるため).
  *
  * @param[in] conn 接続
@@ -348,7 +348,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
     /* 空きがあれば, ほかの機器 (スマートフォンなど) が見つけられるよう, アドバタイズを続ける */
     if (connection_count < CONFIG_BT_MAX_CONN) {
         ret = ble_advertise();
-        /* すでにアドバタイズしている (EALREADY) ときは, 何もしなくてよい */
+        /* すでにアドバタイズしている (EALREADY) ときは何もしなくてよい */
         if ((ret != EXIT_SUCCESS) && (ret != -EALREADY)) {
             LOG_ERR("Failed to continue advertising (err %d)", ret);
         }
@@ -358,9 +358,9 @@ static void connected(struct bt_conn *conn, uint8_t err)
 /**
  * 切断のコールバック (切断の理由をログに出す)
  *
- * このコールバックの中では, まだ, スタックが接続のオブジェクトを持っているので, 接続可能な
+ * このコールバックの中ではまだ, スタックが接続のオブジェクトを持っているので, 接続可能な
  * アドバタイズを始めると, 空きがなく, -ENOMEM で失敗することがある (Zephyr の仕様). アドバタイズの
- * 再開は, 接続のオブジェクトが解放されたあとに呼ばれる recycled() で行う.
+ * 再開は接続のオブジェクトが解放されたあとに呼ばれる recycled() で行う.
  *
  * @param[in] conn 接続
  * @param[in] reason 切断の理由
@@ -384,7 +384,7 @@ static void recycled(void)
     int err = EXIT_SUCCESS; /* エラーコード */
 
     err = ble_advertise();
-    /* すでにアドバタイズしている (EALREADY) ときは, 何もしなくてよい */
+    /* すでにアドバタイズしている (EALREADY) ときは何もしなくてよい */
     if ((err != EXIT_SUCCESS) && (err != -EALREADY)) {
         LOG_ERR("Failed to restart advertising (err %d)", err);
     }

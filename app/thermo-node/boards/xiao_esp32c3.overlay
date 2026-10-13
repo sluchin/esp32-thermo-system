@@ -1,34 +1,34 @@
 /*
  * 温湿度センサの接続 (XIAO ESP32C3)
  *
- * DHT11 (3 ピンのモジュール: + / out / -) を, 次のようにつなぐ.
+ * DHT11 (3 ピンのモジュール: + / out / -) を次のようにつなぐ.
  *   +   -> 3V3
  *   out -> D7 (GPIO20. 拡張ボードの, 下側のヘッダの RX'7)
  *   -   -> GND
- * dio-gpios は, GPIO_ACTIVE_LOW にする (Zephyr のドライバが, 線が LOW の状態を active として扱うため).
- * D7 は, 起動時に, 信号が出ない (D6 は, ROM のログが出る. D8 と D9 は, ストラッピングのピン).
- * DHT22 (AM2303) を使うときは, dht11 のノードに, dht22; を足す.
+ * dio-gpios は GPIO_ACTIVE_LOW にする (Zephyr のドライバが線が LOW の状態を active として扱うため).
+ * D7 は起動時に, 信号が出ない (D6 は ROM のログが出る. D8 と D9 はストラッピングのピン).
+ * DHT22 (AM2303) を使うときは dht11 のノードに, dht22; を足す.
  *
- * ADC のアナログセンサ (LM35 など) に替えるときは, このファイルの aliases と dht11 のノードを
+ * ADC のアナログセンサ (LM35 など) に替えるときはこのファイルの aliases と dht11 のノードを
  * 消して, zephyr,user に io-channels を書く (ADC のチャンネルの設定も要る. 例は
- * app/thermo-node/tests/sensor/adc.overlay). 温度への換算は, CONFIG_THERMO_ADC_MV_PER_DEG と
+ * app/thermo-node/tests/sensor/adc.overlay). 温度への換算は CONFIG_THERMO_ADC_MV_PER_DEG と
  * CONFIG_THERMO_ADC_OFFSET_MV で設定する (prj.conf).
  *
- * OLED (拡張ボードの SSD1306. I2C のアドレスは 0x3C. D4 が SDA, D5 が SCL) は, alias
- * thermo-display で使う. 使わないときは, CONFIG_THERMO_DISPLAY=n でビルドする (prj.conf または
- * -DCONFIG_THERMO_DISPLAY=n). ノードの設定は, Zephyr の seeed_xiao_expansion_board のシールドと
- * 同じ (シールドは, SD カードの SPI も有効にするので, 使わない).
+ * OLED (拡張ボードの SSD1306. I2C のアドレスは 0x3C. D4 が SDA, D5 が SCL) は alias
+ * thermo-display で使う. 使わないときは CONFIG_THERMO_DISPLAY=n でビルドする (prj.conf または
+ * -DCONFIG_THERMO_DISPLAY=n). ノードの設定は Zephyr の seeed_xiao_expansion_board のシールドと
+ * 同じ (シールドは SD カードの SPI も有効にするので, 使わない).
  *
- * ブザー (拡張ボードのパッシブブザー. D3 = GPIO5) は, alias thermo-buzzer で使う. PWM (LEDC のチャンネル
- * 0) の周波数が, 音の高さになる. 起動のときの, 短いメロディを鳴らす (CONFIG_THERMO_BUZZER=n のときは,
- * 使わない). PWM の周期は, 鳴らすときに, 音ごとに, 設定する (ここの値は, 使わない).
+ * ブザー (拡張ボードのパッシブブザー. D3 = GPIO5) は alias thermo-buzzer で使う. PWM (LEDC のチャンネル
+ * 0) の周波数が音の高さになる. 起動のときの, 短いメロディを鳴らす (CONFIG_THERMO_BUZZER=n のときは
+ * 使わない). PWM の周期は鳴らすときに, 音ごとに, 設定する (ここの値は使わない).
  *
- * ボタン (拡張ボードのユーザボタン. D1 = GPIO3. 押すと, 0 になる) は, alias thermo-button で使い,
- * OLED の画面を切り替える (CONFIG_THERMO_DISPLAY=n のときは, 使わない).
+ * ボタン (拡張ボードのユーザボタン. D1 = GPIO3. 押すと, 0 になる) は alias thermo-button で使い,
+ * OLED の画面を切り替える (CONFIG_THERMO_DISPLAY=n のときは使わない).
  *
- * RTC (拡張ボードの PCF8563. I2C のアドレスは 0x51) は, alias thermo-rtc で使う. Zephyr の RTC
- * ドライバ (nxp,pcf8563) は, 月と年の扱いがチップと合わないので使わず, このアプリのドライバ
- * (drivers/rtc_pcf8563.c. compatible は thermo,pcf8563) を使う. 使わないときは,
+ * RTC (拡張ボードの PCF8563. I2C のアドレスは 0x51) は alias thermo-rtc で使う. Zephyr の RTC
+ * ドライバ (nxp,pcf8563) は月と年の扱いがチップと合わないので使わず, このアプリのドライバ
+ * (drivers/rtc_pcf8563.c. compatible は thermo,pcf8563) を使う. 使わないときは
  * CONFIG_THERMO_RTC=n でビルドする.
  */
 #include <zephyr/dt-bindings/gpio/gpio.h>
@@ -59,7 +59,7 @@
     dht11: dht11 {
         compatible = "aosong,dht";
         status = "okay";
-        /* ドライバは, 線を LOW にする状態を, active として扱う (開始信号は, LOW を 18 ms 出す).
+        /* ドライバは線を LOW にする状態を active として扱う (開始信号は LOW を 18 ms 出す).
          * GPIO_ACTIVE_HIGH にすると, 開始信号が HIGH になり, センサが応答せず, -EIO になる. */
         dio-gpios = <&xiao_d 7 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
     };
@@ -112,8 +112,8 @@
 };
 
 /*
- * SD カード (拡張ボードの, SPI の SD カードスロット. CS は D2) は, 送れなかった測定値を溜めるために使う
- * (CONFIG_THERMO_BACKLOG). Zephyr の seeed_xiao_expansion_board のシールドと同じ設定 (SPI は, XIAO の
+ * SD カード (拡張ボードの, SPI の SD カードスロット. CS は D2) は送れなかった測定値を溜めるために使う
+ * (CONFIG_THERMO_BACKLOG). Zephyr の seeed_xiao_expansion_board のシールドと同じ設定 (SPI は XIAO の
  * D8 が SCK, D9 が MISO, D10 が MOSI). ディスク名は SD (マウントポイント /SD:).
  */
 &xiao_spi {

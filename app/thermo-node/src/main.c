@@ -47,7 +47,7 @@
 
 LOG_MODULE_REGISTER(thermo_node, THERMO_LOG_LEVEL);
 
-/** 任意の機器 (RTC, OLED, ボタン) を使えるか. 初期化に失敗した機器は, 一定間隔で, 再試行する */
+/** 任意の機器 (RTC, OLED, ボタン) を使えるか. 初期化に失敗した機器は一定間隔で, 再試行する */
 struct optional_devices {
     bool rtc_ready;     /**< RTC を使えるか */
     bool display_ready; /**< OLED を使えるか */
@@ -92,14 +92,14 @@ static void play_button_sound(bool buzzer_ready);
 
 #ifdef CONFIG_THERMO_WIFI_TIME
 #ifdef CONFIG_THERMO_DIRECT_MQTT
-/** WiFi での直接の送信を動かしているか (動かしている間は, WiFi を時刻の取得に使わない) */
+/** WiFi での直接の送信を動かしているか (動かしている間は WiFi を時刻の取得に使わない) */
 #define DIRECT_BUSY() direct_active()
 #else
-/** WiFi での直接の送信を使わないビルドでは, 動かしていない */
+/** WiFi での直接の送信を使わないビルドでは動かしていない */
 #define DIRECT_BUSY() false
 #endif
 
-/** RTC に時刻があるかを確かめる間隔 [ms] (1 分. 最初の確認は, 起動の 1 分後) */
+/** RTC に時刻があるかを確かめる間隔 [ms] (1 分. 最初の確認は起動の 1 分後) */
 #define TIME_CHECK_INTERVAL_MS 60000
 
 /** WiFi で時刻を取る試みの回数の上限 (時刻がなくて, 試みて, 失敗した回数) */
@@ -113,7 +113,7 @@ static void play_button_sound(bool buzzer_ready);
 /** グラフの 1 点の時間 [ms] (CONFIG_THERMO_GRAPH_STEP_SEC) */
 #define GRAPH_STEP_MS ((int64_t)CONFIG_THERMO_GRAPH_STEP_SEC * 1000)
 
-/** ボタンを押さずに, OLED を消すまでの時間 [ms] (CONFIG_THERMO_DISPLAY_TIMEOUT_SEC. 0 は, 消さない)
+/** ボタンを押さずに, OLED を消すまでの時間 [ms] (CONFIG_THERMO_DISPLAY_TIMEOUT_SEC. 0 は消さない)
  */
 #define DISPLAY_TIMEOUT_MS ((int64_t)CONFIG_THERMO_DISPLAY_TIMEOUT_SEC * 1000)
 #endif
@@ -126,14 +126,14 @@ static void play_button_sound(bool buzzer_ready);
  * (GATT の notify) する. ゲートウェイから時刻を受け取ったら (GATT の write), RTC に設定する
  * (CONFIG_THERMO_RTC). OLED があれば (CONFIG_THERMO_DISPLAY), 温度, 湿度, 時刻を 1 秒ごとに
  * 表示して, 温度と湿度の履歴 (グラフ) を覚える. ボタンを押すと, ページを切り替えて, すぐに
- * 表示し直す. OLED は, 起動のときと, ボタンを押したときに点灯して, ボタンを押さずに
+ * 表示し直す. OLED は起動のときと, ボタンを押したときに点灯して, ボタンを押さずに
  * CONFIG_THERMO_DISPLAY_TIMEOUT_SEC (既定 10 秒) たつと消える (消えている間にボタンを押すと,
- * 点灯するだけで, ページは, 切り替えず, ボタンの音も鳴らさない. 0 なら, 消さない). 時刻は, RTC
+ * 点灯するだけで, ページは切り替えず, ボタンの音も鳴らさない. 0 なら, 消さない). 時刻は RTC
  * (CONFIG_THERMO_RTC) から読む. OLED と RTC とボタンの初期化に失敗しても, 表示と時刻を諦めるだけで,
  * 測定と通知は続ける (起動時の一時的な失敗から復帰するため, RETRY_INTERVAL_MS ごとに,
- * 初期化をやり直す). 起動のときは, OLED に起動画面を出して (約 3 秒), ブザーでメロディを鳴らす
+ * 初期化をやり直す). 起動のときは OLED に起動画面を出して (約 3 秒), ブザーでメロディを鳴らす
  * (CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER). ボタンを押したときも, ブザーで短い音を鳴らす
- * (CONFIG_THERMO_BUTTON_SOUND). RTC に時刻がないときは, 起動の 1 分後から 1 分ごとに確かめて,
+ * (CONFIG_THERMO_BUTTON_SOUND). RTC に時刻がないときは起動の 1 分後から 1 分ごとに確かめて,
  * ゲートウェイから時刻が届かなければ, WiFi と SNTP で時刻を取って RTC に設定する (最大 5 回.
  * CONFIG_THERMO_WIFI_TIME).
  *
@@ -144,7 +144,7 @@ int main(void)
 {
     int ret = EXIT_SUCCESS;            /* 戻り値 */
     int64_t start_ms = k_uptime_get(); /* ループを始めた稼働時間 [ms] */
-    int64_t next_sample_ms = 0;        /* 次に測る稼働時間 [ms] (初回は, すぐ測る) */
+    int64_t next_sample_ms = 0;        /* 次に測る稼働時間 [ms] (初回はすぐ測る) */
     int64_t next_redraw_ms = 0;        /* 次に表示を更新する稼働時間 [ms] */
     int64_t next_retry_ms = start_ms + RETRY_INTERVAL_MS; /* 次に初期化をやり直す稼働時間 [ms] */
     int64_t now_ms = 0;                                   /* 今の稼働時間 [ms] */
@@ -157,7 +157,7 @@ int main(void)
 #ifdef CONFIG_THERMO_WIFI_TIME
     int64_t next_time_check_ms = 0; /* 次に RTC の時刻を確かめる稼働時間 [ms] */
     unsigned int wifi_tries = 0U;   /* WiFi で時刻を取ろうとした回数 */
-    bool time_done = false;         /* 時刻の確認を終えたか (時刻がある, または, 試みを尽くした) */
+    bool time_done = false;         /* 時刻の確認を終えたか (時刻がある, または試みを尽くした) */
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
     struct history temp_history = {0};     /* 温度の履歴 */
@@ -210,7 +210,7 @@ int main(void)
         LOG_ERR("Direct publish is not available (err %d)", ret);
     }
 #endif
-    /* ここまでのログを, SD カードに書く (起動画面の約 3 秒の間に, 溜まりすぎないように) */
+    /* ここまでのログを SD カードに書く (起動画面の約 3 秒の間に, 溜まりすぎないように) */
     sdlog_flush();
     boot_sequence(&devs);
     /* 起動画面の間 (約 3 秒) を除いて, ループの時間を数える */
@@ -222,7 +222,7 @@ int main(void)
 #ifdef CONFIG_THERMO_DISPLAY
     view.temp_history = &temp_history;
     view.humidity_history = &humidity_history;
-    /* OLED は, 起動画面から点灯していて, ボタンを押さずに DISPLAY_TIMEOUT_MS たつと消える */
+    /* OLED は起動画面から点灯していて, ボタンを押さずに DISPLAY_TIMEOUT_MS たつと消える */
     display_on = devs.display_ready;
     display_off_ms = start_ms + DISPLAY_TIMEOUT_MS;
 #endif
@@ -241,7 +241,7 @@ int main(void)
             }
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
-            /* 読み取りに失敗したときは, 前回の値を表示し続ける */
+            /* 読み取りに失敗したときは前回の値を表示し続ける */
             if (ret == EXIT_SUCCESS) {
                 view.has_sample = true;
                 view.temp_x10 = temp_x10;
@@ -250,7 +250,7 @@ int main(void)
                 if (humidity_x10 != THERMO_HUMIDITY_NONE) {
                     history_add(&humidity_history, (int16_t)humidity_x10, now_ms, GRAPH_STEP_MS);
                 }
-                /* 区切りが終わった点を SD カードに保存する (起動のあとは, 保存してあった点を戻す)
+                /* 区切りが終わった点を SD カードに保存する (起動のあとは保存してあった点を戻す)
                  */
                 history_store_update(&temp_history, &humidity_history, now_ms, GRAPH_STEP_MS);
             }
@@ -258,7 +258,7 @@ int main(void)
         }
 
 #ifdef CONFIG_THERMO_DISPLAY
-        /* ボタンが押されたら, 次のページにして, すぐに表示し直す (消えている OLED は, 点灯するだけ)
+        /* ボタンが押されたら, 次のページにして, すぐに表示し直す (消えている OLED は点灯するだけ)
          */
         if (devs.button_ready && button_pressed()) {
             if (display_on || (!devs.display_ready)) {
@@ -267,14 +267,14 @@ int main(void)
                 play_button_sound(devs.buzzer_ready);
 #endif
             } else {
-                /* 点灯のための押下では, 音を鳴らさない */
+                /* 点灯のための押下では音を鳴らさない */
                 display_on = set_display_power(true);
             }
             display_off_ms = now_ms + DISPLAY_TIMEOUT_MS;
             next_redraw_ms = now_ms;
         }
 
-        /* ボタンを押さずに DISPLAY_TIMEOUT_MS たったら, OLED を消す (0 のときは, 消さない) */
+        /* ボタンを押さずに DISPLAY_TIMEOUT_MS たったら, OLED を消す (0 のときは消さない) */
         if ((DISPLAY_TIMEOUT_MS > 0) && display_on && (now_ms >= display_off_ms)) {
             if (set_display_power(false)) {
                 display_on = false;
@@ -310,11 +310,11 @@ int main(void)
 
         if (now_ms >= next_redraw_ms) {
             next_redraw_ms = next_grid_ms(start_ms, now_ms, REDRAW_INTERVAL_MS);
-            /* 溜めたログを SD カードに書く (カードがないときは, 何もしない) */
+            /* 溜めたログを SD カードに書く (カードがないときは何もしない) */
             sdlog_flush();
 #ifdef CONFIG_THERMO_RTC
             if (devs.rtc_ready) {
-                /* 未設定や読み取りの失敗のときは, datetime.valid が false (時刻なしと表示する) */
+                /* 未設定や読み取りの失敗のときは datetime.valid が false (時刻なしと表示する) */
                 (void)node_time_get(&datetime);
 #ifdef CONFIG_THERMO_DISPLAY
                 view.time = &datetime;
@@ -338,7 +338,7 @@ int main(void)
 
 #ifdef CONFIG_THERMO_DISPLAY
 /**
- * OLED を点灯または消灯する (失敗したときは, ログを出す)
+ * OLED を点灯または消灯する (失敗したときはログを出す)
  *
  * @param[in] on 点灯するなら true, 消灯するなら false
  *
@@ -362,8 +362,8 @@ static bool set_display_power(bool on)
 /**
  * 任意の機器 (RTC, OLED, ボタン) のうち, まだ使えない機器を初期化する
  *
- * 起動のときに呼んで, 失敗した機器は, RETRY_INTERVAL_MS ごとに, もう一度呼ぶ. 失敗しても,
- * その機器を使えないだけで, 測定と通知は続ける. 使えるようになった機器は, 呼ばない.
+ * 起動のときに呼んで, 失敗した機器は RETRY_INTERVAL_MS ごとに, もう一度呼ぶ. 失敗しても,
+ * その機器を使えないだけで, 測定と通知は続ける. 使えるようになった機器は呼ばない.
  *
  * @param[in,out] devs 任意の機器を使えるか (初期化に成功した機器を true にする)
  */
@@ -443,12 +443,12 @@ static void init_optional(struct optional_devices *devs)
 /**
  * 起動の画面と音を出す (起動のときに 1 回だけ)
  *
- * ブザーのメロディは, ワークキューで鳴るので, すぐに戻る. 起動画面は, OLED_BOOT_FRAME_MS ごとに, 1
- * フレームずつ, OLED_BOOT_FRAMES フレーム (約 3 秒) 表示して, その間, この関数は, 戻らない (BLE
- * のアドバタイズは, すでに始まっている). 失敗したときは, ログを出して, 続ける
+ * ブザーのメロディはワークキューで鳴るので, すぐに戻る. 起動画面は OLED_BOOT_FRAME_MS ごとに, 1
+ * フレームずつ, OLED_BOOT_FRAMES フレーム (約 3 秒) 表示して, その間, この関数は戻らない (BLE
+ * のアドバタイズはすでに始まっている). 失敗したときはログを出して, 続ける
  * (画面や音を諦めるだけ).
  *
- * @param[in] devs 任意の機器を使えるか (使えない機器の画面や音は, 出さない)
+ * @param[in] devs 任意の機器を使えるか (使えない機器の画面や音は出さない)
  */
 static void boot_sequence(const struct optional_devices *devs)
 {
@@ -489,17 +489,17 @@ static void boot_sequence(const struct optional_devices *devs)
 /**
  * RTC に時刻がなければ, WiFi と SNTP で時刻を取って, RTC に設定する
  *
- * 1 分ごとに呼ぶ (最初は, 起動の 1 分後. その間に BLE でゲートウェイから時刻が届けば, RTC に
+ * 1 分ごとに呼ぶ (最初は起動の 1 分後. その間に BLE でゲートウェイから時刻が届けば, RTC に
  * 時刻がある). RTC に時刻があれば, BLE でも WiFi でも取る必要がないので, 何もしないで,
  * 確認を終える. なければ, WiFi につないで時刻を取り, すぐに WiFi を切る (最大 25 秒,
- * この関数は戻らない). 取れなかったときは, ログを出して, 次の確認でやり直す. 試みが WIFI_TRY_LIMIT
+ * この関数は戻らない). 取れなかったときはログを出して, 次の確認でやり直す. 試みが WIFI_TRY_LIMIT
  * 回になったら, 確認を終える (その後に BLE で時刻が届けば, RTC に設定される). WiFi を使えないとき
- * (初期化の失敗) は, 試みに数えず, 次の確認を待つ.
+ * (初期化の失敗) は試みに数えず, 次の確認を待つ.
  *
  * @param[in]     time_valid RTC に時刻があるか (直前に読んだ結果)
  * @param[in]     wifi_ready WiFi (時刻の取得) を使えるか
  * @param[in,out] tries      WiFi で時刻を取ろうとした回数
- * @retval true  確認を終えた (RTC に時刻がある, または, 試みを尽くした)
+ * @retval true  確認を終えた (RTC に時刻がある, または試みを尽くした)
  * @retval false 次の確認でも, 続ける
  */
 static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries)
@@ -538,10 +538,10 @@ static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries)
 /**
  * ボタンを押したときの音を鳴らす
  *
- * 鳴っている音 (起動のメロディなど) があれば, 止めて, この音を最初から鳴らす. 鳴らせなかったときは,
- * ログを出して, 続ける (ページの切り替えには, 影響しない).
+ * 鳴っている音 (起動のメロディなど) があれば, 止めて, この音を最初から鳴らす. 鳴らせなかったときは
+ * ログを出して, 続ける (ページの切り替えには影響しない).
  *
- * @param[in] buzzer_ready ブザーを使えるか (使えないときは, 何もしない)
+ * @param[in] buzzer_ready ブザーを使えるか (使えないときは何もしない)
  */
 static void play_button_sound(bool buzzer_ready)
 {
@@ -561,13 +561,13 @@ static void play_button_sound(bool buzzer_ready)
 /**
  * 温度と湿度を読み取って, ログに出力して, ゲートウェイへ通知する
  *
- * 読み取りに失敗したときは, 今回の値を捨てて (通知しない), 次回に再試行する. 通知に失敗しても,
+ * 読み取りに失敗したときは今回の値を捨てて (通知しない), 次回に再試行する. 通知に失敗しても,
  * 次回に再試行する.
  *
  * @param[out] temp_x10     温度 [℃ の 10 倍] の格納先 (NULL 不可)
  * @param[out] humidity_x10 湿度 [% の 10 倍] の格納先 (NULL 不可)
  *
- * @retval EXIT_SUCCESS 読み取りに成功 (通知の失敗は, 戻り値に含めない)
+ * @retval EXIT_SUCCESS 読み取りに成功 (通知の失敗は戻り値に含めない)
  * @retval negative     センサの読み取りの失敗 (負の errno)
  */
 static int measure(int16_t *temp_x10, uint16_t *humidity_x10)
@@ -595,7 +595,7 @@ static int measure(int16_t *temp_x10, uint16_t *humidity_x10)
  * 温度と湿度をログに出力する
  *
  * 10 分の 1 の単位の整数を小数点付きの形 (例: -3.5 ℃, 45.0 %) で出力する.
- * 湿度を測れないとき (THERMO_HUMIDITY_NONE) は, 温度だけを出力する.
+ * 湿度を測れないとき (THERMO_HUMIDITY_NONE) は温度だけを出力する.
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
@@ -618,7 +618,7 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10)
 /**
  * 一定の間隔の格子の次の時刻を求める
  *
- * 待ちは, カーネルのティックの丸めで, 少し長くなる. 「今 + 間隔」で次を決めると, 遅れが
+ * 待ちはカーネルのティックの丸めで, 少し長くなる. 「今 + 間隔」で次を決めると, 遅れが
  * 積もるので, ループを始めた時刻から, 間隔ごとの格子に合わせる.
  *
  * @param[in] start_ms    格子の始まりの稼働時間 [ms]

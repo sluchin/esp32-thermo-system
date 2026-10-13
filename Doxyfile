@@ -1,12 +1,12 @@
 # Doxyfile
 #
 # Doxygen 1.9 以降の設定. 標準と異なる項目だけを書く.
-# 生成: docker compose run --rm docs   (出力: docs/index.html。アプリごとに、docs/<アプリ>/html)
-#   Markdown の注意: 日本語の直後に、"." か "(" で始まるコード (`.c` など) を続けると、Doxygen が誤る。空白を 1 つ入れる.
-#   アプリごとに実行する (C には名前空間がなく、両方に ble_init() があるので、1 回では混ざる).
-#   DOCS_NAME (プロジェクト名) と DOCS_APP (thermo-node か thermo-gateway) は、scripts/docs.sh が設定する.
-#   Doxygen と Graphviz (図) は, Docker イメージに入っている.
-#   警告 (ドキュメントのない関数や引数、書式の誤り) が 1 つでもあれば、scripts/docs.sh が失敗する.
+# 生成: docker compose run --rm docs   (出力: docs/index.html. アプリごとに, docs/<アプリ>/html)
+#   Markdown の注意: 日本語の直後に, "." か "(" で始まるコード (`.c` など) を続けると, Doxygen が誤る. 空白を 1 つ入れる.
+#   アプリごとに実行する (C には名前空間がなく, 両方に ble_init() があるので, 1 回では混ざる).
+#   DOCS_NAME (プロジェクト名) と DOCS_APP (thermo-node か thermo-gateway) は scripts/docs.sh が設定する.
+#   Doxygen と Graphviz (図) は Docker イメージに入っている.
+#   警告 (ドキュメントのない関数や引数, 書式の誤り) が 1 つでもあれば, scripts/docs.sh が失敗する.
 
 PROJECT_NAME           = "$(DOCS_NAME)"
 PROJECT_BRIEF          = "XIAO ESP32C3 の BLE 温度計と、AWS IoT Core へ送るゲートウェイ"
@@ -35,12 +35,12 @@ FILE_PATTERNS          = *.c \
                          *.h \
                          *.md
 RECURSIVE              = YES
-# 別のプライベートリポジトリ (サブモジュール) の素材は, 文書に含めない
+# 別のプライベートリポジトリ (サブモジュール) の素材は文書に含めない
 EXCLUDE                = app/thermo-node/private
 USE_MDFILE_AS_MAINPAGE = README.md
 IMAGE_PATH              = assets
 ENABLE_PREPROCESSING   = YES
-# ビルド構成 (Kconfig) と、Zephyr のマクロ (関数に見えてしまうもの) の扱い
+# ビルド構成 (Kconfig) と, Zephyr のマクロ (関数に見えてしまうもの) の扱い
 PREDEFINED             = CONFIG_THERMO_CLOUD \
                          CONFIG_THERMO_RTC \
                          CONFIG_THERMO_BOOT_SCREEN \
@@ -77,8 +77,8 @@ WARN_IF_UNDOCUMENTED   = YES
 WARN_IF_DOC_ERROR      = YES
 WARN_IF_INCOMPLETE_DOC = YES
 WARN_NO_PARAMDOC       = YES
-# 警告の判定は、scripts/docs.sh が行う (日本語の出力に対する、Doxygen 本体の警告 "output language
-# has not been updated" を、除くため)
+# 警告の判定は scripts/docs.sh が行う (日本語の出力に対する, Doxygen 本体の警告 "output language
+# has not been updated" を除くため)
 WARN_AS_ERROR          = NO
 WARN_LOGFILE           = ./docs/$(DOCS_APP)/doxygen-warnings.log
 GENERATE_HTML          = YES

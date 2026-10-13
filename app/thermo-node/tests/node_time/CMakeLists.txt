@@ -1,6 +1,6 @@
 # thermo-node の node_time.c の単体テスト (Ztest).
-# RTC のデバイスは, 偽のもの (vnd,test-rtc. app.overlay) に置き換える. 偽の RTC は, 時刻 (rtc_time) を
-# 持って, 読み書きの結果は, テストから設定する. アプリの Kconfig (CONFIG_THERMO_UTC_OFFSET_MIN) を使う.
+# RTC のデバイスは偽のもの (vnd,test-rtc. app.overlay) に置き換える. 偽の RTC は時刻 (rtc_time) を
+# 持って, 読み書きの結果はテストから設定する. アプリの Kconfig (CONFIG_THERMO_UTC_OFFSET_MIN) を使う.
 cmake_minimum_required(VERSION 3.20.0)
 
 # アプリの Kconfig を使う

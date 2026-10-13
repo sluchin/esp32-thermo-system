@@ -36,8 +36,8 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
  *
  * BLE を初期化して, (CONFIG_THERMO_CLOUD が有効なら) AWS IoT Core への送信を開始して,
  * 周辺のノードのスキャンを開始する. 見つけたノードには接続して, 温度の通知を購読する.
- * CONFIG_THERMO_CLOUD が有効なときは, SNTP で同期した時刻を, 接続したノードに書き込む. SwitchBot
- * の温湿度計には接続せず, アドバタイズの値を受け取る. その後は, 定期的に稼働状況を出力する.
+ * CONFIG_THERMO_CLOUD が有効なときは SNTP で同期した時刻を接続したノードに書き込む. SwitchBot
+ * の温湿度計には接続せず, アドバタイズの値を受け取る. その後は定期的に稼働状況を出力する.
  *
  * @retval EXIT_FAILURE 初期化またはスキャン開始に失敗した場合
  *                      (正常時はループから戻らない)
@@ -150,7 +150,7 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
     int ret = EXIT_SUCCESS; /* 戻り値 */
 #endif
 
-    /* 送信の間隔 (CONFIG_THERMO_SWITCHBOT_INTERVAL_MS) より短い間の値は, 捨てる */
+    /* 送信の間隔 (CONFIG_THERMO_SWITCHBOT_INTERVAL_MS) より短い間の値は捨てる */
     if (!switchbot_accept(addr, ad, k_uptime_get_32(), &sample)) {
         return;
     }

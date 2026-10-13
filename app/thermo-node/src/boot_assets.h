@@ -11,10 +11,10 @@
  * @file
  * @brief thermo-node の起動画面と起動音の素材 (絵, 題名, メロディ)
  *
- * 素材は, boot_assets.c が定義する (このアプリは, オリジナルの素材を持つ). ビルドのときに,
- * app/thermo-node/private/src/boot_assets.c があれば, そちらを使う (別のプライベートリポジトリを,
+ * 素材は boot_assets.c が定義する (このアプリはオリジナルの素材を持つ). ビルドのときに,
+ * app/thermo-node/private/src/boot_assets.c があれば, そちらを使う (別のプライベートリポジトリを
  * サブモジュールとして置くための差し替えの仕組み. SETUP.md の「起動画面と起動音」を参照).
- * 差し替えるファイルは, ここで宣言した全てを同じ名前と形で, 定義すること.
+ * 差し替えるファイルはここで宣言した全てを同じ名前と形で, 定義すること.
  */
 
 #include <stddef.h> /* size_t */
@@ -23,7 +23,7 @@
 #include "buzzer.h"
 #include "notes.h" /* NOTE_* (private/src/boot_assets.c が使う) */
 
-/** 絵の 1 辺の大きさ [ドット] (幅と高さは, 同じ) */
+/** 絵の 1 辺の大きさ [ドット] (幅と高さは同じ) */
 #define BOOT_SPRITE_SIZE 16U
 
 /** 題名の大きさ [バイト] (12 文字 + 終端. 幅 128 ドットに収める) */
@@ -32,7 +32,7 @@
 /** 走る絵の口の開き方の種類の数 (閉じる, 半分, 開く) */
 #define BOOT_CHOMPER_FRAMES 3U
 
-/** 題名 (12 文字まで. 長い題名は, 配列の大きさが合わず, コンパイルエラーになる) */
+/** 題名 (12 文字まで. 長い題名は配列の大きさが合わず, コンパイルエラーになる) */
 struct boot_title {
     char text[BOOT_TITLE_SIZE]; /**< 文字列 (終端の NUL を含む) */
 };

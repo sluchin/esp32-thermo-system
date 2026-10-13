@@ -31,7 +31,7 @@
 
 /** 2026-10-08 05:00:00 UTC の UNIX 時刻 [s] (木曜日. ローカルタイムは 14:00:00) */
 #define UNIX_2026_10_08 1791435600LL
-/** 2026-12-31 20:00:00 UTC の UNIX 時刻 [s] (ローカルタイムは, 翌年の 2027-01-01 05:00:00) */
+/** 2026-12-31 20:00:00 UTC の UNIX 時刻 [s] (ローカルタイムは翌年の 2027-01-01 05:00:00) */
 #define UNIX_2026_12_31 1798747200LL
 /** 2028-02-29 00:00:00 UTC の UNIX 時刻 [s] (うるう日. 火曜日) */
 #define UNIX_2028_02_29 1835395200LL
@@ -48,9 +48,9 @@
 
 /** 偽の RTC が持つ時刻 (rtc_get_time が返し, rtc_set_time が書き換える) */
 static struct rtc_time stored;
-/** rtc_get_time が返す値 (0 以外のときは, 時刻を返さずに, この値を返す) */
+/** rtc_get_time が返す値 (0 以外のときは時刻を返さずに, この値を返す) */
 static int get_ret;
-/** rtc_set_time が返す値 (0 以外のときは, 時刻を書き換えずに, この値を返す) */
+/** rtc_set_time が返す値 (0 以外のときは時刻を書き換えずに, この値を返す) */
 static int set_ret;
 /** rtc_get_time が呼ばれた回数 */
 static unsigned int get_calls;
@@ -198,7 +198,7 @@ ZTEST(node_time, test_get_local_time)
     zassert_equal(local.second, 0U);
 }
 
-/** UTC の 20:00 は, ローカルタイムでは, 翌日になる (年末は, 翌年の 1 月 1 日になる) */
+/** UTC の 20:00 はローカルタイムでは翌日になる (年末は翌年の 1 月 1 日になる) */
 ZTEST(node_time, test_get_year_rollover)
 {
     struct node_datetime local = {0}; /* 日時 */
@@ -246,7 +246,7 @@ ZTEST(node_time, test_get_rtc_failure)
     zassert_false(local.valid);
 }
 
-/** UTC の UNIX 時刻で読める (RTC の時刻そのまま. ローカルタイムの換算は, しない) */
+/** UTC の UNIX 時刻で読める (RTC の時刻そのまま. ローカルタイムの換算はしない) */
 ZTEST(node_time, test_unix_time)
 {
     int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
@@ -255,7 +255,7 @@ ZTEST(node_time, test_unix_time)
     zassert_equal(unix_s, UNIX_2026_10_08);
 }
 
-/** 時刻が未設定 (-ENODATA) や, RTC の失敗は, その値を返す */
+/** 時刻が未設定 (-ENODATA) や, RTC の失敗はその値を返す */
 ZTEST(node_time, test_unix_time_failures)
 {
     int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
@@ -266,7 +266,7 @@ ZTEST(node_time, test_unix_time_failures)
     zassert_equal(node_time_unix(&unix_s), -EIO);
 }
 
-/** 時刻を設定すると, 月 (0 から 11), 年 (1900 年から), 曜日などが, RTC に渡される */
+/** 時刻を設定すると, 月 (0 から 11), 年 (1900 年から), 曜日などが RTC に渡される */
 ZTEST(node_time, test_set_time)
 {
     zassert_equal(node_time_set(UNIX_2026_10_08 + 367LL), EXIT_SUCCESS);
@@ -301,7 +301,7 @@ ZTEST(node_time, test_set_then_get)
     zassert_equal(stored.tm_year, 128);
 }
 
-/** 設定できる最小と最大の時刻は, 設定できる (最大は, ローカルタイムで 2100 年になる) */
+/** 設定できる最小と最大の時刻は設定できる (最大はローカルタイムで 2100 年になる) */
 ZTEST(node_time, test_set_limits)
 {
     struct node_datetime local = {0}; /* 日時 */
@@ -323,7 +323,7 @@ ZTEST(node_time, test_set_limits)
     zassert_equal(local.hour, 8U);
 }
 
-/** RTC が扱えない範囲の時刻は, -ERANGE を返して, RTC に渡さない */
+/** RTC が扱えない範囲の時刻は -ERANGE を返して, RTC に渡さない */
 ZTEST(node_time, test_set_out_of_range)
 {
     zassert_equal(node_time_set(UNIX_MIN - 1LL), -ERANGE);

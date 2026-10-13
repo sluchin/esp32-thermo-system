@@ -120,14 +120,14 @@ struct scan_result {
     struct switchbot_ad switchbot; /**< SwitchBot の温湿度計のデータ (has_switchbot のとき) */
 };
 
-#if (THERMO_LOG_LEVEL >= 4) /* 4: LOG_LEVEL_DBG (#if では, 列挙子を使えない) */
+#if (THERMO_LOG_LEVEL >= 4) /* 4: LOG_LEVEL_DBG (#if では列挙子を使えない) */
 /** アドバタイズデータの 16 進ダンプを出す間隔 (要素の数. この回数に 1 回だけ出す) */
 #define ADV_HEXDUMP_EVERY 50U
 
 /**
  * アドバタイズデータの 1 要素を 16 進数でログに出す (ADV_HEXDUMP_EVERY 回に 1 回だけ)
  *
- * スキャンでは, まわりの機器の広告が大量に届くので, 回数で間引く.
+ * スキャンではまわりの機器の広告が大量に届くので, 回数で間引く.
  *
  * @param[in] data アドバタイズデータの 1 要素
  */
@@ -141,7 +141,7 @@ static void adv_hexdump(const struct bt_data *data)
     count++;
 }
 #else
-/** アドバタイズデータの 16 進ダンプ (デバッグログが無効のときは, 何もしない) */
+/** アドバタイズデータの 16 進ダンプ (デバッグログが無効のときは何もしない) */
 #define adv_hexdump(data)                                                                          \
     do {                                                                                           \
     } while (0)
@@ -163,7 +163,7 @@ int ble_init(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    /* Bluetooth スタックを同期で有効にする (戻ったときには, 使える) */
+    /* Bluetooth スタックを同期で有効にする (戻ったときには使える) */
     err = bt_enable(NULL);
     if (err != 0) {
         LOG_ERR("Bluetooth init failed (err %d)", err);
@@ -195,7 +195,7 @@ void ble_set_temperature_callback(ble_temperature_cb_t cb)
 /**
  * @brief SwitchBot 屋外用温湿度計のアドバタイズを受信したときのコールバックを設定する
  *
- * ble_scan() の前に設定しておくこと. NULL で解除する (SwitchBot のデータは, 捨てる).
+ * ble_scan() の前に設定しておくこと. NULL で解除する (SwitchBot のデータは捨てる).
  *
  * @param[in] cb コールバック
  */
@@ -208,7 +208,7 @@ void ble_set_switchbot_callback(ble_switchbot_cb_t cb)
  * @brief ノードに書き込む時刻を得る関数を設定する
  *
  * ノードの時刻の特性を見つけたら, この関数で得た UTC の UNIX 時刻をノードに書き込む
- * (ノードは, RTC を合わせる). 関数が失敗している間 (まだ SNTP で同期していない) は, 書き込みを
+ * (ノードは RTC を合わせる). 関数が失敗している間 (まだ SNTP で同期していない) は書き込みを
  * 見送って, TIME_CHECK_S ごとに確かめる. 書き込んだあとも, TIME_RESYNC_S ごとに, 書き込み直す.
  * ble_scan() の前に設定しておくこと. NULL で解除する (時刻は書き込まない).
  *
@@ -238,7 +238,7 @@ void ble_set_time_source(ble_time_source_t source)
 int ble_scan(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
-    /* アクティブスキャン: ノードの UUID は, スキャン応答に入っているので要求を出して受け取る */
+    /* アクティブスキャン: ノードの UUID はスキャン応答に入っているので要求を出して受け取る */
     struct bt_le_scan_param scan_param = {
         .type = BT_LE_SCAN_TYPE_ACTIVE,
         .options = BT_LE_SCAN_OPT_NONE,
@@ -473,7 +473,7 @@ static uint8_t time_discover_cb(const struct bt_gatt_attr *attr, struct node *no
 /**
  * 時刻の特性の探索を始める (購読のあとで呼ぶ)
  *
- * 時刻の特性は, 必須ではないので, 始められなくても, 接続は切らない (温度の受信は続ける).
+ * 時刻の特性は必須ではないので, 始められなくても, 接続は切らない (温度の受信は続ける).
  *
  * @param[in]     conn 接続
  * @param[in,out] node 対象のノード (サービスの範囲を記録済みであること)
@@ -499,8 +499,8 @@ static void start_time_discovery(struct bt_conn *conn, struct node *node)
 /**
  * ノードの時刻の特性に時刻を書き込む (応答つきの書き込み)
  *
- * 次に書き込む時刻は, 成功したと見て, TIME_RESYNC_S 後にする. 始められなかったときと, ノードが
- * 拒否したとき (write_time_cb()) は, TIME_RETRY_S 後にする.
+ * 次に書き込む時刻は成功したと見て, TIME_RESYNC_S 後にする. 始められなかったときと, ノードが
+ * 拒否したとき (write_time_cb()) は TIME_RETRY_S 後にする.
  *
  * @param[in,out] node    対象のノード (時刻の特性を見つけていること)
  * @param[in]     unix_s  書き込む UTC の UNIX 時刻 [s]
@@ -551,7 +551,7 @@ static void write_time_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_writ
  * ノードに時刻を書き込む処理 (システムのワークキューで実行する)
  *
  * 時刻の特性を見つけたノードに書き込む時刻になっていれば, 書き込む. 時刻がまだわからない
- * (SNTP で同期していない) ときは, 見送る. 該当するノードがある間は, TIME_CHECK_S ごとに,
+ * (SNTP で同期していない) ときは見送る. 該当するノードがある間は TIME_CHECK_S ごとに,
  * 自分をもう一度動かす (ノードがいなくなったら, 止まる).
  *
  * @param[in] work 使用しない
@@ -669,10 +669,10 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
  * 接続を始める処理 (システムのワークキューで実行する)
  *
  * スキャンのコールバックの中でスキャンを止めたり, 接続を始めたりすると, スキャンの開始と
- * 重なって, スキャンを止められない (EBUSY) ことがある. そのため, コールバックでは, 依頼を
- * 記録するだけにして, スキャンの停止と接続はここで行う. EBUSY のときは, 少し待って, やり直す.
- * スキャンを止められなかった (EALREADY 以外の) ときは, 接続せずに, スキャンを再開する
- * (再開しないと, 以降は, スキャンのコールバックが呼ばれず, ノードを見つけられなくなる).
+ * 重なって, スキャンを止められない (EBUSY) ことがある. そのため, コールバックでは依頼を
+ * 記録するだけにして, スキャンの停止と接続はここで行う. EBUSY のときは少し待って, やり直す.
+ * スキャンを止められなかった (EALREADY 以外の) ときは接続せずに, スキャンを再開する
+ * (再開しないと, 以降はスキャンのコールバックが呼ばれず, ノードを見つけられなくなる).
  *
  * @param[in] work 使用しない
  */
@@ -692,7 +692,7 @@ static void connect_work_handler(struct k_work *work)
         return;
     }
     if (err == -EALREADY) {
-        err = EXIT_SUCCESS; /* すでに止まっている (スキャンを止める目的は, 満たしている) */
+        err = EXIT_SUCCESS; /* すでに止まっている (スキャンを止める目的は満たしている) */
     }
     if (err != 0) {
         LOG_ERR("Stopping scan failed (err %d)", err);
@@ -727,7 +727,7 @@ static void connect_work_handler(struct k_work *work)
 /**
  * スキャンのコールバック (ノードを見つけたら, 接続を始める依頼を記録する)
  *
- * SwitchBot の温湿度計のアドバタイズは, 接続せずに設定されたコールバックに渡す.
+ * SwitchBot の温湿度計のアドバタイズは接続せずに設定されたコールバックに渡す.
  *
  * Bluetooth のスレッドから呼ばれるので, 接続は connect_work_handler() が始める.
  *
@@ -764,7 +764,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
         return; /* 接続を始める依頼を処理中 */
     }
 
-    /* すでに接続している (または接続中の) ノードは, 無視する */
+    /* すでに接続している (または接続中の) ノードは無視する */
     known = bt_conn_lookup_addr_le(BT_ID_DEFAULT, addr);
     if (known != NULL) {
         bt_conn_unref(known);

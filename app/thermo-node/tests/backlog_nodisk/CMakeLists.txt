@@ -1,5 +1,5 @@
 # thermo-node の backlog.c の単体テスト: SD カードがない (マウントできない) とき.
-# マウントポイントを, 存在しないディスクの名前 (/NODISK:. RAM ディスクの名前は, RAM) にして, マウントの失敗を作る.
+# マウントポイントを存在しないディスクの名前 (/NODISK:. RAM ディスクの名前は RAM) にして, マウントの失敗を作る.
 cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})

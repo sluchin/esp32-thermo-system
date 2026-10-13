@@ -81,7 +81,7 @@ ZTEST(switchbot, test_parse_service_data)
     zassert_equal(ad.battery, 100U);
 }
 
-/** サービスデータ: 各 byte の最上位の bit は, 別の意味なので取り除く */
+/** サービスデータ: 各 byte の最上位の bit は別の意味なので取り除く */
 ZTEST(switchbot, test_parse_service_data_masks_high_bit)
 {
     const uint8_t data[] = {0x3D, 0xFD, 0xF7, 0x00, 0xE4}; /* 入力データ */
@@ -121,7 +121,7 @@ ZTEST(switchbot, test_parse_manufacturer_negative)
     zassert_equal(ad.temp_x10, -53);
 }
 
-/** 製造者データ: 小数部の上位 4 bit は, 別の意味なので取り除く. 0.0 ℃ は符号なしで 0 */
+/** 製造者データ: 小数部の上位 4 bit は別の意味なので取り除く. 0.0 ℃ は符号なしで 0 */
 ZTEST(switchbot, test_parse_manufacturer_decimal_mask_and_zero)
 {
     uint8_t data[sizeof(mfr_plus)] = {0};              /* 入力データ */
@@ -139,7 +139,7 @@ ZTEST(switchbot, test_parse_manufacturer_decimal_mask_and_zero)
     zassert_equal(ad.temp_x10, 0);
 }
 
-/** 製造者データ: 湿度は, 下位 7 bit で 100 % まで. それを超えたら, 壊れたデータとして捨てる */
+/** 製造者データ: 湿度は下位 7 bit で 100 % まで. それを超えたら, 壊れたデータとして捨てる */
 ZTEST(switchbot, test_parse_manufacturer_humidity_limit)
 {
     uint8_t data[sizeof(mfr_plus)] = {0};              /* 入力データ */
@@ -149,7 +149,7 @@ ZTEST(switchbot, test_parse_manufacturer_humidity_limit)
     zassert_true(switchbot_parse(BT_DATA_MANUFACTURER_DATA, data, sizeof(data), &ad));
     zassert_equal(ad.humidity, 100U);
 
-    /* 期待: 101 % は, 拒否して, 出力を変えない */
+    /* 期待: 101 % は拒否して, 出力を変えない */
     ad.kind = SWITCHBOT_NONE;
     make_mfr(data, 0x05U, 0x97U, 0x65U);
     zassert_false(switchbot_parse(BT_DATA_MANUFACTURER_DATA, data, sizeof(data), &ad));
@@ -181,7 +181,7 @@ ZTEST(switchbot, test_parse_too_short_for_id)
     zassert_false(switchbot_parse(BT_DATA_MANUFACTURER_DATA, mfr_plus, 1U, &ad));
 }
 
-/** UUID, 会社 ID, AD の種類が違うデータは, SwitchBot のものではないので, 拒否する */
+/** UUID, 会社 ID, AD の種類が違うデータは SwitchBot のものではないので, 拒否する */
 ZTEST(switchbot, test_parse_other_data)
 {
     uint8_t data[sizeof(mfr_plus)] = {0};              /* 入力データ */
@@ -230,7 +230,7 @@ static struct switchbot_ad make_ad(enum switchbot_kind kind, uint8_t model, uint
     return ad;
 }
 
-/** 機種と電池残量を受け取ったあとの最初の温湿度は, すぐ送る (電池残量を添える) */
+/** 機種と電池残量を受け取ったあとの最初の温湿度はすぐ送る (電池残量を添える) */
 ZTEST(switchbot, test_accept_first_report)
 {
     struct switchbot_sample sample = {0}; /* サンプル */
@@ -238,7 +238,7 @@ ZTEST(switchbot, test_accept_first_report)
     struct switchbot_ad info = make_ad(SWITCHBOT_INFO, SWITCHBOT_MODEL_OUTDOOR, 87U, 0, 0U);
     struct switchbot_ad env = make_ad(SWITCHBOT_ENV, 0U, 0U, -53, 55U); /* 環境データ */
 
-    /* 期待: 機種と電池残量だけでは, 送らない */
+    /* 期待: 機種と電池残量だけでは送らない */
     zassert_false(switchbot_accept(&addr_a, &info, 0U, &sample));
 
     zassert_true(switchbot_accept(&addr_a, &env, 10U, &sample));
@@ -247,7 +247,7 @@ ZTEST(switchbot, test_accept_first_report)
     zassert_equal(sample.battery, 87);
 }
 
-/** 機種がわからない機器の温湿度は, 送らない (サービスデータを受け取ってから, 送る) */
+/** 機種がわからない機器の温湿度は送らない (サービスデータを受け取ってから, 送る) */
 ZTEST(switchbot, test_accept_requires_model)
 {
     struct switchbot_sample sample = {0}; /* サンプル */
@@ -261,7 +261,7 @@ ZTEST(switchbot, test_accept_requires_model)
     zassert_true(switchbot_accept(&addr_a, &env, 200U, &sample));
 }
 
-/** 屋外用温湿度計ではない機種 (別のレイアウトの製造者データ) の値は, 送らない */
+/** 屋外用温湿度計ではない機種 (別のレイアウトの製造者データ) の値は送らない */
 ZTEST(switchbot, test_accept_ignores_other_model)
 {
     struct switchbot_sample sample = {0};                               /* サンプル */
@@ -315,7 +315,7 @@ ZTEST(switchbot, test_accept_interval_wraps)
 
     zassert_true(switchbot_accept(&addr_a, &env, UINT32_MAX - 99U, &sample));
 
-    /* 期待: 一周して 100 ms 後 (差は 200 ms) は, まだ捨てる. 1000 ms 後 (差は 1100 ms) は, 送る */
+    /* 期待: 一周して 100 ms 後 (差は 200 ms) はまだ捨てる. 1000 ms 後 (差は 1100 ms) は送る */
     zassert_false(switchbot_accept(&addr_a, &env, 100U, &sample));
     zassert_true(switchbot_accept(&addr_a, &env, 1000U, &sample));
 }
@@ -336,13 +336,13 @@ ZTEST(switchbot, test_accept_devices_are_independent)
     zassert_true(switchbot_accept(&addr_a, &env, 5000U, &sample));
     zassert_equal(sample.battery, 90);
 
-    /* A を送った直後でも B は, 最初の 1 回なので送る */
+    /* A を送った直後でも B は最初の 1 回なので送る */
     zassert_true(switchbot_accept(&addr_b, &env, 5100U, &sample));
     zassert_equal(sample.battery, 40);
     zassert_false(switchbot_accept(&addr_a, &env, 5200U, &sample));
 }
 
-/** 扱える機器の数 (4 台) を超えた機器は, 無視する. すでにある機器は扱える */
+/** 扱える機器の数 (4 台) を超えた機器は無視する. すでにある機器は扱える */
 ZTEST(switchbot, test_accept_device_table_full)
 {
     struct switchbot_sample sample = {0}; /* サンプル */
@@ -362,7 +362,7 @@ ZTEST(switchbot, test_accept_device_table_full)
     zassert_false(switchbot_accept(&addr, &info, 0U, &sample));
     zassert_false(switchbot_accept(&addr, &env, 5000U, &sample));
 
-    /* 4 台目までは, 扱える */
+    /* 4 台目までは扱える */
     addr.a.val[0] = (uint8_t)(SWITCHBOT_MAX_DEVICES - 1U);
     zassert_true(switchbot_accept(&addr, &env, 5000U, &sample));
 }

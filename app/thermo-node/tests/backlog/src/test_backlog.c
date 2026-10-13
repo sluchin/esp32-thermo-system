@@ -9,13 +9,13 @@
  * @brief backlog.c の単体テスト
  *
  * RAM ディスクの FatFS (本物のファイルシステム) で, 次を確認する.
- *  - 記録を追記して, 古い順に読み出せること (測った時刻, 温度, 湿度が, そのまま戻ること)
- *  - 送信済みの記録は, 読み出しの対象にならないこと. 送り終えた記録のフラグが, ファイルに書かれて,
+ *  - 記録を追記して, 古い順に読み出せること (測った時刻, 温度, 湿度がそのまま戻ること)
+ *  - 送信済みの記録は読み出しの対象にならないこと. 送り終えた記録のフラグがファイルに書かれて,
  *    再起動 (backlog_init()) のあとも保たれること
  *  - 記録の数が上限に達したら, 最も古い記録から上書きすること (再起動のあとも,
  * 順序と未送信の数が合うこと)
  *  - 壊れた記録 (CRC の不一致) と, 書きかけの記録 (端の 16 バイトに満たない部分) を扱うこと
- *  - 指定の時刻以降の記録を, 古い順に読み出せること (送信済みも含む)
+ *  - 指定の時刻以降の記録を古い順に読み出せること (送信済みも含む)
  *  - 範囲の外の時刻を拒否すること
  */
 
@@ -55,7 +55,7 @@ static struct backlog_record rec(unsigned int n)
 }
 
 /**
- * 記録を, 指定の数だけ, 追記する
+ * 記録を指定の数だけ, 追記する
  *
  * @param[in] first 最初の番号
  * @param[in] count 数
@@ -73,7 +73,7 @@ static void append_n(unsigned int first, unsigned int count, bool sent)
 }
 
 /**
- * 送っていない記録の, 古いほうから index 番目が, 番号 n の記録と同じことを確認する
+ * 送っていない記録の, 古いほうから index 番目が番号 n の記録と同じことを確認する
  *
  * @param[in] index 古いほうからの順番
  * @param[in] n     期待する記録の番号
@@ -108,7 +108,7 @@ static void poke(off_t offset, const uint8_t *data, size_t size)
 }
 
 /**
- * ファイルの指定の位置のバイトを, 反転する (記録を壊す)
+ * ファイルの指定の位置のバイトを反転する (記録を壊す)
  *
  * @param[in] offset 位置 [バイト]
  */
@@ -133,7 +133,7 @@ static struct backlog_record visited[16];
 static unsigned int visited_count;
 
 /**
- * backlog_foreach_since() に渡す関数 (記録を, visited に集める)
+ * backlog_foreach_since() に渡す関数 (記録を visited に集める)
  *
  * @param[in] r   記録
  * @param[in] ctx 使用しない
@@ -145,7 +145,7 @@ static void collect(const struct backlog_record *r, void *ctx)
 }
 
 /**
- * 各テストの前に, ファイルを消して, 初期化する (最初は, 空)
+ * 各テストの前に, ファイルを消して, 初期化する (最初は空)
  *
  * @param[in] fixture 使用しない
  */
@@ -158,7 +158,7 @@ static void before(void *fixture)
     visited_count = 0U;
 }
 
-/** 最初は, 空. 追記すると, 古い順に, そのまま読み出せる (負の温度と, 湿度なしも通る) */
+/** 最初は空. 追記すると, 古い順に, そのまま読み出せる (負の温度と, 湿度なしも通る) */
 ZTEST(backlog, test_append_and_read)
 {
     struct backlog_record neg = {
@@ -179,7 +179,7 @@ ZTEST(backlog, test_append_and_read)
     zassert_equal(got.unix_s, BASE_UNIX + 100);
 }
 
-/** 範囲の外の番号は, -EINVAL */
+/** 範囲の外の番号は -EINVAL */
 ZTEST(backlog, test_read_out_of_range)
 {
     struct backlog_record got = {0}; /* 読み出した記録 */
@@ -190,7 +190,7 @@ ZTEST(backlog, test_read_out_of_range)
     zassert_equal(backlog_read(&got, 100U), -EINVAL);
 }
 
-/** 範囲の外の時刻 (負, 32 ビットを超える) は, 保存しない */
+/** 範囲の外の時刻 (負, 32 ビットを超える) は保存しない */
 ZTEST(backlog, test_append_rejects_bad_time)
 {
     struct backlog_record r = rec(0U); /* 記録 */
@@ -204,7 +204,7 @@ ZTEST(backlog, test_append_rejects_bad_time)
     zassert_equal(backlog_pending(), 0U);
 }
 
-/** 送信済みとして保存した記録は, 未送信に数えず, 読み出しでも飛ばす */
+/** 送信済みとして保存した記録は未送信に数えず, 読み出しでも飛ばす */
 ZTEST(backlog, test_sent_records_are_skipped)
 {
     append_n(0U, 1U, false);
@@ -216,7 +216,7 @@ ZTEST(backlog, test_sent_records_are_skipped)
     expect_record(1U, 2U);
 }
 
-/** 送り終えた数 (commit) は, ファイルのフラグに書かれて, 再起動 (init) のあとも, 続きから読める */
+/** 送り終えた数 (commit) はファイルのフラグに書かれて, 再起動 (init) のあとも, 続きから読める */
 ZTEST(backlog, test_commit_and_restart)
 {
     append_n(0U, 4U, false);
@@ -231,11 +231,11 @@ ZTEST(backlog, test_commit_and_restart)
     expect_record(0U, 2U);
     expect_record(1U, 3U);
 
-    /* 多すぎる数は, -EINVAL */
+    /* 多すぎる数は -EINVAL */
     zassert_equal(backlog_commit(3U), -EINVAL);
 }
 
-/** 送り終えたことにするとき, 間にある送信済みの記録は, 飛ばす */
+/** 送り終えたことにするとき, 間にある送信済みの記録は飛ばす */
 ZTEST(backlog, test_commit_skips_sent_records)
 {
     append_n(0U, 1U, false);
@@ -261,7 +261,7 @@ ZTEST(backlog, test_commit_all)
     expect_record(0U, 3U);
 }
 
-/** 上限 (5 件) を超えたら, 最も古い記録から上書きする. 未送信の数は, 残った分 */
+/** 上限 (5 件) を超えたら, 最も古い記録から上書きする. 未送信の数は残った分 */
 ZTEST(backlog, test_ring_overwrites_oldest)
 {
     append_n(0U, 7U, false);
@@ -282,7 +282,7 @@ ZTEST(backlog, test_ring_overwrites_oldest)
     expect_record(4U, 7U);
 }
 
-/** 送信済みの古い記録を上書きしても, 未送信の数は, 減らない */
+/** 送信済みの古い記録を上書きしても, 未送信の数は減らない */
 ZTEST(backlog, test_ring_overwrites_sent_first)
 {
     append_n(0U, 2U, true);
@@ -323,7 +323,7 @@ ZTEST(backlog, test_ring_keeps_first_unsent_after_overwrite)
     expect_record(0U, 4U);
 }
 
-/** 起動のとき, 壊れた記録 (CRC の不一致) は, 無視する (未送信にも数えず, 読み出しでも飛ばす) */
+/** 起動のとき, 壊れた記録 (CRC の不一致) は無視する (未送信にも数えず, 読み出しでも飛ばす) */
 ZTEST(backlog, test_broken_record_is_ignored)
 {
     append_n(0U, 3U, false);
@@ -335,7 +335,7 @@ ZTEST(backlog, test_broken_record_is_ignored)
     expect_record(1U, 2U);
 }
 
-/** 書きかけの記録 (端の 16 バイトに満たない部分) は, 切り捨てて, 次の追記が上書きする */
+/** 書きかけの記録 (端の 16 バイトに満たない部分) は切り捨てて, 次の追記が上書きする */
 ZTEST(backlog, test_partial_record_is_dropped)
 {
     const uint8_t junk[5] = {1, 2, 3, 4, 5}; /* 書きかけの記録 */
@@ -369,7 +369,7 @@ ZTEST(backlog, test_records_broken_after_init)
     zassert_equal(backlog_read(&got, 0U), -ENOENT);
 }
 
-/** 指定の時刻以降の記録を, 古い順に集める (送信済みも含む). 輪になったあとも, 同じ */
+/** 指定の時刻以降の記録を古い順に集める (送信済みも含む). 輪になったあとも, 同じ */
 ZTEST(backlog, test_foreach_since)
 {
     append_n(0U, 2U, true);
@@ -399,7 +399,7 @@ ZTEST(backlog, test_foreach_since)
     zassert_equal(visited[3].temp_x10, 206);
 }
 
-/** 記録がなければ, 何も渡さない. 壊れた記録は, 渡さない */
+/** 記録がなければ, 何も渡さない. 壊れた記録は渡さない */
 ZTEST(backlog, test_foreach_since_empty_and_broken)
 {
     zassert_equal(backlog_foreach_since(0, collect, NULL), EXIT_SUCCESS);

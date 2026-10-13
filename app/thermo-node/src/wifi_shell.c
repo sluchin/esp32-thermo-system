@@ -8,8 +8,8 @@
  * @file
  * @brief 時刻を WiFi で取るためのシェルのコマンド (`thermo sync`)
  *
- * 設定のコマンド (`thermo set`, `thermo show`, `thermo reset` など) は, thermo-gateway と
- * 共通のコード (app/common/cfg_shell.c) にある. この `sync` は, shell_extra.h で,
+ * 設定のコマンド (`thermo set`, `thermo show`, `thermo reset` など) は thermo-gateway と
+ * 共通のコード (app/common/cfg_shell.c) にある. この `sync` は shell_extra.h で,
  * そのコマンドに足す.
  *
  * 使い方:
@@ -18,7 +18,7 @@
  *   thermo sd
  * @endcode
  *
- * `thermo sd` は, SD カードが使えるかを確かめる (使えなければ, マウントをやり直す). 測定値の保存の
+ * `thermo sd` は SD カードが使えるかを確かめる (使えなければ, マウントをやり直す). 測定値の保存の
  * 準備 (direct_init()) が失敗していたら, それも表示する.
  */
 
@@ -68,7 +68,7 @@ int node_cmd_sync(const struct shell *sh, size_t argc, char **argv)
 /**
  * `thermo sd`: SD カードが使えるかを確かめる (使えなければ, マウントをやり直す)
  *
- * 失敗の理由は, 続けて出る, ログ (Could not mount the SD card (err ...)) に出る.
+ * 失敗の理由は続けて出る, ログ (Could not mount the SD card (err ...)) に出る.
  *
  * @param[in] sh   シェル
  * @param[in] argc 使用しない

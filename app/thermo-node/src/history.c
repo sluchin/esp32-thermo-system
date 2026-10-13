@@ -23,7 +23,7 @@ static void push_at(struct history *h, int64_t bucket, int16_t value);
  * @brief 測定値を履歴に加える
  *
  * 稼働時間を step_ms ごとの区切りに分けて, 区切りが変わったら, その区切りの平均を 1 点として
- * 覚える. 同じ区切りの中の測定値は, 合計に加えるだけ. 測定値のなかった区切りは, HISTORY_NONE の
+ * 覚える. 同じ区切りの中の測定値は合計に加えるだけ. 測定値のなかった区切りは HISTORY_NONE の
  * 点として覚える.
  *
  * @param[in,out] h       履歴 (NULL 不可)
@@ -49,7 +49,7 @@ void history_add(struct history *h, int16_t value, int64_t now_ms, int64_t step_
 /**
  * @brief 履歴の点を古い順に取り出す
  *
- * 今の区切りに測定値があれば, その平均を最後の点に含める. 取り出せる点が max より多いときは,
+ * 今の区切りに測定値があれば, その平均を最後の点に含める. 取り出せる点が max より多いときは
  * 新しい方から max 個だけ取り出す.
  *
  * @param[in]  h   履歴 (NULL 不可)
@@ -96,10 +96,10 @@ int16_t history_last(const struct history *h)
 }
 
 /**
- * @brief 保存してあった点を, 履歴に戻す
+ * @brief 保存してあった点を履歴に戻す
  *
- * 起動のあとに SD カードから読んだ点を, 古い順に戻すために使う. 前の点との間に測定値のない
- * 区切りがあれば, HISTORY_NONE の点を入れる. 今の区切りの測定値は, 変えない (戻す点の区切りは,
+ * 起動のあとに SD カードから読んだ点を古い順に戻すために使う. 前の点との間に測定値のない
+ * 区切りがあれば, HISTORY_NONE の点を入れる. 今の区切りの測定値は変えない (戻す点の区切りは
  * 今の区切りより前であること).
  *
  * @param[in,out] h      履歴 (NULL 不可)
@@ -130,7 +130,7 @@ static void push(struct history *h, int16_t value)
  * 区切りの番号を付けて, 履歴に 1 点を加える
  *
  * 前の点との間に区切りがあれば (測定値がなかった区切り), その数だけ HISTORY_NONE の点を先に加える.
- * 数は, HISTORY_SIZE まで (それ以上は, 全て押し出されるので).
+ * 数は HISTORY_SIZE まで (それ以上は全て押し出されるので).
  *
  * @param[in,out] h      履歴 (NULL 不可)
  * @param[in]     bucket 点の区切りの番号

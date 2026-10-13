@@ -11,8 +11,8 @@
  * @file
  * @brief `thermo` コマンドに足す, thermo-node 固有のサブコマンド
  *
- * app/common/cfg_shell.c が, このファイルがあれば読み込んで, THERMO_SHELL_EXTRA を, サブコマンドの
- * 並びの最後に足す. thermo-node は, `thermo sync` (WiFi で時刻を取って RTC に設定する) と,
+ * app/common/cfg_shell.c がこのファイルがあれば読み込んで, THERMO_SHELL_EXTRA をサブコマンドの
+ * 並びの最後に足す. thermo-node は `thermo sync` (WiFi で時刻を取って RTC に設定する) と,
  * `thermo sd` (SD カードが使えるかを確かめる. CONFIG_THERMO_DIRECT_MQTT のとき) を足す.
  */
 

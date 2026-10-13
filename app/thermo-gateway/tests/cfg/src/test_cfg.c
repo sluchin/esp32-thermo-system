@@ -17,7 +17,7 @@
 #include <zephyr/ztest.h>
 #include <zephyr/fff.h>
 #include <zephyr/settings/settings.h>
-#include <errno.h>  /* EIO ENOENT EFBIG EINVAL ENOMEM EBUSY EEXIST etc... */
+#include <errno.h>  /* EIO ENOENT EFBIG EINVAL ENOMEM EBUSY EEXIST etc.. */
 #include <stdlib.h> /* EXIT_SUCCESS */
 #include <string.h> /* strncpy memcpy memset strlen */
 
@@ -68,7 +68,7 @@ static struct {
 } source;
 
 /**
- * settings_save_one() のモック動作 (内容を記録する. 指定の番号では, 失敗する)
+ * settings_save_one() のモック動作 (内容を記録する. 指定の番号では失敗する)
  *
  * @param[in] name 項目の名前
  * @param[in] value 値
@@ -212,8 +212,8 @@ static void load(const char *name, const void *data, size_t len)
 static char deleted_name[32];
 
 /**
- * settings_delete() の偽物 (項目の名前を覚える. 引数のポインタは、呼び出し元の関数の
- * スタックの中なので、戻ったあとは、中身が残らないため)
+ * settings_delete() の偽物 (項目の名前を覚える. 引数のポインタは呼び出し元の関数の
+ * スタックの中なので, 戻ったあとは中身が残らないため)
  *
  * @param[in] name 項目の名前
  * @return 0
@@ -400,7 +400,7 @@ ZTEST(cfg, test_save_credentials)
     zassert_mem_equal(saves[2].data, "KEY-PEM", sizeof("KEY-PEM"));
 }
 
-/** 証明書が 1 つでも登録されていなければ, -ENOENT (その前までは, 保存される) */
+/** 証明書が 1 つでも登録されていなければ, -ENOENT (その前までは保存される) */
 ZTEST(cfg, test_save_credentials_missing)
 {
     register_all_creds();
@@ -419,7 +419,7 @@ ZTEST(cfg, test_save_credentials_too_large)
     register_all_creds();
     (void)fake_cred_add(CFG_TLS_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, large, sizeof(large));
 
-    /* 期待: 保存の領域に入らない証明書は, -EFBIG (何も保存しない) */
+    /* 期待: 保存の領域に入らない証明書は -EFBIG (何も保存しない) */
     zassert_equal(cfg_save_credentials(), -EFBIG);
     zassert_equal(save_count, 0U);
 }
@@ -594,7 +594,7 @@ ZTEST(cfg, test_tether_keeps_first_backup)
     zassert_str_equal(cfg_get(CFG_KEY_PSK), "");
 }
 
-/** SSID が空か長すぎる, パスワードが長すぎるときは, -EINVAL (何も保存しない) */
+/** SSID が空か長すぎる, パスワードが長すぎるときは -EINVAL (何も保存しない) */
 ZTEST(cfg, test_tether_invalid)
 {
     static char long_ssid[CFG_SSID_MAX + 2U]; /* 上限を超える SSID */
@@ -704,7 +704,7 @@ ZTEST(cfg, test_restore_delete_failure)
     zassert_false(cfg_has_backup());
 }
 
-/** フラッシュに保存された元の設定は, 読み込まれて, 戻せる */
+/** フラッシュに保存された元の設定は読み込まれて, 戻せる */
 ZTEST(cfg, test_load_backup)
 {
     static const char blob[] = "home-ap\0secret"; /* SSID, NUL, パスワード, NUL */
@@ -717,7 +717,7 @@ ZTEST(cfg, test_load_backup)
     zassert_str_equal(cfg_get(CFG_KEY_PSK), "secret");
 }
 
-/** 長さが合わない元の設定は, 無視する */
+/** 長さが合わない元の設定は無視する */
 ZTEST(cfg, test_load_backup_invalid_length_ignored)
 {
     static char big[CFG_BACKUP_MAX + 1U]; /* 上限を超える長さ */
@@ -730,7 +730,7 @@ ZTEST(cfg, test_load_backup_invalid_length_ignored)
     zassert_false(cfg_has_backup());
 }
 
-/** 読み出しに失敗した元の設定は, 無視する */
+/** 読み出しに失敗した元の設定は無視する */
 ZTEST(cfg, test_load_backup_read_failure)
 {
     struct settings_handler *h = handler_of(); /* settings のハンドラ */
@@ -741,7 +741,7 @@ ZTEST(cfg, test_load_backup_read_failure)
     zassert_false(cfg_has_backup());
 }
 
-/** 壊れた元の設定 (終わりの NUL がない, 長さが合わない, 長すぎる) は, 無視する */
+/** 壊れた元の設定 (終わりの NUL がない, 長さが合わない, 長すぎる) は無視する */
 ZTEST(cfg, test_load_backup_broken_ignored)
 {
     static const char no_psk[] = "ab";                  /* パスワードの部分がない */
@@ -822,7 +822,7 @@ ZTEST(cfg, test_init_load_failure)
     zassert_equal(cfg_init(), -EIO);
 }
 
-/** フラッシュに保存された項目は, 読み込まれて, 取り出せる */
+/** フラッシュに保存された項目は読み込まれて, 取り出せる */
 ZTEST(cfg, test_load_value)
 {
     static const char ssid[] = "saved-ap"; /* SSID (テスト用) */
@@ -844,7 +844,7 @@ ZTEST(cfg, test_load_value_empty_ignored)
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "keep");
 }
 
-/** 長さが最大 (NUL を含めて, 最大 + 1) を超える項目は, 無視する */
+/** 長さが最大 (NUL を含めて, 最大 + 1) を超える項目は無視する */
 ZTEST(cfg, test_load_value_too_long_ignored)
 {
     static char big[CFG_SSID_MAX + 2U]; /* 上限を超える長さの文字列 */
@@ -858,12 +858,12 @@ ZTEST(cfg, test_load_value_too_long_ignored)
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "keep");
 }
 
-/** 読み出しに失敗した項目は, 空にする */
+/** 読み出しに失敗した項目は空にする */
 ZTEST(cfg, test_load_value_read_failure)
 {
     struct settings_handler *h = handler_of(); /* settings のハンドラ */
 
-    /* 期待: 読み出しに失敗した項目は, 空にする (ハンドラは 0 を返して, 読み込みを続ける) */
+    /* 期待: 読み出しに失敗した項目は空にする (ハンドラは 0 を返して, 読み込みを続ける) */
     zassert_equal(cfg_set(CFG_KEY_SSID, "keep"), EXIT_SUCCESS);
     source.err = -EIO;
 
@@ -881,7 +881,7 @@ ZTEST(cfg, test_load_unknown_ignored)
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "");
 }
 
-/** フラッシュに保存された証明書は, TLS の認証情報に登録される (既存の登録は置き換える) */
+/** フラッシュに保存された証明書は TLS の認証情報に登録される (既存の登録は置き換える) */
 ZTEST(cfg, test_load_credential)
 {
     static const char ca[] = "SAVED-CA"; /* CA 証明書 (テスト用) */
@@ -912,7 +912,7 @@ ZTEST(cfg, test_load_credential_types)
     zassert_equal(tls_credential_add_fake.arg1_val, TLS_CREDENTIAL_PRIVATE_KEY);
 }
 
-/** 長さが 0 の証明書, 領域に入らない証明書は, 無視する */
+/** 長さが 0 の証明書, 領域に入らない証明書は無視する */
 ZTEST(cfg, test_load_credential_invalid_length_ignored)
 {
     static uint8_t big[CFG_KEY_PEM_MAX + 1U]; /* 上限を超える長さの文字列 */
@@ -921,7 +921,7 @@ ZTEST(cfg, test_load_credential_invalid_length_ignored)
     load("ca", big, CFG_CERT_MAX + 1U);
     load("key", big, CFG_KEY_PEM_MAX + 1U);
 
-    /* 期待: 長さ 0 と領域に入らない証明書は, 登録しない */
+    /* 期待: 長さ 0 と領域に入らない証明書は登録しない */
     zassert_equal(tls_credential_add_fake.call_count, 0U);
 }
 
@@ -932,7 +932,7 @@ ZTEST(cfg, test_load_credential_read_failure)
 
     source.err = -EIO;
 
-    /* 期待: 読み出しに失敗した証明書は, 登録しない */
+    /* 期待: 読み出しに失敗した証明書は登録しない */
     zassert_equal(h->h_set("ca", 4U, read_source, NULL), 0);
     zassert_equal(tls_credential_add_fake.call_count, 0U);
 }

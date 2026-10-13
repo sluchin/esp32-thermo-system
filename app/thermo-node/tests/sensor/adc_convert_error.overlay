@@ -1,6 +1,6 @@
 /*
- * adc.overlay と同じ ADC を, io-channels に接続するが, チャンネルのノード (channel@0) がない.
- * sensor_init() は失敗するが, 読み取りはできて, 電圧への換算 (adc_raw_to_millivolts_dt) が,
+ * adc.overlay と同じ ADC を io-channels に接続するが, チャンネルのノード (channel@0) がない.
+ * sensor_init() は失敗するが, 読み取りはできて, 電圧への換算 (adc_raw_to_millivolts_dt) が
  * -ENOTSUP で失敗する
  */
 / {

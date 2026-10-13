@@ -43,11 +43,11 @@ ENV ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 ENV PIP_ROOT_USER_ACTION=ignore
 
-# コンテナはホストユーザーで実行されるが、イメージ内の /workspace はそのユーザーの所有ではないため
+# コンテナはホストユーザーで実行されるが, イメージ内の /workspace はそのユーザーの所有ではないため
 RUN git config --system --add safe.directory '*'
 
-# ビルド時に再取得しないよう、Zephyr ワークスペースをイメージに含める。
-# west.yml を変更した場合は `docker compose build` を再実行すること。
+# ビルド時に再取得しないよう, Zephyr ワークスペースをイメージに含める.
+# west.yml を変更した場合は `docker compose build` を再実行すること.
 COPY west.yml /workspace/esp32-thermo-system/west.yml
 RUN cd /workspace && \
     west init -l esp32-thermo-system && \
@@ -60,7 +60,7 @@ RUN cd /workspace && \
 RUN apt-get update && apt-get install -y --no-install-recommends bluez-test-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# ドキュメントの生成 (Doxygen。呼び出しグラフなどの図は Graphviz)
+# ドキュメントの生成 (Doxygen. 呼び出しグラフなどの図は Graphviz)
 RUN apt-get update && apt-get install -y --no-install-recommends doxygen graphviz \
     && rm -rf /var/lib/apt/lists/*
 

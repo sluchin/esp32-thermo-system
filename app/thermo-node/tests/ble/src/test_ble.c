@@ -8,7 +8,7 @@
  * @file
  * @brief ble.c の単体テスト
  *
- * Bluetooth スタックの関数 (bt_enable, bt_le_adv_start, bt_gatt_service_register など) を,
+ * Bluetooth スタックの関数 (bt_enable, bt_le_adv_start, bt_gatt_service_register など) を
  * FFF のモックに置き換えて, 次を確認する.
  *  - ble_init() が GATT サービスと接続のコールバックを登録すること
  *  - ble_advertise() が正しいアドバタイズデータとスキャン応答データで, アドバタイズを始めること
@@ -320,7 +320,7 @@ ZTEST(ble_node, test_init_callback_failure)
     zassert_equal(bt_conn_cb_register_fake.call_count, 1U);
 }
 
-/** Thermo サービスは, 温度の特性 (読み取りと通知) と CCC を持つ */
+/** Thermo サービスは温度の特性 (読み取りと通知) と CCC を持つ */
 ZTEST(ble_node, test_service_attributes)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -356,7 +356,7 @@ ZTEST(ble_node, test_read_temperature)
     uint8_t buf[THERMO_TEMPERATURE_SIZE] = {0};                     /* 出力バッファ */
     ssize_t len = 0;                                                /* 長さ [バイト] */
 
-    /* 0 に更新したあとは, 0 (値は ble.c の static 変数なので, 前のテストの値が残っている) */
+    /* 0 に更新したあとは 0 (値は ble.c の static 変数なので, 前のテストの値が残っている) */
     zassert_equal(ble_notify_temperature(0, 0U), EXIT_SUCCESS);
     len = attr->read(NULL, attr, buf, sizeof(buf), 0);
     zassert_equal(len, THERMO_TEMPERATURE_SIZE);
@@ -375,14 +375,14 @@ ZTEST(ble_node, test_read_temperature)
     zassert_equal(buf[2], 0xC2U, "humidity low byte");
     zassert_equal(buf[3], 0x01U, "humidity high byte");
 
-    /* 湿度がないときは, 湿度が 0xFFFF */
+    /* 湿度がないときは湿度が 0xFFFF */
     zassert_equal(ble_notify_temperature(TEST_TEMP_X10, THERMO_HUMIDITY_NONE), EXIT_SUCCESS);
     len = attr->read(NULL, attr, buf, sizeof(buf), 0);
     zassert_equal(len, THERMO_TEMPERATURE_SIZE);
     zassert_equal(buf[2], 0xFFU);
     zassert_equal(buf[3], 0xFFU);
 
-    /* 範囲外の位置からの読み取りは, エラー */
+    /* 範囲外の位置からの読み取りはエラー */
     zassert_true(attr->read(NULL, attr, buf, sizeof(buf), 5) < 0);
 }
 
@@ -413,7 +413,7 @@ ZTEST(ble_node, test_notify_not_connected)
     zassert_equal(bt_gatt_notify_cb_fake.call_count, 1U);
 }
 
-/** 通知のそのほかのエラーは, そのまま返す */
+/** 通知のそのほかのエラーはそのまま返す */
 ZTEST(ble_node, test_notify_failure)
 {
     (void)init_and_get_service();
@@ -467,7 +467,7 @@ ZTEST(ble_node, test_connected_callback)
 
     zassert_equal(ble_init(), EXIT_SUCCESS);
     cb = bt_conn_cb_register_fake.arg0_val;
-    /* 前のテストの接続を, 全て切る */
+    /* 前のテストの接続を全て切る */
     while (ble_is_connected()) {
         cb->disconnected(NULL, 0x13U);
     }
@@ -482,7 +482,7 @@ ZTEST(ble_node, test_connected_callback)
     zassert_equal(bt_le_adv_start_fake.call_count, 1U);
 }
 
-/** 接続のコールバック: アドバタイズを続けるのに失敗しても, ログを出すだけ (EALREADY は, 何もしない)
+/** 接続のコールバック: アドバタイズを続けるのに失敗しても, ログを出すだけ (EALREADY は何もしない)
  */
 ZTEST(ble_node, test_connected_advertise_failure)
 {
@@ -506,7 +506,7 @@ ZTEST(ble_node, test_connected_advertise_failure)
     zassert_true(ble_is_connected());
 }
 
-/** 切断のコールバックでは, アドバタイズを始めない (接続のオブジェクトがまだ解放されていないため)
+/** 切断のコールバックではアドバタイズを始めない (接続のオブジェクトがまだ解放されていないため)
  */
 ZTEST(ble_node, test_disconnected_does_not_advertise)
 {
@@ -536,13 +536,13 @@ ZTEST(ble_node, test_recycled_restarts_advertising)
     cb->recycled();
     zassert_equal(bt_le_adv_start_fake.call_count, 2U);
 
-    /* すでにアドバタイズしているとき (EALREADY) は, エラーにしない */
+    /* すでにアドバタイズしているとき (EALREADY) はエラーにしない */
     bt_le_adv_start_fake.return_val = -EALREADY;
     cb->recycled();
     zassert_equal(bt_le_adv_start_fake.call_count, 3U);
 }
 
-/** 時刻の特性は, 書き込み (write) だけを許可する (読み取りと通知は, できない) */
+/** 時刻の特性は書き込み (write) だけを許可する (読み取りと通知はできない) */
 ZTEST(ble_node, test_time_attributes)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -560,7 +560,7 @@ ZTEST(ble_node, test_time_attributes)
     zassert_not_null(attrs[ATTR_TIME_VALUE].write);
 }
 
-/** 時刻の書き込みは, uint32 のリトルエンディアンの UTC の UNIX 時刻をコールバックに渡す */
+/** 時刻の書き込みは uint32 のリトルエンディアンの UTC の UNIX 時刻をコールバックに渡す */
 ZTEST(ble_node, test_write_time_success)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -587,7 +587,7 @@ ZTEST(ble_node, test_write_time_without_callback)
                   BT_GATT_ERR(BT_ATT_ERR_WRITE_NOT_PERMITTED));
 }
 
-/** 大きさが 4 byte でない書き込みは, 拒否して, コールバックを呼ばない */
+/** 大きさが 4 byte でない書き込みは拒否して, コールバックを呼ばない */
 ZTEST(ble_node, test_write_time_bad_length)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -602,7 +602,7 @@ ZTEST(ble_node, test_write_time_bad_length)
     zassert_equal(time_received.count, 0U);
 }
 
-/** 先頭でない位置からの書き込みは, 拒否して, コールバックを呼ばない */
+/** 先頭でない位置からの書き込みは拒否して, コールバックを呼ばない */
 ZTEST(ble_node, test_write_time_bad_offset)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -615,7 +615,7 @@ ZTEST(ble_node, test_write_time_bad_offset)
     zassert_equal(time_received.count, 0U);
 }
 
-/** 設定できない範囲の時刻 (-ERANGE) は, 値が許されないというエラーで拒否する */
+/** 設定できない範囲の時刻 (-ERANGE) は値が許されないというエラーで拒否する */
 ZTEST(ble_node, test_write_time_out_of_range)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -629,7 +629,7 @@ ZTEST(ble_node, test_write_time_out_of_range)
     zassert_equal(time_received.count, 1U);
 }
 
-/** 時刻を設定できなかったとき (RTC の通信の失敗など) は, 原因不明のエラーで拒否する */
+/** 時刻を設定できなかったとき (RTC の通信の失敗など) は原因不明のエラーで拒否する */
 ZTEST(ble_node, test_write_time_failure)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
@@ -661,7 +661,7 @@ ZTEST(ble_node, test_is_connected)
 
     zassert_equal(ble_init(), EXIT_SUCCESS);
     cb = bt_conn_cb_register_fake.arg0_val;
-    /* 前のテストの接続を, 全て切る (数が 0 のときの切断は, 数えない) */
+    /* 前のテストの接続を全て切る (数が 0 のときの切断は数えない) */
     while (ble_is_connected()) {
         cb->disconnected(NULL, 0x13U);
     }
@@ -681,7 +681,7 @@ ZTEST(ble_node, test_is_connected)
     zassert_false(ble_is_connected());
 }
 
-/** アドレスは, bt_id_get() が返した 1 つ目 */
+/** アドレスは bt_id_get() が返した 1 つ目 */
 ZTEST(ble_node, test_get_address)
 {
     bt_addr_le_t addr = {0};     /* 取得したアドレス */

@@ -41,7 +41,7 @@ if [ ! -e "$PORT" ]; then
     exit 1
 fi
 
-# 端末の変換 (改行の変換と, エコー) を止める. 通常のファイルのときは, 無視する
+# 端末の変換 (改行の変換と, エコー) を止める. 通常のファイルのときは無視する
 stty -F "$PORT" 115200 raw -echo 2>/dev/null || true
 
 exec 3<>"$PORT"
@@ -62,8 +62,8 @@ sleep 0.5
 printf 'cred buf load\n' >&3
 sleep 0.5
 
-# PEM の改行は, LF だけにする (CR が混ざると, mbedTLS が読めない)
-# 1 行 (最大 64 文字 + LF) を, 一度に送ると, 受信バッファ (64 バイト) があふれるので, 分けて送る
+# PEM の改行は LF だけにする (CR が混ざると, mbedTLS が読めない)
+# 1 行 (最大 64 文字 + LF) を一度に送ると, 受信バッファ (64 バイト) があふれるので, 分けて送る
 while IFS= read -r line || [ -n "$line" ]; do
     line="${line%$'\r'}"
     for ((i = 0; i < ${#line}; i += CHUNK)); do

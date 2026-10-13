@@ -9,14 +9,14 @@
  * @brief sdlog.c の単体テスト
  *
  * RAM ディスクの FatFS (本物のファイルシステム) と, 本物のログ (LOG_INF と LOG_ERR) で,
- * 次を確認する. 状態 (SD カードが使えるか, 起動の 1 分の窓) をテストの間で引き継ぐので, テストは,
+ * 次を確認する. 状態 (SD カードが使えるか, 起動の 1 分の窓) をテストの間で引き継ぐので, テストは
  * 名前の順 (test_1 から test_7) に実行される前提で並べてある.
- *  - sdlog_start() の前は, 書かずに溜めておくこと. 始めたら, 溜めたログを書くこと
- *  - boot.log は, 全てのレベルのログを, 作り直してから追記すること. error.log は,
+ *  - sdlog_start() の前は書かずに溜めておくこと. 始めたら, 溜めたログを書くこと
+ *  - boot.log は全てのレベルのログを作り直してから追記すること. error.log は
  * エラーだけを追記すること
- *  - 溜められなかったログを, エラーとして知らせること
+ *  - 溜められなかったログをエラーとして知らせること
  *  - 書き込みに失敗したら, 次の sdlog_start() まで止めること (カードが外れたとき, 容量がないとき)
- *  - 起動の 1 分がたつと, boot.log に書かないこと. エラーは, そのあとも error.log に書くこと
+ *  - 起動の 1 分がたつと, boot.log に書かないこと. エラーはそのあとも error.log に書くこと
  *  - error.log が上限に達したら, error.old に移すこと
  */
 
@@ -62,7 +62,7 @@ static struct fs_mount_t mnt = {
 static char content[READ_SIZE];
 
 /**
- * ファイルの内容を, content に読む (ファイルがなければ, 空にする)
+ * ファイルの内容を content に読む (ファイルがなければ, 空にする)
  *
  * @param[in] path ファイル
  */
@@ -136,7 +136,7 @@ static void *setup(void)
 }
 
 /**
- * sdlog_start() の前は, 書かない. 前のファイルも, 触らない
+ * sdlog_start() の前は書かない. 前のファイルも, 触らない
  */
 ZTEST(sdlog, test_1_not_started)
 {
@@ -159,7 +159,7 @@ ZTEST(sdlog, test_1_not_started)
 }
 
 /**
- * 始めたら, 溜めたログを書く. boot.log は作り直し, 全てのレベルのログが入る. error.log には,
+ * 始めたら, 溜めたログを書く. boot.log は作り直し, 全てのレベルのログが入る. error.log には
  * エラーだけが入る
  */
 ZTEST(sdlog, test_2_start_writes_buffered)
@@ -204,7 +204,7 @@ ZTEST(sdlog, test_3_overflow_reported)
 }
 
 /**
- * カードが外れて (アンマウント) 書けないときは, 止める. マウントし直して sdlog_start() すると,
+ * カードが外れて (アンマウント) 書けないときは止める. マウントし直して sdlog_start() すると,
  * 溜めたログを書く
  */
 ZTEST(sdlog, test_4_unmounted_stops_until_restart)
@@ -223,7 +223,7 @@ ZTEST(sdlog, test_4_unmounted_stops_until_restart)
 }
 
 /**
- * 起動から 1 分がたつと, boot.log には書かない. エラーは, error.log に書く
+ * 起動から 1 分がたつと, boot.log には書かない. エラーは error.log に書く
  */
 ZTEST(sdlog, test_5_after_boot_window)
 {

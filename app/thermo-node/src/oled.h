@@ -13,10 +13,10 @@
  *
  * 拡張ボードの OLED (SSD1306, 128x64) に温度, 湿度, 日付, 時刻 (現在値のページ) と温度と
  * 湿度の履歴の折れ線グラフ (グラフのページ) と起動画面のアニメーション (oled_show_boot())
- * を表示する. ページは, ボタンで切り替える (button.h. main.c が行う). 点灯と消灯は,
- * oled_set_power() で切り替える (main.c が, ボタンで点灯して, 一定時間
- * (CONFIG_THERMO_DISPLAY_TIMEOUT_SEC) たつと消灯する). OLED は, Devicetree の alias thermo-display
- * で選ぶ. 使わないときは, CONFIG_THERMO_DISPLAY=n でビルドする (このファイルの機能は,
+ * を表示する. ページはボタンで切り替える (button.h. main.c が行う). 点灯と消灯は
+ * oled_set_power() で切り替える (main.c がボタンで点灯して, 一定時間
+ * (CONFIG_THERMO_DISPLAY_TIMEOUT_SEC) たつと消灯する). OLED は Devicetree の alias thermo-display
+ * で選ぶ. 使わないときは CONFIG_THERMO_DISPLAY=n でビルドする (このファイルの機能は
  * ビルドされない).
  */
 
@@ -32,18 +32,18 @@
 #define OLED_PAGE_TEMP_GRAPH     1U
 /** ページ: 湿度の履歴のグラフ */
 #define OLED_PAGE_HUMIDITY_GRAPH 2U
-/** ページの数 (ボタンで, 順に切り替えて, 最後の次は, 最初に戻る) */
+/** ページの数 (ボタンで, 順に切り替えて, 最後の次は最初に戻る) */
 #define OLED_PAGE_COUNT          3U
 
 /** OLED に表示する内容 */
 struct oled_view {
-    bool has_sample;       /**< 測定値があるか (false のときは, 温度と湿度を --.- と表示する) */
+    bool has_sample;       /**< 測定値があるか (false のときは温度と湿度を --.- と表示する) */
     int16_t temp_x10;      /**< 温度 [℃ の 10 倍] */
-    uint16_t humidity_x10; /**< 湿度 [% の 10 倍] (THERMO_HUMIDITY_NONE は, 測れない) */
-    const struct node_datetime *time;       /**< 日時 (NULL のときは, 日付と時刻の行を表示しない) */
+    uint16_t humidity_x10; /**< 湿度 [% の 10 倍] (THERMO_HUMIDITY_NONE は測れない) */
+    const struct node_datetime *time;       /**< 日時 (NULL のときは日付と時刻の行を表示しない) */
     unsigned int page;                      /**< 表示するページ (OLED_PAGE_*) */
-    const struct history *temp_history;     /**< 温度の履歴 (NULL なら, グラフは, データなし) */
-    const struct history *humidity_history; /**< 湿度の履歴 (NULL なら, グラフは, データなし) */
+    const struct history *temp_history;     /**< 温度の履歴 (NULL なら, グラフはデータなし) */
+    const struct history *humidity_history; /**< 湿度の履歴 (NULL なら, グラフはデータなし) */
 };
 
 /** 起動画面のフレームの数 (OLED_BOOT_FRAME_MS ごとに, 1 フレーム. 全体で, 約 3 秒) */

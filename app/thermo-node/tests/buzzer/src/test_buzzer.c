@@ -13,7 +13,7 @@
  *  - buzzer_play() がメロディの音を順に周波数に合った周期 (デューティ比は 50%) で鳴らして,
  *    休符 (周波数 0) と最後に音を消すこと. 音の長さの分だけ, 次の音まで待つこと
  *  - 鳴らしている途中に新しいメロディを渡すと, 今のメロディを止めて, 最初から鳴らすこと
- *  - 音を鳴らせなかったときは, メロディを止めること
+ *  - 音を鳴らせなかったときはメロディを止めること
  *  - 音名の表 (notes.h) が平均律の値であること
  */
 
@@ -173,7 +173,7 @@ ZTEST(buzzer, test_play_plays_notes_in_order)
     zassert_equal(calls[2].period, 2000000U);
     zassert_equal(calls[2].pulse, 1000000U);
 
-    /* 3 つ目の音が終わったら, 音を消して, 止まる (それ以上は, 設定しない) */
+    /* 3 つ目の音が終わったら, 音を消して, 止まる (それ以上は設定しない) */
     k_msleep(NOTE3_MS);
     zassert_equal(call_count, 4U);
     zassert_equal(calls[3].pulse, 0U);
@@ -181,7 +181,7 @@ ZTEST(buzzer, test_play_plays_notes_in_order)
     zassert_equal(call_count, 4U);
 }
 
-/** 音の数が 0 のときは, 音を鳴らさずに, 音を消す */
+/** 音の数が 0 のときは音を鳴らさずに, 音を消す */
 ZTEST(buzzer, test_play_empty_melody_silences)
 {
     zassert_equal(buzzer_play(melody, 0U), EXIT_SUCCESS);
@@ -202,7 +202,7 @@ ZTEST(buzzer, test_play_restarts_melody)
 
     zassert_equal(buzzer_play(other, ARRAY_SIZE(other)), EXIT_SUCCESS);
     k_msleep(SETTLE_MS);
-    /* 古いメロディの 2 つ目 (休符) は, 鳴らさず, 新しいメロディの 1 つ目 (2000 Hz = 0.5 ms) になる
+    /* 古いメロディの 2 つ目 (休符) は鳴らさず, 新しいメロディの 1 つ目 (2000 Hz = 0.5 ms) になる
      */
     zassert_equal(call_count, 2U);
     zassert_equal(calls[1].period, 500000U);
@@ -212,7 +212,7 @@ ZTEST(buzzer, test_play_restarts_melody)
     zassert_equal(calls[2].pulse, 0U);
 }
 
-/** 音を鳴らせなかったとき (PWM の失敗) は, メロディを止める (次の音には, 進まない) */
+/** 音を鳴らせなかったとき (PWM の失敗) はメロディを止める (次の音には進まない) */
 ZTEST(buzzer, test_play_stops_on_pwm_failure)
 {
     set_ret = -EIO;

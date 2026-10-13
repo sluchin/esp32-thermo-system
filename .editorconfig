@@ -1,6 +1,6 @@
 # EditorConfig: https://editorconfig.org/
 #
-# Zephyr (v4.3.0) の .editorconfig に, C / C++ / Perl / Devicetree / Kconfig のインデントだけを, 空白 4 つに変えたもの (CODING_STYLE.md を参照).
+# Zephyr (v4.3.0) の .editorconfig に, C / C++ / Perl / Devicetree / Kconfig のインデントだけを空白 4 つに変えたもの (CODING_STYLE.md を参照).
 
 # top-most EditorConfig file
 root = true
@@ -18,7 +18,7 @@ max_line_length = 100
 indent_style = tab
 indent_size = 8
 
-# C (Zephyr は, タブ 8. このプロジェクトは, 空白 4 つ)
+# C (Zephyr はタブ 8. このプロジェクトは空白 4 つ)
 [*.{c,h}]
 indent_style = space
 indent_size = 4
@@ -79,7 +79,7 @@ indent_size = 2
 indent_style = tab
 indent_size = 8
 
-# Device tree (Zephyr は, タブ 8. このプロジェクトは, 空白 4 つ)
+# Device tree (Zephyr はタブ 8. このプロジェクトは空白 4 つ)
 [*.{dts,dtsi,overlay}]
 indent_style = space
 indent_size = 4
@@ -88,11 +88,11 @@ indent_size = 4
 [COMMIT_EDITMSG]
 max_line_length = 75
 
-# Patches (patch の空行の文脈は, 空白 1 つの行なので, 末尾の空白を削ると, patch が壊れる)
+# Patches (patch の空行の文脈は空白 1 つの行なので, 末尾の空白を削ると, patch が壊れる)
 [{*.patch,*.diff}]
 trim_trailing_whitespace = false
 
-# Kconfig (Zephyr は, タブ 8. このプロジェクトは, 空白 4 つ)
+# Kconfig (Zephyr はタブ 8. このプロジェクトは空白 4 つ)
 [Kconfig*]
 indent_style = space
 indent_size = 4

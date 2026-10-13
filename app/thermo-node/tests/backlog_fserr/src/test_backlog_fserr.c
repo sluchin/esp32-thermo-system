@@ -8,7 +8,7 @@
  * @file
  * @brief backlog.c の単体テスト (ファイルの操作の失敗)
  *
- * fs_* の関数を FFF のモックに置き換えて, 次の失敗が, 呼び出し元に伝わることを確認する.
+ * fs_* の関数を FFF のモックに置き換えて, 次の失敗が呼び出し元に伝わることを確認する.
  *  - 起動: 開く, 読み出し (短い)
  *  - 追記: 開く, 移動, 書き込み (短い, 負), 閉じる, 輪になったときの上書きされる記録の読み出し
  *  - 読み出し: 開く, 移動, 読み出し (短い, 負)
@@ -48,9 +48,9 @@ FAKE_VALUE_FUNC(int, fs_seek, struct fs_file_t *, off_t, int)
 
 /** 記録のファイルの大きさ [バイト] (fs_stat() が返す) */
 static size_t file_size;
-/** この回数目以降の fs_read() は, -EIO を返す (0 は, 失敗させない) */
+/** この回数目以降の fs_read() は -EIO を返す (0 は失敗させない) */
 static unsigned int read_fails_from;
-/** この回数目の fs_seek() は, -EIO を返す (0 は, 失敗させない) */
+/** この回数目の fs_seek() は -EIO を返す (0 は失敗させない) */
 static unsigned int seek_fails_at;
 
 /**
@@ -255,7 +255,7 @@ ZTEST(backlog_fserr, test_append_seek_failure)
     zassert_equal(backlog_pending(), INITIAL_RECORDS);
 }
 
-/** 追記: 書き込みが短いと -EIO, 負の値のときは, その値を返して, 数えない */
+/** 追記: 書き込みが短いと -EIO, 負の値のときはその値を返して, 数えない */
 ZTEST(backlog_fserr, test_append_write_failure)
 {
     struct backlog_record r = rec(); /* 記録 */
@@ -291,7 +291,7 @@ ZTEST(backlog_fserr, test_append_full_unreadable_old_record)
     fs_read_fake.return_val = -EIO;
 
     zassert_equal(backlog_append(&r, true), EXIT_SUCCESS);
-    zassert_equal(backlog_pending(), FULL_RECORDS); /* 上書きされた記録を, 未送信として数えない */
+    zassert_equal(backlog_pending(), FULL_RECORDS); /* 上書きされた記録を未送信として数えない */
 }
 
 /** 読み出し: 開けないと, その errno を返す */
@@ -316,7 +316,7 @@ ZTEST(backlog_fserr, test_read_seek_failure)
     zassert_equal(fs_read_fake.call_count, 0U);
 }
 
-/** 読み出し: 短いと -EIO, 負の値のときは, その値を返す */
+/** 読み出し: 短いと -EIO, 負の値のときはその値を返す */
 ZTEST(backlog_fserr, test_read_short_failure)
 {
     struct backlog_record r = {0}; /* 読み出した記録 */
@@ -350,14 +350,14 @@ ZTEST(backlog_fserr, test_commit_read_failure)
 /** 送り終えたことの記録: フラグの位置へ移動できないと, その errno を返す (書き込まない) */
 ZTEST(backlog_fserr, test_commit_seek_failure)
 {
-    seek_fails_at = fs_seek_fake.call_count + 2U; /* 1 回目は, 記録を読むための移動 */
+    seek_fails_at = fs_seek_fake.call_count + 2U; /* 1 回目は記録を読むための移動 */
 
     zassert_equal(backlog_commit(1U), -EIO);
     zassert_equal(fs_write_fake.call_count, 0U);
     zassert_equal(backlog_pending(), INITIAL_RECORDS);
 }
 
-/** 送り終えたことの記録: 書き込みが短いと -EIO, 負の値のときは, その値を返す */
+/** 送り終えたことの記録: 書き込みが短いと -EIO, 負の値のときはその値を返す */
 ZTEST(backlog_fserr, test_commit_write_failure)
 {
     fs_write_fake.return_val = 0;

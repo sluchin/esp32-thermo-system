@@ -151,6 +151,22 @@ log_format_func_t log_format_func_t_get(uint32_t log_type);
 
 使用箇所: [`app/thermo-node/src/sdlog.c:161`](../app/thermo-node/src/sdlog.c#L161)
 
+### log_msg_get_level
+
+```c
+static inline uint8_t log_msg_get_level(struct log_msg *msg);
+```
+
+ログのメッセージの、レベルを返す。
+
+| 引数 | 入出力 | 説明 |
+|:---|:---:|:---|
+| `msg` | in | ログのメッセージ |
+
+戻り値: ログのレベル (`LOG_LEVEL_ERR` など)。
+
+使用箇所: [`app/thermo-node/src/sdlog.c:168`](../app/thermo-node/src/sdlog.c#L168)
+
 ### log_backend_api
 
 ```c

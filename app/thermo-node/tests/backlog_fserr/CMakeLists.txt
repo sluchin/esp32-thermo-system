@@ -16,5 +16,5 @@ target_sources(app PRIVATE
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_LIST_DIR}/../../../warnings.cmake)
-# モック (FFF の FAKE_VALUE_FUNC) は, ヘッダにある関数を, 同じ型で再宣言する
+# モック (FFF の FAKE_VALUE_FUNC) はヘッダにある関数を同じ型で再宣言する
 target_compile_options(app PRIVATE -Wno-redundant-decls)

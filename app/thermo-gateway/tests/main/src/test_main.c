@@ -62,7 +62,7 @@ FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, int16_t, u
 
 /**
  * 関数のアドレス (fff.call_history の要素と比べる)
- * (関数ポインタをオブジェクトポインタへ直接キャストすることは, ISO C では許されない)
+ * (関数ポインタをオブジェクトポインタへ直接キャストすることは ISO C では許されない)
  */
 #define FUNCTION_ADDRESS(f) ((void *)(uintptr_t)(f))
 
@@ -98,7 +98,7 @@ static void main_entry(void *p1, void *p2, void *p3)
 
 /** switchbot_accept() が送信する値として返す温度 [℃ の 10 倍] (テストが変える) */
 static int16_t accepted_temp_x10 = 235;
-/** cloud_publish_switchbot() に渡された値の写し (引数は呼び出しの後は, 無効になる) */
+/** cloud_publish_switchbot() に渡された値の写し (引数は呼び出しの後は無効になる) */
 static struct switchbot_sample published_sample;
 
 /**
@@ -225,11 +225,11 @@ ZTEST(main_gateway, test_main_loop)
     zassert_equal(fff.call_history[5], FUNCTION_ADDRESS(ble_scan));
     zassert_equal(ble_set_switchbot_callback_fake.call_count, 1U);
 
-    /* ノードに書き込む時刻は, SNTP で同期したシステム時計 (ntp_unix_time) から得る */
+    /* ノードに書き込む時刻は SNTP で同期したシステム時計 (ntp_unix_time) から得る */
     zassert_equal(ble_set_time_source_fake.call_count, 1U);
     zassert_equal(ble_set_time_source_fake.arg0_val, ntp_unix_time);
 
-    /* 温度のコールバックは, ノードのアドレスと温度と湿度をクラウドの送信のキューに渡す */
+    /* 温度のコールバックはノードのアドレスと温度と湿度をクラウドの送信のキューに渡す */
     ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_TEMP_X10, TEST_HUMIDITY_X10);
     zassert_equal(cloud_publish_temperature_fake.call_count, 1U);
     zassert_equal(cloud_publish_temperature_fake.arg0_val, &test_addr);
@@ -251,7 +251,7 @@ ZTEST(main_gateway, test_main_loop)
     k_thread_abort(&main_thread);
 }
 
-/** SwitchBot のコールバックは, 間引きを通った値をクラウドの送信のキューに渡す */
+/** SwitchBot のコールバックは間引きを通った値をクラウドの送信のキューに渡す */
 ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
 {
     /* 広告データ */
@@ -273,7 +273,7 @@ ZTEST(main_gateway, test_switchbot_forwarded_to_cloud)
     zassert_equal(published_sample.battery, 87);
 }
 
-/** 間引きで捨てられた値 (または機種と電池残量だけのデータ) は, クラウドに渡さない */
+/** 間引きで捨てられた値 (または機種と電池残量だけのデータ) はクラウドに渡さない */
 ZTEST(main_gateway, test_switchbot_dropped_by_interval)
 {
     const struct switchbot_ad ad = {.kind = SWITCHBOT_INFO}; /* 広告データ */

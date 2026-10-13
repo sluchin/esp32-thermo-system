@@ -1,4 +1,4 @@
-/* 偽のセンサ (vnd,test-sensor) を, alias thermo-sensor に接続する */
+/* 偽のセンサ (vnd,test-sensor) を alias thermo-sensor に接続する */
 / {
     aliases {
         thermo-sensor = &test_sensor;

@@ -1,5 +1,5 @@
-# thermo-gateway の単体テスト: cfg_shell.c (シェルのコマンドを、ダミーのバックエンドで実行する).
-# twister が、このファイルを探して、native_sim 上で、実行する (docker compose run --rm test-gateway).
+# thermo-gateway の単体テスト: cfg_shell.c (シェルのコマンドをダミーのバックエンドで実行する).
+# twister がこのファイルを探して, native_sim 上で, 実行する (docker compose run --rm test-gateway).
 tests:
   thermo_gateway.shell:
     platform_allow:

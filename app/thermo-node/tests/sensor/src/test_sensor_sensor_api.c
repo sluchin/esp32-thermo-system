@@ -9,7 +9,7 @@
  * @brief sensor.c の単体テスト (センサ API)
  *
  * alias thermo-sensor に偽のセンサ (vnd,test-sensor) を接続して, DHT11 などのセンサ API の
- * 経路をテストする. センサが返す値とエラーは, テストから設定する.
+ * 経路をテストする. センサが返す値とエラーはテストから設定する.
  */
 
 /** 偽のセンサのドライバが使う compatible (vnd,test-sensor) */
@@ -133,7 +133,7 @@ ZTEST(sensor_api, test_read)
     zassert_equal(humidity, 450U);
 }
 
-/** 0 ℃ 未満の温度は, 負の値で返す */
+/** 0 ℃ 未満の温度は負の値で返す */
 ZTEST(sensor_api, test_read_negative_temperature)
 {
     int16_t temp = 0;      /* 温度 */
@@ -146,7 +146,7 @@ ZTEST(sensor_api, test_read_negative_temperature)
     zassert_equal(temp, -35);
 }
 
-/** 湿度を測れないセンサ (-ENOTSUP) は, 湿度なしとして, 成功する */
+/** 湿度を測れないセンサ (-ENOTSUP) は湿度なしとして, 成功する */
 ZTEST(sensor_api, test_read_without_humidity)
 {
     int16_t temp = 0;      /* 温度 */
@@ -160,7 +160,7 @@ ZTEST(sensor_api, test_read_without_humidity)
     zassert_equal(humidity, THERMO_HUMIDITY_NONE);
 }
 
-/** 湿度の取得のそのほかのエラーは, そのまま返す */
+/** 湿度の取得のそのほかのエラーはそのまま返す */
 ZTEST(sensor_api, test_read_humidity_failure)
 {
     int16_t temp = 0;      /* 温度 */
@@ -168,7 +168,7 @@ ZTEST(sensor_api, test_read_humidity_failure)
 
     humidity_ret = -EIO;
 
-    /* 期待: -ENOTSUP 以外の失敗は, そのエラーを返す */
+    /* 期待: -ENOTSUP 以外の失敗はそのエラーを返す */
     zassert_equal(sensor_read(&temp, &humidity), -EIO);
 }
 

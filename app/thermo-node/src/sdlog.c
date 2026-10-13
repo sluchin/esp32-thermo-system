@@ -8,11 +8,11 @@
  * @file
  * @brief ログの SD カードへの保存 (起動の 1 分間の全てのログと, エラーのログ)
  *
- * ログのバックエンドの process() は, ログを出した文脈 (ISR を含む) で呼ばれるので, 文字列にして
- * リングバッファに入れるだけにする. SD カードへの書き込みは, sdlog_flush() が行う (メインスレッド
- * から呼ぶ). バッファがいっぱいのときは, 新しい文字列を捨てる (起動の最初のログを残す).
+ * ログのバックエンドの process() はログを出した文脈 (ISR を含む) で呼ばれるので, 文字列にして
+ * リングバッファに入れるだけにする. SD カードへの書き込みは sdlog_flush() が行う (メインスレッド
+ * から呼ぶ). バッファがいっぱいのときは新しい文字列を捨てる (起動の最初のログを残す).
  * 書き込みに失敗したら, 次の sdlog_start() まで, 書き込みを止める (カードが外れたときに, 失敗の
- * ログが, 溜まり続けないため).
+ * ログが溜まり続けないため).
  */
 
 #include <zephyr/fs/fs.h>
@@ -45,7 +45,7 @@ LOG_MODULE_REGISTER(thermo_sdlog, THERMO_LOG_LEVEL);
 
 /** 起動のログを溜める時間 [ms] */
 #define BOOT_WINDOW_MS ((int64_t)CONFIG_THERMO_SDLOG_BOOT_SEC * 1000)
-/** 文字列にするときの作業用のバッファの大きさ [byte] (これより長い行は, 分けて渡される) */
+/** 文字列にするときの作業用のバッファの大きさ [byte] (これより長い行は分けて渡される) */
 #define LINE_BUF_SIZE  32U
 /** ファイルに書くときの 1 回の大きさ [byte] */
 #define CHUNK_SIZE     128U
@@ -65,7 +65,7 @@ static atomic_t boot_dropped;
 static atomic_t error_dropped;
 /** SD カードが使えるか (sdlog_start() で true. 書き込みの失敗で false) */
 static bool ready;
-/** 起動のログのファイルを, 作り直したか (作り直したあとは, 追記する) */
+/** 起動のログのファイルを作り直したか (作り直したあとは追記する) */
 static bool boot_created;
 
 static int boot_out(uint8_t *data, size_t length, void *ctx);
@@ -99,7 +99,7 @@ LOG_BACKEND_DEFINE(sdlog_backend, sdlog_api, true);
 /**
  * @brief SD カードが使えるようになったことを知らせる (マウントしたあとに呼ぶ)
  *
- * これ以降の sdlog_flush() が, ファイルに書く. それまでに溜めたログも書く.
+ * これ以降の sdlog_flush() がファイルに書く. それまでに溜めたログも書く.
  */
 void sdlog_start(void)
 {
@@ -107,9 +107,9 @@ void sdlog_start(void)
 }
 
 /**
- * @brief 溜めたログを, SD カードのファイルに書く (メインスレッドから, 1 秒ごとに呼ぶ)
+ * @brief 溜めたログを SD カードのファイルに書く (メインスレッドから, 1 秒ごとに呼ぶ)
  *
- * SD カードが使えないとき (sdlog_start() の前, または, 書き込みに失敗したあと) は, 何もしない
+ * SD カードが使えないとき (sdlog_start() の前, または書き込みに失敗したあと) は何もしない
  * (ログは RAM に溜めたまま). 失敗したら, ログを出して, 次の sdlog_start() まで書き込みを止める.
  * 溜められずに捨てたログがあれば, エラーとして知らせる (次の呼び出しで書く).
  */
@@ -138,7 +138,7 @@ void sdlog_flush(void)
 /**
  * @brief ログのバックエンドの panic の関数 (何もしない)
  *
- * パニックのときは, ファイルシステムを触らない (SD カードに書くのは, メインスレッドだけ).
+ * パニックのときはファイルシステムを触らない (SD カードに書くのはメインスレッドだけ).
  *
  * @param[in] backend 使用しない
  */
@@ -150,7 +150,7 @@ void sdlog_panic(const struct log_backend *const backend)
 /**
  * ログを 1 件, 文字列にして, リングバッファに入れる
  *
- * 起動から BOOT_WINDOW_MS の間は, 全てのログを, 起動のログに入れる. エラーは, いつでも,
+ * 起動から BOOT_WINDOW_MS の間は全てのログを起動のログに入れる. エラーはいつでも,
  * エラーのログに入れる.
  *
  * @param[in] backend 使用しない
@@ -171,7 +171,7 @@ static void backend_process(const struct log_backend *const backend, union log_m
 }
 
 /**
- * 文字列にした起動のログを, リングバッファに入れる (log_output の出力の関数)
+ * 文字列にした起動のログをリングバッファに入れる (log_output の出力の関数)
  *
  * @param[in] data   文字列
  * @param[in] length 文字列の長さ [byte]
@@ -188,7 +188,7 @@ static int boot_out(uint8_t *data, size_t length, void *ctx)
 }
 
 /**
- * 文字列にしたエラーのログを, リングバッファに入れる (log_output の出力の関数)
+ * 文字列にしたエラーのログをリングバッファに入れる (log_output の出力の関数)
  *
  * @param[in] data   文字列
  * @param[in] length 文字列の長さ [byte]
@@ -205,7 +205,7 @@ static int error_out(uint8_t *data, size_t length, void *ctx)
 }
 
 /**
- * 文字列を, リングバッファに入れる (入りきらない分は捨てて, 捨てた数を数える)
+ * 文字列をリングバッファに入れる (入りきらない分は捨てて, 捨てた数を数える)
  *
  * @param[in,out] ring    リングバッファ
  * @param[in,out] dropped 捨てたバイト数
@@ -222,10 +222,10 @@ static void store(struct ring_buf *ring, atomic_t *dropped, const uint8_t *data,
 }
 
 /**
- * リングバッファの中身を, ファイルに書く
+ * リングバッファの中身をファイルに書く
  *
- * ファイルを開けなかったときは, リングバッファを残す (あとで, 書き直す). 開けたら, 全て取り出して
- * 書く (書けなかった分は, 捨てる).
+ * ファイルを開けなかったときはリングバッファを残す (あとで, 書き直す). 開けたら, 全て取り出して
+ * 書く (書けなかった分は捨てる).
  *
  * @param[in]     path  ファイル
  * @param[in,out] ring  リングバッファ
@@ -262,7 +262,7 @@ static int write_ring(const char *path, struct ring_buf *ring, fs_mode_t flags)
 }
 
 /**
- * 溜めた起動のログを, boot.log に書く (最初は作り直して, 2 回目からは追記する)
+ * 溜めた起動のログを boot.log に書く (最初は作り直して, 2 回目からは追記する)
  *
  * @retval EXIT_SUCCESS 成功 (書くログがないときも)
  * @retval negative     失敗 (負の errno)
@@ -283,7 +283,7 @@ static int flush_boot(void)
 }
 
 /**
- * 溜めたエラーのログを, error.log に追記する (上限に達していたら, 先に error.old に移す)
+ * 溜めたエラーのログを error.log に追記する (上限に達していたら, 先に error.old に移す)
  *
  * @retval EXIT_SUCCESS 成功 (書くログがないときも)
  * @retval negative     失敗 (負の errno)

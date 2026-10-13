@@ -84,7 +84,7 @@ bool switchbot_parse(uint8_t type, const uint8_t *data, uint8_t len, struct swit
 /**
  * @brief 解析した結果を機器ごとに記録して, 送信する値を取り出す
  *
- * SWITCHBOT_INFO は, 機種と電池残量を記録するだけ. SWITCHBOT_ENV は, 機種が屋外用温湿度計と
+ * SWITCHBOT_INFO は機種と電池残量を記録するだけ. SWITCHBOT_ENV は機種が屋外用温湿度計と
  * わかっている機器で前回の送信から CONFIG_THERMO_SWITCHBOT_INTERVAL_MS 以上たっていれば,
  * 送信する値を返す (最初の 1 回はすぐ返す).
  *

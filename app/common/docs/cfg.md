@@ -1,6 +1,6 @@
 # cfg.c の解析
 
-対象: `app/common/cfg.c` (608 行) と `cfg.h` (88 行)
+対象: `app/common/cfg.c` (624 行) と `cfg.h` (88 行)
 
 実行時の設定を、フラッシュ (Zephyr の settings、NVS) に保存して、読み出します。ゲートウェイとノードが共通で使います。
 
@@ -63,6 +63,8 @@ settings_load_subtree("thermo")   ← 保存された項目ごとに settings_se
 | そのほか | 警告を出して無視 |
 
 読めない項目があっても、ほかの項目の読み込みを続けるために、常に 0 を返します。
+
+`load_backup()` は、文字列の長さを `bounded_len()` (`memchr()` で、最大の長さまでに NUL を探す) で数えます。`strnlen()` と同じ働きですが、native_sim の単体テストの、C の規格の設定では、`strnlen()` の宣言が見えず、`-Werror` でビルドが失敗するため、使いません。
 
 ### cfg_set
 

@@ -1,6 +1,6 @@
 # thermo-node の button.c の単体テスト (Ztest).
-# GPIO のコントローラを, 偽のもの (vnd,test-gpio. app.overlay) に置き換える. 偽のコントローラは,
-# ピンの設定の戻り値と, ピンの入力の値を, テストから設定できる.
+# GPIO のコントローラを偽のもの (vnd,test-gpio. app.overlay) に置き換える. 偽のコントローラは
+# ピンの設定の戻り値と, ピンの入力の値をテストから設定できる.
 cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})

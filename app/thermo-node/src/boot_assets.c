@@ -19,7 +19,7 @@
 #include "notes.h"
 
 /*
- * 絵の表は, 1 行ずつ, 絵が見えるように, 書く. 整形ツールが初期化の波括弧の位置を変えて,
+ * 絵の表は 1 行ずつ, 絵が見えるように, 書く. 整形ツールが初期化の波括弧の位置を変えて,
  * 絵が崩れる (checkpatch.pl の OPEN_BRACE にも, 当たる) ので, この表だけ, 整形を止める.
  */
 /* clang-format off */
@@ -88,7 +88,7 @@ const struct boot_sprite boot_chomper[BOOT_CHOMPER_FRAMES] = {
     },
 };
 
-/** 追いかける敵の絵 (目は, 点灯しないドット) */
+/** 追いかける敵の絵 (目は点灯しないドット) */
 const struct boot_sprite boot_chaser = {
     .rows = {
         0x0180U, /* .......##....... */

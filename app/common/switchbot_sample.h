@@ -11,7 +11,7 @@
  * @file
  * @brief SwitchBot 屋外用温湿度計の, 送信する値 (cloud.h と payload.h が使う)
  *
- * アドバタイズの解析は, thermo-gateway の switchbot.h にある (thermo-node は, 使わない).
+ * アドバタイズの解析は thermo-gateway の switchbot.h にある (thermo-node は使わない).
  */
 
 #include <stdint.h> /* uint8_t int16_t int8_t */

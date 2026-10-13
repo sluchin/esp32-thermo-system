@@ -104,7 +104,7 @@ static void before(void *fixture)
     port_level = LEVEL_UP;
 }
 
-/** ピンを入力に設定する (プルアップと押すと 0 になる設定は, Devicetree から) */
+/** ピンを入力に設定する (プルアップと押すと 0 になる設定は Devicetree から) */
 ZTEST(button, test_init_success)
 {
     zassert_equal(button_init(), EXIT_SUCCESS);
@@ -138,7 +138,7 @@ ZTEST(button, test_pressed_detects_edge_once)
 
     port_level = LEVEL_DOWN;
     zassert_true(button_pressed());
-    /* 押し続けている間は, 押された動作ではない */
+    /* 押し続けている間は押された動作ではない */
     zassert_false(button_pressed());
     zassert_false(button_pressed());
 
@@ -149,7 +149,7 @@ ZTEST(button, test_pressed_detects_edge_once)
     zassert_true(button_pressed());
 }
 
-/** 起動のときに押されていても (初期化のとき), それは, 押された動作ではない */
+/** 起動のときに押されていても (初期化のとき), それは押された動作ではない */
 ZTEST(button, test_held_at_init_is_not_a_press)
 {
     port_level = LEVEL_DOWN;

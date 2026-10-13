@@ -11,7 +11,7 @@
  * @file
  * @brief thermo-node の温湿度センサ制御
  *
- * センサは, Devicetree で選ぶ (実機のとき).
+ * センサは Devicetree で選ぶ (実機のとき).
  *  - alias thermo-sensor のセンサ (DHT11 など): Zephyr のセンサ API で読む
  *  - zephyr,user の io-channels (ADC): ADC を読んで, 温度に換算する
  *  - どちらもなければ (シミュレータなど): 乱数のシミュレーション値

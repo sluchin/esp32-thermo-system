@@ -10,15 +10,15 @@
  *
  * sensor と ble と oled とボタンの関数を FFF のモックに置き換えて (別スレッドで main を動かして,
  * 仮想の時間を進めて), 次を確認する.
- *  - ボタンを押さずに 10 秒たつと, OLED を消して (oled_set_power(false)), 消えている間は,
+ *  - ボタンを押さずに 10 秒たつと, OLED を消して (oled_set_power(false)), 消えている間は
  * 表示しないこと
- *  - 消えている間にボタンを押すと, 点灯するだけで, ページは切り替えないこと (点灯のあとは,
+ *  - 消えている間にボタンを押すと, 点灯するだけで, ページは切り替えないこと (点灯のあとは
  * 表示を続ける)
- *  - 消えている間にボタンを押して点灯するときは, ボタンの音 (buzzer_play()) を鳴らさないこと
+ *  - 消えている間にボタンを押して点灯するときはボタンの音 (buzzer_play()) を鳴らさないこと
  *  - 点灯している間にボタンを押すと, ページを切り替えて, ボタンの音を鳴らして,
  * 消すまでの時間を数え直すこと
- *  - 消灯と点灯に失敗したときは, やり直すこと (消灯は 1 秒後, 点灯は次のボタン)
- *  - OLED の初期化に失敗した間は, 消灯も点灯もしないこと (ボタンでは, ページを切り替える).
+ *  - 消灯と点灯に失敗したときはやり直すこと (消灯は 1 秒後, 点灯は次のボタン)
+ *  - OLED の初期化に失敗した間は消灯も点灯もしないこと (ボタンではページを切り替える).
  * やり直して, 初期化に成功したら, 点灯して, 消すまでの時間を数えること
  */
 
@@ -81,15 +81,15 @@ FAKE_VALUE_FUNC(int, oled_show, const struct oled_view *)
 /** oled_show() に渡された表示内容を記録する数 */
 #define SHOWN_MAX       128U
 
-/** 押されたことにする button_pressed() の呼び出しの回数 (0 は, 使わない) */
+/** 押されたことにする button_pressed() の呼び出しの回数 (0 は使わない) */
 static unsigned int press_at[PRESS_COUNT];
 /** oled_show() に渡された表示内容 (呼ばれた順) */
 static struct oled_view shown[SHOWN_MAX];
-/** oled_set_power() の 1 回目の戻り値 (2 回目以降は, 0) */
+/** oled_set_power() の 1 回目の戻り値 (2 回目以降は 0) */
 static int power_first_ret;
-/** oled_init() の 1 回目の戻り値 (2 回目以降は, 0) */
+/** oled_init() の 1 回目の戻り値 (2 回目以降は 0) */
 static int init_first_ret;
-/** oled_init() が, 呼ばれるたびに失敗するか */
+/** oled_init() が呼ばれるたびに失敗するか */
 static bool init_always_fails;
 
 /** main を動かすスレッド */
@@ -232,7 +232,7 @@ static void start_main(void)
 }
 
 /**
- * ボタンを押すループの回数 (button_pressed() の呼び出しの回数) を, 経過時間から求める
+ * ボタンを押すループの回数 (button_pressed() の呼び出しの回数) を経過時間から求める
  *
  * @param[in] ms 経過時間 [ms]
  * @return 呼び出しの回数 (1 始まり)
@@ -242,14 +242,14 @@ static unsigned int tick_at(unsigned int ms)
     return (ms / TICK_MS) + 1U;
 }
 
-/** ボタンを押さずに 10 秒たつと, OLED を消して, 消えている間は, 表示しない */
+/** ボタンを押さずに 10 秒たつと, OLED を消して, 消えている間は表示しない */
 ZTEST(main_timeout, test_display_turns_off_after_timeout)
 {
     unsigned int shown_when_off = 0U; /* 消えた直後の, 表示した回数 */
 
     start_main();
 
-    /* 10 秒の前は, 点灯のまま (表示は 1 秒ごと) */
+    /* 10 秒の前は点灯のまま (表示は 1 秒ごと) */
     k_msleep(TIMEOUT_MS - MARGIN_MS);
     zassert_equal(oled_set_power_fake.call_count, 0U);
     zassert_true(oled_show_fake.call_count >= 9U);
@@ -259,7 +259,7 @@ ZTEST(main_timeout, test_display_turns_off_after_timeout)
     zassert_equal(oled_set_power_fake.call_count, 1U);
     zassert_false(oled_set_power_fake.arg0_val);
 
-    /* 消えている間は, 表示しない (測定は, 続く) */
+    /* 消えている間は表示しない (測定は続く) */
     shown_when_off = oled_show_fake.call_count;
     k_msleep(3000);
     zassert_equal(oled_show_fake.call_count, shown_when_off);
@@ -268,7 +268,7 @@ ZTEST(main_timeout, test_display_turns_off_after_timeout)
     k_thread_abort(&main_thread);
 }
 
-/** 消えている間にボタンを押すと, 点灯するだけで, ページは切り替えない. 点灯したあとは, 表示を続ける
+/** 消えている間にボタンを押すと, 点灯するだけで, ページは切り替えない. 点灯したあとは表示を続ける
  */
 ZTEST(main_timeout, test_button_wakes_display_without_switching_page)
 {
@@ -282,13 +282,13 @@ ZTEST(main_timeout, test_button_wakes_display_without_switching_page)
     zassert_equal(oled_set_power_fake.call_count, 1U);
     shown_when_off = oled_show_fake.call_count;
 
-    /* 13 秒に押す: 点灯して (ページは, 最初のまま), すぐに表示し直す */
+    /* 13 秒に押す: 点灯して (ページは最初のまま), すぐに表示し直す */
     k_msleep(1500);
     zassert_equal(oled_set_power_fake.call_count, 2U);
     zassert_true(oled_set_power_fake.arg0_val);
     zassert_true(oled_show_fake.call_count > shown_when_off);
     zassert_equal(shown[oled_show_fake.call_count - 1U].page, OLED_PAGE_NOW);
-    /* 点灯のための押下では, 音を鳴らさない (鳴らすのは, 起動のメロディの 1 回だけ) */
+    /* 点灯のための押下では音を鳴らさない (鳴らすのは起動のメロディの 1 回だけ) */
     zassert_equal(buzzer_play_fake.call_count, 1U);
 
     /* 押してから 10 秒たつと, また消える */
@@ -306,14 +306,14 @@ ZTEST(main_timeout, test_button_extends_the_timeout)
 
     start_main();
 
-    /* 5 秒に押す: ページを切り替える (OLED は, 点灯のまま) */
+    /* 5 秒に押す: ページを切り替える (OLED は点灯のまま) */
     k_msleep(5000 + MARGIN_MS);
     zassert_equal(shown[oled_show_fake.call_count - 1U].page, OLED_PAGE_TEMP_GRAPH);
     zassert_equal(oled_set_power_fake.call_count, 0U);
-    /* ページを切り替えたときは, ボタンの音を鳴らす (起動のメロディと, 合わせて 2 回) */
+    /* ページを切り替えたときはボタンの音を鳴らす (起動のメロディと, 合わせて 2 回) */
     zassert_equal(buzzer_play_fake.call_count, 2U);
 
-    /* 押した 5 秒後 (10 秒) には, まだ消えない */
+    /* 押した 5 秒後 (10 秒) にはまだ消えない */
     k_msleep(5000);
     zassert_equal(oled_set_power_fake.call_count, 0U);
 
@@ -376,7 +376,7 @@ ZTEST(main_timeout, test_power_on_failure_waits_for_the_next_press)
     k_thread_abort(&main_thread);
 }
 
-/** OLED の初期化に失敗している間は, 消灯も点灯もしない (ボタンを押しても, 失敗しない) */
+/** OLED の初期化に失敗している間は消灯も点灯もしない (ボタンを押しても, 失敗しない) */
 ZTEST(main_timeout, test_no_power_control_without_display)
 {
     init_always_fails = true;
@@ -393,14 +393,14 @@ ZTEST(main_timeout, test_no_power_control_without_display)
     k_thread_abort(&main_thread);
 }
 
-/** 初期化に失敗した OLED が, やり直しで使えるようになったら, 点灯して, 消すまでの時間を数える */
+/** 初期化に失敗した OLED がやり直しで使えるようになったら, 点灯して, 消すまでの時間を数える */
 ZTEST(main_timeout, test_display_recovers_and_times_out)
 {
     init_first_ret = -ENODEV;
 
     start_main();
 
-    /* 最初の 60 秒は, 使えない (表示しない) */
+    /* 最初の 60 秒は使えない (表示しない) */
     k_msleep(RETRY_MS - MARGIN_MS);
     zassert_equal(oled_show_fake.call_count, 0U);
     zassert_equal(oled_set_power_fake.call_count, 0U);
@@ -418,7 +418,7 @@ ZTEST(main_timeout, test_display_recovers_and_times_out)
     k_thread_abort(&main_thread);
 }
 
-/** 使えている OLED は, やり直しの時刻 (60 秒後) に, 点灯と消灯の状態を変えない */
+/** 使えている OLED はやり直しの時刻 (60 秒後) に, 点灯と消灯の状態を変えない */
 ZTEST(main_timeout, test_retry_keeps_the_state_of_a_working_display)
 {
     start_main();

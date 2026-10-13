@@ -1,4 +1,4 @@
-# thermo-node の単体テスト用の, 偽の RTC (時刻と通信の結果を, テストから設定する)
+# thermo-node の単体テスト用の, 偽の RTC (時刻と通信の結果をテストから設定する)
 description: Fake RTC for the unit test of thermo-node
 
 compatible: "vnd,test-rtc"

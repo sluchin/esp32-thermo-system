@@ -172,7 +172,7 @@ ZTEST(wifi, test_connect_success)
     zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.arg1_val, FAKE_IFACE);
 }
 
-/** 接続の結果 (成功) のイベントだけでは, 完了にならず, IPv4 アドレスの取得まで待つ */
+/** 接続の結果 (成功) のイベントだけでは完了にならず, IPv4 アドレスの取得まで待つ */
 ZTEST(wifi, test_connect_waits_for_ip)
 {
     scenario = SCENARIO_CONNECTED_THEN_IP;
@@ -254,11 +254,11 @@ ZTEST(wifi, test_connect_timeout)
     zassert_false(wifi_link_is_up());
 }
 
-/** 失敗したあとの再接続は, 前の失敗の結果を引きずらない */
+/** 失敗したあとの再接続は前の失敗の結果を引きずらない */
 ZTEST(wifi, test_connect_after_failure)
 {
     scenario = SCENARIO_CONNECT_FAILED;
-    /* 期待: 失敗のあとの再接続は, 前の結果の影響を受けずに成功する */
+    /* 期待: 失敗のあとの再接続は前の結果の影響を受けずに成功する */
     zassert_equal(wifi_link_connect("home-ap", "wrong", K_MSEC(100)), -ECONNREFUSED);
 
     scenario = SCENARIO_IP;

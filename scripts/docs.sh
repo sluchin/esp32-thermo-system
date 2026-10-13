@@ -1,12 +1,12 @@
 #!/bin/bash
-# Doxygen で、アプリごとに、ドキュメント (HTML) を docs/<アプリ>/html に生成する (docs/index.html から開く).
-# 警告が 1 つでもあれば、失敗する.
+# Doxygen で, アプリごとに, ドキュメント (HTML) を docs/<アプリ>/html に生成する (docs/index.html から開く).
+# 警告が 1 つでもあれば, 失敗する.
 #
-# 2 つのアプリには、同じ名前の関数 (ble_init() など) があるので、アプリごとに、別々に生成する.
-# Doxygen の日本語の出力には、"The selected output language "japanese" has not been updated
-# since release ..." という、内容と関係のない警告が、必ず出るので、それだけは除く.
+# 2 つのアプリには同じ名前の関数 (ble_init() など) があるので, アプリごとに, 別々に生成する.
+# Doxygen の日本語の出力には "The selected output language "japanese" has not been updated
+# since release ..." という, 内容と関係のない警告が必ず出るので, それだけは除く.
 #
-# docker compose run --rm docs から呼ぶ (Doxygen と Graphviz は、Docker イメージにある).
+# docker compose run --rm docs から呼ぶ (Doxygen と Graphviz は Docker イメージにある).
 set -eu
 
 project=$(cd "$(dirname "$0")/.." && pwd)

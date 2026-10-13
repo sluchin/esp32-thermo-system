@@ -9,15 +9,15 @@
 
 | ファイル | 内容 | API の数 |
 |:---|:---|---:|
-| [bluetooth.md](bluetooth.md) | Bluetooth LE | 32 |
-| [kernel.md](kernel.md) | カーネル | 24 |
+| [bluetooth.md](bluetooth.md) | Bluetooth LE | 34 |
+| [kernel.md](kernel.md) | カーネル | 25 |
 | [drivers.md](drivers.md) | デバイスとドライバ | 32 |
 | [display.md](display.md) | 表示装置と文字のフレームバッファ | 11 |
 | [fs.md](fs.md) | ファイルシステム | 13 |
 | [net.md](net.md) | ネットワーク | 25 |
 | [settings.md](settings.md) | 設定 | 5 |
 | [shell.md](shell.md) | シェル | 7 |
-| [logging.md](logging.md) | ログ | 10 |
+| [logging.md](logging.md) | ログ | 11 |
 | [sys.md](sys.md) | システムのユーティリティ | 22 |
 
 ## 更新のしかた

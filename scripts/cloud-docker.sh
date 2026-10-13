@@ -3,27 +3,27 @@
 #
 #   scripts/cloud-docker.sh start        Docker のデーモン (dockerd) を起動する (起動済みなら, 何もしない)
 #   scripts/cloud-docker.sh hook         SessionStart フック用. クラウドのときだけ, start する
-#   scripts/cloud-docker.sh build        開発用のイメージ (esp32-thermo-system) を, プロキシと CA の設定を足して作る
+#   scripts/cloud-docker.sh build        開発用のイメージ (esp32-thermo-system) をプロキシと CA の設定を足して作る
 #   scripts/cloud-docker.sh run <引数>   docker compose run --rm <引数> を実行する (イメージがなければ, 先に build する)
 #                                        (例: scripts/cloud-docker.sh run build-node)
 #
-# なぜ必要か: クラウドの VM の外への通信は, 全て, プロキシ (HTTPS_PROXY=http://127.0.0.1:<ポート>) と,
-# そのプロキシの CA 証明書 (SSL_CERT_FILE) を使う. コンテナは, どちらも引き継がないので, 通常の
-# docker compose build は, curl の終了コード 60 (証明書の検証の失敗) で失敗する.
-# プロキシのポートは, セッションの途中でも変わるので, 実行のたびに, $HTTPS_PROXY から読む.
+# なぜ必要か: クラウドの VM の外への通信は全て, プロキシ (HTTPS_PROXY=http://127.0.0.1:<ポート>) と,
+# そのプロキシの CA 証明書 (SSL_CERT_FILE) を使う. コンテナはどちらも引き継がないので, 通常の
+# docker compose build は curl の終了コード 60 (証明書の検証の失敗) で失敗する.
+# プロキシのポートはセッションの途中でも変わるので, 実行のたびに, $HTTPS_PROXY から読む.
 #
-# プロキシは, HTTPS (curl, pip, west の git) だけに渡す. HTTP_PROXY は渡さない: apt (Ubuntu のミラーは HTTP) が,
+# プロキシは HTTPS (curl, pip, west の git) だけに渡す. HTTP_PROXY は渡さない: apt (Ubuntu のミラーは HTTP) が
 # プロキシ経由になって, 拒否されたため (プロキシを通さずに, 直接つながる).
 #
-# build は, ベースのイメージ (ubuntu:24.04) を, Docker Hub から取る. 429 (回数制限) で失敗したときは,
+# build はベースのイメージ (ubuntu:24.04) を Docker Hub から取る. 429 (回数制限) で失敗したときは
 # Google のミラー (mirror.gcr.io) から取って, 元のタグを付ける.
 #
-# リポジトリの Dockerfile は, 変えない (一時的なコピーに, CA を取り込む行を足して, ビルドする).
-# ローカルや CI では, 使わない (プロキシの設定が, ないとき: ビルドは, 通常どおり).
+# リポジトリの Dockerfile は変えない (一時的なコピーに, CA を取り込む行を足して, ビルドする).
+# ローカルや CI では使わない (プロキシの設定がないとき: ビルドは通常どおり).
 #
 # 環境変数 (省略可): ESP32_IMAGE (イメージの名前. 既定は esp32-thermo-system:latest),
 # CLOUD_CA_BUNDLE (プロキシの CA の束. 既定は SSL_CERT_FILE, なければ /root/.ccr/ca-bundle.crt),
-# CLOUD_DOCKER_DRYRUN (空でなければ, build は, 実行するコマンドと Dockerfile の差分を, 表示するだけ)
+# CLOUD_DOCKER_DRYRUN (空でなければ, build は実行するコマンドと Dockerfile の差分を表示するだけ)
 
 set -u
 
@@ -33,7 +33,7 @@ SYSTEM_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 DOCKERD_LOG=/tmp/dockerd.log
 START_WAIT_S=30
 WORK=""
-# 一時ディレクトリは, 終了のときに, 必ず消す
+# 一時ディレクトリは終了のときに, 必ず消す
 trap '[ -z "$WORK" ] || rm -rf "$WORK"' EXIT
 
 repo_root() {
@@ -53,8 +53,8 @@ parse_proxy() {
     PROXY_PORT="${hp##*:}"
 }
 
-# Dockerfile のベースのイメージ (最初の FROM) が, なければ, 取得する. Docker Hub が 429 (回数制限) を
-# 返すときは, Google のミラー (mirror.gcr.io) から取って, 元の名前のタグを付ける
+# Dockerfile のベースのイメージ (最初の FROM) がなければ, 取得する. Docker Hub が 429 (回数制限) を
+# 返すときは Google のミラー (mirror.gcr.io) から取って, 元の名前のタグを付ける
 ensure_base_image() {
     local root="$1" base mirror
     base="$(awk '/^FROM /{print $2; exit}' "$root/Dockerfile")"
@@ -62,7 +62,7 @@ ensure_base_image() {
     docker image inspect "$base" > /dev/null 2>&1 && return 0
     echo "Pulling $base"
     docker pull "$base" && return 0
-    # 公式のイメージ (名前に / がない) は, library/ の下にある
+    # 公式のイメージ (名前に / がない) は library/ の下にある
     case "$base" in
         */*) mirror="mirror.gcr.io/$base" ;;
         *) mirror="mirror.gcr.io/library/$base" ;;
@@ -98,20 +98,20 @@ cmd_start() {
     return 1
 }
 
-# SessionStart フック: クラウドのときだけ起動する. 失敗しても, セッションの開始は, 止めない
+# SessionStart フック: クラウドのときだけ起動する. 失敗しても, セッションの開始は止めない
 cmd_hook() {
     if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
         return 0
     fi
     cmd_start || true
-    # SessionStart フックの出力は, Claude の文脈に入る. 通常の docker compose build を使わせないための注意
+    # SessionStart フックの出力は Claude の文脈に入る. 通常の docker compose build を使わせないための注意
     echo "Cloud session: build the Docker image with scripts/cloud-docker.sh build (not docker compose build),"
     echo "and run the services (build-node, test-node, ...) with scripts/cloud-docker.sh run <service>."
     echo "See .claude/CLAUDE.md."
     return 0
 }
 
-# CA の束を, 証明書ごとに 1 ファイルに分ける (1 ファイルのまま入れると, 信頼ストアには,
+# CA の束を証明書ごとに 1 ファイルに分ける (1 ファイルのまま入れると, 信頼ストアには
 # 最初の 1 枚しか入らないことがある)
 split_ca() {
     local bundle="$1" dir="$2"
@@ -124,14 +124,14 @@ split_ca() {
 }
 
 # Dockerfile のコピーを作る. 最初の apt の段落 (&& rm -rf /var/lib/apt/lists/*) の直後に,
-# CA を取り込む行と, Python (pip, west) に CA を教える引数 (ARG なので, イメージには, 残らない) を足す
+# CA を取り込む行と, Python (pip, west) に CA を教える引数 (ARG なので, イメージには残らない) を足す
 make_dockerfile() {
     local src="$1" dst="$2"
     awk '
         { print }
         !done && $0 ~ /&& rm -rf \/var\/lib\/apt\/lists\/\*/ {
             print ""
-            print "# クラウド用: プロキシの CA を, 信頼ストアに入れる. Python (pip, requests) は, 別に, CA の束を教える"
+            print "# クラウド用: プロキシの CA を信頼ストアに入れる. Python (pip, requests) は別に, CA の束を教える"
             print "COPY ca/ /usr/local/share/ca-certificates/cloud/"
             print "RUN update-ca-certificates"
             print "ARG PIP_CERT"
@@ -167,7 +167,7 @@ cmd_build() {
         echo "The place to add the CA was not found in the Dockerfile" >&2
         return 1
     fi
-    # Dockerfile の COPY が使うファイル (ビルドのコンテキストは, west.yml だけ)
+    # Dockerfile の COPY が使うファイル (ビルドのコンテキストは west.yml だけ)
     cp "$root/west.yml" "$work/west.yml"
 
     local args=(--network host -t "$IMAGE" -f "$work/Dockerfile")
@@ -192,7 +192,7 @@ cmd_build() {
     docker build "${args[@]}" "$work"
 }
 
-# docker compose run --rm <引数>. イメージがなければ, 先に build する (通常の docker compose が, プロキシなしで
+# docker compose run --rm <引数>. イメージがなければ, 先に build する (通常の docker compose がプロキシなしで
 # ビルドを始めて, 失敗するのを避ける)
 cmd_run() {
     local root

@@ -1,7 +1,7 @@
 # thermo-node の drivers/rtc_pcf8563.c の単体テスト (Ztest).
-# I2C のコントローラを, 偽のもの (vnd,test-i2c. app.overlay) に置き換える. 偽のコントローラは,
-# PCF8563 のレジスタ (16 バイト) を持って, アドレスの設定と, 連続した読み書きに応える. 通信の失敗は,
-# テストから設定する. binding (thermo,pcf8563) は, アプリの dts/bindings を使う.
+# I2C のコントローラを偽のもの (vnd,test-i2c. app.overlay) に置き換える. 偽のコントローラは
+# PCF8563 のレジスタ (16 バイト) を持って, アドレスの設定と, 連続した読み書きに応える. 通信の失敗は
+# テストから設定する. binding (thermo,pcf8563) はアプリの dts/bindings を使う.
 cmake_minimum_required(VERSION 3.20.0)
 
 # アプリの binding (thermo,pcf8563) を使う

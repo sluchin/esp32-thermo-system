@@ -12,18 +12,18 @@
  *  - 初期化に失敗したら, 後の処理に進まず, EXIT_FAILURE を返すこと
  *  - 初期化に成功したら, 一定間隔で温度を読み取り続けること (別スレッドで main を動かす)
  *  - OLED の表示と時刻を 1 秒ごとに更新すること (グラフの履歴に測定値を加えること)
- *  - ボタンを押すと, ページを切り替えて (最後の次は, 最初に戻る), すぐに表示し直すこと
- *  - 消灯までの時間が 0 のときは, OLED を消さないこと (消灯は, tests/main_display_timeout
+ *  - ボタンを押すと, ページを切り替えて (最後の次は最初に戻る), すぐに表示し直すこと
+ *  - 消灯までの時間が 0 のときは OLED を消さないこと (消灯は tests/main_display_timeout
  * で確認する)
- *  - ボタンを押すと, ブザーで, ボタンの音 (button_assets.c) を鳴らすこと (ブザーが使えないときは,
+ *  - ボタンを押すと, ブザーで, ボタンの音 (button_assets.c) を鳴らすこと (ブザーが使えないときは
  * 鳴らさない. 鳴らせなくても, ページは切り替わる)
  *  - 起動のときに, 起動音 (メロディ) を始めて, 起動画面を全てのフレームで, 順に表示すること
  * (失敗しても続ける)
  *  - OLED や RTC の初期化に失敗しても, 表示と時刻を諦めるだけで, 測定と通知を続けること
- *  - 初期化に失敗した機器を一定間隔でやり直して, 復帰すること (成功した機器は, やり直さない)
+ *  - 初期化に失敗した機器を一定間隔でやり直して, 復帰すること (成功した機器はやり直さない)
  *  - 1 分ごとに (最初は起動の 1 分後) RTC に時刻があるかを確かめて, なければ, WiFi で時刻を取って,
  *    RTC に設定すること (RTC に時刻があれば, 取らない. 失敗したら, 次の確認でやり直して, 5 回で
- *    やめる. 取れた, または, RTC に時刻が入ったら, やめる)
+ *    やめる. 取れた, または RTC に時刻が入ったら, やめる)
  */
 
 #include <zephyr/ztest.h>
@@ -130,14 +130,14 @@ FAKE_VALUE_FUNC(bool, direct_active)
 /** RTC に時刻があるか (fake_time_get_switch() が返す) */
 static bool rtc_valid;
 
-/** 押されたことにする button_pressed() の呼び出しの回数 (0 は, 使わない) */
+/** 押されたことにする button_pressed() の呼び出しの回数 (0 は使わない) */
 static unsigned int press_at[PRESS_COUNT];
 
 static bool fake_pressed(void);
 
 /** oled_show() に渡された表示内容 (呼ばれた順) */
 static struct oled_view shown[SHOWN_MAX];
-/** oled_show() に渡された日時 (呼ばれた順. 表示内容の time が NULL のときは, 使わない) */
+/** oled_show() に渡された日時 (呼ばれた順. 表示内容の time が NULL のときは使わない) */
 static struct node_datetime shown_time[SHOWN_MAX];
 
 /** main を動かすスレッド */
@@ -148,7 +148,7 @@ static K_THREAD_STACK_DEFINE(main_stack, STACK_SIZE)
 /**
  * sensor_read() のモック動作 (値を書き込む)
  *
- * 1 回目は, 負の温度と湿度. 2 回目以降は, 0 ℃ 以上の温度と湿度なし (ログの出力の分岐を通す).
+ * 1 回目は負の温度と湿度. 2 回目以降は 0 ℃ 以上の温度と湿度なし (ログの出力の分岐を通す).
  *
  * @param[out] temp_x10     温度 [℃ の 10 倍]
  * @param[out] humidity_x10 湿度 [% の 10 倍]
@@ -345,9 +345,9 @@ ZTEST(main_node, test_advertise_failure)
     zassert_equal(thermo_node_main(), EXIT_FAILURE);
     zassert_equal(ble_advertise_fake.call_count, 1U);
     zassert_equal(sensor_read_fake.call_count, 0U);
-    /* 時刻を受け取るコールバックは, アドバタイズの開始の前に登録する */
+    /* 時刻を受け取るコールバックはアドバタイズの開始の前に登録する */
     zassert_equal(ble_set_time_callback_fake.call_count, 1U);
-    /* RTC と OLED は, アドバタイズの開始のあとに, 初期化する */
+    /* RTC と OLED はアドバタイズの開始のあとに, 初期化する */
     zassert_equal(node_time_init_fake.call_count, 0U);
     zassert_equal(oled_init_fake.call_count, 0U);
 }
@@ -378,11 +378,11 @@ ZTEST(main_node, test_main_loop)
     zassert_true(shown_time[0].valid);
     zassert_equal(shown_time[0].hour, FAKE_HOUR);
 
-    /* 測定値をグラフの履歴に加える (温度と湿度. 区切りの長さは, 30 秒) */
+    /* 測定値をグラフの履歴に加える (温度と湿度. 区切りの長さは 30 秒) */
     zassert_equal(button_init_fake.call_count, 1U);
     zassert_equal(history_add_fake.call_count, 2U);
     zassert_equal(history_add_fake.arg1_history[0], FAKE_TEMP_1_X10);
-    /* 稼働時間は, テストの開始から進んでいるので, 1 回目の測定の時間との差で調べる */
+    /* 稼働時間はテストの開始から進んでいるので, 1 回目の測定の時間との差で調べる */
     zassert_equal(history_add_fake.arg2_history[1], history_add_fake.arg2_history[0]);
     zassert_equal(history_add_fake.arg3_history[0], 30000);
     zassert_equal(history_add_fake.arg1_history[1], (int16_t)FAKE_HUMIDITY_1);
@@ -401,15 +401,15 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(ble_notify_temperature_fake.call_count, 2U);
     zassert_equal(ble_notify_temperature_fake.arg0_history[1], FAKE_TEMP_2_X10);
     zassert_equal(ble_notify_temperature_fake.arg1_history[1], THERMO_HUMIDITY_NONE);
-    /* OLED は, 1 秒ごとに更新する (100 ms + 5 s の間に 0 s から 5 s の 6 回) */
+    /* OLED は 1 秒ごとに更新する (100 ms + 5 s の間に 0 s から 5 s の 6 回) */
     zassert_equal(oled_show_fake.call_count, 6U);
     zassert_equal(node_time_get_fake.call_count, 6U);
     zassert_equal(shown[5].temp_x10, FAKE_TEMP_2_X10);
     zassert_equal(shown[5].humidity_x10, THERMO_HUMIDITY_NONE);
-    /* 2 回目は, 湿度がないので, 温度だけを履歴に加える */
+    /* 2 回目は湿度がないので, 温度だけを履歴に加える */
     zassert_equal(history_add_fake.call_count, 3U);
     zassert_equal(history_add_fake.arg1_history[2], FAKE_TEMP_2_X10);
-    /* 測定の間隔は, 5 秒の格子に合わせる (待ちの丸めで, 格子の直後 (100 ms 以内) になる) */
+    /* 測定の間隔は 5 秒の格子に合わせる (待ちの丸めで, 格子の直後 (100 ms 以内) になる) */
     zassert_within(history_add_fake.arg2_history[2] - history_add_fake.arg2_history[0],
                    SAMPLE_INTERVAL_S * 1000, 100);
     zassert_equal(sensor_init_fake.call_count, 1U);
@@ -452,7 +452,7 @@ ZTEST(main_node, test_read_failure_retries)
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
     zassert_equal(sensor_read_fake.call_count, 2U);
 
-    /* 読み取りに失敗したときは, 通知しない */
+    /* 読み取りに失敗したときは通知しない */
     zassert_equal(ble_notify_temperature_fake.call_count, 0U);
 
     k_thread_abort(&main_thread);
@@ -509,7 +509,7 @@ ZTEST(main_node, test_display_updates_every_second)
     k_sleep(K_SECONDS(3));
     zassert_equal(oled_show_fake.call_count, 4U);
     zassert_equal(sensor_read_fake.call_count, 1U);
-    /* 測定していない間は, 前回の値を表示し続ける */
+    /* 測定していない間は前回の値を表示し続ける */
     zassert_true(shown[3].has_sample);
     zassert_equal(shown[3].temp_x10, FAKE_TEMP_1_X10);
 
@@ -533,7 +533,7 @@ ZTEST(main_node, test_display_is_not_turned_off_without_timeout)
     k_thread_abort(&main_thread);
 }
 
-/** 温度の読み取りに失敗している間は, 測定値なしで表示する */
+/** 温度の読み取りに失敗している間は測定値なしで表示する */
 ZTEST(main_node, test_display_without_sample)
 {
     sensor_read_fake.return_val = -EIO;
@@ -562,7 +562,7 @@ ZTEST(main_node, test_oled_init_failure_continues)
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
     zassert_equal(ble_notify_temperature_fake.call_count, 2U);
 
-    /* 初期化に失敗した OLED には, 表示しない */
+    /* 初期化に失敗した OLED には表示しない */
     zassert_equal(oled_show_fake.call_count, 0U);
 
     k_thread_abort(&main_thread);
@@ -606,7 +606,7 @@ ZTEST(main_node, test_rtc_init_failure_continues)
     k_thread_abort(&main_thread);
 }
 
-/** 時刻が未設定 (-ENODATA) のときは, 日時を設定なし (valid が false) として表示する */
+/** 時刻が未設定 (-ENODATA) のときは日時を設定なし (valid が false) として表示する */
 ZTEST(main_node, test_time_unset)
 {
     node_time_get_fake.custom_fake = NULL;
@@ -642,7 +642,7 @@ ZTEST(main_node, test_button_plays_sound)
     k_thread_abort(&main_thread);
 }
 
-/** ボタンの音を鳴らせなくても, ページは, 切り替わる (ログを出して, 続ける) */
+/** ボタンの音を鳴らせなくても, ページは切り替わる (ログを出して, 続ける) */
 ZTEST(main_node, test_button_sound_failure_continues)
 {
     int returns[] = {
@@ -662,7 +662,7 @@ ZTEST(main_node, test_button_sound_failure_continues)
     k_thread_abort(&main_thread);
 }
 
-/** ブザーが使えないときは, ボタンの音を鳴らさない (ページは, 切り替わる) */
+/** ブザーが使えないときはボタンの音を鳴らさない (ページは切り替わる) */
 ZTEST(main_node, test_button_no_sound_without_buzzer)
 {
     sensor_read_fake.custom_fake = fake_read;
@@ -679,7 +679,7 @@ ZTEST(main_node, test_button_no_sound_without_buzzer)
     k_thread_abort(&main_thread);
 }
 
-/** 素材のボタンの音は, 1 つ以上の音で, どの音も, 長さがある (差し替えた素材の書き間違いを防ぐ) */
+/** 素材のボタンの音は 1 つ以上の音で, どの音も, 長さがある (差し替えた素材の書き間違いを防ぐ) */
 ZTEST(main_node, test_button_sound_asset)
 {
     size_t i = 0U; /* ループ用の添字 */
@@ -706,7 +706,7 @@ ZTEST(main_node, test_button_switches_page)
     k_thread_abort(&main_thread);
 }
 
-/** ボタンを続けて押すと, ページが順に進み, 最後の次は, 最初に戻る */
+/** ボタンを続けて押すと, ページが順に進み, 最後の次は最初に戻る */
 ZTEST(main_node, test_button_page_wraps_around)
 {
     sensor_read_fake.custom_fake = fake_read;
@@ -745,7 +745,7 @@ ZTEST(main_node, test_button_init_failure_continues)
 /** main.c の RETRY_INTERVAL_S (初期化をやり直す間隔 [秒]) */
 #define RETRY_INTERVAL_S 60
 
-/** 起動のときに初期化に失敗した RTC と OLED とボタンは, 60 秒後にやり直して, 使えるようになる */
+/** 起動のときに初期化に失敗した RTC と OLED とボタンは 60 秒後にやり直して, 使えるようになる */
 ZTEST(main_node, test_optional_devices_recover_by_retry)
 {
     static int fail_then_ok[] = {-EIO, 0}; /* 初期化の戻り値の列 (1 回目は失敗, 2 回目は成功) */
@@ -758,13 +758,13 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
 
     start_main();
 
-    /* 起動のとき: 3 つとも失敗して, 時刻も, 表示も, ボタンもない. 測定と通知は, 続く */
+    /* 起動のとき: 3 つとも失敗して, 時刻も, 表示も, ボタンもない. 測定と通知は続く */
     k_msleep(STARTUP_WAIT_MS);
     zassert_equal(node_time_init_fake.call_count, 1U);
     zassert_equal(oled_init_fake.call_count, 1U);
     zassert_equal(button_init_fake.call_count, 1U);
     zassert_equal(buzzer_init_fake.call_count, 1U);
-    /* 起動のときに使えなかった機器は, あとで使えるようになっても, 起動画面と音を出さない */
+    /* 起動のときに使えなかった機器はあとで使えるようになっても, 起動画面と音を出さない */
     zassert_equal(oled_show_boot_fake.call_count, 0U);
     zassert_equal(buzzer_play_fake.call_count, 0U);
     zassert_equal(node_time_get_fake.call_count, 0U);
@@ -785,7 +785,7 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
     zassert_true(button_pressed_fake.call_count > 0U);
     zassert_not_null(shown[0].time);
 
-    /* 使えるようになったあとは, やり直さない */
+    /* 使えるようになったあとはやり直さない */
     k_sleep(K_SECONDS(RETRY_INTERVAL_S * 2));
     zassert_equal(node_time_init_fake.call_count, 2U);
     zassert_equal(oled_init_fake.call_count, 2U);
@@ -794,7 +794,7 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
     k_thread_abort(&main_thread);
 }
 
-/** 初期化に失敗し続ける機器は, 60 秒ごとに, やり直し続ける */
+/** 初期化に失敗し続ける機器は 60 秒ごとに, やり直し続ける */
 ZTEST(main_node, test_optional_devices_keep_retrying)
 {
     sensor_read_fake.custom_fake = fake_read;
@@ -828,25 +828,25 @@ ZTEST(main_node, test_boot_sequence)
 
     k_msleep(STARTUP_WAIT_MS);
 
-    /* メロディは, 素材 (boot_melody) を 1 回だけ, 始める */
+    /* メロディは素材 (boot_melody) を 1 回だけ, 始める */
     zassert_equal(buzzer_play_fake.call_count, 1U);
     zassert_equal(buzzer_play_fake.arg0_val, boot_melody);
     zassert_equal(buzzer_play_fake.arg1_val, boot_melody_count);
 
-    /* 起動画面は, フレーム 0 から OLED_BOOT_FRAMES - 1 まで, 順に 1 回ずつ */
+    /* 起動画面はフレーム 0 から OLED_BOOT_FRAMES - 1 まで, 順に 1 回ずつ */
     zassert_equal(oled_show_boot_fake.call_count, OLED_BOOT_FRAMES);
     for (frame = 0U; frame < OLED_BOOT_FRAMES; frame++) {
         zassert_equal(oled_show_boot_fake.arg0_history[frame], frame);
     }
 
-    /* そのあとで, 測定が始まる (起動画面の間は, 測定も, 通常の表示も, しない) */
+    /* そのあとで, 測定が始まる (起動画面の間は測定も, 通常の表示も, しない) */
     zassert_equal(sensor_read_fake.call_count, 1U);
     zassert_equal(oled_show_fake.call_count, 1U);
 
     k_thread_abort(&main_thread);
 }
 
-/** 起動画面の表示に失敗したら, その時点で, 起動画面をやめて, 測定を始める (ブザーの音は, そのまま)
+/** 起動画面の表示に失敗したら, その時点で, 起動画面をやめて, 測定を始める (ブザーの音はそのまま)
  */
 ZTEST(main_node, test_boot_screen_failure_continues)
 {
@@ -880,7 +880,7 @@ ZTEST(main_node, test_boot_sound_failure_continues)
     k_thread_abort(&main_thread);
 }
 
-/** OLED もブザーも使えないときは, 起動画面も, 起動音も, 出さずに, すぐに, 測定を始める */
+/** OLED もブザーも使えないときは起動画面も, 起動音も, 出さずに, すぐに, 測定を始める */
 ZTEST(main_node, test_boot_skipped_without_devices)
 {
     sensor_read_fake.custom_fake = fake_read;
@@ -907,7 +907,7 @@ ZTEST(main_node, test_wifi_time_after_one_minute)
 
     start_main();
 
-    /* 期待: 1 分たつまでは取らない (WiFi は, 初期化だけして, つながない) */
+    /* 期待: 1 分たつまでは取らない (WiFi は初期化だけして, つながない) */
     k_msleep(BOOT_MS + CHECK_MS - 1000);
     zassert_equal(wifi_time_init_fake.call_count, 1U);
     zassert_equal(wifi_time_fetch_fake.call_count, 0U);
@@ -918,7 +918,7 @@ ZTEST(main_node, test_wifi_time_after_one_minute)
     zassert_equal(node_time_set_fake.call_count, 1U);
     zassert_equal(node_time_set_fake.arg0_val, WIFI_SEC);
 
-    /* 期待: 取れたら確認を終える (そのあとは, RTC が空のままでも, 取らない) */
+    /* 期待: 取れたら確認を終える (そのあとは RTC が空のままでも, 取らない) */
     k_msleep(10 * CHECK_MS);
     zassert_equal(wifi_time_fetch_fake.call_count, 1U);
 
@@ -956,7 +956,7 @@ ZTEST(main_node, test_wifi_time_gives_up_after_five_tries)
     k_msleep(BOOT_MS + (2 * CHECK_MS) + 1000);
     zassert_equal(wifi_time_fetch_fake.call_count, 2U);
 
-    /* 期待: 5 回で止まる (そのあとは, 測定は続けるが, 試さない) */
+    /* 期待: 5 回で止まる (そのあとは測定は続けるが, 試さない) */
     k_msleep(3 * CHECK_MS);
     zassert_equal(wifi_time_fetch_fake.call_count, WIFI_TRIES);
     k_msleep(5 * CHECK_MS);
@@ -1063,7 +1063,7 @@ ZTEST(main_node, test_wifi_time_unavailable)
     k_thread_abort(&main_thread);
 }
 
-/** RTC が使えないとき (初期化に失敗) は, 時刻の有無を判断できないので, WiFi は使わない */
+/** RTC が使えないとき (初期化に失敗) は時刻の有無を判断できないので, WiFi は使わない */
 ZTEST(main_node, test_wifi_time_skipped_without_rtc)
 {
     sensor_read_fake.custom_fake = fake_read;
@@ -1092,7 +1092,7 @@ ZTEST(main_node, test_direct_init)
     k_thread_abort(&main_thread);
 }
 
-/** 測定に成功するたびに, 測定値を直接の送信に知らせる (読み取りに失敗したときは, 知らせない) */
+/** 測定に成功するたびに, 測定値を直接の送信に知らせる (読み取りに失敗したときは知らせない) */
 ZTEST(main_node, test_direct_sample)
 {
     sensor_read_fake.custom_fake = fake_read;
@@ -1109,7 +1109,7 @@ ZTEST(main_node, test_direct_sample)
     k_thread_abort(&main_thread);
 }
 
-/** 読み取りに失敗したときは, 直接の送信に知らせない */
+/** 読み取りに失敗したときは直接の送信に知らせない */
 ZTEST(main_node, test_direct_sample_not_called_on_read_failure)
 {
     sensor_read_fake.return_val = -EIO;
@@ -1123,7 +1123,7 @@ ZTEST(main_node, test_direct_sample_not_called_on_read_failure)
     k_thread_abort(&main_thread);
 }
 
-/** 直接の送信を動かしている間は, WiFi で時刻を取らない. 止まったら, 取る */
+/** 直接の送信を動かしている間は WiFi で時刻を取らない. 止まったら, 取る */
 ZTEST(main_node, test_wifi_time_waits_while_direct_is_active)
 {
     sensor_read_fake.custom_fake = fake_read;
@@ -1133,7 +1133,7 @@ ZTEST(main_node, test_wifi_time_waits_while_direct_is_active)
 
     start_main();
 
-    /* 期待: 1 分たっても, 直接の送信を動かしている間は, 取らない */
+    /* 期待: 1 分たっても, 直接の送信を動かしている間は取らない */
     k_msleep(BOOT_MS + CHECK_MS + 1000);
     zassert_equal(wifi_time_fetch_fake.call_count, 0U);
 

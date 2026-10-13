@@ -1,4 +1,4 @@
-/* 偽の表示装置 (vnd,test-display) を, alias thermo-display に接続する */
+/* 偽の表示装置 (vnd,test-display) を alias thermo-display に接続する */
 / {
     aliases {
         thermo-display = &test_display;

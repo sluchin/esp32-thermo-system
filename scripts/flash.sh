@@ -1,11 +1,11 @@
 #!/bin/bash
-# ビルドした thermo-node, または thermo-gateway を, ESP32C3 に書き込む.
+# ビルドした thermo-node, または thermo-gateway を ESP32C3 に書き込む.
 #
 # 使い方: scripts/flash.sh <node|gateway> [PORT]
 # 例:     scripts/flash.sh node /dev/ttyACM0
 #         scripts/flash.sh gateway /dev/ttyACM1
 #
-# 2 台つないでいるときは, 台ごとにポートが違うので, PORT で指定する.
+# 2 台つないでいるときは台ごとにポートが違うので, PORT で指定する.
 
 set -e
 

@@ -1,6 +1,6 @@
 # ble.c の解析
 
-対象: `app/thermo-gateway/src/ble.c` (777 行) と `ble.h` (66 行)
+対象: `app/thermo-gateway/src/ble.c` (787 行) と `ble.h` (66 行)
 
 ゲートウェイの BLE の本体です。BLE の中央機器 (Central) として、次の 4 つを行います。
 
@@ -71,7 +71,8 @@ scan_cb()
   ├ Thermo UUID なし → 終了
   ├ 依頼中 / 接続済み / 空きなし → 終了
   └ pending_* を記録 ──────────────────▶ connect_work_handler()
-                                            ├ bt_le_scan_stop()  (EBUSY なら 100 ms 後に再試行 ×10)
+                                            ├ bt_le_scan_stop()  (EBUSY なら 100 ms 後に再試行 ×10、EALREADY は成功)
+                                            │   失敗 → ble_scan() でスキャンを再開して終了
                                             └ bt_conn_le_create()
 connected()  ◀────────────────────────────  (結果は、コールバックで届く)
   ├ 失敗 → release_node()
@@ -104,7 +105,8 @@ disconnected() → release_node() → ble_scan()
 スキャンのコールバックの中で、スキャンを止めたり、接続を始めたりすると、スキャンの処理と重なって、`bt_le_scan_stop()` が `-EBUSY` になることがあります。そのため、コールバックは依頼を記録するだけにして、実際の処理はワークキューで行います。
 
 - `bt_le_scan_stop()` が `-EBUSY` で、`pending_retries < 10` なら、`pending_retries` を増やして、100 ms 後に自分を予約し直します。
-- ほかのエラーなら、`pending_node` を NULL に戻して、あきらめます (次にノードが見つかったときに、またやり直します)。
+- `-EALREADY` (すでに止まっている) は、成功として扱います。スキャンを止める目的は、満たしているためです。
+- ほかのエラーなら、`pending_node` を NULL に戻して、接続をあきらめ、`ble_scan()` でスキャンを再開します。再開しないと、スキャンが止まったままになり、以降は、スキャンのコールバックが呼ばれず、ノードを見つけられなくなります (ゲートウェイを再起動するまで、つながらない)。再開に失敗したときは、ログを出すだけです。次にノードが見つかったときに、またやり直します。
 - `bt_conn_le_create()` が成功したら、`node->conn` に接続を入れます。ただし、`bt_conn_le_create()` が戻る前に、`connected()` が先に呼ばれることがあります。そのときは、`connected()` が `bt_conn_ref()` で参照を取っているので、ここで受け取った参照は `bt_conn_unref()` で手放します。
 - 失敗したときは、スキャンを再開します。
 - 最後に、必ず `pending_node = NULL` にします。

@@ -49,7 +49,7 @@ int button_init(void)
         return err;
     }
 
-    /* 起動のときに押されていても, 押された動作とは, みなさない */
+    /* 起動のときに押されていても, 押された動作とはみなさない */
     was_down = (gpio_pin_get_dt(&button) > 0);
     LOG_INF("Button initialized");
 
@@ -60,7 +60,7 @@ int button_init(void)
  * @brief ボタンが押されたかを調べる
  *
  * 押されていない状態から, 押された状態に変わった呼び出しだけ, true を返す (押し続けても,
- * 1 回だけ). GPIO を読めないときは, 押されていないとする.
+ * 1 回だけ). GPIO を読めないときは押されていないとする.
  *
  * @retval true  前回の呼び出しのあとに, 押された
  * @retval false 押されていない (押し続けている場合を含む)

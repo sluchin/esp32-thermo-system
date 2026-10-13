@@ -29,7 +29,7 @@ LOG_MODULE_REGISTER(thermo_direct, THERMO_LOG_LEVEL);
 /** 送信のキューに, SD カードの記録を入れておく数の上限 (キューを満杯にしない) */
 #define FLUSH_QUEUE_MAX 4U
 
-/** BLE がゲートウェイにつながっていない測定が, 続いている回数 (上限で止める) */
+/** BLE がゲートウェイにつながっていない測定が続いている回数 (上限で止める) */
 static unsigned int ble_failures;
 /** 前の測定のとき, BLE がゲートウェイにつながっていたか */
 static bool was_connected;
@@ -37,9 +37,9 @@ static bool was_connected;
 static bool active;
 /** あきらめたか (ゲートウェイにつながるまで, やり直さない) */
 static bool gave_up;
-/** 設定が揃っていないことを, 知らせたか (測定のたびに, 知らせない) */
+/** 設定が揃っていないことを知らせたか (測定のたびに, 知らせない) */
 static bool warned_incomplete;
-/** 時刻がなくて, SD カードに溜められないことを, 知らせたか */
+/** 時刻がなくて, SD カードに溜められないことを知らせたか */
 static bool warned_no_time;
 /** このノードの BLE のアドレス (ゲートウェイが見るアドレスと同じ. トピックと payload に使う) */
 static bt_addr_le_t node_addr;
@@ -63,7 +63,7 @@ static void flush_backlog(void);
 /**
  * @brief 直接の送信の準備をする (止めた状態で, 送信のスレッドを作って, SD カードを使えるようにする)
  *
- * BLE を初期化したあとに呼ぶ. 失敗したときは, 直接の送信を使わない (ほかの機能には, 影響しない).
+ * BLE を初期化したあとに呼ぶ. 失敗したときは直接の送信を使わない (ほかの機能には影響しない).
  * SD カードがなくても, 成功する (溜めないだけ).
  *
  * @retval EXIT_SUCCESS 成功
@@ -113,11 +113,11 @@ int direct_init(void)
 /**
  * @brief 測定値を知らせる (測定のたびに呼ぶ)
  *
- * 測定値は, SD カードに保存する (ゲートウェイにつながっているときは, 送信済みとして. つながって
- * いないときは, 未送信として). BLE がゲートウェイにつながっていない測定が続いたら, または,
- * ゲートウェイにつながっていて, SD カードに未送信の記録があるときは, WiFi と MQTT を動かして,
- * 未送信の記録を, 古い順に送る (測った時刻を, そのまま payload に入れる). SD カードや時刻が
- * ないときは, 保存できないので, 動かしていて MQTT につながっていれば, 測定値をそのまま送る.
+ * 測定値は SD カードに保存する (ゲートウェイにつながっているときは送信済みとして. つながって
+ * いないときは未送信として). BLE がゲートウェイにつながっていない測定が続いたら, または
+ * ゲートウェイにつながっていて, SD カードに未送信の記録があるときは WiFi と MQTT を動かして,
+ * 未送信の記録を古い順に送る (測った時刻をそのまま payload に入れる). SD カードや時刻が
+ * ないときは保存できないので, 動かしていて MQTT につながっていれば, 測定値をそのまま送る.
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
@@ -148,7 +148,7 @@ void direct_sample(int16_t temp_x10, uint16_t humidity_x10)
     /* 測定値を保存する (ゲートウェイにつながっていれば, ゲートウェイが送るので, 送信済み) */
     saved = save_value(temp_x10, humidity_x10, connected);
 
-    /* WiFi が要るのは, つながらない測定が続くときと, つながっていて, 未送信の記録があるとき */
+    /* WiFi が要るのはつながらない測定が続くときと, つながっていて, 未送信の記録があるとき */
     wifi_wanted = ((!connected) && (ble_failures >= DIRECT_BLE_FAIL_LIMIT)) ||
                   (connected && (backlog_pending() > 0U));
 
@@ -168,7 +168,7 @@ void direct_sample(int16_t temp_x10, uint16_t humidity_x10)
         LOG_ERR("Could not connect, give up sending directly until the gateway connects");
     }
 
-    /* 保存できなかった測定値は, 送れるときだけ, そのまま送る */
+    /* 保存できなかった測定値は送れるときだけ, そのまま送る */
     if ((!saved) && (!connected)) {
         publish_live(temp_x10, humidity_x10);
     }
@@ -179,7 +179,7 @@ void direct_sample(int16_t temp_x10, uint16_t humidity_x10)
 }
 
 /**
- * @brief 直接の送信を動かしているか (動かしている間は, WiFi を, 時刻の取得に使わない)
+ * @brief 直接の送信を動かしているか (動かしている間は WiFi を時刻の取得に使わない)
  *
  * @retval true  動かしている
  * @retval false 動かしていない
@@ -236,7 +236,7 @@ static void publish_live(int16_t temp_x10, uint16_t humidity_x10)
 }
 
 /**
- * 測定値を, SD カードに保存する (SD カードがない, または, 時刻がないときは, 保存しない)
+ * 測定値を SD カードに保存する (SD カードがない, または時刻がないときは保存しない)
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
@@ -277,7 +277,7 @@ static bool save_value(int16_t temp_x10, uint16_t humidity_x10, bool sent)
 }
 
 /**
- * SD カードの記録を, 古い順に, 送信のキューに入れる (MQTT につながっているとき). 送れた分は,
+ * SD カードの記録を古い順に, 送信のキューに入れる (MQTT につながっているとき). 送れた分は
  * 送り終えたことにする
  */
 static void flush_backlog(void)
@@ -302,7 +302,7 @@ static void flush_backlog(void)
         sent_mark += done;
     }
 
-    /* 先の記録を, キューに入れる (キューを, 満杯にしない) */
+    /* 先の記録をキューに入れる (キューを満杯にしない) */
     while ((queued < backlog_pending()) && (cloud_pending() < FLUSH_QUEUE_MAX)) {
         err = backlog_read(&rec, queued);
         if (err != EXIT_SUCCESS) {
@@ -324,13 +324,13 @@ static void flush_backlog(void)
  * @brief SD カードが使えるかを確かめる (使えなければ, マウントをやり直す. シェルの `thermo sd` 用)
  *
  * 起動のときに SD カードをマウントできなかったときも, カードを挿し直したあとに, 再起動せずに
- * 確かめられる. 失敗の理由は, backlog_init() のログに出る. すでに使えているときは,
+ * 確かめられる. 失敗の理由は backlog_init() のログに出る. すでに使えているときは
  * マウントし直さない (測定値の保存の途中に, 外さないため).
  *
  * @param[out] pending 未送信の記録の数 (成功のときだけ)
  *
  * @retval EXIT_SUCCESS SD カードが使える
- * @retval -ENODEV      SD カードがない (または, マウントできない)
+ * @retval -ENODEV      SD カードがない (またはマウントできない)
  */
 int direct_sd_check(unsigned int *pending)
 {
@@ -351,7 +351,7 @@ int direct_sd_check(unsigned int *pending)
 /**
  * @brief direct_init() の結果を返す (シェルの `thermo sd` 用)
  *
- * 失敗していると, 測定値を保存しない (SD カードがマウントできていても). 理由は, 起動のログの
+ * 失敗していると, 測定値を保存しない (SD カードがマウントできていても). 理由は起動のログの
  * direct_init() の失敗にも出る.
  *
  * @retval EXIT_SUCCESS direct_init() が成功した

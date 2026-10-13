@@ -1,5 +1,5 @@
 #!/bin/bash
-# 静的解析 (gcc -fanalyzer) を, app のソースに対して実行する. 指摘 (警告) があれば失敗する.
+# 静的解析 (gcc -fanalyzer) を app のソースに対して実行する. 指摘 (警告) があれば失敗する.
 #
 # 使い方: scripts/analyze.sh [node|gateway|all]   (省略すると all. node と gateway の両方)
 #

@@ -1,4 +1,4 @@
-# thermo-node の単体テスト用の, 偽の GPIO コントローラ (ピンの入力の値は, テストから設定する)
+# thermo-node の単体テスト用の, 偽の GPIO コントローラ (ピンの入力の値はテストから設定する)
 description: Fake GPIO controller for the unit test of thermo-node
 
 compatible: "vnd,test-gpio"

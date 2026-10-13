@@ -9,12 +9,12 @@
  * @brief history_store.c の単体テスト
  *
  * node_time_unix() と backlog_foreach_since() を FFF のモックに置き換えて, 次を確認する.
- *  - RTC に時刻が入るまでは, 何もしないこと (入ったら, 1 回だけ復元すること)
- *  - SD カードの記録が, 区切りごとの平均になって, 時刻のとおりの位置に戻ること (記録のなかった
- *    区切りは, 測定値なし)
+ *  - RTC に時刻が入るまでは何もしないこと (入ったら, 1 回だけ復元すること)
+ *  - SD カードの記録が区切りごとの平均になって, 時刻のとおりの位置に戻ること (記録のなかった
+ *    区切りは測定値なし)
  *  - 今の区切り以降の記録と, 古すぎる記録を戻さないこと
  *  - 湿度を測れない記録 (湿度なし) の扱い
- *  - 履歴にすでに点があるときは, 戻さないこと. SD カードを読めなくても続けること
+ *  - 履歴にすでに点があるときは戻さないこと. SD カードを読めなくても続けること
  */
 
 #include <zephyr/fff.h>
@@ -78,7 +78,7 @@ static int fake_node_time_unix(int64_t *unix_s)
 }
 
 /**
- * backlog_foreach_since() のモック動作 (since_unix_s 以降の store の記録を, 古い順に渡す)
+ * backlog_foreach_since() のモック動作 (since_unix_s 以降の store の記録を古い順に渡す)
  *
  * @param[in] since_unix_s この時刻以降の記録を渡す
  * @param[in] visit        記録ごとに呼ぶ関数
@@ -103,7 +103,7 @@ static int fake_foreach(int64_t since_unix_s, backlog_visit_t visit, void *ctx)
  *
  * @param[in] unix_s 測った UNIX 時刻 [s]
  * @param[in] temp   温度 [℃ の 10 倍]
- * @param[in] humi   湿度 [% の 10 倍] (THERMO_HUMIDITY_NONE は, 測れない)
+ * @param[in] humi   湿度 [% の 10 倍] (THERMO_HUMIDITY_NONE は測れない)
  */
 static void put(int64_t unix_s, int16_t temp, uint16_t humi)
 {
@@ -118,7 +118,7 @@ static void put(int64_t unix_s, int16_t temp, uint16_t humi)
  * 各テストの前に, 履歴と記録を空にして, RTC に時刻がある状態にする (時刻は 1000045 秒. 起動の 2
  * 秒後)
  *
- * 区切りの番号は, 稼働時間 2 秒 / 10 秒 = 0, 時刻 1000045 秒 / 10 秒 = 100004. base = (1000045 - 2)
+ * 区切りの番号は稼働時間 2 秒 / 10 秒 = 0, 時刻 1000045 秒 / 10 秒 = 100004. base = (1000045 - 2)
  * / 10 = 100004.
  *
  * @param[in] fixture 使用しない
@@ -175,7 +175,7 @@ ZTEST(history_store, test_waits_for_rtc_then_restores_once)
     zassert_equal(backlog_foreach_since_fake.call_count, 1U);
 }
 
-/** 記録は区切りごとの平均になり, 時刻のとおりの位置に戻る (記録のなかった区切りは, 測定値なし) */
+/** 記録は区切りごとの平均になり, 時刻のとおりの位置に戻る (記録のなかった区切りは測定値なし) */
 ZTEST(history_store, test_restores_averages_with_a_gap)
 {
     put(1000000, 190, 440U); /* 区切り 100000: 2 件の平均 */
@@ -186,7 +186,7 @@ ZTEST(history_store, test_restores_averages_with_a_gap)
 
     first_sample();
 
-    /* 区切り 100000 から 100002 が, 履歴の区切り -4 から -2. 今の区切り 0 の手前に 1 つの欠け */
+    /* 区切り 100000 から 100002 が履歴の区切り -4 から -2. 今の区切り 0 の手前に 1 つの欠け */
     zassert_equal(history_get(&temp_h, out, HISTORY_SIZE), 5U);
     zassert_equal(out[0], 200);
     zassert_equal(out[1], 210);
@@ -200,7 +200,7 @@ ZTEST(history_store, test_restores_averages_with_a_gap)
     zassert_equal(out[4], 480);
 }
 
-/** 記録を読む範囲は, 直近 128 区間 (今の区切りの手前まで) */
+/** 記録を読む範囲は直近 128 区間 (今の区切りの手前まで) */
 ZTEST(history_store, test_reads_the_last_128_buckets)
 {
     first_sample();
@@ -208,7 +208,7 @@ ZTEST(history_store, test_reads_the_last_128_buckets)
     zassert_equal(backlog_foreach_since_fake.arg0_val, (100004 - (int64_t)HISTORY_SIZE) * STEP_S);
 }
 
-/** 今の区切り以降の記録 (この起動で測った分) は, 戻さない. 古すぎる記録も, 渡されても戻さない */
+/** 今の区切り以降の記録 (この起動で測った分) は戻さない. 古すぎる記録も, 渡されても戻さない */
 ZTEST(history_store, test_current_and_future_buckets_are_not_restored)
 {
     put(1000020, 220, 470U); /* 区切り 100002 */
@@ -223,7 +223,7 @@ ZTEST(history_store, test_current_and_future_buckets_are_not_restored)
     zassert_equal(out[2], 250);
 }
 
-/** 記録がなければ (電源が切れていた), 履歴は, 今の測定値だけ */
+/** 記録がなければ (電源が切れていた), 履歴は今の測定値だけ */
 ZTEST(history_store, test_no_records)
 {
     first_sample();
@@ -232,7 +232,7 @@ ZTEST(history_store, test_no_records)
     zassert_equal(out[0], 250);
 }
 
-/** 湿度を測れない記録は, 湿度の平均に含めない. 区切りの全てが湿度なしなら, その区切りは測定値なし
+/** 湿度を測れない記録は湿度の平均に含めない. 区切りの全てが湿度なしなら, その区切りは測定値なし
  */
 ZTEST(history_store, test_humidity_none)
 {
@@ -252,7 +252,7 @@ ZTEST(history_store, test_humidity_none)
     zassert_equal(out[4], 480);
 }
 
-/** 履歴にすでに点があるとき (時刻が入るのが遅かったとき) は, 戻さない */
+/** 履歴にすでに点があるとき (時刻が入るのが遅かったとき) は戻さない */
 ZTEST(history_store, test_does_not_restore_when_history_has_points)
 {
     put(1000000, 200, 450U);

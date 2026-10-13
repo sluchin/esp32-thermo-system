@@ -1,4 +1,4 @@
-/* 偽の RTC (vnd,test-rtc) を, alias thermo-rtc に接続する */
+/* 偽の RTC (vnd,test-rtc) を alias thermo-rtc に接続する */
 / {
     aliases {
         thermo-rtc = &test_rtc;

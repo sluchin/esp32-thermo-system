@@ -5,11 +5,11 @@
 #   UseTab: ForContinuationAndIndentation -> Never (タブではなく, 空白)
 #   TabWidth: 4 を追加
 #   InsertBraces: true -> false (1 文の本体に, {} を自動で付けない)
-#   BracedInitializerIndentWidth: 4 を追加 (構造体などの初期化リストの中を, 空白 4 つにする)
-#   StatementMacros に K_THREAD_STACK_DEFINE を追加 (末尾の ; がないマクロの次の行が, 字下げされるのを防ぐ)
-# Zephyr を更新したときは, Zephyr の .clang-format を取り込み直して, 上の 6 点を変える.
+#   BracedInitializerIndentWidth: 4 を追加 (構造体などの初期化リストの中を空白 4 つにする)
+#   StatementMacros に K_THREAD_STACK_DEFINE を追加 (末尾の ; がないマクロの次の行が字下げされるのを防ぐ)
+# Zephyr を更新したときは Zephyr の .clang-format を取り込み直して, 上の 6 点を変える.
 #
-# (以下は, Zephyr の元のコメント)
+# (以下は Zephyr の元のコメント)
 # Note: The list of ForEachMacros can be obtained using:
 #
 #    git grep -h '^#define [^[:space:]]*FOR_EACH[^[:space:]]*(' include/ \

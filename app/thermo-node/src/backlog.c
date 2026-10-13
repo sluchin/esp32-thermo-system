@@ -8,8 +8,8 @@
  * @file
  * @brief SD カードに保存する測定値の記録 (送信済みフラグつき. ストア・アンド・フォワード)
  *
- * ファイル backlog.bin は, 記録の数が CONFIG_THERMO_BACKLOG_MAX_RECORDS 件の輪. 最初は, 末尾に
- * 追記して大きくなり, その数に達したら, 最も古い記録の位置から上書きする. 記録は, 16 バイト
+ * ファイル backlog.bin は記録の数が CONFIG_THERMO_BACKLOG_MAX_RECORDS 件の輪. 最初は末尾に
+ * 追記して大きくなり, その数に達したら, 最も古い記録の位置から上書きする. 記録は 16 バイト
  * (リトルエンディアン).
  *  - 0 から 3: 測った UNIX 時刻 (符号なし 32 ビット)
  *  - 4 から 5: 温度 (10 倍した値)
@@ -18,9 +18,9 @@
  *  - 9 から 11: 予約 (0)
  *  - 12 から 15: 先頭の 8 バイトの CRC-32 (フラグは含めない)
  *
- * 記録の位置は, 2 通りで表す. 物理の位置 (ファイルの中の順番) と, 論理の位置 (古い順. 0
- * が最も古い). ファイルが輪になっていないとき (記録の数が上限に達するまで) は, 同じ.
- * 上限に達したあとは, 次に上書きする位置 (head) が, 最も古い記録.
+ * 記録の位置は 2 通りで表す. 物理の位置 (ファイルの中の順番) と, 論理の位置 (古い順. 0
+ * が最も古い). ファイルが輪になっていないとき (記録の数が上限に達するまで) は同じ.
+ * 上限に達したあとは次に上書きする位置 (head) が最も古い記録.
  */
 
 #include <zephyr/fs/fs.h>
@@ -79,7 +79,7 @@ static unsigned int count;
 static unsigned int head;
 /** 未送信の記録の数 */
 static unsigned int pending;
-/** 最も古い未送信の記録の論理の位置 (これより前は, 全て送信済み. pending が 0 のときは, 使わない)
+/** 最も古い未送信の記録の論理の位置 (これより前は全て送信済み. pending が 0 のときは使わない)
  */
 static unsigned int first_pos;
 
@@ -96,11 +96,11 @@ static int mark_sent(struct fs_file_t *file, unsigned int phys);
  * @brief SD カードをマウントして, 保存してある記録の数と, 未送信の数を調べる
  *
  * ファイルの全ての記録を読んで, 最も新しい記録 (次に書く位置), 未送信の数, 最も古い未送信の記録を
- * 調べる. CRC の合わない記録は, 無視する (未送信にも数えない). 書きかけの記録 (16 バイトに満たない
- * 端) は, 切り捨てる.
+ * 調べる. CRC の合わない記録は無視する (未送信にも数えない). 書きかけの記録 (16 バイトに満たない
+ * 端) は切り捨てる.
  *
  * @retval EXIT_SUCCESS 成功
- * @retval -ENODEV      SD カードがない (または, マウントできない)
+ * @retval -ENODEV      SD カードがない (またはマウントできない)
  */
 int backlog_init(void)
 {
@@ -108,7 +108,7 @@ int backlog_init(void)
     unsigned int slots = 0U;               /* ファイルにある記録の数 */
     int err = EXIT_SUCCESS;                /* エラーコード */
 
-    /* やり直し (再初期化) のときは, 前のマウントを外してから, マウントし直す */
+    /* やり直し (再初期化) のときは前のマウントを外してから, マウントし直す */
     if (mounted) {
         (void)fs_unmount(&mount);
     }
@@ -139,7 +139,7 @@ int backlog_init(void)
 /**
  * @brief 測定値を 1 件, 保存する
  *
- * 記録の数が上限に達していれば, 最も古い記録の位置に上書きする (未送信の記録を上書きしたときは,
+ * 記録の数が上限に達していれば, 最も古い記録の位置に上書きする (未送信の記録を上書きしたときは
  * その分, 未送信の数を減らす).
  *
  * @param[in] rec  測定値
@@ -156,7 +156,7 @@ int backlog_append(const struct backlog_record *rec, bool sent)
     struct backlog_record old = {0};                  /* 上書きされる記録 */
     uint8_t buf[RECORD_SIZE] = {0};                   /* 書き込む記録 */
     const bool full = (count >= BACKLOG_MAX_RECORDS); /* 輪になっているか */
-    bool old_sent = true;         /* 上書きされる記録が, 送信済みか (読めなければ, 送信済み) */
+    bool old_sent = true;         /* 上書きされる記録が送信済みか (読めなければ, 送信済み) */
     int err = EXIT_SUCCESS;       /* エラーコード */
     int close_err = EXIT_SUCCESS; /* 閉じたときのエラーコード */
 
@@ -172,7 +172,7 @@ int backlog_append(const struct backlog_record *rec, bool sent)
         return err;
     }
     if (full && (read_slot(&file, head, buf) == 0)) {
-        /* 上書きする記録が未送信かを知る (読めない, 壊れている記録は, 送信済みとして扱う) */
+        /* 上書きする記録が未送信かを知る (読めない, 壊れている記録は送信済みとして扱う) */
         (void)decode(buf, &old, &old_sent);
     }
     encode(buf, rec, sent);
@@ -187,7 +187,7 @@ int backlog_append(const struct backlog_record *rec, bool sent)
     }
 
     if (full) {
-        /* 最も古い記録を上書きした: 論理の位置が, 1 つずつ前にずれる */
+        /* 最も古い記録を上書きした: 論理の位置が 1 つずつ前にずれる */
         head = (head + 1U) % BACKLOG_MAX_RECORDS;
         if (!old_sent) {
             pending--;
@@ -210,7 +210,7 @@ int backlog_append(const struct backlog_record *rec, bool sent)
 /**
  * @brief まだ送っていない記録の数
  *
- * @return 送っていない記録の数 (SD カードを使えないときは, 0)
+ * @return 送っていない記録の数 (SD カードを使えないときは 0)
  */
 unsigned int backlog_pending(void)
 {
@@ -218,7 +218,7 @@ unsigned int backlog_pending(void)
 }
 
 /**
- * @brief 送っていない記録を, 古いほうから数えて, index 番目 (0 が一番古い) を読み出す
+ * @brief 送っていない記録を古いほうから数えて, index 番目 (0 が一番古い) を読み出す
  *
  * @param[out] rec   記録
  * @param[in]  index 古いほうからの順番 (backlog_pending() より小さいこと)
@@ -264,7 +264,7 @@ int backlog_read(struct backlog_record *rec, unsigned int index)
 }
 
 /**
- * @brief 古いほうから count 件を, 送り終えたことにする (記録のフラグを書き換える)
+ * @brief 古いほうから count 件を送り終えたことにする (記録のフラグを書き換える)
  *
  * @param[in] n 送り終えた数 (backlog_pending() 以下)
  *
@@ -314,7 +314,7 @@ int backlog_commit(unsigned int n)
         return err;
     }
     if (marked < n) {
-        /* 数えた未送信の記録が, ファイルに見つからない: 数を合わせる */
+        /* 数えた未送信の記録がファイルに見つからない: 数を合わせる */
         LOG_ERR("The records on the SD card are broken (%u of %u marked)", marked, n);
         pending -= (n - marked);
         return -EIO;
@@ -324,9 +324,9 @@ int backlog_commit(unsigned int n)
 }
 
 /**
- * @brief 指定の時刻以降の記録を, 古い順に, 関数に渡す (送信済みも含む)
+ * @brief 指定の時刻以降の記録を古い順に, 関数に渡す (送信済みも含む)
  *
- * 記録は, 時刻の順に並んでいるものとして, 二分探索で, 最初の記録を見つける.
+ * 記録は時刻の順に並んでいるものとして, 二分探索で, 最初の記録を見つける.
  *
  * @param[in] since_unix_s この UNIX 時刻 [s] 以降の記録を渡す
  * @param[in] visit        記録ごとに呼ぶ関数
@@ -364,7 +364,7 @@ int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx
         if (err != 0) {
             break;
         }
-        /* 壊れた記録は, 新しいものとして扱う (探す位置が, 早すぎるほうに寄る. 余分に渡すだけ) */
+        /* 壊れた記録は新しいものとして扱う (探す位置が早すぎるほうに寄る. 余分に渡すだけ) */
         if ((!decode(buf, &rec, &sent)) || (since_unix_s <= rec.unix_s)) {
             hi = mid;
         } else {
@@ -383,7 +383,7 @@ int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx
 }
 
 /**
- * 論理の位置 (古い順) を, 物理の位置 (ファイルの中の順番) にする
+ * 論理の位置 (古い順) を物理の位置 (ファイルの中の順番) にする
  *
  * @param[in] pos 論理の位置 (count より小さいこと)
  * @return 物理の位置
@@ -424,7 +424,7 @@ static int read_slot(struct fs_file_t *file, unsigned int phys, uint8_t *buf)
 }
 
 /**
- * 16 バイトの記録を, 読む (CRC が合わなければ, 無効)
+ * 16 バイトの記録を読む (CRC が合わなければ, 無効)
  *
  * @param[in]  buf  記録 (RECORD_SIZE バイト)
  * @param[out] rec  記録の内容 (有効なときだけ)
@@ -447,7 +447,7 @@ static bool decode(const uint8_t *buf, struct backlog_record *rec, bool *sent)
 }
 
 /**
- * 記録を, 16 バイトに符号化する (末尾に CRC を付ける)
+ * 記録を 16 バイトに符号化する (末尾に CRC を付ける)
  *
  * @param[out] out  書き込み先 (RECORD_SIZE バイト)
  * @param[in]  rec  記録

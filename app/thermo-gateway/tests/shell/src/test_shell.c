@@ -8,7 +8,7 @@
  * @file
  * @brief cfg_shell.c の単体テスト
  *
- * cfg と cloud の関数を FFF のモックに置き換えて, シェルのコマンド (`thermo ...`) を,
+ * cfg と cloud の関数を FFF のモックに置き換えて, シェルのコマンド (`thermo ...`) を
  * ダミーのバックエンドで実行して, 戻り値と出力を確認する.
  */
 
@@ -184,7 +184,7 @@ static void before(void *fixture)
     values[CFG_KEY_CLIENT_ID] = "";
 }
 
-/** `thermo set <項目> <値>` は, 値を保存して, 保存したことを表示する */
+/** `thermo set <項目> <値>` は値を保存して, 保存したことを表示する */
 ZTEST(thermo_shell, test_set)
 {
     int ret = 0;                                            /* 戻り値 */
@@ -236,7 +236,7 @@ ZTEST(thermo_shell, test_set_missing_argument)
     zassert_equal(cfg_set_fake.call_count, 0U);
 }
 
-/** `thermo show` は, 値を表示して, パスワードは伏せる (設定済みなら "********") */
+/** `thermo show` は値を表示して, パスワードは伏せる (設定済みなら "********") */
 ZTEST(thermo_shell, test_show)
 {
     int ret = 0;            /* 戻り値 */
@@ -266,7 +266,7 @@ ZTEST(thermo_shell, test_show)
     zassert_not_null(strstr(out, "ready to connect: no"));
 }
 
-/** `thermo tether <SSID> <パスワード>` は, 切り替えて, 元の SSID を表示する */
+/** `thermo tether <SSID> <パスワード>` は切り替えて, 元の SSID を表示する */
 ZTEST(thermo_shell, test_tether)
 {
     int ret = 0;                                                  /* 戻り値 */
@@ -314,7 +314,7 @@ ZTEST(thermo_shell, test_tether_missing_argument)
     zassert_equal(cfg_tether_fake.call_count, 0U);
 }
 
-/** `thermo restore` は, 元に戻して, 戻したことを表示する */
+/** `thermo restore` は元に戻して, 戻したことを表示する */
 ZTEST(thermo_shell, test_restore)
 {
     int ret = 0;                                   /* 戻り値 */
@@ -338,7 +338,7 @@ ZTEST(thermo_shell, test_restore_failure)
     zassert_not_null(strstr(out, "Failed to restore the original settings (err -2)"));
 }
 
-/** `thermo show` は, 元の設定があれば、その SSID を表示する */
+/** `thermo show` は元の設定があれば, その SSID を表示する */
 ZTEST(thermo_shell, test_show_backup)
 {
     int ret = 0;            /* 戻り値 */
@@ -367,7 +367,7 @@ ZTEST(thermo_shell, test_show_empty_psk_and_ready)
     zassert_not_null(strstr(out, "ready to connect: yes"));
 }
 
-/** `thermo save-certs` は, 証明書を保存して, 保存したことを表示する */
+/** `thermo save-certs` は証明書を保存して, 保存したことを表示する */
 ZTEST(thermo_shell, test_save_certs)
 {
     int ret = 0;                                      /* 戻り値 */
@@ -394,7 +394,7 @@ ZTEST(thermo_shell, test_save_certs_failure)
     zassert_not_null(strstr(out, "cred add"));
 }
 
-/** `thermo apply` は, 接続をやり直させる */
+/** `thermo apply` は接続をやり直させる */
 ZTEST(thermo_shell, test_apply)
 {
     int ret = 0;                                 /* 戻り値 */
@@ -406,7 +406,7 @@ ZTEST(thermo_shell, test_apply)
     zassert_not_null(strstr(out, "reconnecting"));
 }
 
-/** `thermo reset` は, 全て消して, 消したことを表示する */
+/** `thermo reset` は全て消して, 消したことを表示する */
 ZTEST(thermo_shell, test_reset)
 {
     int ret = 0;                                 /* 戻り値 */

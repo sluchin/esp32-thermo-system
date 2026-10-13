@@ -1,6 +1,6 @@
 # ble.c の解析
 
-対象: `app/thermo-node/src/ble.c` (377 行) と `ble.h` (47 行)
+対象: `app/thermo-node/src/ble.c` (391 行) と `ble.h` (47 行)
 
 ノードの BLE です。周辺機器 (Peripheral) として、アドバタイズを出し、ゲートウェイからの接続を待ちます。つながったゲートウェイには、温度と湿度を通知 (notify) し、ゲートウェイが書き込んだ時刻を受け取ります。
 
@@ -90,9 +90,12 @@ pack_value() → bt_gatt_notify(NULL, &thermo_attrs[2], value, 4)
 
 ```text
 connected(err)     失敗 → ログだけ / 成功 → connection_count++
+                   connection_count < CONFIG_BT_MAX_CONN なら ble_advertise() (-EALREADY は無視)
 disconnected()     connection_count-- (0 未満にしない)
 recycled()         ble_advertise() を呼ぶ (-EALREADY は無視)
 ```
+
+Zephyr は、接続すると、アドバタイズを止めます。`connected()` は、接続できる数 (`CONFIG_BT_MAX_CONN`) に空きがあれば、アドバタイズを続けて、ほかの機器 (スマートフォンのアプリ thermo-term など) が見つけられるようにします。`prj.conf` は `CONFIG_BT_MAX_CONN=1` なので、実機では、続けません (空きがない)。2 にすると、BLE が使うヒープが増えて、WiFi と TLS のぶんが足りなくなり、直接の送信が届かなくなるためです (RAM は、99.9% 使われている)。単体テスト (`tests/ble`) は、2 にして、続ける経路を確かめます。
 
 切断のコールバック (`disconnected()`) の中では、スタックが、まだ接続のオブジェクトを持っています。そこで接続可能なアドバタイズを始めると、空きがなく、`-ENOMEM` で失敗することがあります (Zephyr の仕様)。そのため、アドバタイズの再開は、オブジェクトが解放されたあとに呼ばれる `recycled()` で行います。これで、ゲートウェイが切れても、自動で、もう一度見つかるようになります。
 
@@ -103,6 +106,7 @@ recycled()         ble_advertise() を呼ぶ (-EALREADY は無視)
 ## 気づいた点
 
 - 通知の購読者がいないことは、エラーにならないので、「ゲートウェイにつながっていない」ことの判断は `connection_count` で行います。購読が切れていても (接続だけが残っているとき)、`ble_is_connected()` は true を返します。
+- `connection_count` は、つないできた相手を区別しません。ゲートウェイの代わりに、スマートフォン (thermo-term の BLE のタブ) がつないでいるときも、`ble_is_connected()` は true を返すので、`direct.c` は、ゲートウェイにつながっているとみなして、WiFi での直接の送信を始めません。区別するなら、時刻の特性に書き込んだ接続 (ゲートウェイ) だけを数える方法があります。
 - 時刻の特性は、暗号化や認証を要求しません (`BT_GATT_PERM_WRITE`)。より厳しくするなら、`BT_GATT_PERM_WRITE_AUTHEN` などと、ペアリングが要ります。
 
 ## 関連

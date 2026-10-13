@@ -84,7 +84,7 @@ int wifi_time_fetch(int64_t *unix_s)
 }
 
 /**
- * NTP サーバに問い合わせて, UNIX 時刻を得る (システム時計は, 合わせない)
+ * NTP サーバに問い合わせて, UNIX 時刻を得る (システム時計は合わせない)
  *
  * @param[in]  server  NTP サーバのホスト名
  * @param[in]  timeout 応答を待つ時間

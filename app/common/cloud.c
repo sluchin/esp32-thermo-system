@@ -55,7 +55,7 @@ LOG_MODULE_REGISTER(thermo_cloud, THERMO_LOG_LEVEL);
 #define PAYLOAD_SIZE       160U
 /*
  * ペイロードの最大長が入ること (SwitchBot の機器のアドレス, -3276.7 ℃, 湿度 100 %,
- * 電池 100 %, 稼働時間が最大で UNIX 時刻が 19 桁の場合は, 155 文字 + NUL)
+ * 電池 100 %, 稼働時間が最大で UNIX 時刻が 19 桁の場合は 155 文字 + NUL)
  */
 BUILD_ASSERT(PAYLOAD_SIZE >= 156U, "The payload buffer is too small");
 /** MQTT の送受信バッファのサイズ */
@@ -82,7 +82,7 @@ struct sample {
     int16_t temp_x10;                  /**< 温度 [℃ の 10 倍] (SAMPLE_THERMO のとき) */
     uint16_t humidity_x10;             /**< 湿度 [% の 10 倍] (SAMPLE_THERMO のとき) */
     struct switchbot_sample switchbot; /**< SwitchBot の値 (SAMPLE_SWITCHBOT のとき) */
-    int64_t unix_s; /**< 測った UNIX 時刻 [s] (UNIX_FROM_UPTIME のときは, 稼働時間から求める) */
+    int64_t unix_s; /**< 測った UNIX 時刻 [s] (UNIX_FROM_UPTIME のときは稼働時間から求める) */
 };
 
 /** 送信を待つ温度のキュー */
@@ -107,15 +107,15 @@ static volatile bool reconnect_requested;
 static unsigned int retry_s = RETRY_MIN_S;
 /** 次に publish するメッセージの ID (1 .. 65535) */
 static uint16_t message_id;
-/** 接続して送信する状態か (false の間は, WiFi を切って, 待つ) */
+/** 接続して送信する状態か (false の間は WiFi を切って, 待つ) */
 static volatile bool enabled = true;
 /** 接続の失敗が続く上限の回数に達して, あきらめたか */
 static volatile bool gave_up;
-/** 接続の失敗が続いたら, あきらめる回数 (0 は, あきらめない) */
+/** 接続の失敗が続いたら, あきらめる回数 (0 はあきらめない) */
 static unsigned int max_attempts;
 /** 接続の失敗が続いている回数 */
 static unsigned int attempts;
-/** publish に成功した回数 (SD カードに溜めた値を, 送り終えたかの確認に使う) */
+/** publish に成功した回数 (SD カードに溜めた値を送り終えたかの確認に使う) */
 static volatile uint32_t sent_count;
 
 /** 送信のスレッド */
@@ -147,7 +147,7 @@ int cloud_step(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    /* 止められている間は, WiFi を切って, 待つ */
+    /* 止められている間は WiFi を切って, 待つ */
     if (!enabled) {
         if (wifi_link_is_up()) {
             wifi_link_disconnect();
@@ -257,7 +257,7 @@ void cloud_stop(void)
 /**
  * @brief 温度と湿度を送信のキューに入れる (待たずにすぐ戻る)
  *
- * Bluetooth のスレッドから呼べる. キューが満杯のときは, 新しい値を捨てる.
+ * Bluetooth のスレッドから呼べる. キューが満杯のときは新しい値を捨てる.
  *
  * @param[in] addr         温度を送ったノードのアドレス
  * @param[in] temp_x10     温度 [℃ の 10 倍]
@@ -280,7 +280,7 @@ int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16
 /**
  * @brief 測った時刻 (UNIX 時刻) を指定して, 温度と湿度を送信のキューに入れる (待たずにすぐ戻る)
  *
- * SD カードに溜めた値のように, 測った時刻が, 今ではない値を送るときに使う.
+ * SD カードに溜めた値のように, 測った時刻が今ではない値を送るときに使う.
  *
  * @param[in] addr         温度を測ったノードのアドレス
  * @param[in] temp_x10     温度 [℃ の 10 倍]
@@ -307,7 +307,7 @@ int cloud_publish_temperature_at(const bt_addr_le_t *addr, int16_t temp_x10, uin
  * @brief SwitchBot の温湿度計の値を送信のキューに入れる (待たずにすぐ戻る)
  *
  * トピックは `thermo/<クライアント ID>/switchbot/<機器のアドレス>`. Bluetooth のスレッドから
- * 呼べる. キューが満杯のときは, 新しい値を捨てる.
+ * 呼べる. キューが満杯のときは新しい値を捨てる.
  *
  * @param[in] addr   機器のアドレス
  * @param[in] sample 温度, 湿度, 電池残量
@@ -328,7 +328,7 @@ int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sam
 /**
  * @brief 接続して送る状態にするか, 止めて WiFi を切る状態にするかを切り替える
  *
- * true にすると, 失敗の回数と, あきらめた状態を戻して, すぐに接続を始める (キューの古い値は,
+ * true にすると, 失敗の回数と, あきらめた状態を戻して, すぐに接続を始める (キューの古い値は
  * 捨てる). false にすると, 接続中の処理を終えて (MQTT を閉じて), WiFi を切って, 待つ.
  *
  * @param[in] on true なら, 接続して送る. false なら, 止める
@@ -349,7 +349,7 @@ void cloud_set_enabled(bool on)
 /**
  * @brief 接続の失敗が続いたら, あきらめる回数を決める
  *
- * @param[in] limit あきらめる回数 (0 は, あきらめない)
+ * @param[in] limit あきらめる回数 (0 はあきらめない)
  */
 void cloud_set_attempt_limit(unsigned int limit)
 {
@@ -381,7 +381,7 @@ bool cloud_is_connected(void)
 /**
  * @brief 送信を待っている値の数
  *
- * @return キューにある値の数 (SD カードの値を, キューが満杯にならないように送るために使う)
+ * @return キューにある値の数 (SD カードの値をキューが満杯にならないように送るために使う)
  */
 unsigned int cloud_pending(void)
 {
@@ -553,7 +553,7 @@ static int connect_broker(void)
 /**
  * 値を受信したときの UNIX 時刻を求める (今の UNIX 時刻から, 受信してからの経過を引く)
  *
- * 受信した時点では, 時計が合っていないことがあるので, publish するときに求める
+ * 受信した時点では時計が合っていないことがあるので, publish するときに求める
  * (接続の前に必ず同期している).
  *
  * @param[in] uptime_ms 受信したときのゲートウェイの稼働時間 [ms]
@@ -562,7 +562,7 @@ static int connect_broker(void)
 static int64_t received_unix_time(uint32_t uptime_ms)
 {
     int64_t now = 0; /* 現在の UNIX 時刻 [s] */
-    /* 32 bit の稼働時間は, 約 49 日で戻るので符号なしの引き算で, 経過を求める */
+    /* 32 bit の稼働時間は約 49 日で戻るので符号なしの引き算で, 経過を求める */
     uint32_t elapsed_ms = k_uptime_get_32() - uptime_ms; /* 受信してからの経過時間 [ms] */
 
     if (ntp_unix_time(&now) != EXIT_SUCCESS) {
@@ -606,7 +606,7 @@ static int publish_sample(const struct sample *s)
         return -ENOSPC;
     }
 
-    /* メッセージ ID は 1 から 65535 を順に使う (QoS 1 では, 0 は使えない) */
+    /* メッセージ ID は 1 から 65535 を順に使う (QoS 1 では 0 は使えない) */
     message_id = (uint16_t)((message_id % UINT16_MAX) + 1U);
     param.message.topic.qos = MQTT_QOS_1_AT_LEAST_ONCE;
     param.message.topic.topic.utf8 = (const uint8_t *)topic;

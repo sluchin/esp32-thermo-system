@@ -8,7 +8,7 @@
  * @file
  * @brief ntp.c の単体テスト
  *
- * SNTP とソケットの関数を FFF のモックに置き換えて, ntp_sync() の流れを確認する (時計は,
+ * SNTP とソケットの関数を FFF のモックに置き換えて, ntp_sync() の流れを確認する (時計は
  * Zephyr の本物を使う. sys_clock_settime() はシステムコールでモックにできない).
  *  - 同期の成功 (時計の設定, 同期済みの状態, UNIX 時刻の取得)
  *  - 名前の解決, SNTP の初期化, 問い合わせの各段階の失敗
@@ -140,7 +140,7 @@ ZTEST(ntp, test_c_init_failure)
     zassert_false(ntp_is_synced());
 }
 
-/** 同期に成功すると時計を設定して, 同期済みになる. 間隔内の再呼び出しは, 問い合わせない */
+/** 同期に成功すると時計を設定して, 同期済みになる. 間隔内の再呼び出しは問い合わせない */
 ZTEST(ntp, test_e_success_then_skip)
 {
     int64_t sec = 0; /* UNIX 時刻 [s] */

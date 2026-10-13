@@ -1,6 +1,6 @@
 # app/warnings.cmake
 #
-# warnings.txt の警告オプションのうち, コンパイラが受け付けるものを, app ターゲット
+# warnings.txt の警告オプションのうち, コンパイラが受け付けるものを app ターゲット
 # (アプリのソースだけ. Zephyr 本体は含まない) に付ける.
 # 使い方: project() と target_sources(app ...) の後で include する.
 include(CheckCCompilerFlag)
@@ -21,9 +21,9 @@ foreach(line IN LISTS WARNING_LINES)
 endforeach()
 target_compile_options(app PRIVATE ${WARNING_FLAGS})
 
-# Zephyr のヘッダ (GNU 拡張や, 多くのマクロを使う) の警告は, アプリでは直せないので出さない.
-# Zephyr の include ディレクトリを, システムヘッダとして扱う (-I と -isystem の両方で
-# 指定されたディレクトリは, システムヘッダとして扱われる).
+# Zephyr のヘッダ (GNU 拡張や, 多くのマクロを使う) の警告はアプリでは直せないので出さない.
+# Zephyr の include ディレクトリをシステムヘッダとして扱う (-I と -isystem の両方で
+# 指定されたディレクトリはシステムヘッダとして扱われる).
 get_target_property(ZEPHYR_INCLUDES zephyr_interface INTERFACE_INCLUDE_DIRECTORIES)
 get_target_property(ZEPHYR_SYSTEM_INCLUDES zephyr_interface INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
 foreach(dirs ZEPHYR_INCLUDES ZEPHYR_SYSTEM_INCLUDES)

@@ -143,6 +143,22 @@ uint32_t k_uptime_get_32(void);
 
 使用箇所: [`app/common/cloud.c:274`](../app/common/cloud.c#L274) (ほか 3 行), [`app/thermo-gateway/src/main.c:154`](../app/thermo-gateway/src/main.c#L154)
 
+### k_ticks_to_ms_ceil32
+
+```c
+#define k_ticks_to_ms_ceil32(t)
+```
+
+ティックの時間を、ミリ秒に換算する。32 ビットで計算し、切り上げる。
+
+| 引数 | 入出力 | 説明 |
+|:---|:---:|:---|
+| `t` | in | ティックの時間 (`uint64_t`) |
+
+戻り値: ミリ秒の時間 (`uint32_t`)。
+
+使用箇所: [`app/common/ntp.c:74`](../app/common/ntp.c#L74), [`app/thermo-node/src/wifi_time.c:115`](../app/thermo-node/src/wifi_time.c#L115)
+
 ## セマフォ
 
 ### k_sem_take

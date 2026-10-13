@@ -40,7 +40,7 @@ LOG_MODULE_REGISTER(oled_thermo_node, THERMO_LOG_LEVEL);
 #define OLED_ROW_DATE      0U
 /** 時刻の行の位置 (上から) [行] */
 #define OLED_ROW_TIME      1U
-/** 日付と時刻の行の数 (温度と湿度の行は, その下) */
+/** 日付と時刻の行の数 (温度と湿度の行はその下) */
 #define OLED_ROWS_DATETIME 2U
 /** 温度の行の位置 (日付と時刻の行の下から) [行] */
 #define OLED_ROW_TEMP      0U
@@ -75,7 +75,7 @@ LOG_MODULE_REGISTER(oled_thermo_node, THERMO_LOG_LEVEL);
 #define BOOT_DOT_SIZE     2
 /** 起動画面: ドットの y 座標の絵の上端からの距離 (絵の真ん中あたり) [ドット] */
 #define BOOT_DOT_OFFSET_Y 7
-/** 起動画面: 文字 1 つの幅 [ドット] (フォント 0 は, 幅 10 ドット) */
+/** 起動画面: 文字 1 つの幅 [ドット] (フォント 0 は幅 10 ドット) */
 #define BOOT_FONT_WIDTH   10U
 /** 起動画面: 口の開き方の 1 周の長さ (閉じる, 半分, 開く, 半分) */
 #define BOOT_MOUTH_PERIOD 4U
@@ -123,8 +123,8 @@ static int draw_line(const char *text, uint16_t row);
  * @brief OLED を初期化する
  *
  * 画素の形式を設定して, 文字のフレームバッファを初期化し, 画面を消して, 表示を始める.
- * 失敗したときは, 表示しないだけで, ノードのほかの動作は続けられる (呼び出し側で判断する).
- * 失敗したあとに, もう一度呼んでもよい (確保したフレームバッファは, 解放してからやり直す).
+ * 失敗したときは表示しないだけで, ノードのほかの動作は続けられる (呼び出し側で判断する).
+ * 失敗したあとに, もう一度呼んでもよい (確保したフレームバッファは解放してからやり直す).
  *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODEV      OLED が利用可能でない
@@ -145,7 +145,7 @@ int oled_init(void)
         return err;
     }
 
-    /* やり直しのときに, 前のフレームバッファを解放する (cfb_framebuffer_init() は, 解放しない) */
+    /* やり直しのときに, 前のフレームバッファを解放する (cfb_framebuffer_init() は解放しない) */
     cfb_framebuffer_deinit(oled_dev);
 
     err = cfb_framebuffer_init(oled_dev);
@@ -178,9 +178,9 @@ int oled_init(void)
 }
 
 /**
- * @brief OLED を点灯または消灯する (消灯しても, 表示の内容は, 消えない)
+ * @brief OLED を点灯または消灯する (消灯しても, 表示の内容は消えない)
  *
- * 消灯 (blanking on) の間は, 画面に何も出ない (焼き付きと, 消費電力を減らす). 消灯の間も,
+ * 消灯 (blanking on) の間は画面に何も出ない (焼き付きと, 消費電力を減らす). 消灯の間も,
  * oled_show() で, フレームバッファを更新できる. oled_init() が成功してから呼ぶ.
  *
  * @param[in] on 点灯するなら true, 消灯するなら false
@@ -208,13 +208,13 @@ int oled_set_power(bool on)
 /**
  * @brief 指定したページを OLED に表示する
  *
- * 現在値のページ (OLED_PAGE_NOW) は, 1 行目に日付 (例: 2026-10-08), 2 行目に時刻
+ * 現在値のページ (OLED_PAGE_NOW) は 1 行目に日付 (例: 2026-10-08), 2 行目に時刻
  * (例: 14:05:09), 3 行目に温度 (例: Temp 23.5 C), 4 行目に湿度 (例: Humi 45.0 %) を表示する.
- * 測定値がないとき, 湿度を測れないとき (THERMO_HUMIDITY_NONE), 時刻が未設定のときは, その値を
- * --.- (日付と時刻は, ---- と --) にする. 日時が NULL のときは, 日付と時刻の行を出さない.
- * グラフのページ (OLED_PAGE_TEMP_GRAPH, OLED_PAGE_HUMIDITY_GRAPH) は, 1 行目に履歴の最小と
+ * 測定値がないとき, 湿度を測れないとき (THERMO_HUMIDITY_NONE), 時刻が未設定のときはその値を
+ * --.- (日付と時刻は ---- と --) にする. 日時が NULL のときは日付と時刻の行を出さない.
+ * グラフのページ (OLED_PAGE_TEMP_GRAPH, OLED_PAGE_HUMIDITY_GRAPH) は 1 行目に履歴の最小と
  * 最大 (例: 19.7~25.1 C) を表示して, その下に履歴の折れ線グラフ (右端が最新) を描く.
- * 履歴がないときは, No data を表示する.
+ * 履歴がないときは No data を表示する.
  * oled_init() が成功してから呼ぶ (初期化していないと, CFB が -ENODEV を返す).
  *
  * @param[in] view 表示する内容 (NULL 不可)
@@ -254,9 +254,9 @@ int oled_show(const struct oled_view *view)
 /**
  * @brief 起動画面の 1 フレームを OLED に表示する
  *
- * 画面の上に題名 (boot_title) を出して, その下の行を口を開け閉めする丸い絵 (boot_chomper) が,
+ * 画面の上に題名 (boot_title) を出して, その下の行を口を開け閉めする丸い絵 (boot_chomper) が
  * ドットを食べながら, 左から右へ走る. 少し後ろから, 敵の絵 (boot_chaser) が追う. frame は 0 から
- * OLED_BOOT_FRAMES - 1 まで (それ以上は, 最後のフレーム). OLED_BOOT_FRAME_MS ごとに, 進める.
+ * OLED_BOOT_FRAMES - 1 まで (それ以上は最後のフレーム). OLED_BOOT_FRAME_MS ごとに, 進める.
  * oled_init() が成功してから呼ぶ.
  *
  * @param[in] frame フレームの番号 (0 から始まる)
@@ -290,7 +290,7 @@ int oled_show_boot(unsigned int frame)
 #endif
 
 /**
- * 現在値のページをフレームバッファに描く (画面は, まだ更新しない)
+ * 現在値のページをフレームバッファに描く (画面はまだ更新しない)
  *
  * @param[in] view 表示する内容 (NULL 不可)
  *
@@ -316,7 +316,7 @@ static int draw_now(const struct oled_view *view)
 }
 
 /**
- * グラフのページをフレームバッファに描く (画面は, まだ更新しない)
+ * グラフのページをフレームバッファに描く (画面はまだ更新しない)
  *
  * @param[in] view 表示する内容 (NULL 不可. page が温度か湿度のグラフ)
  *
@@ -343,7 +343,7 @@ static int draw_graph(const struct oled_view *view)
         count = history_get(history, points, HISTORY_SIZE);
     }
 
-    /* 最小と最大は, 測定値のある点 (HISTORY_NONE でない点) だけで求める */
+    /* 最小と最大は測定値のある点 (HISTORY_NONE でない点) だけで求める */
     for (i = 0U; i < count; i++) {
         if (points[i] == HISTORY_NONE) {
             continue;
@@ -369,7 +369,7 @@ static int draw_graph(const struct oled_view *view)
         return err;
     }
 
-    /* 縦軸は, 最小の下から最大の上まで (どちらにも OLED_GRAPH_MARGIN_X10 の余白) */
+    /* 縦軸は最小の下から最大の上まで (どちらにも OLED_GRAPH_MARGIN_X10 の余白) */
     return draw_polyline(points, count, (low - OLED_GRAPH_MARGIN_X10),
                          ((high - low) + (2 * OLED_GRAPH_MARGIN_X10)));
 }
@@ -389,13 +389,13 @@ static int draw_polyline(const int16_t *points, unsigned int count, int low, int
 {
     struct cfb_position prev = {0}; /* 前の点の位置 */
     struct cfb_position cur = {0};  /* 今の点の位置 */
-    bool has_prev = false;          /* 前の点があるか (HISTORY_NONE の点の次は, ない) */
+    bool has_prev = false;          /* 前の点があるか (HISTORY_NONE の点の次はない) */
     unsigned int i = 0U;            /* 点の番号 */
     int err = EXIT_SUCCESS;         /* エラーコード */
 
     for (i = 0U; i < count; i++) {
         if (points[i] == HISTORY_NONE) {
-            /* 測定値のない点は, 描かない (前の点とは, 線でつながない) */
+            /* 測定値のない点は描かない (前の点とは線でつながない) */
             has_prev = false;
             continue;
         }
@@ -419,7 +419,7 @@ static int draw_polyline(const int16_t *points, unsigned int count, int low, int
 }
 
 /**
- * 1 行の文字列をフレームバッファに書く (画面は, まだ更新しない)
+ * 1 行の文字列をフレームバッファに書く (画面はまだ更新しない)
  *
  * @param[in] text 文字列
  * @param[in] row  行の位置 (上から 0 始まり)
@@ -453,7 +453,7 @@ static unsigned int format_lines(const struct oled_view *view, char lines[][OLED
     char temp_text[OLED_NUM_SIZE] = {0}; /* 温度の文字列 (例: -3.5) */
     unsigned int first = 0U;             /* 温度の行の位置 (日付と時刻があれば, その下) */
 
-    /* 日付と時刻は, 一番上 */
+    /* 日付と時刻は一番上 */
     if (view->time != NULL) {
         if (view->time->valid) {
             (void)snprintf(lines[OLED_ROW_DATE], OLED_LINE_SIZE, "%04u-%02u-%02u",
@@ -508,7 +508,7 @@ static void format_x10(char *out, size_t size, int16_t value_x10)
 
 #ifdef CONFIG_THERMO_BOOT_SCREEN
 /**
- * 起動画面の 1 フレームをフレームバッファに描く (画面は, まだ更新しない)
+ * 起動画面の 1 フレームをフレームバッファに描く (画面はまだ更新しない)
  *
  * @param[in] frame フレームの番号 (0 から OLED_BOOT_FRAMES - 1)
  *
@@ -547,7 +547,7 @@ static int draw_boot_frame(unsigned int frame)
 /**
  * まだ食べられていないドットを描く (走る絵より右にあるドットだけ)
  *
- * @param[in] eaten_x これより左のドットは, 食べられた (x 座標 [ドット])
+ * @param[in] eaten_x これより左のドットは食べられた (x 座標 [ドット])
  *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
@@ -580,7 +580,7 @@ static int draw_dots(int eaten_x)
 }
 
 /**
- * 絵をフレームバッファに描く (画面の外にはみ出した部分は, 描かない)
+ * 絵をフレームバッファに描く (画面の外にはみ出した部分は描かない)
  *
  * @param[in] sprite 絵 (NULL 不可)
  * @param[in] x      絵の左上の x 座標 [ドット] (画面の外でもよい)

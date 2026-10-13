@@ -1,4 +1,4 @@
-/* ADC エミュレータ (adc0) の, チャンネル 0 を, zephyr,user の io-channels に接続する */
+/* ADC エミュレータ (adc0) の, チャンネル 0 を zephyr,user の io-channels に接続する */
 #include <zephyr/dt-bindings/adc/adc.h>
 
 / {

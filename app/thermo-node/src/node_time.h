@@ -11,9 +11,9 @@
  * @file
  * @brief thermo-node の時刻 (拡張ボードの RTC: PCF8563)
  *
- * RTC は UTC を保持する. 読み出すときは, ローカルタイム (UTC に CONFIG_THERMO_UTC_OFFSET_MIN を
- * 足した時刻) に直す. RTC は, Devicetree の alias thermo-rtc で選ぶ. 使わないときは,
- * CONFIG_THERMO_RTC=n でビルドする (node_time.c は, ビルドされない. このヘッダの構造体は, 使える).
+ * RTC は UTC を保持する. 読み出すときはローカルタイム (UTC に CONFIG_THERMO_UTC_OFFSET_MIN を
+ * 足した時刻) に直す. RTC は Devicetree の alias thermo-rtc で選ぶ. 使わないときは
+ * CONFIG_THERMO_RTC=n でビルドする (node_time.c はビルドされない. このヘッダの構造体は使える).
  */
 
 #include <stdbool.h> /* bool */
@@ -21,7 +21,7 @@
 
 /** 日時 (ローカルタイム) */
 struct node_datetime {
-    bool valid;     /**< 時刻が設定済みで, 正しく読めたか (false のときは, 下の値を使わない) */
+    bool valid;     /**< 時刻が設定済みで, 正しく読めたか (false のときは下の値を使わない) */
     uint16_t year;  /**< 年 (2000 から 2100) */
     uint8_t month;  /**< 月 (1 から 12) */
     uint8_t day;    /**< 日 (1 から 31) */

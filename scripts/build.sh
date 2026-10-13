@@ -4,8 +4,8 @@
 # 使い方: scripts/build.sh [node|gateway|all]   (省略すると all. node と gateway の両方)
 #
 # 環境変数 (省略可): THERMO_DEBUG_LOG (OFF), THERMO_DISPLAY (y), THERMO_RTC (y),
-# THERMO_DHT_LOCK_IRQS (y), THERMO_BUZZER (y). 括弧の中が, 省略したときの値. node だけが使う
-# (THERMO_DEBUG_LOG は, 両方).
+# THERMO_DHT_LOCK_IRQS (y), THERMO_BUZZER (y). 括弧の中が省略したときの値. node だけが使う
+# (THERMO_DEBUG_LOG は両方).
 #
 # docker compose run --rm build / build-node / build-gateway から呼ぶ.
 set -eu

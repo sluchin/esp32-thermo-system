@@ -10,8 +10,8 @@
  *
  * ディスクがなく, マウントできないとき, 次のようになることを確認する.
  *  - backlog_init() が -ENODEV を返すこと
- *  - 追記と, 読み出しと, 送り終えたことの記録と, 時刻以降の記録の読み出しが, 使えないこと
- * (保存した記録は, 0 件)
+ *  - 追記と, 読み出しと, 送り終えたことの記録と, 時刻以降の記録の読み出しが使えないこと
+ * (保存した記録は 0 件)
  */
 
 #include <zephyr/ztest.h>
@@ -32,7 +32,7 @@ static void ignore(const struct backlog_record *rec, void *ctx)
     ARG_UNUSED(ctx);
 }
 
-/** マウントできないので, -ENODEV. 記録は, 0 件 */
+/** マウントできないので, -ENODEV. 記録は 0 件 */
 ZTEST(backlog_nodisk, test_init_fails_without_the_disk)
 {
     zassert_equal(backlog_init(), -ENODEV);

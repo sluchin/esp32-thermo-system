@@ -1,10 +1,10 @@
 # thermo-node の buzzer.c の単体テスト (Ztest).
-# PWM のコントローラを, 偽のもの (vnd,test-pwm. app.overlay) に置き換える. 偽のコントローラは,
-# 設定された周期とパルスを, 順に記録して, 失敗は, テストから設定する.
+# PWM のコントローラを偽のもの (vnd,test-pwm. app.overlay) に置き換える. 偽のコントローラは
+# 設定された周期とパルスを順に記録して, 失敗はテストから設定する.
 # システムのワークキューで, メロディを順に鳴らすので, 仮想の時間を進めて, 確認する.
 cmake_minimum_required(VERSION 3.20.0)
 
-# binding (thermo,buzzer) は, アプリの dts/bindings を使う
+# binding (thermo,buzzer) はアプリの dts/bindings を使う
 list(APPEND DTS_ROOT ${CMAKE_CURRENT_LIST_DIR}/../..)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})

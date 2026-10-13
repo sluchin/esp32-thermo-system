@@ -26,7 +26,7 @@
 
 DEFINE_FFF_GLOBALS
 
-/* 本物の `thermo` コマンドは, ここでは使わない. `sync` だけの `thermo` を作る */
+/* 本物の `thermo` コマンドはここでは使わない. `sync` だけの `thermo` を作る */
 /** 試験用の `thermo` コマンドのサブコマンド (`sync` だけ) */
 SHELL_STATIC_SUBCMD_SET_CREATE(thermo_cmds, THERMO_SHELL_EXTRA SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(thermo, &thermo_cmds, "Test of thermo", NULL);
@@ -103,7 +103,7 @@ static void before(void *fixture)
     wifi_time_fetch_fake.custom_fake = fake_fetch;
 }
 
-/** `thermo sync` は, WiFi で時刻を取って, RTC に設定する */
+/** `thermo sync` は WiFi で時刻を取って, RTC に設定する */
 ZTEST(thermo_wifi_shell, test_sync)
 {
     int ret = 0;                                /* 戻り値 */
@@ -158,7 +158,7 @@ static int fake_sd_check(unsigned int *pending)
     return 0;
 }
 
-/** `thermo sd` は, SD カードが使えることと, 未送信の数を表示する */
+/** `thermo sd` は SD カードが使えることと, 未送信の数を表示する */
 ZTEST(thermo_wifi_shell, test_sd)
 {
     int ret = 0;            /* 戻り値 */

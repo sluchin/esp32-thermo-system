@@ -3,9 +3,9 @@
 # 1 行に 1 つ. '#' から行末まではコメント.
 # app/warnings.cmake が読み込み, thermo-node と thermo-gateway の app ターゲット
 # (app/ 配下のソース) だけに付ける. Zephyr 本体には付けない.
-# コンパイラが受け付けないオプションは, 自動で外す.
-# 警告が出たら修正する. オプションを足したり外したりするときは, この一覧だけを直す.
-# (一覧は, ../calc/warnings.txt と同じ考え方)
+# コンパイラが受け付けないオプションは自動で外す.
+# 警告が出たら修正する. オプションを足したり外したりするときはこの一覧だけを直す.
+# (一覧は ../calc/warnings.txt と同じ考え方)
 
 # 基本
 -Wall
@@ -14,7 +14,7 @@
 -Wunused
 -Wuninitialized
 -Winit-self
-# -Wmissing-include-dirs は付けない (Zephyr の HAL が, 存在しないディレクトリを指すため)
+# -Wmissing-include-dirs は付けない (Zephyr の HAL が存在しないディレクトリを指すため)
 -Wundef
 
 # 書式文字列
@@ -82,7 +82,7 @@
 # 付けないオプション (理由)
 #   -Wpadded                      構造体のパディングを全て警告する (バグの検出に役立たず, 件数も多い)
 #   -Wdeclaration-after-statement 文の途中での宣言を警告する (このプロジェクトの書き方と合わない)
-#   -Wlong-long, -Wtraditional    C99 以降の書き方を, 全て警告する
+#   -Wlong-long, -Wtraditional    C99 以降の書き方を全て警告する
 #   -Wunsafe-loop-optimizations   -funsafe-loop-optimizations を付けたときだけ意味がある
 #   -Winline, -Waggregate-return  最適化や, 構造体の戻り値の方針に関するもので, バグの検出ではない
 #   -Wsuggest-attribute=pure/const/malloc  最適化のヒントで, 正しさには関係しない

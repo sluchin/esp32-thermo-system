@@ -56,7 +56,7 @@ static struct zsock_addrinfo resolved = {
 static const char *ssid_value;
 
 /**
- * cfg_get() のモック動作 (SSID とパスワードを返す. SSID は, ssid_value)
+ * cfg_get() のモック動作 (SSID とパスワードを返す. SSID は ssid_value)
  *
  * @param[in] key 項目
  * @return 値
@@ -129,7 +129,7 @@ static void before(void *fixture)
     sntp_query_fake.custom_fake = sntp_query_ok;
 }
 
-/** 初期化は, 設定を読み込んで, WiFi の準備をする */
+/** 初期化は設定を読み込んで, WiFi の準備をする */
 ZTEST(wifi_time, test_init)
 {
     zassert_equal(wifi_time_init(), EXIT_SUCCESS);

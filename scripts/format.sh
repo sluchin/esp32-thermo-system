@@ -1,10 +1,10 @@
 #!/bin/bash
-# C ソース (app/ 配下) の整形を, clang-format (.clang-format) で確認する / 直す.
+# C ソース (app/ 配下) の整形を clang-format (.clang-format) で確認する / 直す.
 #
 #   scripts/format.sh        整形が必要なファイルがあれば, 失敗する (確認だけ. ファイルは変えない)
 #   scripts/format.sh --fix  整形して, ファイルを書き換える
 #
-# docker compose run --rm format / format-fix から呼ぶ (clang-format は, Docker イメージにある).
+# docker compose run --rm format / format-fix から呼ぶ (clang-format は Docker イメージにある).
 set -eu
 
 cd "$(dirname "$0")/.."

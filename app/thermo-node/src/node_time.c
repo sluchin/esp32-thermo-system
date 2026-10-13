@@ -8,9 +8,9 @@
  * @file
  * @brief thermo-node の時刻の実装 (Zephyr の RTC API で, 拡張ボードの PCF8563 を読み書きする)
  *
- * RTC のデバイスは, Devicetree の alias thermo-rtc で選ぶ. PCF8563 のドライバは, このアプリの
- * drivers/rtc_pcf8563.c (Zephyr v4.3 のドライバは, 月と年の扱いがチップと合わないので使わない).
- * このファイルは, RTC の時刻 (UTC) と UNIX 時刻の換算とローカルタイムへの変換を受け持つ.
+ * RTC のデバイスは Devicetree の alias thermo-rtc で選ぶ. PCF8563 のドライバはこのアプリの
+ * drivers/rtc_pcf8563.c (Zephyr v4.3 のドライバは月と年の扱いがチップと合わないので使わない).
+ * このファイルは RTC の時刻 (UTC) と UNIX 時刻の換算とローカルタイムへの変換を受け持つ.
  */
 
 #include <zephyr/logging/log.h>
@@ -26,7 +26,7 @@
 
 LOG_MODULE_REGISTER(node_time_thermo_node, THERMO_LOG_LEVEL);
 
-/** rtc_time の tm_year の基準 (tm_year は, 1900 年からの年数) */
+/** rtc_time の tm_year の基準 (tm_year は 1900 年からの年数) */
 #define TM_YEAR_BASE       1900
 /** 1 分の秒数 */
 #define SECONDS_PER_MINUTE 60LL
@@ -108,7 +108,7 @@ int node_time_init(void)
  * @param[out] local 日時の格納先 (NULL 不可. 失敗したときは valid が false)
  *
  * @retval EXIT_SUCCESS 成功
- * @retval -ENODATA     時刻が未設定, または, RTC の値が不正
+ * @retval -ENODATA     時刻が未設定, または RTC の値が不正
  * @retval negative     RTC との通信の失敗 (負の errno)
  */
 int node_time_get(struct node_datetime *local)
@@ -144,7 +144,7 @@ int node_time_get(struct node_datetime *local)
 }
 
 /**
- * @brief RTC の時刻を, UTC の UNIX 時刻で読む (SD カードに溜める測定値の時刻に使う)
+ * @brief RTC の時刻を UTC の UNIX 時刻で読む (SD カードに溜める測定値の時刻に使う)
  *
  * @param[out] unix_s UTC の UNIX 時刻 [s]
  *
@@ -244,7 +244,7 @@ static int read_utc(int64_t *unix_s)
  *
  * 1 月と 2 月を前の年の 13 月と 14 月として数える方法 (3 月始まり) で, うるう日が年の最後に
  * 来るようにして, 400 年ごとの周期で計算する (H. Hinnant の civil 日付のアルゴリズム).
- * 1970 年以降の日付だけを扱う. 式の中の小さな数 (2, 3, 5, 9, 12 など) は, このアルゴリズムの
+ * 1970 年以降の日付だけを扱う. 式の中の小さな数 (2, 3, 5, 9, 12 など) はこのアルゴリズムの
  * 定数 (月の並びの規則) なので, 名前を付けていない.
  *
  * @param[in] year  年 (1970 以降)

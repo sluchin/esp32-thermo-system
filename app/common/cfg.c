@@ -29,7 +29,7 @@ LOG_MODULE_REGISTER(thermo_cfg, THERMO_LOG_LEVEL);
 /**
  * テザリングに切り替える前の SSID とパスワードの項目の名前
  *
- * 値は、SSID、NUL、パスワード、NUL の順に並べて、1 つの項目で保存する (保存の途中で電源が切れても、
+ * 値は SSID, NUL, パスワード, NUL の順に並べて, 1 つの項目で保存する (保存の途中で電源が切れても,
  * 片方だけが残らない).
  */
 #define BACKUP_NAME        "tether_bak"
@@ -48,7 +48,7 @@ static const struct {
 /**
  * フラッシュから読み込んだ, CA 証明書の保存先
  *
- * tls_credential_add() はデータをコピーせず, ポインタを保持するので登録している間は,
+ * tls_credential_add() はデータをコピーせず, ポインタを保持するので登録している間は
  * 領域を残しておく必要がある.
  */
 static uint8_t ca_buf[CFG_CERT_MAX];
@@ -76,7 +76,7 @@ static char values[CFG_KEY_COUNT][CFG_ENDPOINT_MAX + 1U];
 static char backup_ssid[CFG_SSID_MAX + 1U];
 /** テザリングに切り替える前のパスワード (NUL で終わる) */
 static char backup_psk[CFG_PSK_MAX + 1U];
-/** テザリングに切り替える前の設定が、保存されているか */
+/** テザリングに切り替える前の設定が保存されているか */
 static bool backup_present;
 
 /** 証明書をフラッシュに保存するときの一時的な領域 (最も大きい証明書が入る大きさ) */
@@ -254,7 +254,7 @@ bool cfg_is_complete(void)
 {
     size_t i = 0U; /* ループ用の添字 */
 
-    /* PSK はオープンネットワークでは, 空 */
+    /* PSK はオープンネットワークでは空 */
     if ((values[CFG_KEY_SSID][0] == '\0') || (values[CFG_KEY_ENDPOINT][0] == '\0') ||
         (values[CFG_KEY_CLIENT_ID][0] == '\0')) {
         return false;
@@ -315,14 +315,14 @@ int cfg_reset(void)
 /**
  * @brief スマートフォンのテザリングの SSID とパスワードに切り替える
  *
- * 切り替える前の SSID とパスワードは、まだ保存していなければ、フラッシュに保存する
- * (保存してあるときは、そのまま残す. 続けて呼んでも、元の設定を失わない).
- * 元の設定には、cfg_restore() で戻せる.
+ * 切り替える前の SSID とパスワードはまだ保存していなければ, フラッシュに保存する
+ * (保存してあるときはそのまま残す. 続けて呼んでも, 元の設定を失わない).
+ * 元の設定には cfg_restore() で戻せる.
  *
  * @param[in] ssid テザリングの SSID (空でないこと)
  * @param[in] psk  テザリングのパスワード (空でもよい)
  * @retval EXIT_SUCCESS 成功
- * @retval -EINVAL      SSID が空か、SSID かパスワードが長すぎる
+ * @retval -EINVAL      SSID が空か, SSID かパスワードが長すぎる
  * @retval negative     保存に失敗 (負の errno)
  */
 int cfg_tether(const char *ssid, const char *psk)
@@ -366,10 +366,10 @@ int cfg_tether(const char *ssid, const char *psk)
 /**
  * @brief テザリングに切り替える前の SSID とパスワードに戻す
  *
- * 戻したら、保存してあった元の設定は、消す.
+ * 戻したら, 保存してあった元の設定は消す.
  *
  * @retval EXIT_SUCCESS 成功
- * @retval -ENOENT      戻す設定が、保存されていない
+ * @retval -ENOENT      戻す設定が保存されていない
  * @retval negative     失敗 (負の errno)
  */
 int cfg_restore(void)
@@ -390,7 +390,7 @@ int cfg_restore(void)
         return err;
     }
 
-    /* 戻せたあとで消す (消すのに失敗したら、次の restore で、同じ値を書き直せる) */
+    /* 戻せたあとで消す (消すのに失敗したら, 次の restore で, 同じ値を書き直せる) */
     settings_name(name, BACKUP_NAME);
     err = settings_delete(name);
     if (err != 0) {
@@ -402,7 +402,7 @@ int cfg_restore(void)
 }
 
 /**
- * @brief テザリングに切り替える前の設定が、保存されているか調べる
+ * @brief テザリングに切り替える前の設定が保存されているか調べる
  *
  * @return 保存されていれば true
  */
@@ -414,7 +414,7 @@ bool cfg_has_backup(void)
 /**
  * @brief テザリングに切り替える前の SSID を返す
  *
- * @return SSID (NUL で終わる. 保存されていなければ、空の文字列)
+ * @return SSID (NUL で終わる. 保存されていなければ, 空の文字列)
  */
 const char *cfg_backup_ssid(void)
 {
@@ -441,7 +441,7 @@ int cfg_init(void)
         return err;
     }
 
-    /* 2 回目以降 (WiFi の初期化と、クラウドの初期化の、両方が呼ぶ) は、登録済み */
+    /* 2 回目以降 (WiFi の初期化と, クラウドの初期化の, 両方が呼ぶ) は登録済み */
     err = settings_register(&handler);
     if ((err != 0) && (err != -EEXIST)) {
         LOG_ERR("Registering the settings handler failed (err %d)", err);
@@ -495,12 +495,12 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
 }
 
 /**
- * 文字列の長さを、最大 max までで数える (strnlen と同じ. native_sim の C の規格の設定では、
- * strnlen の宣言が見えないので、使わない)
+ * 文字列の長さを最大 max までで数える (strnlen と同じ. native_sim の C の規格の設定では
+ * strnlen の宣言が見えないので, 使わない)
  *
  * @param[in] data 文字列の先頭
  * @param[in] max  数える最大の長さ [バイト]
- * @return NUL までの長さ. max までに NUL がなければ、max
+ * @return NUL までの長さ. max までに NUL がなければ, max
  */
 static size_t bounded_len(const uint8_t *data, size_t max)
 {
@@ -510,7 +510,7 @@ static size_t bounded_len(const uint8_t *data, size_t max)
 }
 
 /**
- * テザリングに切り替える前の設定を、消す (RAM だけ)
+ * テザリングに切り替える前の設定を消す (RAM だけ)
  */
 static void clear_backup(void)
 {
@@ -520,7 +520,7 @@ static void clear_backup(void)
 }
 
 /**
- * settings から読み込んだ、テザリングに切り替える前の SSID とパスワードを登録する
+ * settings から読み込んだ, テザリングに切り替える前の SSID とパスワードを登録する
  *
  * @param[in] len     保存されている値の長さ
  * @param[in] read_cb 値を読むコールバック
@@ -544,7 +544,7 @@ static void load_backup(size_t len, settings_read_cb read_cb, void *cb_arg)
         return;
     }
 
-    /* 並びは、SSID、NUL、パスワード、NUL. 終わりの NUL がなければ、壊れている */
+    /* 並びは SSID, NUL, パスワード, NUL. 終わりの NUL がなければ, 壊れている */
     ssid_len = bounded_len(blob, len);
     if (len <= (ssid_len + 1U)) {
         LOG_WRN("Ignoring the broken '%s'", BACKUP_NAME);

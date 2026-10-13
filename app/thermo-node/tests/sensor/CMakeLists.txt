@@ -1,7 +1,7 @@
-# thermo-node の sensor.c の単体テスト (Ztest). 5 つの構成を, TEST_MODE で切り替える.
+# thermo-node の sensor.c の単体テスト (Ztest). 5 つの構成を TEST_MODE で切り替える.
 #   simulator: シミュレーション値 (CONFIG_SIMULATOR=y. センサも ADC もない)
-#   sensor_api: 偽のセンサ (vnd,test-sensor) を, alias thermo-sensor に接続した経路 (DHT11 など)
-#   adc      : ADC エミュレータ (zephyr,adc-emul) を, io-channels に接続した経路
+#   sensor_api: 偽のセンサ (vnd,test-sensor) を alias thermo-sensor に接続した経路 (DHT11 など)
+#   adc      : ADC エミュレータ (zephyr,adc-emul) を io-channels に接続した経路
 #   adc_setup_error: adc と同じだが, チャンネルの設定が失敗する (sensor_init() のエラー経路)
 #   adc_convert_error: ADC のチャンネルのノードがなく, 電圧への換算が失敗する (sensor_read() のエラー経路)
 cmake_minimum_required(VERSION 3.20.0)

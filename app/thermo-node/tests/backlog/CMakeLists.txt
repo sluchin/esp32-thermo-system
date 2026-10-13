@@ -1,5 +1,5 @@
 # thermo-node の backlog.c の単体テスト (Ztest). RAM ディスクの FatFS (本物のファイルシステム) を使う.
-# SD カードの代わりに, native_sim の RAM ディスク (app.overlay の ramdisk0. ディスク名 RAM) を, /RAM: にマウントする.
+# SD カードの代わりに, native_sim の RAM ディスク (app.overlay の ramdisk0. ディスク名 RAM) を /RAM: にマウントする.
 cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})

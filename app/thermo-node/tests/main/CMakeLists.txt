@@ -1,6 +1,6 @@
 # thermo-node の main.c の単体テスト (Ztest + FFF).
-# sensor と ble の関数 (sensor_init() など) を, FFF のモックに置き換える.
-# main.c の main() は, Zephyr のテストの main() と名前が同じなので, 名前を変える.
+# sensor と ble の関数 (sensor_init() など) を FFF のモックに置き換える.
+# main.c の main() は Zephyr のテストの main() と名前が同じなので, 名前を変える.
 cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
@@ -13,19 +13,19 @@ target_sources(app PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/../../src/main.c
   ${CMAKE_CURRENT_LIST_DIR}/../../src/boot_assets.c
   ${CMAKE_CURRENT_LIST_DIR}/../../src/button_assets.c)
-# 名前を変えた main() は, ヘッダに宣言がないので, その警告は出さない.
-# CONFIG_THERMO_DISPLAY と CONFIG_THERMO_RTC は, OLED の初期化と表示 (oled.h の関数) と, RTC の時刻
-# (node_time.h の関数) を, 有効にする. CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER は, 起動画面と
-# 起動音 (oled_show_boot() と buzzer.h の関数) を, 有効にする (どれもモック. 素材 boot_assets.c は, 本物).
-# CONFIG_THERMO_WIFI_TIME は, RTC に時刻がないときの, WiFi での時刻の取得 (wifi_time.h の関数. モック) を, 有効にする.
-# CONFIG_THERMO_DISPLAY_TIMEOUT_SEC=0 は, OLED を消さない (消えるときの確認は, tests/main_display_timeout で行う).
-# CONFIG_THERMO_DIRECT_MQTT は, ゲートウェイにつながらないときの, WiFi での直接の送信 (direct.h の関数. モック) を, 有効にする.
-# CONFIG_THERMO_BUTTON_SOUND は, ボタンを押したときの音 (buzzer_play() はモック. 素材 button_assets.c は, 本物) を, 有効にする
+# 名前を変えた main() はヘッダに宣言がないので, その警告は出さない.
+# CONFIG_THERMO_DISPLAY と CONFIG_THERMO_RTC は OLED の初期化と表示 (oled.h の関数) と, RTC の時刻
+# (node_time.h の関数) を有効にする. CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER は起動画面と
+# 起動音 (oled_show_boot() と buzzer.h の関数) を有効にする (どれもモック. 素材 boot_assets.c は本物).
+# CONFIG_THERMO_WIFI_TIME は RTC に時刻がないときの, WiFi での時刻の取得 (wifi_time.h の関数. モック) を有効にする.
+# CONFIG_THERMO_DISPLAY_TIMEOUT_SEC=0 は OLED を消さない (消えるときの確認は tests/main_display_timeout で行う).
+# CONFIG_THERMO_DIRECT_MQTT はゲートウェイにつながらないときの, WiFi での直接の送信 (direct.h の関数. モック) を有効にする.
+# CONFIG_THERMO_BUTTON_SOUND はボタンを押したときの音 (buzzer_play() はモック. 素材 button_assets.c は本物) を有効にする
 set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/../../src/main.c PROPERTIES
   COMPILE_DEFINITIONS "main=thermo_node_main;CONFIG_THERMO_DISPLAY=1;CONFIG_THERMO_RTC=1;CONFIG_THERMO_BOOT_SCREEN=1;CONFIG_THERMO_BUZZER=1;CONFIG_THERMO_WIFI_TIME=1;CONFIG_THERMO_BUTTON_SOUND=1;CONFIG_THERMO_GRAPH_STEP_SEC=30;CONFIG_THERMO_DISPLAY_TIMEOUT_SEC=0;CONFIG_THERMO_DIRECT_MQTT=1"
   COMPILE_OPTIONS "-Wno-missing-prototypes;-Wno-missing-declarations")
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_LIST_DIR}/../../../warnings.cmake)
-# モック (FFF の FAKE_VALUE_FUNC) は, ヘッダにある関数を, 同じ型で再宣言する
+# モック (FFF の FAKE_VALUE_FUNC) はヘッダにある関数を同じ型で再宣言する
 target_compile_options(app PRIVATE -Wno-redundant-decls)

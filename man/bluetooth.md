@@ -634,3 +634,43 @@ ATT のエラーコードを、GATT のコールバックの戻り値に変え�
 | `value` | in | 16 ビットの UUID の値 |
 
 使用箇所: [`app/thermo-gateway/src/ble.c:72`](../app/thermo-gateway/src/ble.c#L72)
+
+### BT_GAP_MS_TO_SCAN_INTERVAL
+
+```c
+#define BT_GAP_MS_TO_SCAN_INTERVAL(_interval)
+```
+
+ミリ秒を、スキャンの間隔の単位 (0.625 ms) に換算する。
+
+| 引数 | 入出力 | 説明 |
+|:---|:---:|:---|
+| `_interval` | in | スキャンの間隔 [ms]。範囲は、`CONFIG_BT_EXT_ADV` が有効なら 2.5 から 40959.375、そうでなければ 2.5 から 10240 |
+
+戻り値: スキャンの間隔 (0.625 ms の単位。`uint16_t`)。
+
+注意:
+
+- 単位の倍数でなければ、切り捨てる。例えば `BT_GAP_MS_TO_SCAN_INTERVAL(21)` は 20.625 ms になる。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:245`](../app/thermo-gateway/src/ble.c#L245)
+
+### BT_GAP_MS_TO_SCAN_WINDOW
+
+```c
+#define BT_GAP_MS_TO_SCAN_WINDOW(_window)
+```
+
+ミリ秒を、スキャンの窓 (1 回の間隔のうち、受信する時間) の単位 (0.625 ms) に換算する。
+
+| 引数 | 入出力 | 説明 |
+|:---|:---:|:---|
+| `_window` | in | スキャンの窓 [ms]。範囲は、`BT_GAP_MS_TO_SCAN_INTERVAL` と同じ |
+
+戻り値: スキャンの窓 (0.625 ms の単位。`uint16_t`)。
+
+注意:
+
+- 単位の倍数でなければ、切り捨てる。例えば `BT_GAP_MS_TO_SCAN_WINDOW(21)` は 20.625 ms になる。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:246`](../app/thermo-gateway/src/ble.c#L246)

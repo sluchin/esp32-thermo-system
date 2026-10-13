@@ -11,9 +11,9 @@
  * @file
  * @brief アプリのログのレベル (thermo-node と thermo-gateway で共有する)
  *
- * アプリのモジュールは, LOG_MODULE_REGISTER() のレベルに THERMO_LOG_LEVEL を渡す.
+ * アプリのモジュールは LOG_MODULE_REGISTER() のレベルに THERMO_LOG_LEVEL を渡す.
  * cmake の -DTHERMO_DEBUG_LOG=ON を付けると, アプリのソースだけに THERMO_LOG_LEVEL=4 (DBG) が付く.
- * Zephyr のモジュール (Bluetooth, ネットワークなど) は, CONFIG_LOG_DEFAULT_LEVEL のままで,
+ * Zephyr のモジュール (Bluetooth, ネットワークなど) は CONFIG_LOG_DEFAULT_LEVEL のままで,
  * DBG のログは出ない (出すと, ログの量が多すぎて, 動かなくなる).
  */
 

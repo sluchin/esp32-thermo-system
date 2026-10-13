@@ -30,7 +30,7 @@
 #include "cloud.h"
 
 /*
- * アプリ固有のサブコマンド (THERMO_SHELL_EXTRA) を, shell_extra.h で足せる (thermo-node の sync).
+ * アプリ固有のサブコマンド (THERMO_SHELL_EXTRA) を shell_extra.h で足せる (thermo-node の sync).
  * shell_extra.h がなければ (thermo-gateway), 足さない.
  */
 #if __has_include("shell_extra.h")
@@ -73,8 +73,8 @@ static int cmd_set(const struct shell *sh, size_t argc, char **argv)
 /**
  * `thermo tether <SSID> [パスワード]`: テザリングの SSID とパスワードに切り替える
  *
- * 切り替える前の SSID とパスワードは, 保存して残す (`thermo restore` で戻せる).
- * 反映するには, 続けて `thermo apply` を実行する.
+ * 切り替える前の SSID とパスワードは保存して残す (`thermo restore` で戻せる).
+ * 反映するには続けて `thermo apply` を実行する.
  *
  * @param[in] sh   シェル
  * @param[in] argc 引数の数 (2 か 3)
@@ -98,7 +98,7 @@ static int cmd_tether(const struct shell *sh, size_t argc, char **argv)
 /**
  * `thermo restore`: テザリングに切り替える前の SSID とパスワードに戻す
  *
- * 反映するには, 続けて `thermo apply` を実行する.
+ * 反映するには続けて `thermo apply` を実行する.
  *
  * @param[in] sh   シェル
  * @param[in] argc 使用しない
@@ -234,7 +234,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
         SHELL_CMD(restore, NULL, "restore the ssid and psk before the tethering", cmd_restore),
         SHELL_CMD(show, NULL, "show the settings (the password is hidden)", cmd_show),
         /*
-         * コマンド名のハイフンは, clang-format が前後に空白を入れて ("save - certs"),
+         * コマンド名のハイフンは clang-format が前後に空白を入れて ("save - certs"),
          * 別の名前にしてしまうので整形しない
          */
         /* clang-format off */

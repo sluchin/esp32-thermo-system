@@ -9,10 +9,10 @@
  * @brief history.c の単体テスト
  *
  * 次を確認する.
- *  - 同じ区切りの中の測定値は, 平均 1 点になること (今の区切りの平均も取り出せる)
+ *  - 同じ区切りの中の測定値は平均 1 点になること (今の区切りの平均も取り出せる)
  *  - 区切りが変わると, 前の区切りの平均を覚えること
  *  - 満杯になったら, 古い点から上書きして, 古い順に取り出せること
- *  - 取り出す数が少ないときは, 新しい点だけを取り出すこと
+ *  - 取り出す数が少ないときは新しい点だけを取り出すこと
  */
 
 #include <zephyr/ztest.h>
@@ -47,7 +47,7 @@ ZTEST(history, test_get_empty)
     zassert_equal(history_get(&h, out, HISTORY_SIZE), 0U);
 }
 
-/** 同じ区切りの中の測定値は, 平均 1 点 (今の区切りの平均) として取り出せる */
+/** 同じ区切りの中の測定値は平均 1 点 (今の区切りの平均) として取り出せる */
 ZTEST(history, test_get_current_bucket_average)
 {
     history_add(&h, 200, 0, STEP_MS);
@@ -70,7 +70,7 @@ ZTEST(history, test_bucket_change_keeps_previous_average)
     zassert_equal(out[1], 300);
 }
 
-/** 平均は, 0 に向かって切り捨てる (負の値も, 同じ) */
+/** 平均は 0 に向かって切り捨てる (負の値も, 同じ) */
 ZTEST(history, test_average_truncates_toward_zero)
 {
     history_add(&h, -35, 0, STEP_MS);
@@ -91,7 +91,7 @@ ZTEST(history, test_wraps_and_returns_oldest_first)
         history_add(&h, (int16_t)i, (int64_t)i * STEP_MS, STEP_MS);
     }
 
-    /* 覚えているのは, 区切り 1 から 129 の 129 点 (取り出すのは, 新しい 128 点) */
+    /* 覚えているのは区切り 1 から 129 の 129 点 (取り出すのは新しい 128 点) */
     n = history_get(&h, out, HISTORY_SIZE);
     zassert_equal(n, HISTORY_SIZE);
     zassert_equal(out[0], 2, "oldest");
@@ -99,7 +99,7 @@ ZTEST(history, test_wraps_and_returns_oldest_first)
     zassert_equal(out[HISTORY_SIZE - 1U], 129, "newest (the current bucket)");
 }
 
-/** 取り出す数が少ないときは, 新しい点だけを古い順に取り出す */
+/** 取り出す数が少ないときは新しい点だけを古い順に取り出す */
 ZTEST(history, test_get_limited_returns_newest)
 {
     history_add(&h, 10, 0, STEP_MS);
@@ -111,20 +111,20 @@ ZTEST(history, test_get_limited_returns_newest)
     zassert_equal(out[1], 30);
 }
 
-/** 測定値のなかった区切りは, HISTORY_NONE の点になる (途中の区切りも, 今の区切りの手前も) */
+/** 測定値のなかった区切りは HISTORY_NONE の点になる (途中の区切りも, 今の区切りの手前も) */
 ZTEST(history, test_gap_becomes_none)
 {
     history_add(&h, 10, 0, STEP_MS);
     history_add(&h, 40, 3 * STEP_MS, STEP_MS);
 
-    /* 区切り 1 と 2 は, 測定値なし */
+    /* 区切り 1 と 2 は測定値なし */
     zassert_equal(history_get(&h, out, HISTORY_SIZE), 4U);
     zassert_equal(out[0], 10);
     zassert_equal(out[1], HISTORY_NONE);
     zassert_equal(out[2], HISTORY_NONE);
     zassert_equal(out[3], 40);
 
-    /* 次の点が覚えられても, 間は, 同じ */
+    /* 次の点が覚えられても, 間は同じ */
     history_add(&h, 50, 5 * STEP_MS, STEP_MS);
     zassert_equal(history_get(&h, out, HISTORY_SIZE), 6U);
     zassert_equal(out[3], 40);
@@ -133,7 +133,7 @@ ZTEST(history, test_gap_becomes_none)
     zassert_equal(history_last(&h), 40);
 }
 
-/** 測定値のない区切りが多すぎても, 点の数は, HISTORY_SIZE まで (最新の点が最後) */
+/** 測定値のない区切りが多すぎても, 点の数は HISTORY_SIZE まで (最新の点が最後) */
 ZTEST(history, test_gap_is_limited)
 {
     unsigned int n = 0U; /* 取り出した点の数 */
@@ -150,21 +150,21 @@ ZTEST(history, test_gap_is_limited)
     zassert_equal(history_last(&h), 20);
 }
 
-/** 保存してあった点を戻す: 間の区切りは HISTORY_NONE. 今の区切りの測定値は, 変わらない */
+/** 保存してあった点を戻す: 間の区切りは HISTORY_NONE. 今の区切りの測定値は変わらない */
 ZTEST(history, test_restore)
 {
     history_restore(&h, 2, 20);
     history_restore(&h, 5, 50);
     zassert_equal(history_last(&h), 50);
 
-    /* 戻しただけでは, 今の区切りの点はない */
+    /* 戻しただけでは今の区切りの点はない */
     zassert_equal(history_get(&h, out, HISTORY_SIZE), 4U);
     zassert_equal(out[0], 20);
     zassert_equal(out[1], HISTORY_NONE);
     zassert_equal(out[2], HISTORY_NONE);
     zassert_equal(out[3], 50);
 
-    /* 区切り 6 から 8 までの間は測定値なし. 区切り 9 の測定値が, 今の点 */
+    /* 区切り 6 から 8 までの間は測定値なし. 区切り 9 の測定値が今の点 */
     history_add(&h, 90, 9 * STEP_MS, STEP_MS);
     zassert_equal(history_get(&h, out, HISTORY_SIZE), 8U);
     zassert_equal(out[3], 50);

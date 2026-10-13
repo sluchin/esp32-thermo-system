@@ -83,7 +83,7 @@ ENV/
 # シリアルコンソールのログ (DEBUG_LOG.md: picocom --logfile debug.log)
 /debug.log
 
-# 元のスクリーンショット (画面右上にアカウント ID が写っている). assets/ には, 塗りつぶした画像 (aws-*.png) だけを置く
+# 元のスクリーンショット (画面右上にアカウント ID が写っている). assets/ には塗りつぶした画像 (aws-*.png) だけを置く
 /assets/Screenshot*
 /assets/*.pdf
 

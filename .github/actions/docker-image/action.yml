@@ -1,8 +1,8 @@
 name: Build the development image
 description: >
-  開発用の Docker イメージ (Dockerfile) を, esp32-thermo-system:latest としてビルドする.
-  docker compose のサービスは, このイメージを使う. レイヤーを GitHub Actions のキャッシュに
-  保存するので, 2 回目からは, 短時間で終わる (ビルドコンテキストは, west.yml だけ).
+  開発用の Docker イメージ (Dockerfile) を esp32-thermo-system:latest としてビルドする.
+  docker compose のサービスはこのイメージを使う. レイヤーを GitHub Actions のキャッシュに
+  保存するので, 2 回目からは短時間で終わる (ビルドコンテキストは west.yml だけ).
   使う前に, actions/checkout を実行しておくこと.
 
 runs:
@@ -14,7 +14,7 @@ runs:
     - name: Build the image (with layer cache)
       uses: docker/build-push-action@v6
       env:
-        # ビルドの記録 (<owner>~<repo>~XXXXXX.dockerbuild) を, アーティファクトに保存しない
+        # ビルドの記録 (<owner>~<repo>~XXXXXX.dockerbuild) をアーティファクトに保存しない
         DOCKER_BUILD_RECORD_UPLOAD: "false"
       with:
         context: .

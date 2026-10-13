@@ -1,5 +1,5 @@
 # thermo-node の ble.c の単体テスト (Ztest + FFF).
-# Bluetooth スタックは使わず, bt_enable() などを, FFF のモックに置き換える.
+# Bluetooth スタックは使わず, bt_enable() などを FFF のモックに置き換える.
 cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
@@ -10,15 +10,15 @@ target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src
 target_sources(app PRIVATE
   src/test_ble.c
   ${CMAKE_CURRENT_LIST_DIR}/../../src/ble.c)
-# CONFIG_BT_DEVICE_NAME は, Bluetooth を有効にしたときだけ, Kconfig が定義する.
+# CONFIG_BT_DEVICE_NAME は Bluetooth を有効にしたときだけ, Kconfig が定義する.
 # ここでは Bluetooth スタックを使わないので, 自分で定義する.
 target_compile_definitions(app PRIVATE "CONFIG_BT_DEVICE_NAME=\"Thermo-Node\"")
 # CONFIG_BT_MAX_CONN も, Bluetooth を有効にしたときだけ, Kconfig が定義する (接続の空きで, アドバタイズを続けるかが決まる)
 target_compile_definitions(app PRIVATE CONFIG_BT_MAX_CONN=2)
-# CONFIG_THERMO_RTC は, 時刻の特性 (ゲートウェイから受け取る時刻) を有効にする (アプリの Kconfig が定義する)
+# CONFIG_THERMO_RTC は時刻の特性 (ゲートウェイから受け取る時刻) を有効にする (アプリの Kconfig が定義する)
 target_compile_definitions(app PRIVATE CONFIG_THERMO_RTC=1)
 
 # 警告オプション (app/warnings.txt). 警告が出たら修正する
 include(${CMAKE_CURRENT_LIST_DIR}/../../../warnings.cmake)
-# モック (FFF の FAKE_VALUE_FUNC) は, ヘッダにある関数を, 同じ型で再宣言する
+# モック (FFF の FAKE_VALUE_FUNC) はヘッダにある関数を同じ型で再宣言する
 target_compile_options(app PRIVATE -Wno-redundant-decls)

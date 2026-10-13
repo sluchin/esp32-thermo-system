@@ -20,7 +20,7 @@
 #include "sensor.h"
 #include "thermo_ble_uuid.h"
 
-/* 実機のセンサを使うかを Devicetree で決める (シミュレータは, 常にシミュレーション値) */
+/* 実機のセンサを使うかを Devicetree で決める (シミュレータは常にシミュレーション値) */
 #if !defined(CONFIG_SIMULATOR) && DT_HAS_ALIAS(thermo_sensor)
 #include <zephyr/drivers/sensor.h>
 /** センサ API (DHT11 など) を使うビルドであることを示す */
@@ -60,7 +60,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 /**
  * @brief センサを初期化する
  *
- * Devicetree にセンサも ADC チャンネルもない場合 (シミュレータなど) は, 警告をログに出すだけで,
+ * Devicetree にセンサも ADC チャンネルもない場合 (シミュレータなど) は警告をログに出すだけで,
  * 成功とする.
  *
  * @retval EXIT_SUCCESS 成功
@@ -103,7 +103,7 @@ int sensor_init(void)
 /**
  * @brief 温度と湿度を読み取る
  *
- * センサがない場合は, 乱数によるシミュレーション値を返す. ADC は, 湿度を測れないので,
+ * センサがない場合は乱数によるシミュレーション値を返す. ADC は湿度を測れないので,
  * 湿度に THERMO_HUMIDITY_NONE を返す.
  *
  * @param[out] temp_x10     温度 [℃ の 10 倍] の格納先 (NULL 不可)
@@ -133,7 +133,7 @@ int sensor_read(int16_t *temp_x10, uint16_t *humidity_x10)
     }
     *temp_x10 = (int16_t)(sensor_value_to_milli(&temp) / MILLI_PER_X10);
 
-    /* 湿度を測れないセンサ (-ENOTSUP) は, 湿度なしとして, 成功にする */
+    /* 湿度を測れないセンサ (-ENOTSUP) は湿度なしとして, 成功にする */
     err = sensor_channel_get(sensor_dev, SENSOR_CHAN_HUMIDITY, &humidity);
     if (err == -ENOTSUP) {
         *humidity_x10 = THERMO_HUMIDITY_NONE;
