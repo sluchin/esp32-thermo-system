@@ -1,5 +1,5 @@
 # thermo-node の単体テスト: sdlog.c (ログの SD カードへの保存. RAM ディスクの FatFS を使う).
-# twister がこのファイルを探して, native_sim 上で, 実行する (docker compose run --rm test-node).
+# twister がこのファイルを探して, native_sim 上で実行する (docker compose run --rm test-node).
 tests:
   thermo_node.sdlog:
     platform_allow:

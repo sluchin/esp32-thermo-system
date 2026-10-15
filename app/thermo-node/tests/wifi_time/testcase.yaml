@@ -1,5 +1,5 @@
 # thermo-node の単体テスト: wifi_time.c (wifi_cfg, wifi_link, SNTP は FFF のモック. 接続, 時刻の取得, 切断, 各段階の失敗を確認する).
-# twister がこのファイルを探して, native_sim 上で, 実行する (docker compose run --rm test-node).
+# twister がこのファイルを探して, native_sim 上で実行する (docker compose run --rm test-node).
 tests:
   thermo_node.wifi_time:
     platform_allow:

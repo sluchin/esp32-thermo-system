@@ -1,5 +1,5 @@
 # thermo-node の単体テスト: main.c の OLED の自動消灯 (sensor / ble / cloud は FFF のモック. メインループは別スレッドで動かす).
-# twister がこのファイルを探して, native_sim 上で, 実行する (docker compose run --rm test-node).
+# twister がこのファイルを探して, native_sim 上で実行する (docker compose run --rm test-node).
 tests:
   thermo_node.main_display_timeout:
     platform_allow:

@@ -10,7 +10,7 @@ x-build-env: &build-env
   - THERMO_BUZZER
 
 services:
-  # thermo-node のビルド (scripts/build.sh. THERMO_DHT_LOCK_IRQS=n で, DHT11 の読み取りの間, 割り込みを止めない設定にできる. 既定は y)
+  # thermo-node のビルド (scripts/build.sh. THERMO_DHT_LOCK_IRQS=n で DHT11 の読み取りの間, 割り込みを止めない設定にできる. 既定は y)
   build-node:
     build:
       context: .
@@ -308,7 +308,7 @@ services:
     command: /bin/bash
 
   # 生成物 (build/ と docs/) を全て消す. 次のビルドは最初からやり直す.
-  # どちらも .gitignore に入っていて, ビルドとドキュメントの生成で, 作り直せる.
+  # どちらも .gitignore に入っていて, ビルドとドキュメントの生成で作り直せる.
   # (root で作ったものは消せない. UID と GID をエクスポートしていないときは sudo で消す)
   clean:
     image: esp32-thermo-system:latest

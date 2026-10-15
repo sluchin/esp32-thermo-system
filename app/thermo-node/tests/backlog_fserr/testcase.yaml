@@ -1,5 +1,5 @@
 # thermo-node の単体テスト: backlog.c (ファイルの操作の失敗. fs_* は FFF のモック).
-# twister がこのファイルを探して, native_sim 上で, 実行する (docker compose run --rm test-node).
+# twister がこのファイルを探して, native_sim 上で実行する (docker compose run --rm test-node).
 tests:
   thermo_node.backlog_fserr:
     platform_allow:

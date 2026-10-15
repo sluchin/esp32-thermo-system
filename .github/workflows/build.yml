@@ -1,6 +1,6 @@
 name: CI
 
-# 開発環境 (Dockerfile) と同じイメージで, docker compose のサービスを実行する.
+# 開発環境 (Dockerfile) と同じイメージで docker compose のサービスを実行する.
 #   build  : 実機 (xiao_esp32c3) 用と, native_sim 用のビルド. 警告が出たら失敗する. 成果物とログを artifact に保存する
 #   test   : 単体テスト (Ztest + FFF) を native_sim で実行する (twister). ログを artifact に保存する
 #   coverage: 行と分岐のカバレッジが 100% であること. ログを artifact に保存する

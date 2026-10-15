@@ -1,8 +1,8 @@
 name: Release
 
-# v から始まるタグ (例: v0.1.0) を push すると、ファームウェア (ノードとゲートウェイの .bin。ESP32-C3 に、0x0 から書き込む) を載せた、GitHub Releases のドラフトを作る
-# (中身を確かめて、手で公開する。ソースの zip と tar.gz は、GitHub が自動で付ける).
-# 手動実行 (workflow_dispatch) は、タグを打たずに、成果物を Actions の Artifacts に保存する.
+# v から始まるタグ (例: v0.1.0) を push すると, GitHub Releases のドラフトを作り, ファームウェア (ノードとゲートウェイの .bin. ESP32-C3 に 0x0 から書き込む) を載せる
+# (中身を確かめて, 手で公開する. ソースの zip と tar.gz は GitHub が自動で付ける).
+# 手動実行 (workflow_dispatch) はタグを打たずに, 成果物を Actions の Artifacts に保存する.
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
       contents: write # GitHub Releases への書き込み
 
     steps:
-      # サブモジュール (private/ の素材) は取り込まない. 素材を入れたファームウェアは、公開しない (.claude/CLAUDE.md)
+      # サブモジュール (private/ の素材) は取り込まない. 素材を入れたファームウェアは公開しない (.claude/CLAUDE.md)
       - name: Checkout code
         uses: actions/checkout@v4
 
