@@ -273,6 +273,10 @@ CONFIG_LOG_DEFAULT_LEVEL=4  # DEBUG レベル
 
 問題が発生した場合は、[SETUP.md](./SETUP.md) のトラブルシューティングセクションを参照してください。
 
+## リリース
+
+`v0.1.0` のようなタグを push すると、GitHub Actions の `release.yml` が、GitHub Releases の**ドラフト**を作ります (載せるもの: ファームウェア (ノードとゲートウェイの `.bin`。素材のサブモジュールは取り込まないので、オリジナルの素材のもの))。中身を確かめて、手で公開します。タグを打たずに試すときは、Actions の Release を手動で実行します (成果物は、Artifacts に保存されます)。
+
 ## ライセンス
 
 [LICENSE](./LICENSE) を参照してください。

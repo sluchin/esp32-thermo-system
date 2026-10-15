@@ -1,0 +1,53 @@
+name: Release
+
+# v から始まるタグ (例: v0.1.0) を push すると、ファームウェア (ノードとゲートウェイの .bin。ESP32-C3 に、0x0 から書き込む) を載せた、GitHub Releases のドラフトを作る
+# (中身を確かめて、手で公開する。ソースの zip と tar.gz は、GitHub が自動で付ける).
+# 手動実行 (workflow_dispatch) は、タグを打たずに、成果物を Actions の Artifacts に保存する.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  firmware:
+    name: firmware
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # GitHub Releases への書き込み
+
+    steps:
+      # サブモジュール (private/ の素材) は取り込まない. 素材を入れたファームウェアは、公開しない (.claude/CLAUDE.md)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build the development image
+        uses: ./.github/actions/docker-image
+
+      - name: Build the node
+        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm build-node
+
+      - name: Build the gateway
+        run: env UID="$(id -u)" GID="$(id -g)" docker compose run --rm build-gateway
+
+      - name: Name the binaries
+        run: |
+          cp build/thermo-node/zephyr/zephyr.bin "thermo-node_${{ github.ref_name }}.bin"
+          cp build/thermo-gateway/zephyr/zephyr.bin "thermo-gateway_${{ github.ref_name }}.bin"
+
+      - name: Create the draft release with the binaries
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            "thermo-node_${{ github.ref_name }}.bin" "thermo-gateway_${{ github.ref_name }}.bin" \
+            --draft --title "esp32-thermo-system ${{ github.ref_name }}" --generate-notes
+
+      - name: Upload the binaries as an artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: firmware
+          path: thermo-*.bin
+          if-no-files-found: error
