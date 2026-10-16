@@ -1,6 +1,6 @@
 # Zephyr API マニュアル (日本語訳)
 
-このプロジェクトが使っている Zephyr (v4.3.0) の API を、日本語に訳したもの。Zephyr の全ての API ではなく、`app/` のソース (`thermo-node` `thermo-gateway` `common`。単体テストを除く) が呼んでいるものだけを、サブシステムごとに載せる。ただし、単体テストのモックに使っている FFF だけは、例外として載せる ([fff.md](fff.md))。
+このプロジェクトが使っている Zephyr (v4.3.0) の API を、日本語に訳したもの。Zephyr の全ての API ではなく、`app/` のソース (`thermo-node` `thermo-gateway` `common`。単体テストを除く) が呼んでいるものだけを、サブシステムごとに載せる。ただし、単体テストに使っている Ztest ([ztest.md](ztest.md)) と、そのモックの FFF ([fff.md](fff.md)) だけは、例外として載せる。
 
 - 出典は、Zephyr v4.3.0 のヘッダの Doxygen コメント。意味を変えないように訳した。**英語の原文が正**なので、細かい挙動で迷ったら、ヘッダ (`zephyr/include/zephyr/...`) か、公式の文書を見る。
 - 各 API に「使用箇所」を付けた。このリポジトリの、呼んでいる場所 (`ファイル:最初の行`。そこへのリンク) で、同じファイルで何度も呼ぶ場合は、「ほか N 行」と書く。
@@ -19,6 +19,7 @@
 | [shell.md](shell.md) | シェル | 7 |
 | [logging.md](logging.md) | ログ | 11 |
 | [sys.md](sys.md) | システムのユーティリティ | 22 |
+| [ztest.md](ztest.md) | 単体テスト (Ztest) | 11 |
 | [fff.md](fff.md) | 単体テストのモック (FFF) | 13 |
 
 ## 更新のしかた
