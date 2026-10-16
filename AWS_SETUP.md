@@ -1,6 +1,6 @@
 # AWS IoT Core への接続の設定
 
-Thermo Gateway は、BLE で受信した温度と湿度を、WiFi と MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に送ります。このドキュメントは、AWS 側の準備と、ゲートウェイの設定の手順です。
+Thermo Gateway は、BLE で受信した温度と湿度を、WiFi と MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に送ります。このドキュメントは、AWS 側の準備と、ゲートウェイの設定の手順を説明します。
 
 ## 1. 送信されるデータ
 
@@ -13,27 +13,27 @@ Thermo Gateway は、BLE で受信した温度と湿度を、WiFi と MQTT (TLS�
 | トピック | `thermo/CLIENT_ID/NODE_ADDRESS/temperature` (例: `thermo/gateway-01/00:AA:01:00:00:42/temperature`) |
 | ペイロード | `{"node":"00:AA:01:00:00:42","type":"thermo","temperature_c":23.5,"humidity":45.0,"uptime_ms":123456,"timestamp":1790000000}` |
 
-- `temperature_c` は温度 [℃]、`humidity` は湿度 [%] で、どちらも、10 分の 1 の桁までです。湿度を測れないセンサ (ADC のアナログセンサなど) のときは、`humidity` を、出力しません。SwitchBot と、同じキー名です (`type` は、`thermo`)。
-- `uptime_ms` は、ゲートウェイが温度を受信したときの、ゲートウェイの稼働時間です。
-- `timestamp` は、受信したときの UNIX 時刻 [s] です (SwitchBot も同じ)。SNTP で時計が合っているときだけ入ります (MQTT に接続する前に、必ず合わせるので、通常は入ります)。
+- `temperature_c` は温度 [℃]、`humidity` は湿度 [%] で、どちらも小数第 1 位までです。湿度を測れないセンサ (ADC のアナログセンサなど) のときは、`humidity` を出力しません。キー名は SwitchBot と同じです (`type` だけが `thermo` です)。
+- `uptime_ms` は、ゲートウェイが温度を受信したときの、ゲートウェイの稼働時間 [ms] です。
+- `timestamp` は、ゲートウェイが受信したときの UNIX 時刻 [s] です (SwitchBot も同じ)。SNTP で時計が合っているときだけ入ります (MQTT に接続する前に必ず時計を合わせるので、通常は入ります)。
 
 ### 1.2 SwitchBot 屋外用温湿度計 (Outdoor Meter)
 
-接続せずに、アドバタイズから受信した値を、10 秒に 1 回 (1 台あたり。`prj.conf` の `CONFIG_THERMO_SWITCHBOT_INTERVAL_MS=10000`) 送ります。
+SwitchBot とは接続せずに、アドバタイズ (広告パケット) で受信した値を、1 台につき 10 秒に 1 回 (`prj.conf` の `CONFIG_THERMO_SWITCHBOT_INTERVAL_MS=10000`) 送ります。
 
 | 項目 | 内容 |
 |:---|:---|
 | トピック | `thermo/CLIENT_ID/switchbot/DEVICE_ADDRESS` (例: `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56`) |
 | ペイロード | `{"node":"B0:E9:FE:12:34:56","type":"switchbot","temperature_c":23.5,"humidity":55,"battery":87,"uptime_ms":123456,"timestamp":1790000000}` |
 
-- 温度は、機器が変換した ℃ です。電池残量がわからないときは、`battery` を出力しません。
-- ポリシーの `topic/thermo/gateway-01/*` に、このトピックも含まれます (変更は、不要です)。
+- 温度 `temperature_c` の単位は ℃、湿度 `humidity` と電池残量 `battery` の単位は % です。電池残量がわからないときは、`battery` を出力しません。
+- ポリシーの `topic/thermo/gateway-01/*` には、このトピックも含まれるので、ポリシーの変更は不要です。
 - 10 秒に 1 回だと、1 台で 1 日に 8,640 件、1 か月に約 26 万件です。AWS IoT Core は、メッセージの件数で課金されます (料金は、リージョンごとの料金表で確認してください)。間隔は、`prj.conf` の `CONFIG_THERMO_SWITCHBOT_INTERVAL_MS` (ミリ秒) で変えられます (Kconfig の既定値は 1000)。
-- アドバタイズの並びは、SwitchBot の公開仕様に基づいています。屋外用温湿度計の機種コードと、温度の位置が違う機種では、値が出ません。
+- アドバタイズのデータの並びは、SwitchBot の公開仕様に基づいています。機種コードが屋外用温湿度計と違う機種や、温度の位置が違う機種では、値が出ません。
 
 ## 2. AWS 側の準備
 
-AWS CLI の例です (リージョンとアカウント ID は、自分のものに置き換えます)。コンソールからも、同じ設定ができます。
+AWS CLI の例です (リージョンは、自分のものに置き換えます。アカウント ID は、コマンドで取り出します)。コンソールからも、同じ設定ができます。
 
 ```bash
 # 共通の変数 (同じシェルで、続けて実行する。アカウント ID は、コマンドで取り出して、書き写さない)
@@ -75,7 +75,7 @@ aws iot create-policy --policy-name thermo-gateway --policy-document file://poli
 aws iot attach-policy --policy-name thermo-gateway --target "$CERT_ARN"
 aws iot attach-thing-principal --thing-name gateway-01 --principal "$CERT_ARN"
 
-# エンドポイント (ATS)。thermo set endpoint に設定します
+# エンドポイント (ATS)。表示された値を、thermo set endpoint に設定します
 aws iot describe-endpoint --endpoint-type iot:Data-ATS
 ```
 
@@ -83,7 +83,7 @@ aws iot describe-endpoint --endpoint-type iot:Data-ATS
 
 ## 3. ゲートウェイの設定
 
-ゲートウェイのシリアルコンソール (シェル) に、次のコマンドを入力します。設定は、フラッシュ (`storage_partition`) に保存されて、再起動しても残ります。
+ゲートウェイのシリアルコンソール (シェル) に、次のコマンドを入力します。設定は、フラッシュ (`storage_partition`) に保存されるので、再起動しても残ります。
 
 ### 3.1 WiFi と AWS IoT Core
 
@@ -107,7 +107,7 @@ Zephyr の `cred` コマンドで、セキュリティタグ `1` に、3 つの 
 | クライアント証明書 | `CLIENT` | `device.pem.crt` |
 | 秘密鍵 | `PK` | `private.pem.key` |
 
-1 つの証明書ごとに、次の 3 つを実行します (種類は、`CA` / `CLIENT` / `PK`)。
+1 つの PEM ごとに、次の 3 つの操作をします。最後の行の `CA` は、種類に合わせて `CLIENT` か `PK` に変えます。
 
 ```
 cred buf load
@@ -115,15 +115,15 @@ cred buf load
 cred add 1 CA default strt
 ```
 
-- `cred buf load` は、貼り付けた文字を、改行も含めて、そのままバッファに入れます。`cred buf <1 行>` は、改行を入れないので、PEM が壊れるため、使いません。
-- `Ctrl-C` で、`Stored N bytes.` と出れば、バッファに入っています。
-- `strt` は、文字列で、末尾に NUL を付ける指定です (mbedTLS が PEM を読むのに必要です)。
-- バッファは、`CONFIG_TLS_CREDENTIALS_SHELL_CRED_BUF_SIZE` (2048 バイト) です。PEM が、これより長いと、エラーになります。
-- シェルの受信バッファが小さい (64 バイト) ので、貼り付けると、文字が欠けて、`RX ring buffer full` と出ます。貼り付けず、次のスクリプトで、PC から、ゆっくり送ってください。
+- `cred buf load` は、貼り付けた文字を、改行も含めて、そのままバッファに入れます。`cred buf <1 行>` は改行を入れず、PEM が壊れるので、使いません。
+- `Ctrl-C` を押して、`Stored N bytes.` と表示されれば、バッファに入っています。
+- `strt` は、データを文字列として扱い、末尾に NUL を付ける指定です (mbedTLS が PEM を読むのに必要です)。
+- バッファの大きさは、`CONFIG_TLS_CREDENTIALS_SHELL_CRED_BUF_SIZE` の 2048 バイトです。PEM がこれより長いと、エラーになります。
+- シェルの受信バッファが小さい (64 バイト) ので、PEM を手で貼り付けると、文字が欠けて、`RX ring buffer full` と表示されます。貼り付けずに、次のスクリプトで、PC から少しずつ送ってください。
 
 #### スクリプトで送る (推奨)
 
-`scripts/send-cred.sh` が、`cred buf load` から `cred add` までを、1 行を 16 文字ずつに分けて、送ります (1 つの PEM で、約 1 分かかります)。最後に、`thermo save-certs` も送るので、フラッシュに保存されます (保存しないと、リセットや、ファームウェアの書き込みで、消えます)。`picocom` などで、ポートを開いたままにしないでください。
+`scripts/send-cred.sh` は、`cred buf load` から `cred add` までの操作を、PEM の各行を 16 文字ずつに分けて送ります (1 つの PEM で、約 1 分かかります)。最後に `thermo save-certs` も送るので、証明書はフラッシュに保存されます (保存しないと、リセットやファームウェアの書き込みで消えます)。`picocom` などでポートを開いていると送れないので、閉じてください。
 
 ```bash
 scripts/send-cred.sh CA     AmazonRootCA1.pem /dev/ttyACM0
@@ -132,10 +132,9 @@ scripts/send-cred.sh PK     private.pem.key   /dev/ttyACM0
 ```
 
 - 出力の `Stored N bytes.` の N が、`wc -c <ファイル>` の値と同じか、確認してください。
-- 3 つが揃うまでは、`thermo save-certs` が `Failed to save the certificates` と出します (揃っていない種類があるため)。CA、CLIENT、PK の順に送れば、登録済みの分は保存されます。3 つ目を送ったあとに、`certificates saved` と出れば、全て保存できています。
-- 登録済みの種類は、先に `cred del 1 CA` (`CLIENT`、`PK`) で消します。
-- PEM の改行は、LF だけにします (JSON の `\n` は、`jq -r` で、改行に直します)。CR が混ざると、mbedTLS が読めません。
-- 証明書と秘密鍵は、リポジトリに置いたままにしません (コミットしない)。
+- 3 つが揃うまでは、`thermo save-certs` が `Failed to save the certificates` と表示します (登録していない種類があるため)。CA、CLIENT、PK の順に送れば、登録済みの分は保存されます。3 つ目を送ったあとに `certificates saved` と表示されれば、全て保存できています。
+- PEM の改行は、LF だけにします (JSON の `\n` は、`jq -r` で改行に直します)。CR が混ざると、mbedTLS が読めません。
+- 証明書と秘密鍵は、リポジトリに置いたままにしません (コミットしません)。
 
 登録できたか確認します。
 
@@ -150,17 +149,17 @@ thermo show
 thermo apply
 ```
 
-- `thermo show` は、設定の状態と、`ready to connect: yes` を表示します (パスワードは、`********` で伏せます)。
+- `thermo show` は、設定の内容と、接続の準備ができているか (`ready to connect: yes`) を表示します (パスワードは `********` で伏せます)。
 - `thermo apply` は、設定を反映するために、接続をやり直します。設定が揃っていなければ、ゲートウェイは、5 秒ごとに確認して、揃うまで待ちます。
-- 同じ種類の証明書を登録し直すときは、先に `cred del 1 TYPE` (TYPE は、CA、CLIENT、PK) で消します。全部消すときは、`thermo reset` (設定と証明書を、フラッシュからも消す) を使います。
+- 同じ種類の証明書を登録し直すときは、先に `cred del 1 TYPE` (TYPE は、CA、CLIENT、PK) で消します。全部消すときは、`thermo reset` (設定と証明書を、フラッシュからも消します) を使います。
 
 ## 4. 動作の確認
 
 (届いたデータをグラフにするには、[AWS_GRAPH.md](AWS_GRAPH.md) を参照してください。)
 
 1. AWS コンソールの「IoT Core → MQTT テストクライアント」で、`thermo/#` を購読します。
-2. ゲートウェイと、ノードを起動します。
-3. ゲートウェイのログに、次のように出れば、接続できています。
+2. ゲートウェイとノードを起動します。
+3. ゲートウェイのログに、次の例のように表示されれば、接続できています。
 4. MQTT テストクライアントに、5 秒ごとに、温度のメッセージが届きます。
 
 ゲートウェイのログの例:
@@ -184,39 +183,39 @@ thermo apply
 | 接続できているが、メッセージが届かない | トピックが、ポリシーの `topic/thermo/gateway-01/*` に合っているか確認する (`client_id` を変えたら、ポリシーも変える) |
 | 接続が、何度も切れる | WiFi の電波と、BLE との干渉を確認する。ログの `MQTT connection lost (err ...)` の値を見る |
 
-失敗したときは、5 秒、10 秒、20 秒、40 秒、60 秒 (上限) の間隔で、つなぎ直します。
+接続に失敗したときは、5 秒、10 秒、20 秒、40 秒、60 秒 (上限) の間隔で、つなぎ直します。
 
 ### 5.1 TLS の設定 (実機で調整したもの)
 
 AWS IoT Core の相互認証のために、`prj.conf` に、次の設定を入れています。
 
 - `CONFIG_MBEDTLS_PEM_CERTIFICATE_FORMAT`: PEM の証明書と鍵を読む。
-- ECDHE-RSA と AES-GCM (`CONFIG_MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED` など)。AWS IoT Core の既定のポリシーは、これが必要。PSA 暗号 (`CONFIG_PSA_WANT_*`) も、あわせて有効にする (RSA の署名、SHA-256、TLS 1.2 の PRF、ECDH、GCM)。足りないと、`-0x2700` (証明書の確認の失敗) や、`-0x7F80` (鍵の導出の失敗) が出る。
-- `CONFIG_MBEDTLS_SSL_MAX_CONTENT_LEN=6144`: サーバの証明書のチェーンが、約 5 KB ある。4096 では、`-0x7100` (`requesting more data than fits`) で失敗する。
+- ECDHE-RSA と AES-GCM を有効にする (`CONFIG_MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED` など)。AWS IoT Core の既定のセキュリティポリシーが、これを必要とするため。PSA 暗号の設定 (`CONFIG_PSA_WANT_*`) も、あわせて有効にする (RSA の署名、SHA-256、TLS 1.2 の PRF、ECDH、GCM)。足りないと、`-0x2700` (証明書の確認の失敗) や `-0x7F80` (鍵の導出の失敗) が出る。
+- `CONFIG_MBEDTLS_SSL_MAX_CONTENT_LEN=6144`: サーバの証明書のチェーンが約 5 KB ある。4096 では、`-0x7100` (`requesting more data than fits`) で失敗する。
 - `CONFIG_NET_SOCKETS_CONNECT_TIMEOUT=30000`: ハンドシェイクの時間制限。
-- デバッグ: `west build ... -- -DCONFIG_NET_LOG=y -DCONFIG_NET_SOCKETS_LOG_LEVEL_ERR=y -DCONFIG_MBEDTLS_DEBUG=y -DCONFIG_MBEDTLS_LOG_LEVEL_ERR=y` で、TLS のエラーが出る。ログを全て (DBG) 出すと、スタックが足りなくなって、クラッシュすることがある。
+- デバッグ: `west build ... -- -DCONFIG_NET_LOG=y -DCONFIG_NET_SOCKETS_LOG_LEVEL_ERR=y -DCONFIG_MBEDTLS_DEBUG=y -DCONFIG_MBEDTLS_LOG_LEVEL_ERR=y` でビルドすると、TLS のエラーの詳細がログに出る。ログを全て (DBG) 出すと、スタックが足りなくなって、クラッシュすることがある。
 
 ## 6. 制限事項
 
-- サーバ証明書の有効期限は、確認します (署名とホスト名も、確認します)。そのため、WiFi に接続したあと、SNTP で時刻を合わせてから、MQTT に接続します。時刻を合わせられない間 (NTP サーバに届かないときなど) は、MQTT に接続しないで、つなぎ直します (ログの `Connection failed (err -62)`)。NTP サーバは、`CONFIG_THERMO_NTP_SERVER` で変えられます。
-- 送信できなかった値は、キュー (16 件) があふれると、捨てます。再送はしません (最新の値を優先)。
-- ゲートウェイの RAM は、ほぼ使い切っています (`dram0_0_seg` が 約 98%)。機能を足すときは、`CONFIG_MBEDTLS_HEAP_SIZE` など、ほかを減らす必要があります。
+- サーバ証明書の有効期限、署名、ホスト名を確認します。有効期限の確認には正しい時刻が要るので、WiFi に接続したあと、SNTP で時刻を合わせてから、MQTT に接続します。時刻を合わせられない間 (NTP サーバに届かないときなど) は、MQTT に接続せずに、つなぎ直します (ログの `Connection failed (err -62)`)。NTP サーバは、`CONFIG_THERMO_NTP_SERVER` で変えられます。
+- 送信できなかった値は、キュー (16 件) があふれると、捨てます。再送はしません (最新の値を優先します)。
+- ゲートウェイの RAM は、ほぼ使い切っています (`dram0_0_seg` が約 98%)。機能を足すときは、`CONFIG_MBEDTLS_HEAP_SIZE` など、ほかを減らす必要があります。
 - `native_sim` のビルドは、ネットワークがないので、クラウドへの送信を含みません (`CONFIG_THERMO_CLOUD=n`)。
 
 ## 7. Thermo ノードから、直接送る (ゲートウェイがないとき)
 
-ノードが、ゲートウェイにつながらないときに、WiFi で、AWS IoT Core に、直接送る機能 ([SETUP.md](SETUP.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」) に要る、AWS 側の準備です。**ノードごとに、別のモノ、証明書、ポリシー、クライアント ID** を作ります (ゲートウェイと共有しません)。
+ノードが、ゲートウェイにつながらないときに、WiFi で AWS IoT Core に直接送る機能 ([SETUP.md](SETUP.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」) のための、AWS 側の準備です。**ノードごとに、別のモノ、証明書、ポリシー、クライアント ID** を作ります (ゲートウェイとは共有しません)。
 
-**ゲートウェイの証明書を、ノードに流用しないでください。** 共有してよいものと、してはいけないものは、次のとおりです。
+**ゲートウェイの証明書を、ノードに流用しないでください。** ゲートウェイと共有してよいものと、してはいけないものは、次のとおりです。
 
-| もの | ゲートウェイと共有 | 理由 |
+| もの | ゲートウェイと共有するか | 理由 |
 |:---|:---|:---|
-| ルート CA (`AmazonRootCA1.pem`) | **共有してよい** | AWS が公開している証明書で、秘密ではない。サーバを確認するだけ |
-| エンドポイント | 共有してよい | AWS アカウントごとに 1 つ |
-| クライアント証明書、秘密鍵 | **共有しない** | 1 台が漏れたとき、その 1 台だけ無効にするため。共有すると、全部の機器を止めることになる |
-| クライアント ID | **共有しない** | AWS IoT Core は、同じクライアント ID で、2 つ目の接続が来ると、先の接続を切る。ゲートウェイとノードが奪い合い、どちらも、つながったり切れたりを繰り返す |
-| ポリシー | **共有しない** | ポリシーは、接続を許すクライアント ID と、publish を許すトピック (`thermo/<クライアント ID>/*`) を、決めている。別の ID では、拒否される |
-| モノ (thing) | 共有しない | 機器ごとに、1 つ |
+| ルート CA (`AmazonRootCA1.pem`) | **共有してよい** | AWS が公開している証明書で、秘密ではない。サーバを確認するためだけに使う |
+| エンドポイント | 共有してよい | AWS アカウントごとに 1 つしかない |
+| クライアント証明書、秘密鍵 | **共有しない** | 1 台の鍵が漏れたとき、その 1 台だけを無効にできるようにするため。共有すると、無効にしたときに全部の機器が止まる |
+| クライアント ID | **共有しない** | 同じクライアント ID で 2 つ目の接続が来ると、AWS IoT Core は先の接続を切る。ゲートウェイとノードが奪い合って、どちらも、接続と切断を繰り返す |
+| ポリシー | **共有しない** | ポリシーが、接続を許すクライアント ID と、publish を許すトピック (`thermo/<クライアント ID>/*`) を決めているため、別のクライアント ID では拒否される |
+| モノ (thing) | 共有しない | 機器ごとに 1 つ作る |
 
 ```bash
 # 共通の変数 (2 章と同じ。シェルを閉じたら、設定し直す)
@@ -224,7 +223,7 @@ export AWS_REGION=ap-northeast-1
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 NODE_ID=node-01        # ノードの名前 (クライアント ID。トピックの 2 つ目。ノードごとに変える)
 
-# モノの登録と, 証明書と鍵の作成 (ノードごとに, 別のファイル名にする)
+# モノの登録と、証明書と鍵の作成 (ノードごとに、別のファイル名にする)
 aws iot create-thing --thing-name "$NODE_ID"
 CERT_ARN=$(aws iot create-keys-and-certificate --set-as-active \
   --certificate-pem-outfile "${NODE_ID}.pem.crt" \
@@ -232,7 +231,7 @@ CERT_ARN=$(aws iot create-keys-and-certificate --set-as-active \
   --private-key-outfile "${NODE_ID}.private.key" \
   --query certificateArn --output text)
 
-# ポリシー: このクライアント ID での接続と, このノードのトピックへの publish だけを許す
+# ポリシー: このクライアント ID での接続と、このノードのトピックへの publish だけを許す
 cat > policy-node.json <<JSON
 {
   "Version": "2012-10-17",
@@ -255,8 +254,8 @@ aws iot attach-policy --policy-name "thermo-${NODE_ID}" --target "$CERT_ARN"
 aws iot attach-thing-principal --thing-name "$NODE_ID" --principal "$CERT_ARN"
 ```
 
-- 作った `${NODE_ID}.pem.crt` と `${NODE_ID}.private.key` と、ルート CA (`AmazonRootCA1.pem`。2 章) を、ノードのシェルに登録します ([SETUP.md](SETUP.md)。`scripts/send-cred.sh`)。クライアント ID は、`thermo set client_id ${NODE_ID}` です (ポリシーの `client/` と、トピックの `thermo/${NODE_ID}/` と、同じにします)。
+- 作った `${NODE_ID}.pem.crt` と `${NODE_ID}.private.key`、およびルート CA (`AmazonRootCA1.pem`。2 章) を、ノードのシェルに登録します ([SETUP.md](SETUP.md)。`scripts/send-cred.sh`)。クライアント ID は、`thermo set client_id ${NODE_ID}` で設定します (ポリシーの `client/` と、トピックの `thermo/${NODE_ID}/` と、同じにします)。
 - エンドポイントは、ゲートウェイと同じです (`aws iot describe-endpoint --endpoint-type iot:Data-ATS`)。
-- トピックは、`thermo/${NODE_ID}/<ノードの BLE アドレス>/temperature` で、ゲートウェイが送る形と同じです。DynamoDB のルール (`thermon` の `AWS_DYNAMODB.md`。`FROM 'thermo/#'`) と、`thermon` の機器の指定 (ノードの BLE アドレス) は、そのまま使えます。
-- 作ったファイル (`*.pem.crt`、`*.private.key`、`policy-node.json`) は、**コミットしません**。秘密鍵は、ノードのフラッシュにだけ、置きます。
-- 1 台の証明書を、無効にするとき: `aws iot update-certificate --certificate-id "$CERT_ID" --new-status INACTIVE` (`CERT_ID` は、証明書の ID。`aws iot list-certificates` で調べる)。
+- トピックは、`thermo/${NODE_ID}/<ノードの BLE アドレス>/temperature` で、ゲートウェイが送る形と同じです。そのため、DynamoDB のルール ([AWS_DYNAMODB.md](AWS_DYNAMODB.md)。`FROM 'thermo/#'`) と、thermon の機器の指定 (ノードの BLE アドレス) は、そのまま使えます。
+- 作ったファイル (`*.pem.crt`、`*.private.key`、`policy-node.json`) は、**コミットしません**。秘密鍵は、ノードのフラッシュにだけ置きます。
+- 1 台の証明書を無効にするとき: `aws iot update-certificate --certificate-id "$CERT_ID" --new-status INACTIVE` (`CERT_ID` は、証明書の ID。`aws iot list-certificates` で調べる)。
