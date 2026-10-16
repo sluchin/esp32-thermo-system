@@ -73,8 +73,7 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
 
 ## 開発フロー
 
-1. 機能開発は `ccr-*` ブランチで行う。
-2. Push 時に GitHub Actions (`.github/workflows/build.yml`) が、開発用の Docker イメージ (ローカルと同じ環境) で、`docker compose` のサービスを実行する。
+1. Push 時に GitHub Actions (`.github/workflows/build.yml`) が、開発用の Docker イメージ (ローカルと同じ環境) で、`docker compose` のサービスを実行する。
    - `build` ジョブ: `build-node` / `build-gateway` (実機用) と、`*-sim` (native_sim 用)。ビルドに警告が出たら失敗する。成果物 (`zephyr.elf` など) とビルドのログは、アーティファクトとして保存する。`test` / `coverage` / `docs` / `analyze` / `lint` の各ジョブも、実行のログを、アーティファクト (`<サービス名>_log`、`docs_log`。サービス名の `-` は `_` にする) として保存する (失敗したときも保存する)。アーティファクトの名前は、小文字のスネークケースにする (`build_node` など)。
    - `test` ジョブ: `test-node` / `test-gateway` / `test-common` (単体テスト)。
    - `docs` ジョブ: `docs` (Doxygen のドキュメントを生成する。警告があれば失敗する)。
@@ -83,7 +82,7 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
    - `lint` ジョブ: `format` (整形の確認) / `lint` (checkpatch.pl) / `whitespace` (行末の空白の確認)。指摘があれば失敗する。
    - `cleanup` ジョブ: 3 日より前の実行 (ログと artifact) を、push のたびに削除する (`gh api` で、実行を削除する。権限は `actions: write`)。artifact は、`retention-days: 3` で、3 日で期限が切れる。保存する期間を変えるときは、`build.yml` の `KEEP_DAYS` と、全ての `retention-days` を、そろえて変える。
    - Docker イメージは、レイヤーを GitHub Actions のキャッシュに保存する (`.github/actions/docker-image`)。ビルドコンテキストは `west.yml` だけなので、`Dockerfile` か `west.yml` を変えたときだけ、イメージを作り直す。
-3. PR マージ前に、`build` / `test` / `analyze` / `lint` の全ジョブの成功を確認。
+2. PR マージ前に、`build` / `test` / `analyze` / `lint` の全ジョブの成功を確認。
 
 ### コード修正時のルール
 
