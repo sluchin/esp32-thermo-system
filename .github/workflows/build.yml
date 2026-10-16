@@ -73,6 +73,8 @@ jobs:
             artifact: test_node
           - service: test-gateway
             artifact: test_gateway
+          - service: test-common
+            artifact: test_common
 
     steps:
       - name: Checkout code
@@ -106,6 +108,8 @@ jobs:
             artifact: coverage_node
           - service: coverage-gateway
             artifact: coverage_gateway
+          - service: coverage-common
+            artifact: coverage_common
 
     steps:
       - name: Checkout code

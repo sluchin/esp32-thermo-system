@@ -551,8 +551,8 @@ Thermo ノードのシェルには、ファイルシステムのコマンド `fs
 | ジョブ | 実行するサービス | 内容 |
 |:---|:---|:---|
 | `build` | `build-node` / `build-gateway` / `build-node-sim` / `build-gateway-sim` | ビルド。警告が出たら失敗 |
-| `test` | `test-node` / `test-gateway` | 単体テスト (Ztest + FFF, `native_sim`) |
-| `coverage` | `coverage-node` / `coverage-gateway` | 単体テストのカバレッジ (行と分岐。100% 未満なら失敗) |
+| `test` | `test-node` / `test-gateway` / `test-common` | 単体テスト (Ztest + FFF, `native_sim`) |
+| `coverage` | `coverage-node` / `coverage-gateway` / `coverage-common` | 単体テストのカバレッジ (行と分岐。100% 未満なら失敗) |
 | `docs` | `docs` | ドキュメント (Doxygen)。警告があれば失敗。生成物 (`docs/`) は、アーティファクトに保存 |
 | `analyze` | `analyze-node` / `analyze-gateway` | 静的解析 (gcc `-fanalyzer`)。指摘があれば失敗 |
 | `lint` | `format` / `lint` / `whitespace` | 整形の確認 (clang-format)、Zephyr の `checkpatch.pl`、行末の空白の確認。指摘があれば失敗 |
@@ -562,7 +562,7 @@ Docker イメージは、レイヤーを GitHub Actions のキャッシュに保
 CI と同じ確認は、ローカルでも実行できます。短い名前のサービス (`build` `test` `coverage` `analyze`) は、node と gateway の両方を、まとめて実行します (`format` `format-fix` `lint` `whitespace` `docs` は、`*-thermo` と同じ。`clean` は、`build/` と `docs/` を消す)。CI は、個別のサービス (`*-thermo-node` など) を使います。
 
 ```bash
-# node と gateway の両方
+# node と gateway と common の全て (analyze は node と gateway)
 docker compose run --rm test
 docker compose run --rm coverage
 docker compose run --rm analyze
@@ -570,9 +570,12 @@ docker compose run --rm analyze
 # 個別
 docker compose run --rm test-node
 docker compose run --rm test-gateway
+# 共有のコード (app/common)
+docker compose run --rm test-common
 # カバレッジ (行と分岐が 100% でなければ失敗する)
 docker compose run --rm coverage-node
 docker compose run --rm coverage-gateway
+docker compose run --rm coverage-common
 # ドキュメント (Doxygen。docs/index.html を開く。警告があれば失敗する)
 docker compose run --rm docs
 docker compose run --rm analyze-node

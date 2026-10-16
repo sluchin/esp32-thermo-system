@@ -80,7 +80,7 @@ docker compose run --rm build-gateway-sim
 
 Docker と Docker Compose がインストールされている場合、最も簡単な方法です：
 
-サービス名に `-node` か `-gateway` を付けると、そのアプリだけを実行します (`build-node` `build-gateway` `test-node` `coverage-gateway` など)。シミュレーション用のビルドは、`build-node-sim` `build-gateway-sim` です。付けないと、Thermo Node と Thermo Gateway を、順に実行します。
+サービス名に `-node` か `-gateway` を付けると、そのアプリだけを実行します (`build-node` `build-gateway` `test-node` `coverage-gateway` など)。共有のコード (`app/common`) の単体テストは、`test-common` と `coverage-common` です。シミュレーション用のビルドは、`build-node-sim` `build-gateway-sim` です。付けないと、Thermo Node と Thermo Gateway を、順に実行します。
 
 ```bash
 # 「対象」が node、gateway の場合
@@ -110,7 +110,7 @@ docker compose run --rm clean
 
 ### 単体テストと静的解析
 
-単体テストは Zephyr の Ztest と FFF (モック) で書かれていて、`native_sim` 上で実行します (`app/thermo-node/tests/` と `app/thermo-gateway/tests/`)。
+単体テストは Zephyr の Ztest と FFF (モック) で書かれていて、`native_sim` 上で実行します (`app/thermo-node/tests/` と `app/thermo-gateway/tests/` と、共有のコードの `app/common/tests/`)。
 
 ```bash
 # 「対象」が node、gateway の場合

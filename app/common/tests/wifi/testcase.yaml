@@ -1,0 +1,8 @@
+# app/common の単体テスト: wifi_link.c (net_if と net_mgmt は FFF のモック).
+# twister がこのファイルを探して, native_sim 上で実行する (docker compose run --rm test-common).
+tests:
+  thermo_common.wifi:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - thermo_common
