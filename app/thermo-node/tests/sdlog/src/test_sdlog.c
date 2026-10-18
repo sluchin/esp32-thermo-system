@@ -85,7 +85,6 @@ static void load(const char *path)
  * ファイルの大きさを返す (ファイルがなければ 0)
  *
  * @param[in] path ファイル
- *
  * @return 大きさ [byte]
  */
 static size_t file_size(const char *path)

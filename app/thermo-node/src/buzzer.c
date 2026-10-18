@@ -65,7 +65,6 @@ int buzzer_init(void)
  *
  * @param[in] notes メロディの表 (周波数と長さ)
  * @param[in] count 音の数
- *
  * @retval EXIT_SUCCESS 成功
  */
 int buzzer_play(const struct buzzer_note *notes, size_t count)
@@ -119,7 +118,6 @@ static void step_handler(struct k_work *work)
  * パッシブブザーは PWM の周波数が音の高さになる. デューティ比は 50%.
  *
  * @param[in] freq_hz 周波数 [Hz]
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     PWM の失敗 (負の errno)
  */

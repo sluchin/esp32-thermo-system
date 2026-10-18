@@ -176,7 +176,6 @@ static void backend_process(const struct log_backend *const backend, union log_m
  * @param[in] data   文字列
  * @param[in] length 文字列の長さ [byte]
  * @param[in] ctx    使用しない
- *
  * @return length
  */
 static int boot_out(uint8_t *data, size_t length, void *ctx)
@@ -193,7 +192,6 @@ static int boot_out(uint8_t *data, size_t length, void *ctx)
  * @param[in] data   文字列
  * @param[in] length 文字列の長さ [byte]
  * @param[in] ctx    使用しない
- *
  * @return length
  */
 static int error_out(uint8_t *data, size_t length, void *ctx)
@@ -230,7 +228,6 @@ static void store(struct ring_buf *ring, atomic_t *dropped, const uint8_t *data,
  * @param[in]     path  ファイル
  * @param[in,out] ring  リングバッファ
  * @param[in]     flags 開くときの追加のフラグ (FS_O_TRUNC または FS_O_APPEND)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     失敗 (負の errno)
  */

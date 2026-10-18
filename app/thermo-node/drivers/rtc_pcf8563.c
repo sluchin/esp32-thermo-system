@@ -112,7 +112,6 @@ static DEVICE_API(rtc, pcf8563_api) = {
  *
  * @param[in] dev     RTC のデバイス
  * @param[in] timeptr 設定する時刻 (tm_year は 100 から 199, tm_wday は 0 から 6 であること)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -EINVAL      範囲外の値 (チップが扱えない時刻)
  * @retval negative     I2C の通信の失敗 (負の errno)
@@ -163,7 +162,6 @@ static int pcf8563_set_time(const struct device *dev, const struct rtc_time *tim
  *
  * @param[in]  dev     RTC のデバイス
  * @param[out] timeptr 時刻の格納先 (tm_yday と tm_isdst は -1, tm_nsec は 0. 曜日が不正なら -1)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODATA     時刻が未設定 (電圧低下のビットが 1) または値が範囲外
  * @retval negative     I2C の通信の失敗 (負の errno)
@@ -220,7 +218,6 @@ static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
  * RTC とは通信しない (つながっているかの確認は時刻を読むときに分かる).
  *
  * @param[in] dev RTC のデバイス
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODEV      I2C のバスが利用可能でない
  */
@@ -244,7 +241,6 @@ static int pcf8563_init(const struct device *dev)
  * @param[in] value 調べる値
  * @param[in] min   範囲の最小 (この値を含む)
  * @param[in] max   範囲の最大 (この値を含む)
- *
  * @retval true  min 以上 max 以下
  * @retval false 範囲外
  */

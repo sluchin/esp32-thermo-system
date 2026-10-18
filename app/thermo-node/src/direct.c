@@ -241,7 +241,6 @@ static void publish_live(int16_t temp_x10, uint16_t humidity_x10)
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
  * @param[in] sent         送信済みとして保存するか
- *
  * @retval true  保存した
  * @retval false 保存しなかった (SD カードがない, 時刻がない, 失敗)
  */
@@ -328,7 +327,6 @@ static void flush_backlog(void)
  * マウントし直さない (測定値の保存の途中に, 外さないため).
  *
  * @param[out] pending 未送信の記録の数 (成功のときだけ)
- *
  * @retval EXIT_SUCCESS SD カードが使える
  * @retval -ENODEV      SD カードがない (またはマウントできない)
  */

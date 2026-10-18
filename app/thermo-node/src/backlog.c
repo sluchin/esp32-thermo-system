@@ -144,7 +144,6 @@ int backlog_init(void)
  *
  * @param[in] rec  測定値
  * @param[in] sent 送信済みとして保存するか (ゲートウェイに送った測定値は true)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODEV      SD カードを使えない
  * @retval -EINVAL      時刻が範囲の外 (0 から UINT32_MAX ではない)
@@ -222,7 +221,6 @@ unsigned int backlog_pending(void)
  *
  * @param[out] rec   記録
  * @param[in]  index 古いほうからの順番 (backlog_pending() より小さいこと)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -EINVAL      index が範囲の外
  * @retval -ENOENT      記録が見つからない (ファイルが壊れている)
@@ -267,7 +265,6 @@ int backlog_read(struct backlog_record *rec, unsigned int index)
  * @brief 古いほうから count 件を送り終えたことにする (記録のフラグを書き換える)
  *
  * @param[in] n 送り終えた数 (backlog_pending() 以下)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -EINVAL      n が多すぎる
  * @retval -EIO         記録が足りない (ファイルが壊れている)
@@ -331,7 +328,6 @@ int backlog_commit(unsigned int n)
  * @param[in] since_unix_s この UNIX 時刻 [s] 以降の記録を渡す
  * @param[in] visit        記録ごとに呼ぶ関数
  * @param[in] ctx          visit に渡す値
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODEV      SD カードを使えない
  * @retval negative     ファイルの失敗 (負の errno)
@@ -401,7 +397,6 @@ static unsigned int physical(unsigned int pos)
  * @param[in]  file 開いたファイル
  * @param[in]  phys 物理の位置
  * @param[out] buf  読み出した記録 (RECORD_SIZE バイト)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -EIO         読み出しが短い
  * @retval negative     失敗 (負の errno)
@@ -429,7 +424,6 @@ static int read_slot(struct fs_file_t *file, unsigned int phys, uint8_t *buf)
  * @param[in]  buf  記録 (RECORD_SIZE バイト)
  * @param[out] rec  記録の内容 (有効なときだけ)
  * @param[out] sent 送信済みか (有効なときだけ)
- *
  * @retval true  有効な記録
  * @retval false CRC が合わない
  */
@@ -470,7 +464,6 @@ static void encode(uint8_t *out, const struct backlog_record *rec, bool sent)
  *
  * @param[out] file  ファイル
  * @param[in]  flags 開き方 (FS_O_*)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     失敗 (負の errno)
  */
@@ -545,7 +538,6 @@ static void scan(unsigned int slots)
  * @param[in] file 開いたファイル
  * @param[in] phys 物理の位置
  * @param[in] buf  記録 (RECORD_SIZE バイト)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -EIO         書き込みが短い
  * @retval negative     失敗 (負の errno)
@@ -573,7 +565,6 @@ static int write_record(struct fs_file_t *file, unsigned int phys, const uint8_t
  *
  * @param[in] file 開いたファイル (書き込める)
  * @param[in] phys 物理の位置
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -EIO         書き込みが短い
  * @retval negative     失敗 (負の errno)

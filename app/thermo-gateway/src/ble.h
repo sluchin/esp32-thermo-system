@@ -47,7 +47,6 @@ typedef void (*ble_switchbot_cb_t)(const bt_addr_le_t *addr, const struct switch
  * システムの時計が合っているとき (SNTP で同期したあと) だけ, 時刻を返す.
  *
  * @param[out] unix_s UTC の UNIX 時刻 [s] の格納先
- *
  * @retval EXIT_SUCCESS 時刻を返した
  * @retval negative     時刻がわからない (まだ同期していない. 書き込みを見送る)
  */

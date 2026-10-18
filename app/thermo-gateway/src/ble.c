@@ -452,7 +452,6 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
  *
  * @param[in]     attr 見つかった属性 (NULL なら, 探索が終わった. ノードに時刻の特性がない)
  * @param[in,out] node 対象のノード
- *
  * @return BT_GATT_ITER_STOP (探索を続けない)
  */
 static uint8_t time_discover_cb(const struct bt_gatt_attr *attr, struct node *node)

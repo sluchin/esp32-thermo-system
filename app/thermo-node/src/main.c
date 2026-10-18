@@ -343,7 +343,6 @@ int main(void)
  * OLED を点灯または消灯する (失敗したときはログを出す)
  *
  * @param[in] on 点灯するなら true, 消灯するなら false
- *
  * @retval true  成功
  * @retval false 失敗
  */
@@ -568,7 +567,6 @@ static void play_button_sound(bool buzzer_ready)
  *
  * @param[out] temp_x10     温度 [℃ の 10 倍] の格納先 (NULL 不可)
  * @param[out] humidity_x10 湿度 [% の 10 倍] の格納先 (NULL 不可)
- *
  * @retval EXIT_SUCCESS 読み取りに成功 (通知の失敗は戻り値に含めない)
  * @retval negative     センサの読み取りの失敗 (負の errno)
  */
@@ -626,7 +624,6 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10)
  * @param[in] start_ms    格子の始まりの稼働時間 [ms]
  * @param[in] now_ms      今の稼働時間 [ms] (start_ms 以上)
  * @param[in] interval_ms 間隔 [ms] (1 以上)
- *
  * @return 今より後の格子の最初の稼働時間 [ms]
  */
 static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_ms)

@@ -25,7 +25,6 @@
  * Bluetooth のスレッドから呼ばれる.
  *
  * @param[in] unix_s UTC の UNIX 時刻 [s]
- *
  * @retval EXIT_SUCCESS 時刻を設定できた
  * @retval -ERANGE      設定できない範囲の時刻 (書き込みを拒否する)
  * @retval negative     そのほかの失敗 (負の errno. 書き込みを拒否する)

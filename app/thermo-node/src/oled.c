@@ -184,7 +184,6 @@ int oled_init(void)
  * oled_show() で, フレームバッファを更新できる. oled_init() が成功してから呼ぶ.
  *
  * @param[in] on 点灯するなら true, 消灯するなら false
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     ドライバの失敗 (負の errno)
  */
@@ -218,7 +217,6 @@ int oled_set_power(bool on)
  * oled_init() が成功してから呼ぶ (初期化していないと, CFB が -ENODEV を返す).
  *
  * @param[in] view 表示する内容 (NULL 不可)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno. 初期化していないときは -ENODEV)
  */
@@ -260,7 +258,6 @@ int oled_show(const struct oled_view *view)
  * oled_init() が成功してから呼ぶ.
  *
  * @param[in] frame フレームの番号 (0 から始まる)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno. 初期化していないときは -ENODEV)
  */
@@ -293,7 +290,6 @@ int oled_show_boot(unsigned int frame)
  * 現在値のページをフレームバッファに描く (画面はまだ更新しない)
  *
  * @param[in] view 表示する内容 (NULL 不可)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
  */
@@ -319,7 +315,6 @@ static int draw_now(const struct oled_view *view)
  * グラフのページをフレームバッファに描く (画面はまだ更新しない)
  *
  * @param[in] view 表示する内容 (NULL 不可. page が温度か湿度のグラフ)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
  */
@@ -381,7 +376,6 @@ static int draw_graph(const struct oled_view *view)
  * @param[in] count  点の数 (1 以上, OLED_WIDTH 以下)
  * @param[in] low    縦軸の下端の値 (グラフの下端の y がこの値)
  * @param[in] range  縦軸の幅 (上端の値 - 下端の値. 1 以上)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
  */
@@ -423,7 +417,6 @@ static int draw_polyline(const int16_t *points, unsigned int count, int low, int
  *
  * @param[in] text 文字列
  * @param[in] row  行の位置 (上から 0 始まり)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
  */
@@ -445,7 +438,6 @@ static int draw_line(const char *text, uint16_t row)
  *
  * @param[in]  view  表示する内容 (NULL 不可)
  * @param[out] lines 行ごとの文字列の格納先 (OLED_ROWS 行)
- *
  * @return 表示する行の数 (日時が NULL のときは 2, あるときは 4)
  */
 static unsigned int format_lines(const struct oled_view *view, char lines[][OLED_LINE_SIZE])
@@ -511,7 +503,6 @@ static void format_x10(char *out, size_t size, int16_t value_x10)
  * 起動画面の 1 フレームをフレームバッファに描く (画面はまだ更新しない)
  *
  * @param[in] frame フレームの番号 (0 から OLED_BOOT_FRAMES - 1)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
  */
@@ -548,7 +539,6 @@ static int draw_boot_frame(unsigned int frame)
  * まだ食べられていないドットを描く (走る絵より右にあるドットだけ)
  *
  * @param[in] eaten_x これより左のドットは食べられた (x 座標 [ドット])
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
  */
@@ -585,7 +575,6 @@ static int draw_dots(int eaten_x)
  * @param[in] sprite 絵 (NULL 不可)
  * @param[in] x      絵の左上の x 座標 [ドット] (画面の外でもよい)
  * @param[in] y      絵の左上の y 座標 [ドット] (画面の中)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     CFB の失敗 (負の errno)
  */
@@ -623,7 +612,6 @@ static int draw_sprite(const struct boot_sprite *sprite, int x, int y)
  * @param[in] value 調べる値
  * @param[in] min   範囲の最小 (この値を含む)
  * @param[in] max   範囲の最大 (この値を含む)
- *
  * @retval true  min 以上 max 以下
  * @retval false 範囲外
  */

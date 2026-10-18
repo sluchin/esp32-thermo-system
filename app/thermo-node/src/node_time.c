@@ -106,7 +106,6 @@ int node_time_init(void)
  * RTC の UTC に CONFIG_THERMO_UTC_OFFSET_MIN を足して, 年月日と時分秒に直す.
  *
  * @param[out] local 日時の格納先 (NULL 不可. 失敗したときは valid が false)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODATA     時刻が未設定, または RTC の値が不正
  * @retval negative     RTC との通信の失敗 (負の errno)
@@ -147,7 +146,6 @@ int node_time_get(struct node_datetime *local)
  * @brief RTC の時刻を UTC の UNIX 時刻で読む (SD カードに溜める測定値の時刻に使う)
  *
  * @param[out] unix_s UTC の UNIX 時刻 [s]
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODATA     RTC に時刻が設定されていない
  * @retval negative     RTC のドライバの失敗 (負の errno)
@@ -163,7 +161,6 @@ int node_time_unix(int64_t *unix_s)
  * UNIX 時刻を年月日と時分秒と曜日に直して, RTC のドライバ (rtc_set_time) に渡す.
  *
  * @param[in] unix_s UTC の UNIX 時刻 [s] (2000-01-01 から 2099-12-31 まで)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -ERANGE      RTC が扱えない範囲の時刻
  * @retval negative     RTC のドライバの失敗 (負の errno)
@@ -212,7 +209,6 @@ int node_time_set(int64_t unix_s)
  * RTC の時刻を読んで, UTC の UNIX 時刻に直す
  *
  * @param[out] unix_s UTC の UNIX 時刻 [s] の格納先 (NULL 不可)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODATA     時刻が未設定 (ドライバが返す)
  * @retval negative     RTC のドライバの失敗 (負の errno)
@@ -250,7 +246,6 @@ static int read_utc(int64_t *unix_s)
  * @param[in] year  年 (1970 以降)
  * @param[in] month 月 (1 から 12)
  * @param[in] day   日 (1 から 31)
- *
  * @return 1970-01-01 からの日数
  */
 static int64_t days_from_civil(int64_t year, int64_t month, int64_t day)

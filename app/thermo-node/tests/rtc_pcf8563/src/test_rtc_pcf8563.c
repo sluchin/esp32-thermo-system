@@ -60,7 +60,6 @@ static unsigned int fail_at;
  * @param[in,out] msgs     メッセージ
  * @param[in]     num_msgs メッセージの数
  * @param[in]     addr     デバイスのアドレス
- *
  * @retval 0    成功
  * @retval -EIO 失敗させる転送, またはアドレスが違う
  */

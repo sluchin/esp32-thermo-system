@@ -109,7 +109,6 @@ int sensor_init(void)
  * @param[out] temp_x10     温度 [℃ の 10 倍] の格納先 (NULL 不可)
  * @param[out] humidity_x10 湿度 [% の 10 倍] の格納先 (NULL 不可. 測れなければ
  * THERMO_HUMIDITY_NONE)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     センサ, または ADC の読み取りの失敗 (負の errno)
  */

@@ -55,7 +55,6 @@ void history_add(struct history *h, int16_t value, int64_t now_ms, int64_t step_
  * @param[in]  h   履歴 (NULL 不可)
  * @param[out] out 点の格納先 (max 個以上. NULL 不可)
  * @param[in]  max 取り出す最大の数
- *
  * @return 取り出した点の数
  */
 unsigned int history_get(const struct history *h, int16_t *out, unsigned int max)
@@ -87,7 +86,6 @@ unsigned int history_get(const struct history *h, int16_t *out, unsigned int max
  * @brief 最後に覚えた点 (区切りが終わった最新の点) を返す
  *
  * @param[in] h 履歴 (NULL 不可. 点を 1 つ以上覚えていること)
- *
  * @return 最後に覚えた点の値
  */
 int16_t history_last(const struct history *h)

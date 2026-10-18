@@ -62,7 +62,6 @@ static unsigned int set_calls;
  *
  * @param[in]  dev     RTC のデバイス (使用しない)
  * @param[out] timeptr 時刻の格納先
- *
  * @retval 0       成功
  * @retval nonzero get_ret
  */
@@ -83,7 +82,6 @@ static int fake_get_time(const struct device *dev, struct rtc_time *timeptr)
  *
  * @param[in] dev     RTC のデバイス (使用しない)
  * @param[in] timeptr 書き込む時刻
- *
  * @retval 0       成功
  * @retval nonzero set_ret
  */

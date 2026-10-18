@@ -196,7 +196,6 @@ int ble_advertise(void)
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
- *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     通知に失敗 (負の errno)
  */
@@ -270,7 +269,6 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
  * @param[in] len    値の大きさ
  * @param[in] offset 書き込みの開始位置
  * @param[in] flags  書き込みのフラグ
- *
  * @return 書き込んだ大きさ (失敗なら, 負の ATT エラー)
  */
 static ssize_t write_time(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
