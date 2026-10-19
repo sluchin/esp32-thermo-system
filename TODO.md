@@ -32,7 +32,7 @@
 - [ ] **MCUboot と、WiFi + HTTPS による OTA** (ノードとゲートウェイ。2026-10-19): 新しいファームウェアを、WiFi で、HTTPS でダウンロードして、MCUboot で入れ替える。
   - **今のフラッシュの配置のまま、入る**: `xiao_esp32c3` の既定の配置 (`partitions_0x0_default_4M.dtsi`) は、`mcuboot` 64 KB (0x0)、`image-0` 1792 KB (0x20000)、`image-1` 1792 KB (0x1E0000)、`storage` 192 KB (0x3B0000)。今のイメージは、node が約 940 KB、gateway が約 850 KB で、1 つのスロットの約半分。設定 (NVS) は、`storage_partition` のままなので、残るはず (実機で確認する)。
   - 段階 1: **sysbuild で MCUboot を入れる**。`sysbuild.conf` に `SB_CONFIG_BOOTLOADER_MCUBOOT=y` を書いて、`west build --sysbuild` でビルドする。`scripts/build.sh`、`docker-compose.yml`、CI (`build.yml`) を直す。ビルドに警告を出さない (MCUboot のソースは、`app/warnings.txt` の対象外)。まず、gateway で、MCUboot から起動するところまで、実機で確かめる。
-  - 段階 2: **書き込みの手順を変える**。MCUboot は 0x0、アプリ (署名つき) は 0x20000 に書く。`scripts/flash.sh`、`.claude/CLAUDE.md`、`SETUP.md`、`README.md` を直す。
+  - 段階 2: **書き込みの手順を変える**。MCUboot は 0x0、アプリ (署名つき) は 0x20000 に書く。`scripts/flash.sh`、 `.claude/CLAUDE.md`、`SETUP.md`、`README.md` を直す。
   - 段階 3: **署名の鍵**。imgtool の鍵を作り、プライベートに管理する (公開リポジトリと CI の成果物に、鍵を入れない)。CI のビルドは、MCUboot の付属のテスト用の鍵で署名する (実機には、使わない)。鍵のパスは、Kconfig (`SB_CONFIG_BOOT_SIGNATURE_KEY_FILE`) で、外から渡す。
   - 段階 4: **ダウンロードと書き込み** (`app/common/` に、両方のアプリで共有する `ota.c` を足す)。HTTPS の GET (Zephyr の `http_client`。TLS は、今の mbedTLS と、サーバの CA。S3 の署名つき URL なら、Amazon Root CA) で、少しずつ受け取り、`flash_img` で `image-1` に書く。書き終えたら、`boot_request_upgrade()` で、次の起動で入れ替えるように頼んで、再起動する。
   - 段階 5: **確定と巻き戻し**。新しいイメージは、起動して、正常に動いたこと (例: WiFi と MQTT につながった) を確かめてから、`boot_write_img_confirmed()` で確定する。確定せずに再起動したら、前のイメージに戻る。**未確認**: Espressif 版の MCUboot が対応しているスワップの方式 (swap か、overwrite-only か)。overwrite-only なら、巻き戻しはできないので、ダウンロードしたイメージの確認 (SHA-256、署名) を、書き込みの前と後で、厳しくする。
