@@ -115,7 +115,7 @@ static K_WORK_DELAYABLE_DEFINE(time_work, time_work_handler);
 
 /** アドバタイズデータ (スキャン応答を含む) を解析した結果 */
 struct scan_result {
-    bool thermo;                   /**< Thermo サービスの UUID があった */
+    bool has_thermo;               /**< Thermo サービスの UUID があった */
     bool has_switchbot;            /**< SwitchBot の温湿度計のデータがあった */
     struct switchbot_ad switchbot; /**< SwitchBot の温湿度計のデータ (has_switchbot のとき) */
 };
@@ -322,7 +322,7 @@ static bool parse_ad(struct bt_data *data, void *user_data)
 
     if ((data->type == BT_DATA_UUID128_ALL) && (data->data_len == sizeof(service_uuid_val)) &&
         (memcmp(data->data, service_uuid_val, sizeof(service_uuid_val)) == 0)) {
-        result->thermo = true;
+        result->has_thermo = true;
         return false;
     }
 
@@ -755,7 +755,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
         return;
     }
 
-    if (!result.thermo) {
+    if (!result.has_thermo) {
         return; /* Thermo サービスを持たないデバイス */
     }
 
