@@ -29,6 +29,16 @@
   - [ ] 残り: WiFi と BLE の同時動作で、アドバタイズと DHT11 の読み取りが、続くか (長時間)。スタックとヒープの余裕。
 - [x] **ノードのログを SD カードに保存する** (実装した。**実機では、まだ確認していない**): 起動から 60 秒の全てのログ (`boot.log`) と、エラーのログ (`error.log`) を、テキストで保存する (`sdlog.c`。ログのバックエンド。[SD_LOG.md](SD_LOG.md))。
 - [ ] **測定値を CSV で mini SD カードに保存する** (拡張ボードの SD カードスロット。SPI): Zephyr の FAT (FatFS) で、CSV (時刻、温度、湿度) を追記する。Zephyr は、ext4 に対応していない (ext2、FAT、LittleFS だけ)。PC で読むには FAT32 が簡単。SPI の SD は、シールドの `seeed_xiao_expansion_board` と同じ設定 (CS は D2)。SD の取り外しと、書き込み中の電源断の対策 (定期的に同期する) も、考える。
+- [ ] **MCUboot と、WiFi + HTTPS による OTA** (ノードとゲートウェイ。2026-10-19): 新しいファームウェアを、WiFi で、HTTPS でダウンロードして、MCUboot で入れ替える。
+  - **今のフラッシュの配置のまま、入る**: `xiao_esp32c3` の既定の配置 (`partitions_0x0_default_4M.dtsi`) は、`mcuboot` 64 KB (0x0)、`image-0` 1792 KB (0x20000)、`image-1` 1792 KB (0x1E0000)、`storage` 192 KB (0x3B0000)。今のイメージは、node が約 940 KB、gateway が約 850 KB で、1 つのスロットの約半分。設定 (NVS) は、`storage_partition` のままなので、残るはず (実機で確認する)。
+  - 段階 1: **sysbuild で MCUboot を入れる**。`sysbuild.conf` に `SB_CONFIG_BOOTLOADER_MCUBOOT=y` を書いて、`west build --sysbuild` でビルドする。`scripts/build.sh`、`docker-compose.yml`、CI (`build.yml`) を直す。ビルドに警告を出さない (MCUboot のソースは、`app/warnings.txt` の対象外)。まず、gateway で、MCUboot から起動するところまで、実機で確かめる。
+  - 段階 2: **書き込みの手順を変える**。MCUboot は 0x0、アプリ (署名つき) は 0x20000 に書く。`scripts/flash.sh`、`.claude/CLAUDE.md`、`SETUP.md`、`README.md` を直す。
+  - 段階 3: **署名の鍵**。imgtool の鍵を作り、プライベートに管理する (公開リポジトリと CI の成果物に、鍵を入れない)。CI のビルドは、MCUboot の付属のテスト用の鍵で署名する (実機には、使わない)。鍵のパスは、Kconfig (`SB_CONFIG_BOOT_SIGNATURE_KEY_FILE`) で、外から渡す。
+  - 段階 4: **ダウンロードと書き込み** (`app/common/` に、両方のアプリで共有する `ota.c` を足す)。HTTPS の GET (Zephyr の `http_client`。TLS は、今の mbedTLS と、サーバの CA。S3 の署名つき URL なら、Amazon Root CA) で、少しずつ受け取り、`flash_img` で `image-1` に書く。書き終えたら、`boot_request_upgrade()` で、次の起動で入れ替えるように頼んで、再起動する。
+  - 段階 5: **確定と巻き戻し**。新しいイメージは、起動して、正常に動いたこと (例: WiFi と MQTT につながった) を確かめてから、`boot_write_img_confirmed()` で確定する。確定せずに再起動したら、前のイメージに戻る。**未確認**: Espressif 版の MCUboot が対応しているスワップの方式 (swap か、overwrite-only か)。overwrite-only なら、巻き戻しはできないので、ダウンロードしたイメージの確認 (SHA-256、署名) を、書き込みの前と後で、厳しくする。
+  - 段階 6: **更新の知らせ方**。AWS IoT Jobs (MQTT の `$aws/things/<thing>/jobs/...`) で、URL とバージョンと SHA-256 を受け取り、結果 (成功と失敗) を返す。または、シェルのコマンド (`thermo ota <URL>`) で、手で始める (先にこちらを作る)。ノードは、ゲートウェイにつながっていて WiFi を使っていないときがあるので、更新の確認のときだけ、WiFi につなぐ。
+  - 段階 7: **単体テスト**。`ota.c` の各段階 (接続、受信、書き込み、要求、確定) と、失敗の伝わり方。`http_client`、`flash_img`、`boot_*` は、FFF のモック。カバレッジ 100% を保つ。`native_sim` のビルド (`*-sim`) は、MCUboot なしのまま。
+  - **注意すること**: ノードの静的な RAM の空きは、約 1.5 KB しかない (受信のバッファと、TLS の接続を、MQTT と同時に持てるか。MQTT を切ってから、ダウンロードするか)。ダウンロードの途中の電源断と、通信の切断 (やり直しは、最初から)。ダウングレードを防ぐか (MCUboot の `MCUBOOT_DOWNGRADE_PREVENTION`)。起動画面と起動音の素材を入れたイメージは、公開の場所に置かない (S3 は、非公開にして、署名つき URL で渡す)。
 - [ ] **Grove のセンサ**: I2C の Grove (D4/D5。OLED と RTC と同じバス) に、CO2 (SCD40 など) や、温湿度と気圧 (BME280 など) のセンサをつなぐ。BLE の特性の形式と、AWS のペイロードを広げる必要がある。
 - [ ] **ADC のアナログセンサ** (LM35 など) に替えるときの、実機での確認: 実装は、ある (オーバーレイの `thermo-sensor` を消して、`zephyr,user` の `io-channels` を書く。換算は `CONFIG_THERMO_ADC_MV_PER_DEG` と `CONFIG_THERMO_ADC_OFFSET_MV`。ADC エミュレータの単体テストで確認している)。センサを買ったら、実機で、換算の値を、確認する。
 - [ ] 実機の Bluetooth アダプタを使う `native_sim` の実行 (`--bt-dev=hciN`) を、docker compose のサービスにする。(`run-sim` は、仮想コントローラ `btvirt` で動く)
