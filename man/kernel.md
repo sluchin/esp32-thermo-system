@@ -212,6 +212,45 @@ void k_sem_reset(struct k_sem *sem);
 
 ## メッセージキュー
 
+メッセージキュー (`struct k_msgq`) は、決まった大きさのメッセージを、決まった数だけ溜めておけるキュー。スレッドの間や、割り込みとスレッドの間で、データを受け渡すのに使う。
+
+- **先入れ先出し**: 先に送ったメッセージから、順に受け取る。
+- **コピーで受け渡す**: 送るときは、メッセージの内容を、キューの中のバッファ (リングバッファ) にコピーする。受け取るときは、バッファから、呼び出し側の領域にコピーする。ポインタを渡すのではないので、送ったあと、元の変数を書き換えてもよい。
+- **大きさと数は、作るときに決める**: メッセージの大きさ (`q_msg_size`) と、最大の数 (`q_max_msgs`) は、あとから変えられない。バッファは、`q_msg_size × q_max_msgs` バイト。
+- **満杯と空のときは、待つか、すぐ戻るか、選ぶ**: `k_msgq_put()` は満杯のとき、`k_msgq_get()` は空のときに、`timeout` の間だけ待つ。`K_NO_WAIT` なら、待たずに `-ENOMSG` で戻る。割り込みから呼ぶときは、`K_NO_WAIT` にする。
+- **排他は、キューがする**: 複数のスレッドから、同時に送ったり、受け取ったりしてよい (キューの中で、ロックする)。
+
+### 定義と宣言
+
+キューは、`K_MSGQ_DEFINE` で、静的に定義する (下の「マクロ」)。このマクロは、変数の定義そのものに展開される。
+
+```c
+/* K_MSGQ_DEFINE(cloud_sample_q, sizeof(struct sample), QUEUE_LEN, 4); の展開 (概略) */
+static char __noinit __aligned(4) _k_fifo_buf_cloud_sample_q[QUEUE_LEN * sizeof(struct sample)];
+STRUCT_SECTION_ITERABLE(k_msgq, cloud_sample_q) = /* struct k_msgq cloud_sample_q (専用のセクションに置く) */
+    Z_MSGQ_INITIALIZER(cloud_sample_q, _k_fifo_buf_cloud_sample_q, sizeof(struct sample), QUEUE_LEN);
+```
+
+- バッファ (`_k_fifo_buf_<名前>`) は `static`、キューの本体 (`struct k_msgq <名前>`) は、`static` ではない (全てのファイルから見える名前になる)。
+- 同じファイルの中では、定義より後ろなら、宣言なしで使える。
+- ほかのファイルから使うときは、`extern struct k_msgq <名前>;` と宣言する (このプロジェクトでは、`extern` の宣言は、`.c` ではなく、ヘッダに書く。`CODING_STYLE.md` の「MISRA-C 準拠ルール」の 7)。
+- マクロの前に、`static` を付けることはできない (展開の先頭が `static char ...` なので、`static static` になる)。
+- `static` で定義するマクロ `K_MSGQ_DEFINE_STATIC` は、Zephyr v4.4 で加わったもので、このプロジェクトの v4.3.0 には、ない。
+- 実行時に初期化する `k_msgq_init()` もある (このプロジェクトでは、使っていない)。
+
+### このプロジェクトでの使い方
+
+AWS IoT Core へ送る値のキュー `cloud_sample_q` ([`app/common/cloud.c:89`](../app/common/cloud.c#L89)) だけで使う。
+
+| 項目 | 内容 |
+|:---|:---|
+| メッセージ | `struct sample` (Thermo ノードか SwitchBot の値と、受信したときの稼働時間、測った UNIX 時刻) |
+| 最大の数 | `QUEUE_LEN` (16) |
+| 送る側 | `cloud_publish_temperature()` などから、`enqueue_sample()` で送る。ゲートウェイは、Bluetooth のスレッドから、ノードは、ゲートウェイにつながらないとき (`direct.c`) に呼ぶ。`K_NO_WAIT` で送り、満杯なら、値を捨てて `-ENOMSG` を返す |
+| 受け取る側 | 送信のスレッド (`run_session()`)。最大 `SESSION_TICK_MS` (1 秒) 待って受け取り、MQTT で publish する。待ち時間が切れたら、受信と keep alive の確認に進む |
+| 空にする | 送信を再び始めるとき (`cloud_set_enabled(true)`)、止めていた間の古い値を捨てる |
+| 数を調べる | `cloud_pending()`。SD カードの未送信の値を、キューを満杯にしないように入れるのに使う |
+
 ### k_msgq_put
 
 ```c
@@ -395,14 +434,22 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 #define K_MSGQ_DEFINE(q_name, q_msg_size, q_max_msgs, q_align)
 ```
 
-メッセージキューを、静的に定義して、初期化する。
+メッセージキューを、静的に定義して、初期化する。キューのバッファには、`q_msg_size` バイトのメッセージが、`q_max_msgs` 個入る。バッファのアラインメントは、必須ではなく、`q_align` は 1 でよい。
+
+定義したキューは、定義したファイルの外から、次の宣言で使える。
+
+```c
+extern struct k_msgq <name>;
+```
+
+このマクロには、`static` を付けられない (上の「定義と宣言」)。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
 | `q_name` | in | キューの名前 |
 | `q_msg_size` | in | メッセージの大きさ [バイト] |
 | `q_max_msgs` | in | 入れられるメッセージの最大の数 |
-| `q_align` | in | バッファのアラインメント |
+| `q_align` | in | バッファのアラインメント (2 のべき乗) |
 
 使用箇所: [`app/common/cloud.c:89`](../app/common/cloud.c#L89)
 
