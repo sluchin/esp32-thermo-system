@@ -259,15 +259,51 @@ pipx install esptool
 
 ## Thermo ノードのセンサ
 
-Thermo ノードは、温度と湿度を、センサから読みます。どのセンサを使うかは、**Devicetree** で決めます (コードは、変えません)。
+Thermo ノードは、温度と湿度と気圧を、センサから読みます。どのセンサを使うかは、**Devicetree** で決めます (コードは、変えません)。
 
 | 優先 | Devicetree の設定 | センサ |
 |:---|:---|:---|
-| 1 | alias `thermo-sensor` のセンサのノードがある | Zephyr のセンサ API で読む。DHT11 など。温度と湿度 |
-| 2 | `zephyr,user` に `io-channels` がある | ADC を読んで、温度に換算する (アナログの温度センサ。湿度はなし) |
-| 3 | どちらもない (`native_sim` など) | 乱数のシミュレーション値 |
+| 1 | alias `thermo-sensor` のセンサのノードがある | Zephyr のセンサ API で読む。AHT20、DHT11 など。温度と湿度。alias `thermo-pressure` のセンサ (BMP280 など) があれば、気圧も読む |
+| 2 | `zephyr,user` に `io-channels` がある | ADC を読んで、温度に換算する (アナログの温度センサ。湿度と気圧はなし) |
+| 3 | どちらもない (`native_sim` など) | 乱数のシミュレーション値 (温度、湿度、気圧) |
 
-### DHT11 の配線 (既定)
+既定は、AHT20 + BMP280 のモジュールです。DHT11 にするときは、`THERMO_SENSOR=dht11` を付けて、ビルドします (下の「DHT11 の配線」)。
+
+### AHT20 + BMP280 の配線 (既定)
+
+「Aht20+Bmp280 高精度デジタル湿度気圧センサー」などの名前で売られている、4 ピンのモジュール (DC 2.8 V〜5 V) です。1 枚の基板に、2 つのチップが載っています。
+
+| チップ | 測るもの | I2C のアドレス | Devicetree |
+|:---|:---|:---|:---|
+| AHT20 | 温度、湿度 | `0x38` | `aht20` のノード (`aosong,aht20`)。alias `thermo-sensor` |
+| BMP280 | 気圧 (と温度。温度は使わない) | `0x77` (モジュールによっては `0x76`) | `bmp280` のノード (`bosch,bme280`。チップの ID で BMP280 として動く)。alias `thermo-pressure` |
+
+I2C なので、OLED と RTC と同じ線 (拡張ボードの I2C。D4 が SDA、D5 が SCL) に、つなぎます。アドレスが違うので、同時に使えます。
+
+| モジュール | XIAO ESP32C3 (拡張ボード) |
+|:---|:---|
+| `VCC` (`VIN`) | `3V3` |
+| `GND` | `GND` |
+| `SDA` | `D4` (SDA) |
+| `SCL` | `D5` (SCL) |
+
+- 拡張ボードの **Grove の I2C のコネクタ** (印字 `I2C`) につなぐと、ほかの配線は、要りません (Grove のケーブルの、黒が `GND`、赤が `VCC`、白が `SDA`、黄が `SCL`)。モジュールのピンの並びは、製品ごとに違うので、基板の印字で、確かめます。
+- `VCC` は、`3V3` につなぎます (モジュールは 5 V でも動きますが、I2C の線を、3.3 V より上げないためです)。
+- 気圧は、10 分の 1 hPa まで、送ります (例: `1013.2`)。BMP280 は、気圧 300〜1100 hPa (誤差 ±1 hPa)、AHT20 は、温度 -40〜85 ℃ (誤差 ±0.3 ℃)、湿度 0〜100 % (誤差 ±2 %) です。
+- 起動のログに `Pressure sensor is not ready, measuring without the pressure` が出るときは、BMP280 が見つかっていません。アドレスが `0x76` のモジュールなので、`app/thermo-node/boards/xiao_esp32c3.overlay` の `bmp280@77` と `reg = <0x77>` を、`bmp280@76` と `reg = <0x76>` に変えて、ビルドし直します。気圧がなくても、温度と湿度は、送ります。
+- `Sensor is not ready` (起動が止まる) のときは、AHT20 が見つかっていません。配線 (特に `SDA` と `SCL` の入れ違い) を、確かめます。
+
+### DHT11 の配線
+
+DHT11 (気圧なし) にするときは、`THERMO_SENSOR=dht11` を付けて、ビルドします。`app/thermo-node/sensors/dht11.overlay` (センサの alias を DHT11 にして、AHT20 と BMP280 を使わない) と、`sensors/dht11.conf` (`CONFIG_DHT_LOCK_IRQS=y`) を足します。
+
+```bash
+# Docker
+THERMO_SENSOR=dht11 docker compose run --rm build-node
+
+# West
+west build -b xiao_esp32c3 app/thermo-node -- -DEXTRA_DTC_OVERLAY_FILE=sensors/dht11.overlay -DEXTRA_CONF_FILE=sensors/dht11.conf
+```
 
 3 ピンの DHT11 モジュール (基板の印字: `+` `out` `-`。ピンを下にして見て、左から) を、XIAO ESP32C3 の、次のピンにつなぎます。
 
@@ -278,10 +314,10 @@ Thermo ノードは、温度と湿度を、センサから読みます。どの�
 | `-` | グランド | `GND` |
 
 - 基板に、プルアップ抵抗が、付いているので、追加の部品は、要りません。
-- 設定は、`app/thermo-node/boards/xiao_esp32c3.overlay` です (`dio-gpios = <&xiao_d 7 ...>`)。別のピンにつなぐときは、この `7` (D7) を、変えます。
+- 設定は、`app/thermo-node/sensors/dht11.overlay` です (`dio-gpios = <&xiao_d 7 ...>`)。別のピンにつなぐときは、この `7` (D7) を、変えます。
 - データのピンに `D7` を選んだ理由: `D6` (GPIO21) は、起動のときに、ROM のログが出るので、センサの信号に、ノイズが乗ります。`D8` (GPIO8) と `D9` (GPIO9) は、起動のときの、設定 (ストラッピング) に、使うピンです。
 - DHT11 は、温度 0〜50 ℃ (1 ℃ きざみ、誤差 ±2 ℃)、湿度 20〜95 % (1 % きざみ、誤差 ±5 %) です。読み取りは、1 秒以上、あけます (ノードは、5 秒ごと)。
-- DHT22 (AM2303) を使うときは、overlay の `dht11` のノードに、`dht22;` を足します。
+- DHT22 (AM2303) を使うときは、`sensors/dht11.overlay` の `dht11` のノードに、`dht22;` を足します。
 
 #### Seeed Studio XIAO 拡張ボード (103030356) を使う場合
 
@@ -299,7 +335,7 @@ Thermo ノードは、温度と湿度を、センサから読みます。どの�
 
 ### ADC のアナログセンサ (LM35 など) に替える
 
-1. `app/thermo-node/boards/xiao_esp32c3.overlay` の、`aliases` の `thermo-sensor` と、`dht11` のノードを、消します。
+1. `app/thermo-node/boards/xiao_esp32c3.overlay` の、`aliases` の `thermo-sensor` と `thermo-pressure` と、`aht20` と `bmp280` のノードを、消します。
 2. `zephyr,user` に、`io-channels` と、ADC のチャンネルの設定を、書きます (例は、`app/thermo-node/tests/sensor/adc.overlay`)。
 3. `prj.conf` に、温度への換算を、書きます。
    - `CONFIG_THERMO_ADC_MV_PER_DEG`: 1 ℃ あたりの電圧 [mV] (既定 10。LM35 の値)
@@ -308,7 +344,7 @@ Thermo ノードは、温度と湿度を、センサから読みます。どの�
 
 ### OLED の表示と時刻 (拡張ボード)
 
-拡張ボードの OLED (SSD1306、128 x 64 ドット) に、温度、湿度、日付、時刻と、温度と湿度のグラフを表示します。ノードの、XIAO ESP32C3 を、拡張ボードに差せば、配線は、要りません (OLED と RTC は、ボードの I2C。D4 が SDA、D5 が SCL。OLED のアドレスは `0x3C`、RTC のアドレスは `0x51`)。
+拡張ボードの OLED (SSD1306、128 x 64 ドット) に、温度、湿度、日付、時刻と、温度と湿度のグラフを表示します。ノードの、XIAO ESP32C3 を、拡張ボードに差せば、配線は、要りません (OLED と RTC は、ボードの I2C。D4 が SDA、D5 が SCL。OLED のアドレスは `0x3C`、RTC のアドレスは `0x51`)。気圧は、OLED には表示しません (ログと AWS に送ります)。
 
 ```
 2026-10-08
@@ -449,7 +485,7 @@ west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_THERMO_DISPLAY=
 2. ゲートウェイにつながったら、直接の送信を止めて、WiFi を切ります (ゲートウェイが送るので、重複させません)。
 3. WiFi か MQTT の接続が、**5 回続けて失敗したら、あきらめて**、ゲートウェイにつながるまで、やり直しません (WiFi を切ります)。
 4. 直接の送信を動かしている間は、WiFi を、時刻の取得 (上の節) には、使いません。
-5. **SD カードに保存する**: 全ての測定値 (5 秒ごと) を、SD カードに保存します (測った UNIX 時刻、温度、湿度、送信済みフラグ。1 件 16 バイト)。**ゲートウェイにつながっている間の測定値は、送信済み**で保存します (ゲートウェイが送るため)。**つながっていない間は、未送信**で保存します。BLE にも WiFi にもつながっていなくても、保存し続けます (上限を超えたら、古い記録から上書きします)。RTC に時刻がないときは、保存できません (時刻が要るため)。
+5. **SD カードに保存する**: 全ての測定値 (5 秒ごと) を、SD カードに保存します (測った UNIX 時刻、温度、湿度、気圧、送信済みフラグ。1 件 16 バイト)。**ゲートウェイにつながっている間の測定値は、送信済み**で保存します (ゲートウェイが送るため)。**つながっていない間は、未送信**で保存します。BLE にも WiFi にもつながっていなくても、保存し続けます (上限を超えたら、古い記録から上書きします)。RTC に時刻がないときは、保存できません (時刻が要るため)。
 6. **未送信の記録を送る**: SD カードに、未送信の記録があるときは、ゲートウェイにつながっていても、WiFi と MQTT を動かして、**古い順に**、測った時刻 (`timestamp`) のまま、送ります。publish できた分だけ、記録のフラグを、送信済みに書き換えて、全て送り終えて、ゲートウェイにつながっていれば、WiFi を切ります。
 
 **設定** (ゲートウェイと同じ。`thermo` コマンド)
@@ -471,7 +507,7 @@ thermo show                       (ready to connect: yes になれば、揃っ�
 **SD カード** (拡張ボードの SD カードスロット。SPI。CS は D2)
 
 - **FAT でフォーマット**したカードを、差します (32 GB 以下の SDHC を、お勧めします)。Devicetree は、Zephyr の `seeed_xiao_expansion_board` と同じです (`app/thermo-node/boards/xiao_esp32c3.overlay`)。
-- ファイルは、`/SD:/backlog.bin` の 1 つです。1 件は 16 バイトで、測った UNIX 時刻 (4 バイト)、温度、湿度、**送信済みフラグ** (1 バイト。送り終えたら、この 1 バイトだけを書き換えます)、CRC です。件数が `CONFIG_THERMO_BACKLOG_MAX_RECORDS` (既定 100000 件 = 約 1.6 MB = 5 秒ごとで、約 5.8 日) の輪で、いっぱいになったら、最も古い記録から上書きします (古い記録は、送信済みのことが多いので、未送信の記録は、最後まで残ります)。起動のときに、全ての記録を 1 回読みます (既定で、数秒)。測定のたびに、ファイルに書くので、SD カードの書き込みが増えます。
+- ファイルは、`/SD:/backlog.bin` の 1 つです。1 件は 16 バイトで、測った UNIX 時刻 (4 バイト)、温度、湿度、**送信済みフラグ** (1 バイト。送り終えたら、この 1 バイトだけを書き換えます)、気圧、CRC です。気圧を足す前の記録 (気圧なし) も、そのまま読めます (SD カードを、消さなくて済みます)。件数が `CONFIG_THERMO_BACKLOG_MAX_RECORDS` (既定 100000 件 = 約 1.6 MB = 5 秒ごとで、約 5.8 日) の輪で、いっぱいになったら、最も古い記録から上書きします (古い記録は、送信済みのことが多いので、未送信の記録は、最後まで残ります)。起動のときに、全ての記録を 1 回読みます (既定で、数秒)。測定のたびに、ファイルに書くので、SD カードの書き込みが増えます。
 - カードがないとき (マウントできないとき) は、ログに `No SD card` を出して、保存しません (ほかの機能は、動きます)。電源が切れたときの、書きかけの記録は、起動のときに、捨てます。壊れた記録は、送らずに、捨てます。
 - ファイルの中身は、シェルの `fs ls /SD:` などで見られます (`fs rm` と `fs write` も使えるので、書き込み中は、実行しない)。
 - 使わないとき: `-DCONFIG_THERMO_BACKLOG=n`。
@@ -489,17 +525,17 @@ thermo show                       (ready to connect: yes になれば、揃っ�
 
 DHT11 の読み取りは、マイクロ秒単位のタイミングで、1 本の線を読みます。BLE などの割り込みが、この間に入ると、`Could not fetch the sensor (-5)` が、ときどき出ます。Zephyr のドライバは、1 つの信号が 100 マイクロ秒を超えると、何も表示せずに、`-EIO` を返します (デバッグビルドでも、`Invalid checksum` は、データが乱れたときだけ出ます)。
 
-そのため、**読み取りの間 (約 22 ミリ秒)、割り込みを止める設定 (`CONFIG_DHT_LOCK_IRQS=y`) を、既定で有効にしています** (`app/thermo-node/prj.conf`)。この設定にすると、読み取りのエラーが出なくなります。
+そのため、**DHT11 のときは、読み取りの間 (約 22 ミリ秒)、割り込みを止める設定 (`CONFIG_DHT_LOCK_IRQS=y`) を、既定で有効にしています** (`app/thermo-node/sensors/dht11.conf`)。この設定にすると、読み取りのエラーが出なくなります。
 
 - 割り込みを止めている間 (5 秒に 1 回、約 22 ミリ秒) は、BLE の処理も止まります。ゲートウェイとの接続が、切れやすくなっていないか (`Disconnected` が、増えていないか) を、実機で、確認してください。
 - 無効にして試すときは、次のようにビルドします。
 
 ```bash
 # Docker: 環境変数 THERMO_DHT_LOCK_IRQS を n にして、ビルドする (既定は y)
-THERMO_DHT_LOCK_IRQS=n docker compose run --rm build-node
+THERMO_SENSOR=dht11 THERMO_DHT_LOCK_IRQS=n docker compose run --rm build-node
 
 # West
-west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_DHT_LOCK_IRQS=n
+west build -p always -b xiao_esp32c3 app/thermo-node -- -DEXTRA_DTC_OVERLAY_FILE=sensors/dht11.overlay -DEXTRA_CONF_FILE=sensors/dht11.conf -DCONFIG_DHT_LOCK_IRQS=n
 ```
 
 ## シリアルモニター

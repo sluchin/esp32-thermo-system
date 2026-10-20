@@ -29,7 +29,8 @@ LOG_MODULE_REGISTER(thermo_gateway, THERMO_LOG_LEVEL);
 /** 稼働状況をログ出力する間隔 [s] */
 #define STATUS_INTERVAL_S 10
 
-static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10);
+static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10,
+                           uint16_t pressure_x10);
 static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad);
 
 /**
@@ -97,15 +98,18 @@ int main(void)
 }
 
 /**
- * 温度と湿度を受信したときのコールバック (ログに出力して, AWS IoT Core への送信のキューに入れる)
+ * 温度と湿度と気圧を受信したときのコールバック (ログに出力して, AWS IoT Core への送信のキューに
+ * 入れる)
  *
  * Bluetooth のスレッドから呼ばれる.
  *
  * @param[in] addr         値を送ったノードのアドレス
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍] (気圧がなければ THERMO_PRESSURE_NONE)
  */
-static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10)
+static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10,
+                           uint16_t pressure_x10)
 {
     char addr_str[BT_ADDR_LE_STR_LEN] = {0}; /* アドレスの文字列 */
     int temp = temp_x10;                     /* 温度 [℃ の 10 倍] */
@@ -123,9 +127,12 @@ static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t 
         LOG_INF("Node %s: %s%u.%u C, humidity: %u.%u %%", addr_str, sign, magnitude / 10U,
                 magnitude % 10U, humidity_x10 / 10U, humidity_x10 % 10U);
     }
+    if (pressure_x10 != THERMO_PRESSURE_NONE) {
+        LOG_INF("Node %s: pressure: %u.%u hPa", addr_str, pressure_x10 / 10U, pressure_x10 % 10U);
+    }
 
 #ifdef CONFIG_THERMO_CLOUD
-    ret = cloud_publish_temperature(addr, temp_x10, humidity_x10);
+    ret = cloud_publish_temperature(addr, temp_x10, humidity_x10, pressure_x10);
     if (ret != EXIT_SUCCESS) {
         LOG_WRN("The temperature was not queued for AWS IoT Core (err %d)", ret);
     }

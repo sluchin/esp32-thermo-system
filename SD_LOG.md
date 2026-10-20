@@ -18,10 +18,12 @@ thermo-node が SD カードに保存する測定値の記録 (`backlog.bin`) �
 | 4〜5 | 2 | 温度 | 符号つき 16 ビット | ℃ の 10 倍 (240 なら 24.0 ℃。負の値あり) |
 | 6〜7 | 2 | 湿度 | 符号なし 16 ビット | % の 10 倍 (490 なら 49.0 %)。`0xFFFF` は、湿度なし (温度だけのセンサ) |
 | 8 | 1 | 送信済みフラグ | 符号なし 8 ビット | `00` は未送信、`01` は送信済み |
-| 9〜11 | 3 | 予約 | | 常に `00` |
-| 12〜15 | 4 | CRC | 符号なし 32 ビット | 0〜7 バイト目の CRC-32 (IEEE 802.3。zlib の `crc32` と同じ) |
+| 9〜10 | 2 | 気圧 | 符号なし 16 ビット | hPa の 10 倍 (10132 なら 1013.2 hPa)。`0` は、気圧なし (気圧センサがない、または使えない) |
+| 11 | 1 | 予約 | | 常に `00` |
+| 12〜15 | 4 | CRC | 符号なし 32 ビット | 0〜7 バイト目と 9〜10 バイト目 (気圧) の CRC-32 (IEEE 802.3。zlib の `crc32` と同じ)。気圧なし (`0`) のときは、0〜7 バイト目だけの CRC-32 |
 
-- CRC は、0〜7 バイト目だけにかけます。送信済みフラグ (8 バイト目) は含めません。送り終えたときに、フラグの 1 バイトだけを書き換えるためです。
+- CRC は、0〜7 バイト目と気圧にかけます。送信済みフラグ (8 バイト目) は含めません。送り終えたときに、フラグの 1 バイトだけを書き換えるためです。
+- 気圧なしの記録の CRC は、0〜7 バイト目だけです。気圧を足す前のノードの記録 (9〜11 バイト目が予約で `00`) と同じ形なので、以前の記録も、そのまま読めます。
 - CRC が合わない記録は、壊れた記録として、読み飛ばします (未送信にも数えません)。
 
 ### 送信済みフラグの意味
@@ -70,7 +72,8 @@ fs read /SD:/backlog.bin 64 1600    1600 バイト目 (101 件目) から 64 バ
 | 温度 | `F0 00` | 0x00F0 = 240 で 24.0 ℃ |
 | 湿度 | `EA 01` | 0x01EA = 490 で 49.0 % |
 | 送信済みフラグ | `01` | 送信済み |
-| 予約 | `00 00 00` | |
+| 気圧 | `00 00` | 0 で気圧なし (気圧があれば、例えば `94 27` = 0x2794 = 10132 で 1013.2 hPa。CRC も変わる) |
+| 予約 | `00` | |
 | CRC | `CB 5A FD 97` | 0x97FD5ACB (0〜7 バイト目の CRC-32) |
 
 次の記録 (16 バイト後) の時刻の下位バイトが `E4` なら、5 秒後 (0xDF + 5 = 0xE4) です。
@@ -91,6 +94,7 @@ from datetime import datetime, timezone
 
 RECORD_SIZE = 16
 HUMIDITY_NONE = 0xFFFF
+PRESSURE_NONE = 0
 
 with open(sys.argv[1], "rb") as f:
     data = f.read()
@@ -98,13 +102,16 @@ with open(sys.argv[1], "rb") as f:
 print(f"{len(data) // RECORD_SIZE} records ({len(data) % RECORD_SIZE} bytes left over)")
 for i in range(len(data) // RECORD_SIZE):
     rec = data[i * RECORD_SIZE:(i + 1) * RECORD_SIZE]
-    unix_s, temp, humi, flag, crc = struct.unpack("<IhHB3xI", rec)
-    if crc != zlib.crc32(rec[:8]):
+    unix_s, temp, humi, flag, pres, crc = struct.unpack("<IhHBHxI", rec)
+    # 気圧があれば, 0〜7 バイト目に続けて, 気圧の 2 バイトにも CRC をかける
+    want = zlib.crc32(rec[:8]) if pres == PRESSURE_NONE else zlib.crc32(rec[9:11], zlib.crc32(rec[:8]))
+    if crc != want:
         print(f"{i:6d}  BROKEN (CRC mismatch)")
         continue
     when = datetime.fromtimestamp(unix_s, timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     humi_text = "-" if humi == HUMIDITY_NONE else f"{humi / 10:.1f}"
-    print(f"{i:6d}  {when} UTC  {temp / 10:5.1f} C  {humi_text:>5} %  "
+    pres_text = "-" if pres == PRESSURE_NONE else f"{pres / 10:.1f}"
+    print(f"{i:6d}  {when} UTC  {temp / 10:5.1f} C  {humi_text:>5} %  {pres_text:>6} hPa  "
           f"{'sent' if flag == 1 else 'NOT SENT'}")
 ```
 

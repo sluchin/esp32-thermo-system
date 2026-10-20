@@ -132,6 +132,7 @@ static struct {
     bt_addr_le_t addr;     /**< アドレス */
     int16_t temp_x10;      /**< 温度 [℃ の 10 倍] */
     uint16_t humidity_x10; /**< 湿度 [% の 10 倍] */
+    uint16_t pressure_x10; /**< 気圧 [hPa の 10 倍] */
 } received;
 
 /** bt_le_scan_start() に渡されたスキャンパラメータの写し (引数は呼び出しの後は無効になる) */
@@ -269,13 +270,16 @@ static const bt_addr_le_t *fake_get_dst(const struct bt_conn *conn)
  * @param[in] addr         ノードのアドレス
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍]
  */
-static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10)
+static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10,
+                           uint16_t pressure_x10)
 {
     received.count++;
     received.addr = *addr;
     received.temp_x10 = temp_x10;
     received.humidity_x10 = humidity_x10;
+    received.pressure_x10 = pressure_x10;
 }
 
 /**
@@ -847,16 +851,17 @@ ZTEST(ble_gateway, test_discovery_failure_disconnects)
     zassert_equal(bt_conn_disconnect_fake.call_count, 2U);
 }
 
-/** 通知された温度と湿度 (リトルエンディアン) をノードのアドレスとともに, コールバックへ渡す */
+/** 通知された温度と湿度と気圧 (リトルエンディアン) をノードのアドレスとともに, コールバックへ渡す
+ */
 ZTEST(ble_gateway, test_notification_delivers_temperature)
 {
     scan_cb_ptr_t scan_cb = start_scanning();           /* スキャン結果のコールバック */
     struct bt_gatt_discover_params *params = NULL;      /* ディスカバリのパラメータ */
     struct bt_gatt_attr ccc_attr = {.handle = 0x0014U}; /* CCC ディスクリプタの属性 */
     struct bt_gatt_subscribe_params *sub = NULL;        /* 購読のパラメータ */
-    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {0xDDU, 0xFFU, 0xC2U,
-                                                   0x01U}; /* ノードの温度の通知のデータ */
-    uint8_t ret = 0U;                                      /* 戻り値 */
+    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {
+        0xDDU, 0xFFU, 0xC2U, 0x01U, 0x94U, 0x27U}; /* ノードの温度の通知のデータ (1013.2 hPa) */
+    uint8_t ret = 0U;                              /* 戻り値 */
 
     find_node(scan_cb, 1U); /* 2 台目 (アドレス B) のノード */
     next_conn = 0U;
@@ -871,7 +876,33 @@ ZTEST(ble_gateway, test_notification_delivers_temperature)
     zassert_equal(received.count, 1U);
     zassert_equal(received.temp_x10, TEST_TEMP_X10);
     zassert_equal(received.humidity_x10, TEST_HUMIDITY_X10);
+    zassert_equal(received.pressure_x10, 10132U);
     zassert_mem_equal(received.addr.a.val, node_addr[0].a.val, sizeof(received.addr.a.val));
+}
+
+/** 気圧を足す前のノードの通知 (温度と湿度の 4 byte) は, 気圧なしとして, コールバックへ渡す */
+ZTEST(ble_gateway, test_notification_without_pressure)
+{
+    scan_cb_ptr_t scan_cb = start_scanning();           /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL;      /* ディスカバリのパラメータ */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014U}; /* CCC ディスクリプタの属性 */
+    struct bt_gatt_subscribe_params *sub = NULL;        /* 購読のパラメータ */
+    const uint8_t data[THERMO_TEMPERATURE_SIZE_NO_PRESSURE] = {
+        0xDDU, 0xFFU, 0xC2U, 0x01U}; /* 以前のノードの温度の通知のデータ */
+
+    find_node(scan_cb, 0U);
+    conn_cb->connected(conn_of(0U), 0U);
+    params = bt_gatt_discover_fake.arg1_val;
+    params->type = BT_GATT_DISCOVER_DESCRIPTOR;
+    (void)params->func(conn_of(0U), &ccc_attr, params);
+    sub = bt_gatt_subscribe_fake.arg1_val;
+
+    /* 期待: 温度と湿度はそのまま, 気圧は THERMO_PRESSURE_NONE */
+    zassert_equal(sub->notify(conn_of(0U), sub, data, sizeof(data)), BT_GATT_ITER_CONTINUE);
+    zassert_equal(received.count, 1U);
+    zassert_equal(received.temp_x10, TEST_TEMP_X10);
+    zassert_equal(received.humidity_x10, TEST_HUMIDITY_X10);
+    zassert_equal(received.pressure_x10, THERMO_PRESSURE_NONE);
 }
 
 /** 大きさが違う通知は無視する (購読は続ける) */
@@ -881,7 +912,7 @@ ZTEST(ble_gateway, test_notification_wrong_length_ignored)
     struct bt_gatt_discover_params *params = NULL;      /* ディスカバリのパラメータ */
     struct bt_gatt_attr ccc_attr = {.handle = 0x0014U}; /* CCC ディスクリプタの属性 */
     struct bt_gatt_subscribe_params *sub = NULL;        /* 購読のパラメータ */
-    const uint8_t data[3] = {1U, 2U, 3U};               /* 入力データ (4 byte でない) */
+    const uint8_t data[5] = {1U, 2U, 3U, 4U, 5U}; /* 入力データ (4 byte でも 6 byte でもない) */
 
     /* ノードに接続して, 購読まで進める */
     find_node(scan_cb, 0U);
@@ -891,7 +922,10 @@ ZTEST(ble_gateway, test_notification_wrong_length_ignored)
     (void)params->func(conn_of(0U), &ccc_attr, params);
     sub = bt_gatt_subscribe_fake.arg1_val;
 
-    /* 温度と湿度は 4 byte. 3 byte の通知は捨てて, コールバックを呼ばない (購読は続ける) */
+    /*
+     * 温度と湿度と気圧は 6 byte (以前のノードは 4 byte). 5 byte の通知は捨てて, コールバックを
+     * 呼ばない (購読は続ける)
+     */
     zassert_equal(sub->notify(conn_of(0U), sub, data, sizeof(data)), BT_GATT_ITER_CONTINUE);
     zassert_equal(received.count, 0U);
 }
@@ -899,11 +933,11 @@ ZTEST(ble_gateway, test_notification_wrong_length_ignored)
 /** 購読が解除された通知 (データが NULL) は購読を終える. コールバックが未設定でも落ちない */
 ZTEST(ble_gateway, test_notification_unsubscribed_and_no_callback)
 {
-    scan_cb_ptr_t scan_cb = start_scanning();                       /* スキャン結果のコールバック */
-    struct bt_gatt_discover_params *params = NULL;                  /* ディスカバリのパラメータ */
-    struct bt_gatt_attr ccc_attr = {.handle = 0x0014U};             /* CCC ディスクリプタの属性 */
-    struct bt_gatt_subscribe_params *sub = NULL;                    /* 購読のパラメータ */
-    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {1U, 0U, 0U, 0U}; /* 入力データ */
+    scan_cb_ptr_t scan_cb = start_scanning();           /* スキャン結果のコールバック */
+    struct bt_gatt_discover_params *params = NULL;      /* ディスカバリのパラメータ */
+    struct bt_gatt_attr ccc_attr = {.handle = 0x0014U}; /* CCC ディスクリプタの属性 */
+    struct bt_gatt_subscribe_params *sub = NULL;        /* 購読のパラメータ */
+    const uint8_t data[THERMO_TEMPERATURE_SIZE] = {1U, 0U, 0U, 0U, 0U, 0U}; /* 入力データ */
 
     find_node(scan_cb, 0U);
     conn_cb->connected(conn_of(0U), 0U);

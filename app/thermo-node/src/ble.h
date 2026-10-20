@@ -37,7 +37,7 @@ void ble_set_time_callback(ble_time_cb_t cb);
 
 int ble_advertise(void);
 
-int ble_notify_temperature(int16_t temp_x10, uint16_t humidity_x10);
+int ble_notify_temperature(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10);
 
 bool ble_is_connected(void);
 

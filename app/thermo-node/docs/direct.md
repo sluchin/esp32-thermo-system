@@ -1,6 +1,6 @@
 # direct.c の解析
 
-対象: `app/thermo-node/src/direct.c` (363 行) と `direct.h` (50 行)
+対象: `app/thermo-node/src/direct.c` (366 行) と `direct.h` (50 行)
 
 ノードが、ゲートウェイを介さずに、WiFi と MQTT で、AWS IoT Core へ測定値を直接送るための制御です。同時に、全ての測定値を SD カードに保存します (ストア・アンド・フォワード)。`CONFIG_THERMO_DIRECT_MQTT` が有効なときだけ、ビルドされます。
 
@@ -65,7 +65,7 @@
       つながっていない: ble_failures++ (5 まで)
       was_connected = connected
 
-(3) saved = save_value(温度, 湿度, sent = connected)
+(3) saved = save_value(温度, 湿度, 気圧, sent = connected)
       ゲートウェイにつながっていれば、ゲートウェイが AWS に送るので、送信済み (1) で保存
       つながっていなければ、未送信 (0) で保存
 
@@ -159,7 +159,7 @@ true
       while (queued < backlog_pending() && cloud_pending() < FLUSH_QUEUE_MAX)
           backlog_read(&rec, queued)         ← 未送信の queued 番目 (0 が最も古い)
           queued == 0 なら sent_mark = cloud_sent_count()
-          cloud_publish_temperature_at(addr, 温度, 湿度, 記録の時刻)
+          cloud_publish_temperature_at(addr, 温度, 湿度, 気圧, 記録の時刻)
           成功したら queued++
 ```
 

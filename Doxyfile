@@ -53,6 +53,7 @@ PREDEFINED             = CONFIG_THERMO_CLOUD \
                          "FAKE_VOID_FUNC(...)=" \
                          "LOG_MODULE_REGISTER(...)=" \
                          "DEVICE_DT_INST_DEFINE(...)=" \
+                         "DEVICE_DT_DEFINE(...)=" \
                          "DEVICE_API(type,name)=struct sensor_driver_api name" \
                          "K_SEM_DEFINE(name,...)=struct k_sem name;" \
                          "__aligned(x)=" \

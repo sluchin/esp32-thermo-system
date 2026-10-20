@@ -1,6 +1,7 @@
-# thermo-node の sensor.c の単体テスト (Ztest). 5 つの構成を TEST_MODE で切り替える.
+# thermo-node の sensor.c の単体テスト (Ztest). 6 つの構成を TEST_MODE で切り替える.
 #   simulator: シミュレーション値 (CONFIG_SIMULATOR=y. センサも ADC もない)
 #   sensor_api: 偽のセンサ (vnd,test-sensor) を alias thermo-sensor に接続した経路 (DHT11 など)
+#   pressure_api: 偽のセンサを 2 つ, alias thermo-sensor と thermo-pressure に接続した経路 (AHT20 と BMP280)
 #   adc      : ADC エミュレータ (zephyr,adc-emul) を io-channels に接続した経路
 #   adc_setup_error: adc と同じだが, チャンネルの設定が失敗する (sensor_init() のエラー経路)
 #   adc_convert_error: ADC のチャンネルのノードがなく, 電圧への換算が失敗する (sensor_read() のエラー経路)
@@ -9,7 +10,7 @@ cmake_minimum_required(VERSION 3.20.0)
 if(NOT DEFINED TEST_MODE)
   set(TEST_MODE simulator)
 endif()
-set(TEST_MODES simulator sensor_api adc adc_setup_error adc_convert_error)
+set(TEST_MODES simulator sensor_api pressure_api adc adc_setup_error adc_convert_error)
 if(NOT TEST_MODE IN_LIST TEST_MODES)
   message(FATAL_ERROR "TEST_MODE は ${TEST_MODES} のどれか: ${TEST_MODE}")
 endif()

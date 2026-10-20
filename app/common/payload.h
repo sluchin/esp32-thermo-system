@@ -21,7 +21,8 @@
 int payload_format_topic(char *buf, size_t size, const char *client_id, const bt_addr_le_t *addr);
 
 int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr, int16_t temp_x10,
-                               uint16_t humidity_x10, uint32_t uptime_ms, int64_t unix_s);
+                               uint16_t humidity_x10, uint16_t pressure_x10, uint32_t uptime_ms,
+                               int64_t unix_s);
 
 int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id,
                                    const bt_addr_le_t *addr);

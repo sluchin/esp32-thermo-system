@@ -1,6 +1,6 @@
 # ble.c の解析
 
-対象: `app/thermo-gateway/src/ble.c` (787 行) と `ble.h` (66 行)
+対象: `app/thermo-gateway/src/ble.c` (796 行) と `ble.h` (66 行)
 
 ゲートウェイの BLE の本体です。BLE の中央機器 (Central) として、次の 4 つを行います。
 
@@ -144,9 +144,10 @@ disconnected() → release_node() → ble_scan()
 ### notify_cb: 温度を受け取る
 
 - `data == NULL` は、購読が解除されたことを表します。`value_handle = 0` にして、`BT_GATT_ITER_STOP` を返します。
-- 長さが `THERMO_TEMPERATURE_SIZE` (4 バイト) でなければ、警告を出して、無視します。
-- 4 バイトは、先頭の 2 バイトが温度 (`int16_t`、℃ の 10 倍)、続く 2 バイトが湿度 (`uint16_t`、% の 10 倍。0xFFFF は湿度なし) で、どちらもリトルエンディアンです。
-- `temperature_cb(アドレス, 温度, 湿度)` を呼びます。
+- 長さが `THERMO_TEMPERATURE_SIZE` (6 バイト) でも `THERMO_TEMPERATURE_SIZE_NO_PRESSURE` (4 バイト) でもなければ、警告を出して、無視します。
+- 先頭の 2 バイトが温度 (`int16_t`、℃ の 10 倍)、続く 2 バイトが湿度 (`uint16_t`、% の 10 倍。0xFFFF は湿度なし)、続く 2 バイトが気圧 (`uint16_t`、hPa の 10 倍。0xFFFF は気圧なし) で、どれもリトルエンディアンです。
+- 4 バイトの通知は、気圧を足す前のノードからです。気圧なし (`THERMO_PRESSURE_NONE`) とします (ノードとゲートウェイを、別々に更新できます)。
+- `temperature_cb(アドレス, 温度, 湿度, 気圧)` を呼びます。
 
 ## 時刻の書き込み
 

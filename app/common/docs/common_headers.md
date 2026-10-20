@@ -1,6 +1,6 @@
 # 共通のヘッダの解析
 
-対象: `app/common/thermo_ble_uuid.h` (61 行)、`thermo_log.h` (25 行)、`thermo_version.h` (28 行)、`switchbot_sample.h` (29 行)
+対象: `app/common/thermo_ble_uuid.h` (73 行)、`thermo_log.h` (25 行)、`thermo_version.h` (28 行)、`switchbot_sample.h` (29 行)
 
 処理を持たない、定義だけのヘッダです。ノードとゲートウェイが、同じ値を使うために、共通の場所に置いています。
 
@@ -18,9 +18,11 @@ Thermo サービスの UUID (128 ビット) は、`9F3C1A00-7B6E-4C3A-9D5E-2A6F0
 
 | 定数 | 値 | 意味 |
 |:---|:---|:---|
-| `THERMO_TEMPERATURE_SIZE` | 4 | 温度の特性の値の大きさ。温度 `int16_t` と湿度 `uint16_t`、リトルエンディアン |
+| `THERMO_TEMPERATURE_SIZE` | 6 | 温度の特性の値の大きさ。温度 `int16_t` と湿度 `uint16_t` と気圧 `uint16_t` (hPa の 10 倍)、リトルエンディアン |
+| `THERMO_TEMPERATURE_SIZE_NO_PRESSURE` | 4 | 気圧を足す前のノードの、温度の特性の値の大きさ (温度と湿度だけ)。ゲートウェイは、この大きさも受け取り、気圧なしにする |
 | `THERMO_TIME_SIZE` | 4 | 時刻の特性の値の大きさ。UTC の UNIX 時刻 `uint32_t`、リトルエンディアン |
 | `THERMO_HUMIDITY_NONE` | 0xFFFF | 湿度なし (温度だけのセンサ) |
+| `THERMO_PRESSURE_NONE` | 0xFFFF | 気圧なし (気圧センサがない、または使えない) |
 
 ノード (`thermo-node/src/ble.c`) とゲートウェイ (`thermo-gateway/src/ble.c`) の双方が、この値でパックと解析を行います。
 

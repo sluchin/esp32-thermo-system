@@ -25,9 +25,10 @@
  * @param[in] addr         温度を送ったノードのアドレス
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍] (気圧がなければ THERMO_PRESSURE_NONE)
  */
 typedef void (*ble_temperature_cb_t)(const bt_addr_le_t *addr, int16_t temp_x10,
-                                     uint16_t humidity_x10);
+                                     uint16_t humidity_x10, uint16_t pressure_x10);
 
 /**
  * @brief SwitchBot 屋外用温湿度計のアドバタイズを受信したときのコールバックの型

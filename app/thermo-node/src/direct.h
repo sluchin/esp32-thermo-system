@@ -39,7 +39,7 @@
 
 int direct_init(void);
 
-void direct_sample(int16_t temp_x10, uint16_t humidity_x10);
+void direct_sample(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10);
 
 bool direct_active(void);
 

@@ -47,7 +47,7 @@ FAKE_VALUE_FUNC(bool, switchbot_accept, const bt_addr_le_t *, const struct switc
                 struct switchbot_sample *)
 FAKE_VALUE_FUNC(int, cloud_publish_switchbot, const bt_addr_le_t *, const struct switchbot_sample *)
 FAKE_VALUE_FUNC(int, cloud_init, bool)
-FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, int16_t, uint16_t)
+FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, int16_t, uint16_t, uint16_t)
 
 /** メインループのスレッドのスタックサイズ */
 #define STACK_SIZE        2048
@@ -75,6 +75,8 @@ static const bt_addr_le_t test_addr = {
 #define TEST_TEMP_X10     (-35)
 /** 温度のコールバックに渡す湿度 [% の 10 倍] (45.0 %) */
 #define TEST_HUMIDITY_X10 450U
+/** テストの気圧 [hPa の 10 倍] (1013.2 hPa) */
+#define TEST_PRESSURE_X10 10132U
 
 /** main を動かすスレッド */
 static struct k_thread main_thread;
@@ -229,18 +231,25 @@ ZTEST(main_gateway, test_main_loop)
     zassert_equal(ble_set_time_source_fake.call_count, 1U);
     zassert_equal(ble_set_time_source_fake.arg0_val, ntp_unix_time);
 
-    /* 温度のコールバックはノードのアドレスと温度と湿度をクラウドの送信のキューに渡す */
-    ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_TEMP_X10, TEST_HUMIDITY_X10);
+    /* 温度のコールバックはノードのアドレスと温度と湿度と気圧をクラウドの送信のキューに渡す */
+    ble_set_temperature_callback_fake.arg0_val(&test_addr, TEST_TEMP_X10, TEST_HUMIDITY_X10,
+                                               TEST_PRESSURE_X10);
     zassert_equal(cloud_publish_temperature_fake.call_count, 1U);
     zassert_equal(cloud_publish_temperature_fake.arg0_val, &test_addr);
     zassert_equal(cloud_publish_temperature_fake.arg1_val, TEST_TEMP_X10);
     zassert_equal(cloud_publish_temperature_fake.arg2_val, TEST_HUMIDITY_X10);
+    zassert_equal(cloud_publish_temperature_fake.arg3_val, TEST_PRESSURE_X10);
 
-    /* キューに入れられなくても (満杯など), ログに出すだけで問題なく戻る. 湿度なし, 0 ℃ 以上 */
+    /*
+     * キューに入れられなくても (満杯など), ログに出すだけで問題なく戻る. 湿度なし, 気圧なし,
+     * 0 ℃ 以上
+     */
     cloud_publish_temperature_fake.return_val = -ENOMSG;
-    ble_set_temperature_callback_fake.arg0_val(&test_addr, 235, THERMO_HUMIDITY_NONE);
+    ble_set_temperature_callback_fake.arg0_val(&test_addr, 235, THERMO_HUMIDITY_NONE,
+                                               THERMO_PRESSURE_NONE);
     zassert_equal(cloud_publish_temperature_fake.call_count, 2U);
     zassert_equal(cloud_publish_temperature_fake.arg2_val, THERMO_HUMIDITY_NONE);
+    zassert_equal(cloud_publish_temperature_fake.arg3_val, THERMO_PRESSURE_NONE);
 
     /* 何周期か待っても終了せず (k_thread_join() が EBUSY を返す), 初期化を繰り返さない */
     k_sleep(K_SECONDS(STATUS_INTERVAL_S * WAIT_CYCLES));

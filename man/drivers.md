@@ -22,7 +22,7 @@ bool device_is_ready(const struct device *dev);
 
 戻り値: 使えれば `true`。使えない、または `NULL` を渡したら `false`。
 
-使用箇所: [`app/thermo-node/src/node_time.c:84`](../app/thermo-node/src/node_time.c#L84), [`app/thermo-node/src/oled.c:137`](../app/thermo-node/src/oled.c#L137), [`app/thermo-node/src/sensor.c:73`](../app/thermo-node/src/sensor.c#L73)
+使用箇所: [`app/thermo-node/src/node_time.c:84`](../app/thermo-node/src/node_time.c#L84), [`app/thermo-node/src/oled.c:137`](../app/thermo-node/src/oled.c#L137), [`app/thermo-node/src/sensor.c:94`](../app/thermo-node/src/sensor.c#L94) (ほか 1 行)
 
 ## ADC
 
@@ -40,7 +40,7 @@ Devicetree から得た ADC のデバイスが使えるかを調べる。
 
 戻り値: 使えれば `true`、使えなければ `false`。
 
-使用箇所: [`app/thermo-node/src/sensor.c:83`](../app/thermo-node/src/sensor.c#L83)
+使用箇所: [`app/thermo-node/src/sensor.c:110`](../app/thermo-node/src/sensor.c#L110)
 
 ### adc_channel_setup_dt
 
@@ -56,7 +56,7 @@ static inline int adc_channel_setup_dt(const struct adc_dt_spec *spec);
 
 戻り値: `adc_channel_setup()` の値。Devicetree の情報が正しくなければ `-ENOTSUP`。
 
-使用箇所: [`app/thermo-node/src/sensor.c:89`](../app/thermo-node/src/sensor.c#L89)
+使用箇所: [`app/thermo-node/src/sensor.c:116`](../app/thermo-node/src/sensor.c#L116)
 
 ### adc_read_dt
 
@@ -73,7 +73,7 @@ static inline int adc_read_dt(const struct adc_dt_spec *spec, const struct adc_s
 
 戻り値: `adc_read()` の値。
 
-使用箇所: [`app/thermo-node/src/sensor.c:159`](../app/thermo-node/src/sensor.c#L159)
+使用箇所: [`app/thermo-node/src/sensor.c:194`](../app/thermo-node/src/sensor.c#L194)
 
 ### adc_raw_to_millivolts_dt
 
@@ -90,7 +90,7 @@ ADC の生の値を、`struct adc_dt_spec` の情報を使って、ミリボル�
 
 戻り値: `adc_raw_to_millivolts()` の値。Devicetree の情報が正しくなければ `-ENOTSUP`。
 
-使用箇所: [`app/thermo-node/src/sensor.c:167`](../app/thermo-node/src/sensor.c#L167)
+使用箇所: [`app/thermo-node/src/sensor.c:202`](../app/thermo-node/src/sensor.c#L202)
 
 ## GPIO
 
@@ -334,7 +334,7 @@ int sensor_sample_fetch(const struct device *dev);
 
 - I2C や SPI で接続したセンサは、通信をするので、割り込みから呼ばない。
 
-使用箇所: [`app/thermo-node/src/sensor.c:123`](../app/thermo-node/src/sensor.c#L123)
+使用箇所: [`app/thermo-node/src/sensor.c:153`](../app/thermo-node/src/sensor.c#L153) (ほか 1 行)
 
 ### sensor_channel_get
 
@@ -347,12 +347,20 @@ int sensor_channel_get(const struct device *dev, enum sensor_channel chan, struc
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
 | `dev` | in | センサのデバイス |
-| `chan` | in | チャンネル (`SENSOR_CHAN_AMBIENT_TEMP` `SENSOR_CHAN_HUMIDITY`) |
+| `chan` | in | チャンネル (`SENSOR_CHAN_AMBIENT_TEMP` `SENSOR_CHAN_HUMIDITY` `SENSOR_CHAN_PRESS`) |
 | `val` | out | 値を入れる領域 (`val1` が整数部、`val2` が小数部 [百万分の 1]) |
 
-戻り値: 成功は 0、失敗は負の errno。
+戻り値: 成功は 0、失敗は負の errno。センサにないチャンネルは、`-ENOTSUP` (ドライバによる)。
 
-使用箇所: [`app/thermo-node/src/sensor.c:129`](../app/thermo-node/src/sensor.c#L129) (ほか 1 行)
+チャンネルの単位 (このプロジェクトで使うもの):
+
+| チャンネル | 単位 | 例 |
+|:---|:---|:---|
+| `SENSOR_CHAN_AMBIENT_TEMP` | ℃ | 23.5 ℃ は `val1 = 23`、`val2 = 500000` |
+| `SENSOR_CHAN_HUMIDITY` | % (相対湿度) | 45 % は `val1 = 45`、`val2 = 0` |
+| `SENSOR_CHAN_PRESS` | **kPa** (hPa ではない) | 1013.2 hPa (101.32 kPa) は `val1 = 101`、`val2 = 320000`。`sensor_value_to_milli()` で Pa (101320) になる |
+
+使用箇所: [`app/thermo-node/src/sensor.c:159`](../app/thermo-node/src/sensor.c#L159) (ほか 1 行), [`app/thermo-node/src/sensor.c:244`](../app/thermo-node/src/sensor.c#L244) (気圧)
 
 ### sensor_value_to_milli
 
@@ -368,7 +376,7 @@ static inline int64_t sensor_value_to_milli(const struct sensor_value *val);
 
 戻り値: 変換した値。
 
-使用箇所: [`app/thermo-node/src/sensor.c:134`](../app/thermo-node/src/sensor.c#L134) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/sensor.c:164`](../app/thermo-node/src/sensor.c#L164) (ほか 2 行)
 
 ## Devicetree
 
@@ -386,7 +394,7 @@ Devicetree のノードから、デバイスへのポインタを得る (コン�
 
 戻り値: デバイスへのポインタ。
 
-使用箇所: [`app/thermo-node/src/node_time.c:61`](../app/thermo-node/src/node_time.c#L61), [`app/thermo-node/src/oled.c:98`](../app/thermo-node/src/oled.c#L98), [`app/thermo-node/src/sensor.c:42`](../app/thermo-node/src/sensor.c#L42)
+使用箇所: [`app/thermo-node/src/node_time.c:61`](../app/thermo-node/src/node_time.c#L61), [`app/thermo-node/src/oled.c:98`](../app/thermo-node/src/oled.c#L98), [`app/thermo-node/src/sensor.c:47`](../app/thermo-node/src/sensor.c#L47) (ほか 1 行)
 
 ### DT_ALIAS
 
@@ -418,7 +426,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 戻り値: 1 または 0。
 
-使用箇所: [`app/thermo-node/src/sensor.c:24`](../app/thermo-node/src/sensor.c#L24)
+使用箇所: [`app/thermo-node/src/sensor.c:25`](../app/thermo-node/src/sensor.c#L25) (ほか 1 行)
 
 ### DT_PATH
 
@@ -448,7 +456,7 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 
 `/zephyr,user` は、アプリのための特別なノード。binding (プロパティの書式の定義) を書かなくても、任意のプロパティを置ける (プロパティの型は、値から推定される)。ボードごとに変えたい値 (ADC のチャンネル、GPIO のピン、数値など) を、overlay に書いて、アプリから読むのに使う。Zephyr のドライバやサブシステムではなく、アプリとサンプルのためのもの。
 
-このプロジェクトでは、ノードの温度センサの ADC のチャンネル (`io-channels`) を置く。`io-channels` があれば ADC を読み、なければ、ほかの方法 (センサ API か、シミュレーション) にする ([`app/thermo-node/src/sensor.c:28`](../app/thermo-node/src/sensor.c#L28))。
+このプロジェクトでは、ノードの温度センサの ADC のチャンネル (`io-channels`) を置く。`io-channels` があれば ADC を読み、なければ、ほかの方法 (センサ API か、シミュレーション) にする ([`app/thermo-node/src/sensor.c:33`](../app/thermo-node/src/sensor.c#L33))。
 
 ```dts
 / {
@@ -464,7 +472,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 #endif
 ```
 
-使用箇所: [`app/thermo-node/src/sensor.c:28`](../app/thermo-node/src/sensor.c#L28) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/sensor.c:33`](../app/thermo-node/src/sensor.c#L33) (ほか 1 行)
 
 ### DT_NODE_HAS_PROP
 
@@ -481,7 +489,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 
 戻り値: 1 または 0。
 
-使用箇所: [`app/thermo-node/src/sensor.c:28`](../app/thermo-node/src/sensor.c#L28)
+使用箇所: [`app/thermo-node/src/sensor.c:33`](../app/thermo-node/src/sensor.c#L33)
 
 ### ADC_DT_SPEC_GET
 
@@ -495,7 +503,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 |:---|:---:|:---|
 | `node_id` | in | ノードの識別子 |
 
-使用箇所: [`app/thermo-node/src/sensor.c:48`](../app/thermo-node/src/sensor.c#L48)
+使用箇所: [`app/thermo-node/src/sensor.c:64`](../app/thermo-node/src/sensor.c#L64)
 
 ### GPIO_DT_SPEC_GET
 

@@ -1,6 +1,6 @@
 # main.c の解析
 
-対象: `app/thermo-node/src/main.c` (633 行)
+対象: `app/thermo-node/src/main.c` (639 行)
 
 ノードのエントリポイントです。起動の初期化を済ませたあと、50 ms ごとに回る 1 本のループで、測定、通知、表示、ボタン、機器の再初期化、時刻の確認、ログの書き出しを全て行います。BLE のコールバックと、ブザー、クラウドの送信は、別のスレッドとワークキューで動きます。
 
@@ -53,7 +53,7 @@ return start_ms + ((((now_ms - start_ms) / interval_ms) + 1) * interval_ms);
 ```text
 measure()
   ├ sensor_read()            失敗 → 戻り値を返す (通知しない。値を捨てて、5 秒後に再試行)
-  ├ log_sample()             ログに温度と湿度を出す
+  ├ log_sample()             ログに温度と湿度と気圧を出す (気圧は、測れたときだけ、別の行)
   └ ble_notify_temperature() 通知の失敗はログだけ (戻り値には含めない)
 成功したら
   ├ direct_sample()          (CONFIG_THERMO_DIRECT_MQTT) SD カードへの保存と、WiFi での直接の送信
@@ -148,7 +148,7 @@ oled_show(&view)             点灯しているときだけ。失敗したらロ
 | `check_time()` | RTC に時刻がなければ、WiFi で取って設定する (上の表) |
 | `play_button_sound()` | ブザーが使えるときだけ、ボタンの音を鳴らす。失敗してもページの切り替えには影響しない |
 | `measure()` | センサ、ログ、BLE の通知 |
-| `log_sample()` | 温度と湿度をログに出す。負の値は符号を別に出す (-0.5 のような値を正しく出すため) |
+| `log_sample()` | 温度と湿度と気圧をログに出す。負の値は符号を別に出す (-0.5 のような値を正しく出すため)。気圧は、測れたときだけ、`Pressure: 1013.2 hPa` の行を出す |
 | `next_grid_ms()` | 格子の次の時刻 |
 
 ## ビルド構成による違い

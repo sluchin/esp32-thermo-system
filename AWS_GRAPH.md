@@ -410,14 +410,14 @@ aws cloudwatch set-alarm-state \
 
 料金の目安は、アラーム 1 つあたり月に数十円以下です。メールの通知は、月 1,000 件まで無料です (料金は、リージョンと時期で変わります。最新の料金表で確認してください)。
 
-### 7.2 Thermo ノードの温度と湿度
+### 7.2 Thermo ノードの温度と湿度と気圧
 
-ノードの値は、`temperature_c` と `humidity` (DHT11 のとき) です ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)。トピックは、`thermo/CLIENT_ID/NODE_ADDRESS/temperature` で、**ノードのアドレスは 3 番目**です (SwitchBot は 4 番目)。そのため、メトリクス名には `${topic(3)}` を使います。SwitchBot のルール (4 章) とは別に、ノード用のルールを作ります。
+ノードの値は、`temperature_c` と `humidity` (AHT20 と DHT11 のとき) と `pressure_hpa` (BMP280 のとき) です ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)。トピックは、`thermo/CLIENT_ID/NODE_ADDRESS/temperature` で、**ノードのアドレスは 3 番目**です (SwitchBot は 4 番目)。そのため、メトリクス名には `${topic(3)}` を使います。SwitchBot のルール (4 章) とは別に、ノード用のルールを作ります。
 
 ```bash
 cat > rule-node.json <<JSON
 {
-  "sql": "SELECT temperature_c, humidity FROM 'thermo/+/+/temperature'",
+  "sql": "SELECT temperature_c, humidity, pressure_hpa FROM 'thermo/+/+/temperature'",
   "awsIotSqlVersion": "2016-03-23",
   "ruleDisabled": false,
   "actions": [
@@ -438,6 +438,15 @@ cat > rule-node.json <<JSON
         "metricValue": "\${humidity}",
         "metricUnit": "Percent"
       }
+    },
+    {
+      "cloudwatchMetric": {
+        "roleArn": "arn:aws:iam::${ACCOUNT_ID}:role/thermo-iot-cloudwatch",
+        "metricNamespace": "Thermo",
+        "metricName": "\${topic(3)}_pressure_hpa",
+        "metricValue": "\${pressure_hpa}",
+        "metricUnit": "None"
+      }
     }
   ]
 }
@@ -447,9 +456,17 @@ aws iot create-topic-rule --rule-name thermo_node_to_cloudwatch \
   --topic-rule-payload file://rule-node.json
 ```
 
+すでに、気圧のアクションのないルールを作ってあるときは、`create-topic-rule` の代わりに、`replace-topic-rule` で置き換えます (同じ名前のルールは、2 つ作れません)。
+
+```bash
+aws iot replace-topic-rule --rule-name thermo_node_to_cloudwatch \
+  --topic-rule-payload file://rule-node.json
+```
+
 - IAM ロールは、3 章のものを、そのまま使えます (名前空間 `Thermo` への書き込みの権限です)。
 - SwitchBot のルールの SQL (`'thermo/+/switchbot/+'`) と、このルールの SQL (`'thermo/+/+/temperature'`) は、同じトピックには合わないので、メッセージが二重に処理されることはありません。
-- 湿度を測れないセンサ (ADC など) のときは、`humidity` が出力されないので、湿度のアクションだけが実行されず、湿度のメトリクスはできません。
+- 湿度を測れないセンサ (ADC など) のときは、`humidity` が出力されないので、湿度のアクションだけが実行されず、湿度のメトリクスはできません。気圧も同じです (気圧センサのないノードでは、`pressure_hpa` のメトリクスはできません)。
+- CloudWatch の単位に hPa はないので、気圧の単位は `None` にします (値は hPa のまま)。グラフの縦軸の名前を `Pressure [hPa]` にして、区別します。
 - ルールを作ったら、5 章と同じ手順で、`aws cloudwatch list-metrics --namespace Thermo` を実行して、`00:AA:01:00:00:42_temperature_c` のような名前が表示されることを確認します。
 - グラフにするには、6.2 の `metrics` に、`[ "Thermo", "00:AA:01:00:00:42_temperature_c" ]` の行を足します (自分のノードのアドレスに置き換えます)。コンソールで作るときは、6.1 の手順 3 で、一覧からノードのメトリクスを選びます。
 - ノードのアドレスは、MQTT テストクライアントで `thermo/#` を購読すると、トピックから分かります。

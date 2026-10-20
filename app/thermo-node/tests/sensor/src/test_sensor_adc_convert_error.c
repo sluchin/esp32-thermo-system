@@ -36,6 +36,7 @@ ZTEST(sensor_adc_convert_error, test_read_convert_failure)
 {
     int16_t temp = 0;      /* 温度 */
     uint16_t humidity = 0; /* 湿度 */
+    uint16_t pressure = 0; /* 気圧 */
     int ret = 0;           /* 戻り値 */
     struct adc_channel_cfg cfg = {
         .gain = ADC_GAIN_1,
@@ -46,7 +47,7 @@ ZTEST(sensor_adc_convert_error, test_read_convert_failure)
 
     /* 期待: チャンネルを設定すれば, 生値は読めるが, 換算に必要な設定がないので, -ENOTSUP */
     zassert_equal(adc_channel_setup(adc_dev, &cfg), 0);
-    ret = sensor_read(&temp, &humidity);
+    ret = sensor_read(&temp, &humidity, &pressure);
     zassert_equal(ret, -ENOTSUP, "ret=%d", ret);
 }
 

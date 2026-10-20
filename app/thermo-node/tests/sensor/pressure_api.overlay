@@ -1,0 +1,17 @@
+/* 偽のセンサ (vnd,test-sensor) を 2 つ, alias thermo-sensor (温度と湿度) と thermo-pressure (気圧) に接続する */
+/ {
+    aliases {
+        thermo-sensor = &test_sensor;
+        thermo-pressure = &test_pressure;
+    };
+
+    test_sensor: test-sensor {
+        compatible = "vnd,test-sensor";
+        status = "okay";
+    };
+
+    test_pressure: test-pressure {
+        compatible = "vnd,test-sensor";
+        status = "okay";
+    };
+};

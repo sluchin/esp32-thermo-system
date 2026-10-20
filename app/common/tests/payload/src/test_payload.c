@@ -13,7 +13,7 @@
 
 #include <zephyr/ztest.h>
 #include <errno.h>  /* ENOSPC */
-#include <stdint.h> /* INT16_MAX INT16_MIN UINT32_MAX */
+#include <stdint.h> /* INT16_MAX INT16_MIN UINT32_MAX INT64_MAX */
 #include <string.h> /* strlen strstr */
 
 #include "payload.h"
@@ -70,12 +70,13 @@ ZTEST(payload, test_topic_no_space)
     zassert_equal(payload_format_topic(buf, sizeof(buf), "gateway-01", &node), -ENOSPC);
 }
 
-/** ペイロードはアドレス, 温度, 湿度, 稼働時間の JSON */
+/** ペイロードはアドレス, 温度, 湿度, 稼働時間の JSON (気圧がないときは, 気圧の項目はない) */
 ZTEST(payload, test_payload)
 {
     char buf[160] = {0}; /* 出力バッファ */
     /* 書き込んだ長さ [バイト] */
-    int len = payload_format_temperature(buf, sizeof(buf), &node, 235, 450U, 123456U, -1);
+    int len = payload_format_temperature(buf, sizeof(buf), &node, 235, 450U, THERMO_PRESSURE_NONE,
+                                         123456U, -1);
 
     /* 期待: アドレス, 種類, 温度 (23.5 ℃), 湿度 (45.0 %), 稼働時間を持つ JSON になる */
     zassert_equal(len, (int)strlen(EXPECTED_PAYLOAD));
@@ -88,11 +89,14 @@ ZTEST(payload, test_payload_negative_temperature)
     char buf[160] = {0}; /* 出力バッファ */
 
     /* 期待: -3.5 ℃ は "-3.5", -0.5 ℃ は "-0.5", 0 ℃ は "0.0" */
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, -35, 450U, 1U, -1) > 0);
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, -35, 450U,
+                                            THERMO_PRESSURE_NONE, 1U, -1) > 0);
     zassert_not_null(strstr(buf, "\"temperature_c\":-3.5,"));
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, -5, 450U, 1U, -1) > 0);
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, -5, 450U, THERMO_PRESSURE_NONE,
+                                            1U, -1) > 0);
     zassert_not_null(strstr(buf, "\"temperature_c\":-0.5,"));
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 0, 450U, 1U, -1) > 0);
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 0, 450U, THERMO_PRESSURE_NONE,
+                                            1U, -1) > 0);
     zassert_not_null(strstr(buf, "\"temperature_c\":0.0,"));
 }
 
@@ -103,26 +107,58 @@ ZTEST(payload, test_payload_without_humidity)
 
     /* 期待: 温度は出力して, 湿度の項目はない */
     zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, THERMO_HUMIDITY_NONE,
-                                            123456U, -1) > 0);
+                                            THERMO_PRESSURE_NONE, 123456U, -1) > 0);
     zassert_str_equal(buf, "{\"node\":\"00:AA:01:00:00:42\",\"type\":\"thermo\","
                            "\"temperature_c\":23.5,\"uptime_ms\":123456}");
 }
 
-/** 値が最大 (温度 3276.7, 湿度 6553.4, 稼働時間 4294967295) でも, そのまま出力する */
+/** 値が最大 (温度 3276.7, 湿度 6553.4, 気圧 6553.4, 稼働時間 4294967295) でも, そのまま出力する */
 ZTEST(payload, test_payload_max_values)
 {
-    char buf[160] = {0}; /* 出力バッファ */
+    char buf[176] = {0}; /* 出力バッファ (cloud.c の PAYLOAD_SIZE) */
 
     /* 期待: 最大の値でも, 桁を切らずに出力する */
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, INT16_MAX, 0xFFFEU, UINT32_MAX,
-                                            -1) > 0);
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, INT16_MAX, 0xFFFEU, 0xFFFEU,
+                                            UINT32_MAX, -1) > 0);
     zassert_not_null(strstr(buf, "\"temperature_c\":3276.7,"));
     zassert_not_null(strstr(buf, "\"humidity\":6553.4,"));
+    zassert_not_null(strstr(buf, "\"pressure_hpa\":6553.4,"));
     zassert_not_null(strstr(buf, "\"uptime_ms\":4294967295}"));
 
+    /* 最も長いペイロード (最小の温度と 19 桁の UNIX 時刻) は 163 文字 (PAYLOAD_SIZE に入る) */
+    zassert_equal(payload_format_temperature(buf, sizeof(buf), &node, INT16_MIN, 0xFFFEU, 0xFFFEU,
+                                             UINT32_MAX, INT64_MAX),
+                  163);
+
     /* 温度が最小 (-3276.8) でも, 符号付きの絶対値で出力する */
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, INT16_MIN, 0U, 1U, -1) > 0);
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, INT16_MIN, 0U,
+                                            THERMO_PRESSURE_NONE, 1U, -1) > 0);
     zassert_not_null(strstr(buf, "\"temperature_c\":-3276.8,"));
+}
+
+/** 気圧があれば, 湿度の次に "pressure_hpa" を出力する */
+ZTEST(payload, test_payload_pressure)
+{
+    char buf[176] = {0}; /* 出力バッファ */
+
+    /* 期待: 1013.2 hPa は 1013.2. 0.5 hPa のように, 1 hPa 未満も 0 を付けて出力する */
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, 450U, 10132U, 123456U,
+                                            -1) > 0);
+    zassert_str_equal(buf, EXPECTED_PAYLOAD_HEAD "\"pressure_hpa\":1013.2,\"uptime_ms\":123456}");
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, 450U, 5U, 1U, -1) > 0);
+    zassert_not_null(strstr(buf, "\"pressure_hpa\":0.5,"));
+}
+
+/** 湿度がなくて, 気圧があるときは, 温度の次に "pressure_hpa" を出力する */
+ZTEST(payload, test_payload_pressure_without_humidity)
+{
+    char buf[176] = {0}; /* 出力バッファ */
+
+    /* 期待: 湿度の項目はなく, 気圧の項目はある */
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, THERMO_HUMIDITY_NONE,
+                                            10132U, 123456U, -1) > 0);
+    zassert_str_equal(buf, "{\"node\":\"00:AA:01:00:00:42\",\"type\":\"thermo\","
+                           "\"temperature_c\":23.5,\"pressure_hpa\":1013.2,\"uptime_ms\":123456}");
 }
 
 /** バッファが足りなければ, ペイロードは -ENOSPC (途中で切れた JSON を返さない) */
@@ -131,7 +167,8 @@ ZTEST(payload, test_payload_no_space)
     char buf[sizeof(EXPECTED_PAYLOAD) - 1U] = {0}; /* 出力バッファ */
 
     /* 期待: 足りなければ -ENOSPC (途中で切れた JSON を返さない) */
-    zassert_equal(payload_format_temperature(buf, sizeof(buf), &node, 235, 450U, 123456U, -1),
+    zassert_equal(payload_format_temperature(buf, sizeof(buf), &node, 235, 450U,
+                                             THERMO_PRESSURE_NONE, 123456U, -1),
                   -ENOSPC);
 }
 
@@ -243,8 +280,8 @@ ZTEST(payload, test_payload_timestamp)
 {
     char buf[160] = {0}; /* 出力バッファ */
 
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, 450U, 123456U,
-                                            1790000000) > 0);
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, 450U,
+                                            THERMO_PRESSURE_NONE, 123456U, 1790000000) > 0);
     zassert_str_equal(buf, EXPECTED_PAYLOAD_HEAD "\"uptime_ms\":123456,\"timestamp\":1790000000}");
 }
 
@@ -253,7 +290,8 @@ ZTEST(payload, test_payload_timestamp_zero)
 {
     char buf[160] = {0}; /* 出力バッファ */
 
-    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 1, 1U, 1U, 0) > 0);
+    zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 1, 1U, THERMO_PRESSURE_NONE,
+                                            1U, 0) > 0);
     zassert_not_null(strstr(buf, "\"uptime_ms\":1,\"timestamp\":0}"));
 }
 

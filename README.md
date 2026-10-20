@@ -6,7 +6,7 @@ Zephyr RTOS-based BLE thermometer system featuring a sensor node and a gateway f
 
 このプロジェクトは、ESP32C3 マイクロコントローラ上で Zephyr RTOS を使用したBLE（Bluetooth Low Energy）サーモメータシステムです。
 
-- **Thermo Node**: 温度センサを備えたエッジノード。温度データを BLE 経由で配信
+- **Thermo Node**: 温湿度センサと気圧センサを備えたエッジノード。温度、湿度、気圧のデータを BLE 経由で配信
 - **Thermo Gateway**: 複数のノードから温度データを収集・集約するゲートウェイ
 - **thermon** (別のリポジトリ): ゲートウェイが AWS IoT Core 経由で DynamoDB に保存したデータを、Cognito の未認証ロールで読み取って表示する Android アプリ ([sluchin/thermon](https://github.com/sluchin/thermon)。手順は [AWS_DYNAMODB.md](AWS_DYNAMODB.md))
 
@@ -15,7 +15,7 @@ Zephyr RTOS-based BLE thermometer system featuring a sensor node and a gateway f
 ```
 esp32-thermo-system/
 ├── app/
-│   ├── thermo-node/            # センサノード (DHT11、BLE、OLED、RTC、ブザー、ボタン、WiFi での時刻の取得)
+│   ├── thermo-node/            # センサノード (AHT20 + BMP280 または DHT11、BLE、OLED、RTC、ブザー、ボタン、WiFi での時刻の取得)
 │   │   ├── CMakeLists.txt
 │   │   ├── Kconfig             # アプリのオプション (THERMO_DISPLAY など)
 │   │   ├── prj.conf            # Zephyr 設定
@@ -103,7 +103,8 @@ docker compose run --rm clean
 | `THERMO_DISPLAY` | `y` / `n` | `y` | node | OLED、グラフ、ボタン |
 | `THERMO_RTC` | `y` / `n` | `y` | node | RTC (PCF8563) |
 | `THERMO_BUZZER` | `y` / `n` | `y` | node | ブザー (起動音とボタンの音) |
-| `THERMO_DHT_LOCK_IRQS` | `y` / `n` | `y` | node | DHT11 の読み取りの間、割り込みを止める |
+| `THERMO_SENSOR` | `aht20_bmp280` / `dht11` | `aht20_bmp280` | node | 温湿度センサ (`aht20_bmp280`: AHT20 + BMP280 のモジュール。気圧も送る。`dht11`: DHT11) |
+| `THERMO_DHT_LOCK_IRQS` | `y` / `n` | `y` | node | DHT11 の読み取りの間、割り込みを止める (`THERMO_SENSOR=dht11` のときだけ) |
 | `UID` / `GID` | 数値 | `0` | 全て | 生成物の所有者 (`export UID GID=$(id -g)` で、自分にする) |
 
 ※「対象」が node のオプションは、gateway のビルドでは使いません。
@@ -192,8 +193,8 @@ scripts/flash.sh gateway /dev/ttyACM0
 
 ### Thermo Node
 
-- 温湿度センサ (DHT11) の読取 (Zephyr のセンサ API。配線は [SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
-- BLE GATT サービスで、温度と湿度のデータを配信
+- 温湿度センサと気圧センサ (AHT20 + BMP280 のモジュール。I2C) の読取 (Zephyr のセンサ API。配線は [SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)。DHT11 (気圧なし) にも、ビルドのオプション (`THERMO_SENSOR=dht11`) で替えられます。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
+- BLE GATT サービスで、温度、湿度、気圧のデータを配信
 - 拡張ボードの OLED に、温度、湿度、日付、時刻と、温度と湿度のグラフ (直近の約 6 時間。SD カードの記録から、再起動のあとも戻す) を表示 (ユーザボタンでページを切り替え。OLED は、起動のときとボタンを押したときに点灯して、10 秒たつと消える。消えている間にボタンを押すと、点灯する)。時刻は、拡張ボードの RTC (PCF8563) から読みます (RTC は、ゲートウェイから BLE で受け取った時刻に合わせます) (設定は [SETUP.md](SETUP.md) の「OLED の表示と時刻」。`THERMO_DISPLAY=n` と `THERMO_RTC=n` で、別々に外せます)
 - ゲートウェイにつながらない測定が 5 回続いたら、ノードが、WiFi で、AWS IoT Core に、直接 MQTT で送る (ゲートウェイにつながったら止める。5 回失敗したらあきらめる)。全ての測定値 (5 秒ごと) は、送信済みフラグつきで、拡張ボードの SD カードに保存する (最大 100000 件。超えたら、古い記録から上書きする)。BLE も WiFi も使えない間は、未送信で保存し続けて、つながったときに、測った時刻のまま、古い順に送る ([SETUP.md](SETUP.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」。ノードごとの証明書は、[AWS_SETUP.md](AWS_SETUP.md) の 7 章)。
 - ノードのログも、SD カードに、テキストで保存する (`boot.log`: 起動から 60 秒の全てのログ、`error.log`: エラーのログ。形式は [SD_LOG.md](SD_LOG.md))。
@@ -201,9 +202,9 @@ scripts/flash.sh gateway /dev/ttyACM0
 - ログ出力（UART シリアルコンソール）
 
 ### Thermo Gateway
-- BLE スキャンで周辺ノードを検出して、GATT で接続し、温度と湿度の通知を受信 (最大 3 台)
+- BLE スキャンで周辺ノードを検出して、GATT で接続し、温度、湿度、気圧の通知を受信 (最大 3 台。気圧を送らない以前のノードも受信できる)
 - SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズ (接続しない) を受信して、温度 (℃)・湿度・電池残量を、10 秒に 1 回、AWS IoT Core に送信
-- WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](AWS_GRAPH.md)。DynamoDB に保存して、アプリから読む手順は [AWS_DYNAMODB.md](AWS_DYNAMODB.md))
+- WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度、湿度、気圧を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](AWS_GRAPH.md)。DynamoDB に保存して、アプリから読む手順は [AWS_DYNAMODB.md](AWS_DYNAMODB.md))
 - SNTP で同期した時刻を、接続したノードに BLE (GATT の書き込み) で渡して、ノードの RTC を合わせる (1 時間ごと。[SETUP.md](SETUP.md) の「ゲートウェイからの時刻の同期」)
 - 起動の 1 分後から 1 分ごとに、ノードの RTC に時刻がなければ、ノードが自分で WiFi と SNTP で時刻を取って、WiFi を切る (最大 5 回) (BLE の予備。[SETUP.md](SETUP.md) の「WiFi での時刻の取得」)
 - WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存

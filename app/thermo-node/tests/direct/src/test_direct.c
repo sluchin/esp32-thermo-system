@@ -53,8 +53,9 @@ FAKE_VALUE_FUNC(int, cloud_init, bool)
 FAKE_VOID_FUNC(cloud_set_enabled, bool)
 FAKE_VOID_FUNC(cloud_set_attempt_limit, unsigned int)
 FAKE_VALUE_FUNC(bool, cloud_has_given_up)
-FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, int16_t, uint16_t)
-FAKE_VALUE_FUNC(int, cloud_publish_temperature_at, const bt_addr_le_t *, int16_t, uint16_t, int64_t)
+FAKE_VALUE_FUNC(int, cloud_publish_temperature, const bt_addr_le_t *, int16_t, uint16_t, uint16_t)
+FAKE_VALUE_FUNC(int, cloud_publish_temperature_at, const bt_addr_le_t *, int16_t, uint16_t,
+                uint16_t, int64_t)
 FAKE_VALUE_FUNC(bool, cloud_is_connected)
 FAKE_VALUE_FUNC(unsigned int, cloud_pending)
 FAKE_VALUE_FUNC(uint32_t, cloud_sent_count)
@@ -63,6 +64,8 @@ FAKE_VALUE_FUNC(uint32_t, cloud_sent_count)
 #define TEMP_X10     235
 /** 試験の湿度 [% の 10 倍] */
 #define HUMIDITY_X10 450U
+/** 測定値の気圧 [hPa の 10 倍] */
+#define PRESSURE_X10 10132U
 /** 試験のノードのアドレスを埋める値 */
 #define ADDR_BYTE    0x5A
 
@@ -292,6 +295,7 @@ static void put_records(unsigned int count)
         store[i].unix_s = 1000LL + (int64_t)i;
         store[i].temp_x10 = (int16_t)(100U + i);
         store[i].humidity_x10 = (uint16_t)(400U + i);
+        store[i].pressure_x10 = (uint16_t)(10000U + i);
     }
     store_count = count;
     (void)memset(store_sent, 0, sizeof(store_sent));
@@ -307,7 +311,7 @@ static void samples(unsigned int count)
     unsigned int i = 0U; /* ループ用の添字 */
 
     for (i = 0U; i < count; i++) {
-        direct_sample(TEMP_X10, HUMIDITY_X10);
+        direct_sample(TEMP_X10, HUMIDITY_X10, PRESSURE_X10);
     }
 }
 
@@ -388,6 +392,7 @@ ZTEST(direct, test_publishes_every_sample_without_sd)
     zassert_equal(cloud_publish_temperature_fake.call_count, 1U);
     zassert_equal(cloud_publish_temperature_fake.arg1_val, TEMP_X10);
     zassert_equal(cloud_publish_temperature_fake.arg2_val, HUMIDITY_X10);
+    zassert_equal(cloud_publish_temperature_fake.arg3_val, PRESSURE_X10);
     zassert_equal(((const uint8_t *)cloud_publish_temperature_fake.arg0_val)[0], ADDR_BYTE);
 
     samples(1U);
@@ -516,6 +521,7 @@ ZTEST(direct, test_offline_values_are_saved_as_not_sent)
     zassert_equal(store[0].unix_s, NOW_SEC);
     zassert_equal(store[0].temp_x10, TEMP_X10);
     zassert_equal(store[0].humidity_x10, HUMIDITY_X10);
+    zassert_equal(store[0].pressure_x10, PRESSURE_X10);
     zassert_false(store_sent[0]);
     zassert_false(backlog_append_fake.arg1_val);
     zassert_equal(cloud_publish_temperature_fake.call_count, 0U);
@@ -589,7 +595,7 @@ ZTEST(direct, test_new_values_are_sent_through_the_store)
     zassert_true(direct_active());
     zassert_equal(cloud_publish_temperature_fake.call_count, 0U);
     zassert_equal(cloud_publish_temperature_at_fake.call_count, DIRECT_BLE_FAIL_LIMIT);
-    zassert_equal(cloud_publish_temperature_at_fake.arg3_val, NOW_SEC);
+    zassert_equal(cloud_publish_temperature_at_fake.arg4_val, NOW_SEC);
 }
 
 /** SD カードに送っていない記録があれば, ゲートウェイにつながっていても, WiFi で送る */
@@ -607,8 +613,9 @@ ZTEST(direct, test_backlog_starts_wifi_with_the_gateway_connected)
     zassert_equal(cloud_publish_temperature_at_fake.call_count, 3U);
     zassert_equal(cloud_publish_temperature_at_fake.arg1_history[0], 100);
     zassert_equal(cloud_publish_temperature_at_fake.arg2_history[0], 400U);
-    zassert_equal(cloud_publish_temperature_at_fake.arg3_history[0], 1000LL);
-    zassert_equal(cloud_publish_temperature_at_fake.arg3_history[2], 1002LL);
+    zassert_equal(cloud_publish_temperature_at_fake.arg3_history[0], 10000U);
+    zassert_equal(cloud_publish_temperature_at_fake.arg4_history[0], 1000LL);
+    zassert_equal(cloud_publish_temperature_at_fake.arg4_history[2], 1002LL);
     zassert_equal(((const uint8_t *)cloud_publish_temperature_at_fake.arg0_history[0])[0],
                   ADDR_BYTE);
     zassert_equal(backlog_commit_fake.call_count, 0U);

@@ -107,7 +107,7 @@ FAKE_VOID_FUNC(FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 
 最後の呼び出しの、最初の引数。ポインタ (文字列など) も、値のまま、ポインタが入る。
 
-使用箇所: [`app/common/tests/cloud/src/test_cloud.c:446`](../app/common/tests/cloud/src/test_cloud.c#L446) (ほか、`arg1_val` などを含めて、約 140 か所)
+使用箇所: [`app/common/tests/cloud/src/test_cloud.c:447`](../app/common/tests/cloud/src/test_cloud.c#L447) (ほか、`arg1_val` などを含めて、約 140 か所)
 
 ### arg0_history
 
@@ -123,7 +123,7 @@ bt_enable_fake.custom_fake = fake_bt_enable;
 
 実物の代わりに呼ぶ関数を設定する。出力の引数 (`out`) に値を書き込む関数や、呼ばれた回数によって返す値を変える関数を、テストで書いて入れる。関数の型は、偽の関数と同じ。
 
-使用箇所: [`app/common/tests/cloud/src/test_cloud.c:342`](../app/common/tests/cloud/src/test_cloud.c#L342) (関数は 158 行目。ほか、約 180 か所)
+使用箇所: [`app/common/tests/cloud/src/test_cloud.c:343`](../app/common/tests/cloud/src/test_cloud.c#L343) (関数は 158 行目。ほか、約 180 か所)
 
 ## リセットと列の設定
 
@@ -183,7 +183,7 @@ extern fff_globals_t fff;   /* fff.call_history[], fff.call_history_idx */
 
 要素は関数ポインタなので、比べるときは、`(void *)(uintptr_t)(f)` に直す (関数ポインタをオブジェクトポインタに直接キャストすることは、ISO C で許されないため)。このプロジェクトでは、`FUNCTION_ADDRESS()` で包んでいる。
 
-使用箇所: [`app/thermo-gateway/tests/main/src/test_main.c:220`](../app/thermo-gateway/tests/main/src/test_main.c#L220) (`ble_init` と `cloud_init` の呼ばれた順の確認)
+使用箇所: [`app/thermo-gateway/tests/main/src/test_main.c:222`](../app/thermo-gateway/tests/main/src/test_main.c#L222) (`ble_init` と `cloud_init` の呼ばれた順の確認)
 
 ## 使っていない機能
 

@@ -337,7 +337,10 @@ static bool parse_ad(struct bt_data *data, void *user_data)
 }
 
 /**
- * 通知のコールバック (ノードが送った温度と湿度を受信する)
+ * 通知のコールバック (ノードが送った温度と湿度と気圧を受信する)
+ *
+ * 気圧を足す前のノードは, 温度と湿度だけ (THERMO_TEMPERATURE_SIZE_NO_PRESSURE バイト) を送るので,
+ * 気圧なし (THERMO_PRESSURE_NONE) として受け取る.
  *
  * @param[in] conn 接続
  * @param[in,out] params 購読のパラメータ
@@ -348,8 +351,9 @@ static bool parse_ad(struct bt_data *data, void *user_data)
 static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *params,
                          const void *data, uint16_t length)
 {
-    int16_t temp_x10 = 0;      /* 温度 [℃ の 10 倍] */
-    uint16_t humidity_x10 = 0; /* 湿度 [% の 10 倍] */
+    int16_t temp_x10 = 0;                         /* 温度 [℃ の 10 倍] */
+    uint16_t humidity_x10 = 0;                    /* 湿度 [% の 10 倍] */
+    uint16_t pressure_x10 = THERMO_PRESSURE_NONE; /* 気圧 [hPa の 10 倍] */
 
     if (data == NULL) {
         LOG_INF("Unsubscribed");
@@ -358,16 +362,22 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
     }
 
     LOG_HEXDUMP_DBG(data, length, "Notification");
-    if (length != THERMO_TEMPERATURE_SIZE) {
+    if ((length != THERMO_TEMPERATURE_SIZE) && (length != THERMO_TEMPERATURE_SIZE_NO_PRESSURE)) {
         LOG_WRN("Unexpected notification length: %u", length);
         return BT_GATT_ITER_CONTINUE;
     }
 
-    /* 温度 (int16) と湿度 (uint16) がこの順に 2 byte ずつ, リトルエンディアンで並んでいる */
+    /*
+     * 温度 (int16) と湿度 (uint16) と気圧 (uint16) がこの順に 2 byte ずつ, リトルエンディアンで
+     * 並んでいる (気圧は, ないことがある)
+     */
     temp_x10 = (int16_t)sys_get_le16((const uint8_t *)data);
     humidity_x10 = sys_get_le16((const uint8_t *)data + sizeof(uint16_t));
+    if (length == THERMO_TEMPERATURE_SIZE) {
+        pressure_x10 = sys_get_le16((const uint8_t *)data + (2U * sizeof(uint16_t)));
+    }
     if (temperature_cb != NULL) {
-        temperature_cb(bt_conn_get_dst(conn), temp_x10, humidity_x10);
+        temperature_cb(bt_conn_get_dst(conn), temp_x10, humidity_x10, pressure_x10);
     }
 
     return BT_GATT_ITER_CONTINUE;

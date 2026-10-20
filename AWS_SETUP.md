@@ -1,6 +1,6 @@
 # AWS IoT Core への接続の設定
 
-Thermo Gateway は、BLE で受信した温度と湿度を、WiFi と MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に送ります。このドキュメントは、AWS 側の準備と、ゲートウェイの設定の手順を説明します。
+Thermo Gateway は、BLE で受信した温度と湿度と気圧を、WiFi と MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に送ります。このドキュメントは、AWS 側の準備と、ゲートウェイの設定の手順を説明します。
 
 ## 1. 送信されるデータ
 
@@ -11,9 +11,10 @@ Thermo Gateway は、BLE で受信した温度と湿度を、WiFi と MQTT (TLS�
 | 項目 | 内容 |
 |:---|:---|
 | トピック | `thermo/CLIENT_ID/NODE_ADDRESS/temperature` (例: `thermo/gateway-01/00:AA:01:00:00:42/temperature`) |
-| ペイロード | `{"node":"00:AA:01:00:00:42","type":"thermo","temperature_c":23.5,"humidity":45.0,"uptime_ms":123456,"timestamp":1790000000}` |
+| ペイロード | `{"node":"00:AA:01:00:00:42","type":"thermo","temperature_c":23.5,"humidity":45.0,"pressure_hpa":1013.2,"uptime_ms":123456,"timestamp":1790000000}` |
 
-- `temperature_c` は温度 [℃]、`humidity` は湿度 [%] で、どちらも小数第 1 位までです。湿度を測れないセンサ (ADC のアナログセンサなど) のときは、`humidity` を出力しません。キー名は SwitchBot と同じです (`type` だけが `thermo` です)。
+- `temperature_c` は温度 [℃]、`humidity` は湿度 [%]、`pressure_hpa` は気圧 [hPa] で、どれも小数第 1 位までです。湿度を測れないセンサ (ADC のアナログセンサなど) のときは、`humidity` を出力しません。気圧を測れないセンサ (DHT11、ADC) のときと、気圧のセンサ (BMP280) が使えないときは、`pressure_hpa` を出力しません。キー名は SwitchBot と同じです (`type` だけが `thermo` です。SwitchBot には、`pressure_hpa` はありません)。
+- 気圧を足す前のノード (温度と湿度だけを BLE で送る) も、ゲートウェイは受信して、`pressure_hpa` のないメッセージを送ります。AWS 側の設定は、8 章です。
 - `uptime_ms` は、ゲートウェイが温度を受信したときの、ゲートウェイの稼働時間 [ms] です。
 - `timestamp` は、ゲートウェイが受信したときの UNIX 時刻 [s] です (SwitchBot も同じ)。SNTP で時計が合っているときだけ入ります (MQTT に接続する前に必ず時計を合わせるので、通常は入ります)。
 
@@ -168,6 +169,7 @@ thermo apply
 <inf> thermo_wifi: WiFi connected (IPv4 address acquired)
 <inf> thermo_cloud: Connected to AWS IoT Core
 <inf> thermo_gateway: Node 00:AA:01:00:00:42 (public): 23.5 C, humidity: 45.0 %
+<inf> thermo_gateway: Node 00:AA:01:00:00:42 (public): pressure: 1013.2 hPa
 ```
 
 ## 5. うまくいかないとき
@@ -259,3 +261,43 @@ aws iot attach-thing-principal --thing-name "$NODE_ID" --principal "$CERT_ARN"
 - トピックは、`thermo/${NODE_ID}/<ノードの BLE アドレス>/temperature` で、ゲートウェイが送る形と同じです。そのため、DynamoDB のルール ([AWS_DYNAMODB.md](AWS_DYNAMODB.md)。`FROM 'thermo/#'`) と、thermon の機器の指定 (ノードの BLE アドレス) は、そのまま使えます。
 - 作ったファイル (`*.pem.crt`、`*.private.key`、`policy-node.json`) は、**コミットしません**。秘密鍵は、ノードのフラッシュにだけ置きます。
 - 1 台の証明書を無効にするとき: `aws iot update-certificate --certificate-id "$CERT_ID" --new-status INACTIVE` (`CERT_ID` は、証明書の ID。`aws iot list-certificates` で調べる)。
+
+## 8. 気圧を送るときの AWS の設定
+
+ノードに気圧センサ (AHT20 + BMP280 のモジュール。[SETUP.md](SETUP.md) の「Thermo ノードのセンサ」) を付けると、メッセージに `pressure_hpa` (気圧 [hPa]) が増えます (1.1)。トピックは変わりません。AWS 側で要るもの、要らないものは、次のとおりです。
+
+| 設定 | 変更 | 理由 |
+|:---|:---|:---|
+| モノ、証明書、ポリシー (2 章、7 章) | **不要** | トピック (`thermo/CLIENT_ID/NODE_ADDRESS/temperature`) が同じなので、ポリシーの `iot:Publish` の範囲に入る |
+| DynamoDB のルール ([AWS_DYNAMODB.md](AWS_DYNAMODB.md) の 4 章) | **不要** | `SELECT *` で、全ての項目を渡すので、`pressure_hpa` も、属性として保存される |
+| DynamoDB のテーブル、Cognito の未認証ロール | **不要** | DynamoDB は、キー (`node`、`ts`) のほかの属性を、決めずに保存する。ロールの権限 (`dynamodb:Query`) も、属性によらない |
+| CloudWatch のノードのルール ([AWS_GRAPH.md](AWS_GRAPH.md) の 7.2) | **要る** (グラフにするとき) | ルールの SQL が、項目の名前 (`temperature_c, humidity`) を選んでいるため。気圧のアクションを足す |
+| Android アプリ (thermon) | アプリの更新 | 気圧のグラフと、最新の値の表示 (DynamoDB の `pressure_hpa` を読む) |
+
+### 8.1 気圧が届いているか確認する
+
+1. 「IoT Core → MQTT テストクライアント」で、`thermo/#` を購読します。
+2. ノードのメッセージに、`"pressure_hpa":1013.2` のような項目があれば、届いています。ない場合は、ゲートウェイのログに `pressure:` の行があるかを確認します (ない場合は、ノードの起動のログの `Pressure sensor is not ready` を見ます。[SETUP.md](SETUP.md))。
+3. DynamoDB に保存されたかは、ノードを指定して、最新の 1 件を取り出して確かめます (`$TABLE` は [AWS_DYNAMODB.md](AWS_DYNAMODB.md) の 2.2)。
+
+```bash
+aws dynamodb query --table-name "$TABLE" \
+  --key-condition-expression "#n = :n" \
+  --expression-attribute-names '{"#n":"node"}' \
+  --expression-attribute-values '{":n":{"S":"00:AA:01:00:00:42"}}' \
+  --no-scan-index-forward --limit 1 \
+  --query 'Items[0].pressure_hpa'
+```
+
+`{"N": "1013.2"}` のように表示されれば、保存されています (`null` のときは、まだ気圧のない項目です)。
+
+### 8.2 CloudWatch のグラフに、気圧を足す
+
+すでにノードのルール (`thermo_node_to_cloudwatch`) を作ってあるときは、[AWS_GRAPH.md](AWS_GRAPH.md) の 7.2 の `rule-node.json` (気圧のアクションを足したもの) で、ルールを置き換えます。
+
+```bash
+aws iot replace-topic-rule --rule-name thermo_node_to_cloudwatch \
+  --topic-rule-payload file://rule-node.json
+```
+
+まだ作っていないときは、7.2 の `create-topic-rule` で作ります。メトリクスの名前は、`00:AA:01:00:00:42_pressure_hpa` (ノードのアドレス + `_pressure_hpa`) です。

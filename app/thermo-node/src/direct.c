@@ -56,8 +56,8 @@ static uint32_t sent_mark;
 
 static void stop_sending(void);
 static void start_sending(void);
-static bool save_value(int16_t temp_x10, uint16_t humidity_x10, bool sent);
-static void publish_live(int16_t temp_x10, uint16_t humidity_x10);
+static bool save_value(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10, bool sent);
+static void publish_live(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10);
 static void flush_backlog(void);
 
 /**
@@ -121,8 +121,9 @@ int direct_init(void)
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍] (気圧がなければ THERMO_PRESSURE_NONE)
  */
-void direct_sample(int16_t temp_x10, uint16_t humidity_x10)
+void direct_sample(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10)
 {
     bool connected = false;   /* ゲートウェイにつながっているか */
     bool saved = false;       /* SD カードに保存したか */
@@ -146,7 +147,7 @@ void direct_sample(int16_t temp_x10, uint16_t humidity_x10)
     was_connected = connected;
 
     /* 測定値を保存する (ゲートウェイにつながっていれば, ゲートウェイが送るので, 送信済み) */
-    saved = save_value(temp_x10, humidity_x10, connected);
+    saved = save_value(temp_x10, humidity_x10, pressure_x10, connected);
 
     /* WiFi が要るのはつながらない測定が続くときと, つながっていて, 未送信の記録があるとき */
     wifi_wanted = ((!connected) && (ble_failures >= DIRECT_BLE_FAIL_LIMIT)) ||
@@ -170,7 +171,7 @@ void direct_sample(int16_t temp_x10, uint16_t humidity_x10)
 
     /* 保存できなかった測定値は送れるときだけ, そのまま送る */
     if ((!saved) && (!connected)) {
-        publish_live(temp_x10, humidity_x10);
+        publish_live(temp_x10, humidity_x10, pressure_x10);
     }
 
     if (active) {
@@ -220,8 +221,9 @@ static void start_sending(void)
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍]
  */
-static void publish_live(int16_t temp_x10, uint16_t humidity_x10)
+static void publish_live(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
@@ -229,7 +231,7 @@ static void publish_live(int16_t temp_x10, uint16_t humidity_x10)
     if (!(active && cloud_is_connected() && (backlog_pending() == 0U))) {
         return;
     }
-    err = cloud_publish_temperature(&node_addr, temp_x10, humidity_x10);
+    err = cloud_publish_temperature(&node_addr, temp_x10, humidity_x10, pressure_x10);
     if (err != EXIT_SUCCESS) {
         LOG_WRN("Could not queue the temperature (err %d)", err);
     }
@@ -240,11 +242,12 @@ static void publish_live(int16_t temp_x10, uint16_t humidity_x10)
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍]
  * @param[in] sent         送信済みとして保存するか
  * @retval true  保存した
  * @retval false 保存しなかった (SD カードがない, 時刻がない, 失敗)
  */
-static bool save_value(int16_t temp_x10, uint16_t humidity_x10, bool sent)
+static bool save_value(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10, bool sent)
 {
     struct backlog_record rec = {0}; /* 保存する記録 */
     int err = EXIT_SUCCESS;          /* エラーコード */
@@ -266,6 +269,7 @@ static bool save_value(int16_t temp_x10, uint16_t humidity_x10, bool sent)
 
     rec.temp_x10 = temp_x10;
     rec.humidity_x10 = humidity_x10;
+    rec.pressure_x10 = pressure_x10;
     err = backlog_append(&rec, sent);
     if (err != EXIT_SUCCESS) {
         LOG_ERR("Could not save the value on the SD card (err %d)", err);
@@ -311,7 +315,8 @@ static void flush_backlog(void)
         if (queued == 0U) {
             sent_mark = cloud_sent_count();
         }
-        err = cloud_publish_temperature_at(&node_addr, rec.temp_x10, rec.humidity_x10, rec.unix_s);
+        err = cloud_publish_temperature_at(&node_addr, rec.temp_x10, rec.humidity_x10,
+                                           rec.pressure_x10, rec.unix_s);
         if (err != EXIT_SUCCESS) {
             break;
         }

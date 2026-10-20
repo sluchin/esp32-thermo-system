@@ -18,7 +18,7 @@
 | [settings.md](settings.md) | 設定 | 5 |
 | [shell.md](shell.md) | シェル | 7 |
 | [logging.md](logging.md) | ログ | 11 |
-| [sys.md](sys.md) | システムのユーティリティ | 22 |
+| [sys.md](sys.md) | システムのユーティリティ | 23 |
 | [ztest.md](ztest.md) | 単体テスト (Ztest) | 11 |
 | [fff.md](fff.md) | 単体テストのモック (FFF) | 13 |
 

@@ -125,7 +125,7 @@ int zsock_getaddrinfo(const char *host, const char *service, const struct zsock_
 
 - 成功したら、`res` を `zsock_freeaddrinfo()` で解放する。
 
-使用箇所: [`app/common/cloud.c:459`](../app/common/cloud.c#L459), [`app/common/ntp.c:139`](../app/common/ntp.c#L139), [`app/thermo-node/src/wifi_time.c:142`](../app/thermo-node/src/wifi_time.c#L142)
+使用箇所: [`app/common/cloud.c:473`](../app/common/cloud.c#L473), [`app/common/ntp.c:139`](../app/common/ntp.c#L139), [`app/thermo-node/src/wifi_time.c:142`](../app/thermo-node/src/wifi_time.c#L142)
 
 ### zsock_freeaddrinfo
 
@@ -139,7 +139,7 @@ void zsock_freeaddrinfo(struct zsock_addrinfo *ai);
 |:---|:---:|:---|
 | `ai` | in,out | 解放する結果の一覧の先頭 |
 
-使用箇所: [`app/common/cloud.c:467`](../app/common/cloud.c#L467), [`app/common/ntp.c:148`](../app/common/ntp.c#L148), [`app/thermo-node/src/wifi_time.c:151`](../app/thermo-node/src/wifi_time.c#L151)
+使用箇所: [`app/common/cloud.c:481`](../app/common/cloud.c#L481), [`app/common/ntp.c:148`](../app/common/ntp.c#L148), [`app/thermo-node/src/wifi_time.c:151`](../app/thermo-node/src/wifi_time.c#L151)
 
 ### zsock_poll
 
@@ -161,7 +161,7 @@ static inline int zsock_poll(struct zsock_pollfd *fds, int nfds, int timeout);
 - 時間切れは 0。
 - 失敗は -1 (`errno`)。
 
-使用箇所: [`app/common/cloud.c:484`](../app/common/cloud.c#L484)
+使用箇所: [`app/common/cloud.c:498`](../app/common/cloud.c#L498)
 
 ## SNTP (時刻の取得)
 
@@ -294,7 +294,7 @@ TLS_PEER_VERIFY_REQUIRED  /* TLS_PEER_VERIFY ソケットオプションの値 *
 
 相手の証明書の検証を、必ずする。検証に失敗したら、接続を拒否する。
 
-使用箇所: [`app/common/cloud.c:535`](../app/common/cloud.c#L535)
+使用箇所: [`app/common/cloud.c:549`](../app/common/cloud.c#L549)
 
 ## MQTT (AWS IoT Core への送信)
 
@@ -310,7 +310,7 @@ MQTT のクライアントを初期化する。パラメータの設定と、ブ
 |:---|:---:|:---|
 | `client` | out | 初期化する MQTT のクライアント。`NULL` にしない |
 
-使用箇所: [`app/common/cloud.c:520`](../app/common/cloud.c#L520)
+使用箇所: [`app/common/cloud.c:534`](../app/common/cloud.c#L534)
 
 ### mqtt_connect
 
@@ -333,7 +333,7 @@ MQTT の接続を要求する。
 - 既定のプロトコルは 3.1.1。3.1.0 を使うには、`client.protocol_version = MQTT_VERSION_3_1_0` にする。
 - キープアライブの既定は 1 分。変えるには `CONFIG_MQTT_KEEPALIVE` を変える。
 
-使用箇所: [`app/common/cloud.c:543`](../app/common/cloud.c#L543)
+使用箇所: [`app/common/cloud.c:557`](../app/common/cloud.c#L557)
 
 ### mqtt_publish
 
@@ -350,7 +350,7 @@ int mqtt_publish(struct mqtt_client *client, const struct mqtt_publish_param *pa
 
 戻り値: 成功は 0、失敗は負の errno。
 
-使用箇所: [`app/common/cloud.c:631`](../app/common/cloud.c#L631)
+使用箇所: [`app/common/cloud.c:646`](../app/common/cloud.c#L646)
 
 ### mqtt_input
 
@@ -370,7 +370,7 @@ int mqtt_input(struct mqtt_client *client);
 
 - PUBLISH メッセージの本文は、`mqtt_read_publish_payload()` で、別に読む。
 
-使用箇所: [`app/common/cloud.c:498`](../app/common/cloud.c#L498)
+使用箇所: [`app/common/cloud.c:512`](../app/common/cloud.c#L512)
 
 ### mqtt_live
 
@@ -390,7 +390,7 @@ int mqtt_live(struct mqtt_client *client);
 
 - 呼ぶ間隔は、接続のときにブローカと決めたキープアライブの時間を守れるようにする。
 
-使用箇所: [`app/common/cloud.c:670`](../app/common/cloud.c#L670)
+使用箇所: [`app/common/cloud.c:685`](../app/common/cloud.c#L685)
 
 ### mqtt_disconnect
 
@@ -407,7 +407,7 @@ MQTT の接続を切る。
 
 戻り値: 成功は 0、失敗は負の errno。
 
-使用箇所: [`app/common/cloud.c:682`](../app/common/cloud.c#L682)
+使用箇所: [`app/common/cloud.c:697`](../app/common/cloud.c#L697)
 
 ### mqtt_abort
 
@@ -423,7 +423,7 @@ MQTT の接続を中止する。MQTT の切断メッセージは送らずに、�
 
 戻り値: 成功は 0、失敗は負の errno。
 
-使用箇所: [`app/common/cloud.c:554`](../app/common/cloud.c#L554) (ほか 1 行)
+使用箇所: [`app/common/cloud.c:568`](../app/common/cloud.c#L568) (ほか 1 行)
 
 ### MQTT_TRANSPORT_SECURE
 
@@ -433,4 +433,4 @@ MQTT_TRANSPORT_SECURE  /* enum mqtt_transport_type */
 
 `client->transport.type` に指定して、TLS で接続する。TLS の設定は、`client->transport.tls.config` に書く。
 
-使用箇所: [`app/common/cloud.c:534`](../app/common/cloud.c#L534)
+使用箇所: [`app/common/cloud.c:548`](../app/common/cloud.c#L548)

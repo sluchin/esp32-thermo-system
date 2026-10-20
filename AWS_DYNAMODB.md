@@ -47,6 +47,7 @@ thermon ──> Cognito ID プール (未認証) ──一時的な認証情報�
 | `type` | 文字列 | 機器の種類。`switchbot` または `thermo` |
 | `temperature_c` | 数値 | 温度 [℃] |
 | `humidity` | 数値 | 湿度 [%]。湿度を測れないセンサの項目には、この属性は保存されません |
+| `pressure_hpa` | 数値 | 気圧 [hPa]。Thermo ノードに気圧センサ (BMP280) があるときだけ。ないときは、この属性は保存されません |
 | `battery` | 数値 | 電池残量 [%]。SwitchBot だけ。電池残量がわからないときは、この属性は保存されません |
 | `expires_at` | 数値 | この時刻 (UNIX 時刻 [s]) を過ぎると、項目が自動で削除されます (TTL。受信から 30 日後) |
 
@@ -137,7 +138,7 @@ WHERE isUndefined(temperature_c) = false
 - `FROM 'thermo/#'` は、`thermo/` で始まる全てのトピックです (SwitchBot と Thermo ノードの両方)。
 - `WHERE` で、`temperature_c` のないメッセージを除きます。
 - `timestamp()` は、IoT Core が受信した時刻 [ミリ秒] です。`floor(... / 1000)` で秒にします。`2592000` は、30 日の秒数です。
-- `SELECT *` は、メッセージの全ての項目 (`node`、`type`、`temperature_c`、`humidity`、`battery`、`uptime_ms`、`timestamp`) を、そのまま渡します。
+- `SELECT *` は、メッセージの全ての項目 (`node`、`type`、`temperature_c`、`humidity`、`pressure_hpa`、`battery`、`uptime_ms`、`timestamp`) を、そのまま渡します。項目が増えても (気圧の `pressure_hpa` など)、ルールとテーブルを変えずに保存されます ([AWS_SETUP.md](AWS_SETUP.md) の 8 章)。
 
 ### 4.2 ルールを作る
 

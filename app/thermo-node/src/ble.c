@@ -47,6 +47,8 @@ static const struct bt_data sd[] = {
 static int16_t latest_temp_x10;
 /** 最後に通知した湿度 [% の 10 倍]. 通知の前は湿度なし. 読み取り (read) で返す */
 static uint16_t latest_humidity_x10 = THERMO_HUMIDITY_NONE;
+/** 最後に通知した気圧 [hPa の 10 倍]. 通知の前は気圧なし. 読み取り (read) で返す */
+static uint16_t latest_pressure_x10 = THERMO_PRESSURE_NONE;
 
 /** ゲートウェイとの BLE の接続の数 */
 static volatile unsigned int connection_count;
@@ -59,7 +61,8 @@ static ssize_t write_time(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                           uint16_t len, uint16_t offset, uint8_t flags);
 #endif
 
-static void pack_value(uint8_t *out, int16_t temp_x10, uint16_t humidity_x10);
+static void pack_value(uint8_t *out, int16_t temp_x10, uint16_t humidity_x10,
+                       uint16_t pressure_x10);
 static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
                                 uint16_t len, uint16_t offset);
 static void connected(struct bt_conn *conn, uint8_t err);
@@ -189,24 +192,26 @@ int ble_advertise(void)
 }
 
 /**
- * @brief 温度と湿度を更新して, 接続しているゲートウェイへ通知 (notify) する
+ * @brief 温度と湿度と気圧を更新して, 接続しているゲートウェイへ通知 (notify) する
  *
  * 通知を購読しているゲートウェイがいなくても, 値は更新される (読み取り (read) で取得できる).
  * 接続しているゲートウェイがいないときは成功を返す.
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍] (気圧がなければ THERMO_PRESSURE_NONE)
  * @retval EXIT_SUCCESS 成功
  * @retval negative     通知に失敗 (負の errno)
  */
-int ble_notify_temperature(int16_t temp_x10, uint16_t humidity_x10)
+int ble_notify_temperature(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10)
 {
-    uint8_t value[THERMO_TEMPERATURE_SIZE] = {0}; /* 温度と湿度 (リトルエンディアン) */
+    uint8_t value[THERMO_TEMPERATURE_SIZE] = {0}; /* 温度と湿度と気圧 (リトルエンディアン) */
     int err = EXIT_SUCCESS;                       /* エラーコード */
 
     latest_temp_x10 = temp_x10;
     latest_humidity_x10 = humidity_x10;
-    pack_value(value, temp_x10, humidity_x10);
+    latest_pressure_x10 = pressure_x10;
+    pack_value(value, temp_x10, humidity_x10, pressure_x10);
 
     LOG_HEXDUMP_DBG(value, sizeof(value), "Notify");
     err = bt_gatt_notify(NULL, &thermo_attrs[ATTR_INDEX_TEMPERATURE_VALUE], value, sizeof(value));
@@ -248,9 +253,9 @@ void ble_set_time_callback(ble_time_cb_t cb)
 static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
                                 uint16_t len, uint16_t offset)
 {
-    uint8_t value[THERMO_TEMPERATURE_SIZE] = {0}; /* 温度と湿度 (リトルエンディアン) */
+    uint8_t value[THERMO_TEMPERATURE_SIZE] = {0}; /* 温度と湿度と気圧 (リトルエンディアン) */
 
-    pack_value(value, latest_temp_x10, latest_humidity_x10);
+    pack_value(value, latest_temp_x10, latest_humidity_x10, latest_pressure_x10);
     LOG_HEXDUMP_DBG(value, sizeof(value), "Read response");
 
     return bt_gatt_attr_read(conn, attr, buf, len, offset, value, sizeof(value));
@@ -309,16 +314,18 @@ static ssize_t write_time(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 #endif
 
 /**
- * 温度と湿度の特性の値 (THERMO_TEMPERATURE_SIZE バイト) を作る
+ * 温度と湿度と気圧の特性の値 (THERMO_TEMPERATURE_SIZE バイト) を作る
  *
  * @param[out] out          出力先 (THERMO_TEMPERATURE_SIZE バイト以上)
  * @param[in]  temp_x10     温度 [℃ の 10 倍]
  * @param[in]  humidity_x10 湿度 [% の 10 倍]
+ * @param[in]  pressure_x10 気圧 [hPa の 10 倍]
  */
-static void pack_value(uint8_t *out, int16_t temp_x10, uint16_t humidity_x10)
+static void pack_value(uint8_t *out, int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10)
 {
     sys_put_le16((uint16_t)temp_x10, &out[0]);
     sys_put_le16(humidity_x10, &out[2]);
+    sys_put_le16(pressure_x10, &out[4]);
 }
 
 /**

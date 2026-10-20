@@ -9,7 +9,8 @@
  * @brief backlog.c の単体テスト
  *
  * RAM ディスクの FatFS (本物のファイルシステム) で, 次を確認する.
- *  - 記録を追記して, 古い順に読み出せること (測った時刻, 温度, 湿度がそのまま戻ること)
+ *  - 記録を追記して, 古い順に読み出せること (測った時刻, 温度, 湿度, 気圧がそのまま戻ること)
+ *  - 気圧を足す前の記録 (気圧なしで, 先頭の 8 バイトだけの CRC) も読めること
  *  - 送信済みの記録は読み出しの対象にならないこと. 送り終えた記録のフラグがファイルに書かれて,
  *    再起動 (backlog_init()) のあとも保たれること
  *  - 記録の数が上限に達したら, 最も古い記録から上書きすること (再起動のあとも,
@@ -21,12 +22,15 @@
 
 #include <zephyr/ztest.h>
 #include <zephyr/fs/fs.h>
+#include <zephyr/sys/byteorder.h>
+#include <zephyr/sys/crc.h>
 #include <errno.h>  /* ENODEV EINVAL ENOENT EIO */
 #include <stdint.h> /* int64_t UINT32_MAX */
 #include <stdlib.h> /* EXIT_SUCCESS */
 #include <string.h> /* memset */
 
 #include "backlog.h"
+#include "thermo_ble_uuid.h"
 
 /** 記録のファイル */
 #define DATA_PATH   "/RAM:/backlog.bin"
@@ -49,6 +53,7 @@ static struct backlog_record rec(unsigned int n)
         .unix_s = BASE_UNIX + ((int64_t)n * STEP_S),
         .temp_x10 = (int16_t)(200 + (int)n),
         .humidity_x10 = (uint16_t)(450U + n),
+        .pressure_x10 = (uint16_t)(10000U + n),
     }; /* 記録 */
 
     return r;
@@ -87,6 +92,7 @@ static void expect_record(unsigned int index, unsigned int n)
     zassert_equal(got.unix_s, want.unix_s);
     zassert_equal(got.temp_x10, want.temp_x10);
     zassert_equal(got.humidity_x10, want.humidity_x10);
+    zassert_equal(got.pressure_x10, want.pressure_x10);
 }
 
 /**
@@ -158,11 +164,13 @@ static void before(void *fixture)
     visited_count = 0U;
 }
 
-/** 最初は空. 追記すると, 古い順に, そのまま読み出せる (負の温度と, 湿度なしも通る) */
+/** 最初は空. 追記すると, 古い順に, そのまま読み出せる (負の温度と, 湿度なしと, 気圧なしも通る) */
 ZTEST(backlog, test_append_and_read)
 {
-    struct backlog_record neg = {
-        .unix_s = BASE_UNIX + 100, .temp_x10 = -35, .humidity_x10 = 0xFFFFU};
+    struct backlog_record neg = {.unix_s = BASE_UNIX + 100,
+                                 .temp_x10 = -35,
+                                 .humidity_x10 = 0xFFFFU,
+                                 .pressure_x10 = THERMO_PRESSURE_NONE};
     struct backlog_record got = {0}; /* 読み出した記録 */
 
     zassert_equal(backlog_pending(), 0U);
@@ -176,7 +184,43 @@ ZTEST(backlog, test_append_and_read)
     zassert_equal(backlog_read(&got, 3U), EXIT_SUCCESS);
     zassert_equal(got.temp_x10, -35);
     zassert_equal(got.humidity_x10, 0xFFFFU);
+    zassert_equal(got.pressure_x10, THERMO_PRESSURE_NONE);
     zassert_equal(got.unix_s, BASE_UNIX + 100);
+}
+
+/** 気圧を足す前の記録 (気圧と予約が 0. CRC は先頭の 8 バイトだけ) は, 気圧なしとして読める */
+ZTEST(backlog, test_record_without_pressure)
+{
+    uint8_t old[RECORD_SIZE] = {0};  /* 気圧を足す前の形の記録 */
+    struct backlog_record got = {0}; /* 読み出した記録 */
+
+    sys_put_le32((uint32_t)BASE_UNIX, &old[0]);
+    sys_put_le16((uint16_t)235, &old[4]);
+    sys_put_le16(450U, &old[6]);
+    sys_put_le32(crc32_ieee(old, 8U), &old[12]);
+    append_n(0U, 2U, false);
+    poke(0, old, sizeof(old));
+
+    /* 期待: 起動のときに有効な記録として数えて, 気圧は THERMO_PRESSURE_NONE */
+    zassert_equal(backlog_init(), EXIT_SUCCESS);
+    zassert_equal(backlog_pending(), 2U);
+    zassert_equal(backlog_read(&got, 0U), EXIT_SUCCESS);
+    zassert_equal(got.unix_s, BASE_UNIX);
+    zassert_equal(got.temp_x10, 235);
+    zassert_equal(got.humidity_x10, 450U);
+    zassert_equal(got.pressure_x10, THERMO_PRESSURE_NONE);
+    expect_record(1U, 1U);
+}
+
+/** 気圧も CRC で守る (気圧が壊れた記録は無視する) */
+ZTEST(backlog, test_broken_pressure_is_ignored)
+{
+    append_n(0U, 2U, false);
+    flip((off_t)(RECORD_SIZE + 9U)); /* 記録 1 の気圧を壊す */
+
+    zassert_equal(backlog_init(), EXIT_SUCCESS);
+    zassert_equal(backlog_pending(), 1U);
+    expect_record(0U, 0U);
 }
 
 /** 範囲の外の番号は -EINVAL */

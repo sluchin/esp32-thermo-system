@@ -1,8 +1,8 @@
 # ble.c の解析
 
-対象: `app/thermo-node/src/ble.c` (391 行) と `ble.h` (47 行)
+対象: `app/thermo-node/src/ble.c` (396 行) と `ble.h` (46 行)
 
-ノードの BLE です。周辺機器 (Peripheral) として、アドバタイズを出し、ゲートウェイからの接続を待ちます。つながったゲートウェイには、温度と湿度を通知 (notify) し、ゲートウェイが書き込んだ時刻を受け取ります。
+ノードの BLE です。周辺機器 (Peripheral) として、アドバタイズを出し、ゲートウェイからの接続を待ちます。つながったゲートウェイには、温度と湿度と気圧を通知 (notify) し、ゲートウェイが書き込んだ時刻を受け取ります。
 
 ## 公開する関数 (ble.h)
 
@@ -41,20 +41,23 @@ UUID を、アドバタイズデータではなく、スキャン応答に入れ
 
 `ATTR_INDEX_TEMPERATURE_VALUE` (2) が、通知に使う属性の位置です。属性の並びを変えるときは、この値と、ゲートウェイが CCC を探す位置 (値のハンドル + 1) の前提を、確認してください。
 
-### 温度の値の形式 (4 バイト)
+### 温度の値の形式 (6 バイト)
 
 | 位置 | 内容 |
 |:---|:---|
 | 0 から 1 | 温度 (`int16_t`、℃ の 10 倍、リトルエンディアン) |
 | 2 から 3 | 湿度 (`uint16_t`、% の 10 倍、リトルエンディアン)。0xFFFF は、湿度なし |
+| 4 から 5 | 気圧 (`uint16_t`、hPa の 10 倍、リトルエンディアン)。0xFFFF は、気圧なし |
+
+気圧を足す前は 4 バイト (温度と湿度) でした。ゲートウェイは、4 バイトの通知も受け取り、気圧なしとして扱います (`THERMO_TEMPERATURE_SIZE_NO_PRESSURE`)。値を読むほかのアプリ (thermo-term など) は、先頭の 4 バイトの意味が変わらないので、4 バイトだけを読んでも、温度と湿度は正しく読めます (長さを 4 バイトに限っているアプリは、6 バイトを受け付けるように直します)。
 
 `pack_value()` が、`sys_put_le16()` で作ります。通知と読み取りの両方に、同じ関数を使います。
 
 ## ble_notify_temperature
 
 ```text
-latest_temp_x10 / latest_humidity_x10 を更新      ← 通知できなくても、読み取りで取れるように
-pack_value() → bt_gatt_notify(NULL, &thermo_attrs[2], value, 4)
+latest_temp_x10 / latest_humidity_x10 / latest_pressure_x10 を更新   ← 通知できなくても、読み取りで取れるように
+pack_value() → bt_gatt_notify(NULL, &thermo_attrs[2], value, 6)
   -ENOTCONN → 成功として返す
   その他の負 → LOG_ERR して返す
 ```

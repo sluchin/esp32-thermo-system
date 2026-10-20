@@ -15,8 +15,10 @@
  *  - 4 から 5: 温度 (10 倍した値)
  *  - 6 から 7: 湿度 (10 倍した値)
  *  - 8: 送信済みフラグ (0: 未送信, 1: 送信済み. 送り終えたときに, この 1 バイトだけを書き換える)
- *  - 9 から 11: 予約 (0)
- *  - 12 から 15: 先頭の 8 バイトの CRC-32 (フラグは含めない)
+ *  - 9 から 10: 気圧 (10 倍した値. 0 は気圧なし)
+ *  - 11: 予約 (0)
+ *  - 12 から 15: 先頭の 8 バイトと気圧の 2 バイトの CRC-32 (フラグは含めない). 気圧なし (0) の
+ *    ときは, 先頭の 8 バイトだけの CRC-32 (気圧を足す前の記録と同じ. 以前の記録も, そのまま読める)
  *
  * 記録の位置は 2 通りで表す. 物理の位置 (ファイルの中の順番) と, 論理の位置 (古い順. 0
  * が最も古い). ファイルが輪になっていないとき (記録の数が上限に達するまで) は同じ.
@@ -36,6 +38,7 @@
 
 #include "backlog.h"
 #include "sdlog.h"
+#include "thermo_ble_uuid.h"
 #include "thermo_log.h"
 
 LOG_MODULE_REGISTER(thermo_backlog, THERMO_LOG_LEVEL);
@@ -51,6 +54,10 @@ LOG_MODULE_REGISTER(thermo_backlog, THERMO_LOG_LEVEL);
 #define CRC_RANGE   8U
 /** 送信済みフラグの値 */
 #define FLAG_SENT   1U
+/** 気圧の, CRC を求める範囲のバイト数 */
+#define PRES_SIZE   2U
+/** ファイルの中の, 気圧なしを示す値 (気圧を足す前の記録は, 予約で 0) */
+#define PRES_NONE   0U
 
 /** 記録の中の位置: 測った UNIX 時刻 */
 #define OFF_UNIX 0U
@@ -60,6 +67,10 @@ LOG_MODULE_REGISTER(thermo_backlog, THERMO_LOG_LEVEL);
 #define OFF_HUMI 6U
 /** 記録の中の位置: 送信済みフラグ */
 #define OFF_FLAG 8U
+/** 記録の中の位置: 気圧 */
+#define OFF_PRES 9U
+/** 記録の中の位置: 予約 */
+#define OFF_RSVD 11U
 /** 記録の中の位置: CRC */
 #define OFF_CRC  12U
 
@@ -85,6 +96,7 @@ static unsigned int first_pos;
 
 static unsigned int physical(unsigned int pos);
 static int read_slot(struct fs_file_t *file, unsigned int phys, uint8_t *buf);
+static uint32_t record_crc(const uint8_t *buf);
 static bool decode(const uint8_t *buf, struct backlog_record *rec, bool *sent);
 static void encode(uint8_t *out, const struct backlog_record *rec, bool sent);
 static int open_file(struct fs_file_t *file, fs_mode_t flags);
@@ -429,19 +441,45 @@ static int read_slot(struct fs_file_t *file, unsigned int phys, uint8_t *buf)
  */
 static bool decode(const uint8_t *buf, struct backlog_record *rec, bool *sent)
 {
-    if (sys_get_le32(&buf[OFF_CRC]) != crc32_ieee(buf, CRC_RANGE)) {
+    uint16_t pressure = 0U; /* ファイルの中の気圧 (PRES_NONE は気圧なし) */
+
+    if (sys_get_le32(&buf[OFF_CRC]) != record_crc(buf)) {
         return false;
     }
+    pressure = sys_get_le16(&buf[OFF_PRES]);
     rec->unix_s = (int64_t)sys_get_le32(&buf[OFF_UNIX]);
     rec->temp_x10 = (int16_t)sys_get_le16(&buf[OFF_TEMP]);
     rec->humidity_x10 = sys_get_le16(&buf[OFF_HUMI]);
+    rec->pressure_x10 = ((pressure == PRES_NONE) ? THERMO_PRESSURE_NONE : pressure);
     *sent = (buf[OFF_FLAG] == FLAG_SENT);
 
     return true;
 }
 
 /**
+ * 記録の CRC-32 を求める
+ *
+ * 先頭の 8 バイトと, 気圧の 2 バイト (フラグは含めない). 気圧なし (PRES_NONE) のときは,
+ * 先頭の 8 バイトだけ (気圧を足す前の記録と同じ).
+ *
+ * @param[in] buf 記録 (RECORD_SIZE バイト)
+ * @return CRC-32
+ */
+static uint32_t record_crc(const uint8_t *buf)
+{
+    uint32_t crc = crc32_ieee(buf, CRC_RANGE); /* 先頭の 8 バイトの CRC-32 */
+
+    if (sys_get_le16(&buf[OFF_PRES]) != PRES_NONE) {
+        crc = crc32_ieee_update(crc, &buf[OFF_PRES], PRES_SIZE);
+    }
+
+    return crc;
+}
+
+/**
  * 記録を 16 バイトに符号化する (末尾に CRC を付ける)
+ *
+ * 気圧なし (THERMO_PRESSURE_NONE) は, ファイルの中では PRES_NONE (0) にする.
  *
  * @param[out] out  書き込み先 (RECORD_SIZE バイト)
  * @param[in]  rec  記録
@@ -453,10 +491,10 @@ static void encode(uint8_t *out, const struct backlog_record *rec, bool sent)
     sys_put_le16((uint16_t)rec->temp_x10, &out[OFF_TEMP]);
     sys_put_le16(rec->humidity_x10, &out[OFF_HUMI]);
     out[OFF_FLAG] = (sent ? FLAG_SENT : 0U);
-    out[OFF_FLAG + 1U] = 0U;
-    out[OFF_FLAG + 2U] = 0U;
-    out[OFF_FLAG + 3U] = 0U;
-    sys_put_le32(crc32_ieee(out, CRC_RANGE), &out[OFF_CRC]);
+    sys_put_le16(((rec->pressure_x10 == THERMO_PRESSURE_NONE) ? PRES_NONE : rec->pressure_x10),
+                 &out[OFF_PRES]);
+    out[OFF_RSVD] = 0U;
+    sys_put_le32(record_crc(out), &out[OFF_CRC]);
 }
 
 /**

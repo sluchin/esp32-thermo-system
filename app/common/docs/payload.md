@@ -1,6 +1,6 @@
 # payload.c の解析
 
-対象: `app/common/payload.c` (204 行) と `payload.h` (33 行)
+対象: `app/common/payload.c` (214 行) と `payload.h` (34 行)
 
 AWS IoT Core に送る MQTT のトピックと、JSON のペイロードを作ります。文字列を作るだけの関数で、Zephyr の関数を呼ばないので、単体テストはモックを使いません。
 
@@ -29,12 +29,13 @@ AWS IoT Core に送る MQTT のトピックと、JSON のペイロードを作�
 ### Thermo ノード
 
 ```json
-{"node":"00:AA:01:00:00:42","type":"thermo","temperature_c":23.5,"humidity":45.0,"uptime_ms":123456,"timestamp":1791765471}
+{"node":"00:AA:01:00:00:42","type":"thermo","temperature_c":23.5,"humidity":45.0,"pressure_hpa":1013.2,"uptime_ms":123456,"timestamp":1791765471}
 ```
 
 - 湿度が `THERMO_HUMIDITY_NONE` (0xFFFF) のときは、`humidity` を出しません。
+- 気圧が `THERMO_PRESSURE_NONE` (0xFFFF) のときは、`pressure_hpa` を出しません。単位は hPa です (キーの名前に単位を入れるのは、`temperature_c` と同じ)。
 - UNIX 時刻が負 (わからない) のときは、`timestamp` を出しません。
-- 温度と湿度は、10 分の 1 の桁までの固定小数です。温度は符号を別に出すので、`-0.5` も正しく出ます。
+- 温度と湿度と気圧は、10 分の 1 の桁までの固定小数です。温度は符号を別に出すので、`-0.5` も正しく出ます。
 
 ### SwitchBot
 
@@ -48,8 +49,8 @@ AWS IoT Core に送る MQTT のトピックと、JSON のペイロードを作�
 ## 実装の要点
 
 - `snprintf()` で作ります。切り捨てを見分けるために、`check_length()` が、戻り値が `size` 以上なら `-ENOSPC` にします (`snprintf()` の失敗の負の値も同じ扱い)。
-- 任意の項目 (`humidity`、`battery`、`timestamp`) は、先に別の小さなバッファに作り、あれば、本体に差し込みます。
-- バッファの大きさ (`ADDR_STR_SIZE`、`TIMESTAMP_FIELD_SIZE` など) は、最大の桁数から決めています。`cloud.c` の `PAYLOAD_SIZE` (160) が、全ての項目の最大の長さ (155 文字 + NUL) に足りることは、`BUILD_ASSERT` で確認しています。
+- 任意の項目 (`humidity`、`pressure_hpa`、`battery`、`timestamp`) は、先に別の小さなバッファに作り、あれば、本体に差し込みます。
+- バッファの大きさ (`ADDR_STR_SIZE`、`TIMESTAMP_FIELD_SIZE` など) は、最大の桁数から決めています。`cloud.c` の `PAYLOAD_SIZE` (176) が、全ての項目の最大の長さ (Thermo ノードの 163 文字 + NUL。温度 -3276.8、湿度 6553.4、気圧 6553.4、稼働時間と UNIX 時刻が最大の桁) に足りることは、`BUILD_ASSERT` で確認しています (長さは、単体テストの `test_payload_max_values` でも確かめます)。
 
 ## 気づいた点
 

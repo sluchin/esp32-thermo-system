@@ -71,7 +71,9 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 [00:00:00.002,000] <inf> ble_thermo_node: Bluetooth initialized
 [00:00:00.003,000] <inf> ble_thermo_node: Advertising started
 [00:00:05.004,000] <inf> thermo_node: Temperature: 28.4 C, humidity: 61.7 %
+[00:00:05.004,000] <inf> thermo_node: Pressure: 1003.8 hPa
 [00:00:10.005,000] <inf> thermo_node: Temperature: 19.2 C, humidity: 47.3 %
+[00:00:10.005,000] <inf> thermo_node: Pressure: 1021.5 hPa
 ...
 ```
 
@@ -79,7 +81,7 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 
 ### 温度センサー
 
-- **シミュレーション時**: 温度 (10.0〜49.9 ℃) と湿度 (30.0〜89.9 %) のランダムな値を返す
+- **シミュレーション時**: 温度 (10.0〜49.9 ℃) と湿度 (30.0〜89.9 %) と気圧 (990.0〜1029.9 hPa) のランダムな値を返す
 - **実機時**: Devicetree で選んだセンサから読み取る (DHT11 などのセンサ API、または ADC。[SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)
 
 ### BLE（Bluetooth Low Energy）

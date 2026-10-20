@@ -9,7 +9,7 @@
 
 /**
  * @file
- * @brief thermo-node と thermo-gateway で共有する BLE の UUID と温度と湿度のデータの形式
+ * @brief thermo-node と thermo-gateway で共有する BLE の UUID と温度と湿度と気圧のデータの形式
  *
  * ノードは Thermo サービス (GATT) を持ち, その中の温度の特性で温度を配信する.
  * ゲートウェイはスキャン応答に Thermo サービスの UUID を持つノードに接続して,
@@ -43,9 +43,18 @@
  * 温度の特性の値の大きさ [byte]
  *
  * 値は温度 (int16. 10 分の 1 ℃ の単位. 例: 23.5 ℃ は 235) と湿度 (uint16. 10 分の 1 % の
- * 単位. 例: 45.0 % は 450) をそれぞれ 2 byte のリトルエンディアンで, この順に並べたもの.
+ * 単位. 例: 45.0 % は 450) と気圧 (uint16. 10 分の 1 hPa の単位. 例: 1013.2 hPa は 10132) を
+ * それぞれ 2 byte のリトルエンディアンで, この順に並べたもの.
  */
-#define THERMO_TEMPERATURE_SIZE 4U
+#define THERMO_TEMPERATURE_SIZE 6U
+
+/**
+ * 気圧のない, 以前の温度の特性の値の大きさ [byte]
+ *
+ * 気圧を足す前のノードは, 温度と湿度だけ (4 byte) を送る. ゲートウェイは, この大きさの値も受け取り,
+ * 気圧なし (THERMO_PRESSURE_NONE) として扱う.
+ */
+#define THERMO_TEMPERATURE_SIZE_NO_PRESSURE 4U
 
 /**
  * 時刻の特性の値の大きさ [byte]
@@ -57,5 +66,8 @@
 
 /** 湿度を測れない (センサに湿度がない) ことを示す値 (湿度の uint16 の最大値) */
 #define THERMO_HUMIDITY_NONE 0xFFFFU
+
+/** 気圧を測れない (センサに気圧がない) ことを示す値 (気圧の uint16 の最大値) */
+#define THERMO_PRESSURE_NONE 0xFFFFU
 
 #endif /* THERMO_BLE_UUID_H */

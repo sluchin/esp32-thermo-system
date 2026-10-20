@@ -59,10 +59,10 @@ int thermo_node_main(void);
 
 /* FAKE_*: FFF のモック (実物の代わりの関数. 呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, sensor_init)
-FAKE_VALUE_FUNC(int, sensor_read, int16_t *, uint16_t *)
+FAKE_VALUE_FUNC(int, sensor_read, int16_t *, uint16_t *, uint16_t *)
 FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_advertise)
-FAKE_VALUE_FUNC(int, ble_notify_temperature, int16_t, uint16_t)
+FAKE_VALUE_FUNC(int, ble_notify_temperature, int16_t, uint16_t, uint16_t)
 FAKE_VOID_FUNC(ble_set_time_callback, ble_time_cb_t)
 FAKE_VALUE_FUNC(int, node_time_set, int64_t)
 FAKE_VALUE_FUNC(int, button_init)
@@ -79,7 +79,7 @@ FAKE_VALUE_FUNC(int, node_time_get, struct node_datetime *)
 FAKE_VALUE_FUNC(int, wifi_time_init)
 FAKE_VALUE_FUNC(int, wifi_time_fetch, int64_t *)
 FAKE_VALUE_FUNC(int, direct_init)
-FAKE_VOID_FUNC(direct_sample, int16_t, uint16_t)
+FAKE_VOID_FUNC(direct_sample, int16_t, uint16_t, uint16_t)
 FAKE_VALUE_FUNC(bool, direct_active)
 
 /** oled_show() の呼び出しを記録する数 */
@@ -112,6 +112,8 @@ FAKE_VALUE_FUNC(bool, direct_active)
 #define FAKE_TEMP_1_X10   (-35)
 /** モックの 1 回目の湿度 [% の 10 倍] (45.0 %) */
 #define FAKE_HUMIDITY_1   450U
+/** 1 回目の気圧 [hPa の 10 倍] (1013.2 hPa) */
+#define FAKE_PRESSURE_1   10132U
 /** モックの 2 回目以降の温度 [℃ の 10 倍] (23.5 ℃) */
 #define FAKE_TEMP_2_X10   235
 
@@ -148,20 +150,24 @@ static K_THREAD_STACK_DEFINE(main_stack, STACK_SIZE)
 /**
  * sensor_read() のモック動作 (値を書き込む)
  *
- * 1 回目は負の温度と湿度. 2 回目以降は 0 ℃ 以上の温度と湿度なし (ログの出力の分岐を通す).
+ * 1 回目は負の温度と湿度と気圧. 2 回目以降は 0 ℃ 以上の温度と湿度なしと気圧なし (ログの出力の
+ * 分岐を通す).
  *
  * @param[out] temp_x10     温度 [℃ の 10 倍]
  * @param[out] humidity_x10 湿度 [% の 10 倍]
+ * @param[out] pressure_x10 気圧 [hPa の 10 倍]
  * @return 0
  */
-static int fake_read(int16_t *temp_x10, uint16_t *humidity_x10)
+static int fake_read(int16_t *temp_x10, uint16_t *humidity_x10, uint16_t *pressure_x10)
 {
     if (sensor_read_fake.call_count == 1U) {
         *temp_x10 = (int16_t)FAKE_TEMP_1_X10;
         *humidity_x10 = (uint16_t)FAKE_HUMIDITY_1;
+        *pressure_x10 = (uint16_t)FAKE_PRESSURE_1;
     } else {
         *temp_x10 = (int16_t)FAKE_TEMP_2_X10;
         *humidity_x10 = THERMO_HUMIDITY_NONE;
+        *pressure_x10 = THERMO_PRESSURE_NONE;
     }
 
     return 0;
@@ -394,6 +400,7 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
     zassert_equal(ble_notify_temperature_fake.arg0_history[0], FAKE_TEMP_1_X10);
     zassert_equal(ble_notify_temperature_fake.arg1_history[0], FAKE_HUMIDITY_1);
+    zassert_equal(ble_notify_temperature_fake.arg2_history[0], FAKE_PRESSURE_1);
 
     /* 読み取り間隔だけ待つと, 2 回目の温度を読んで通知する (初期化は繰り返さない) */
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
@@ -401,6 +408,7 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(ble_notify_temperature_fake.call_count, 2U);
     zassert_equal(ble_notify_temperature_fake.arg0_history[1], FAKE_TEMP_2_X10);
     zassert_equal(ble_notify_temperature_fake.arg1_history[1], THERMO_HUMIDITY_NONE);
+    zassert_equal(ble_notify_temperature_fake.arg2_history[1], THERMO_PRESSURE_NONE);
     /* OLED は 1 秒ごとに更新する (100 ms + 5 s の間に 0 s から 5 s の 6 回) */
     zassert_equal(oled_show_fake.call_count, 6U);
     zassert_equal(node_time_get_fake.call_count, 6U);
@@ -1103,6 +1111,7 @@ ZTEST(main_node, test_direct_sample)
     zassert_equal(direct_sample_fake.call_count, 1U);
     zassert_equal(direct_sample_fake.arg0_val, FAKE_TEMP_1_X10);
     zassert_equal(direct_sample_fake.arg1_val, FAKE_HUMIDITY_1);
+    zassert_equal(direct_sample_fake.arg2_val, FAKE_PRESSURE_1);
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
     zassert_equal(direct_sample_fake.call_count, 2U);
 

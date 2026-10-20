@@ -50,10 +50,10 @@ int thermo_node_main(void);
 
 /* FAKE_*: FFF のモック (実物の代わりの関数. 呼ばれた回数と引数を記録する) */
 FAKE_VALUE_FUNC(int, sensor_init)
-FAKE_VALUE_FUNC(int, sensor_read, int16_t *, uint16_t *)
+FAKE_VALUE_FUNC(int, sensor_read, int16_t *, uint16_t *, uint16_t *)
 FAKE_VALUE_FUNC(int, ble_init)
 FAKE_VALUE_FUNC(int, ble_advertise)
-FAKE_VALUE_FUNC(int, ble_notify_temperature, int16_t, uint16_t)
+FAKE_VALUE_FUNC(int, ble_notify_temperature, int16_t, uint16_t, uint16_t)
 FAKE_VALUE_FUNC(int, buzzer_init)
 FAKE_VALUE_FUNC(int, buzzer_play, const struct buzzer_note *, size_t)
 FAKE_VALUE_FUNC(int, button_init)
@@ -102,12 +102,14 @@ static K_THREAD_STACK_DEFINE(main_stack, STACK_SIZE)
  *
  * @param[out] temp_x10     温度 [℃ の 10 倍]
  * @param[out] humidity_x10 湿度 [% の 10 倍]
+ * @param[out] pressure_x10 気圧 [hPa の 10 倍]
  * @return 0
  */
-static int fake_read(int16_t *temp_x10, uint16_t *humidity_x10)
+static int fake_read(int16_t *temp_x10, uint16_t *humidity_x10, uint16_t *pressure_x10)
 {
     *temp_x10 = 235;
     *humidity_x10 = 450U;
+    *pressure_x10 = 10132U;
 
     return 0;
 }

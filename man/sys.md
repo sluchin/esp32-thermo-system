@@ -58,7 +58,7 @@ static inline uint16_t sys_get_le16(const uint8_t src[2]);
 
 戻り値: ホストのバイトオーダーの 16 ビットの整数。
 
-使用箇所: [`app/thermo-gateway/src/ble.c:367`](../app/thermo-gateway/src/ble.c#L367) (ほか 1 行), [`app/thermo-node/src/backlog.c:442`](../app/thermo-node/src/backlog.c#L442) (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:374`](../app/thermo-gateway/src/ble.c#L374) (ほか 1 行), [`app/thermo-node/src/backlog.c:452`](../app/thermo-node/src/backlog.c#L452) (ほか 1 行)
 
 ### sys_get_le32
 
@@ -74,7 +74,7 @@ static inline uint32_t sys_get_le32(const uint8_t src[4]);
 
 戻り値: ホストのバイトオーダーの 32 ビットの整数。
 
-使用箇所: [`app/thermo-node/src/backlog.c:438`](../app/thermo-node/src/backlog.c#L438) (ほか 1 行), [`app/thermo-node/src/ble.c:296`](../app/thermo-node/src/ble.c#L296)
+使用箇所: [`app/thermo-node/src/backlog.c:450`](../app/thermo-node/src/backlog.c#L450) (ほか 1 行), [`app/thermo-node/src/ble.c:299`](../app/thermo-node/src/ble.c#L299)
 
 ### sys_put_le16
 
@@ -89,7 +89,7 @@ static inline void sys_put_le16(uint16_t val, uint8_t dst[2]);
 | `val` | in | ホストのバイトオーダーの 16 ビットの整数 |
 | `dst` | out | 結果を置く場所 |
 
-使用箇所: [`app/thermo-node/src/backlog.c:459`](../app/thermo-node/src/backlog.c#L459) (ほか 1 行), [`app/thermo-node/src/ble.c:322`](../app/thermo-node/src/ble.c#L322) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/backlog.c:494`](../app/thermo-node/src/backlog.c#L494) (ほか 1 行), [`app/thermo-node/src/ble.c:328`](../app/thermo-node/src/ble.c#L328) (ほか 1 行)
 
 ### sys_put_le32
 
@@ -104,7 +104,7 @@ static inline void sys_put_le32(uint32_t val, uint8_t dst[4]);
 | `val` | in | ホストのバイトオーダーの 32 ビットの整数 |
 | `dst` | out | 結果を置く場所 |
 
-使用箇所: [`app/thermo-gateway/src/ble.c:513`](../app/thermo-gateway/src/ble.c#L513), [`app/thermo-node/src/backlog.c:458`](../app/thermo-node/src/backlog.c#L458) (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:522`](../app/thermo-gateway/src/ble.c#L522), [`app/thermo-node/src/backlog.c:497`](../app/thermo-node/src/backlog.c#L497) (ほか 1 行)
 
 ## CRC
 
@@ -123,8 +123,26 @@ IEEE 準拠の CRC32 を計算する。
 
 戻り値: CRC32 の値。
 
-使用箇所: [`app/thermo-node/src/backlog.c:438`](../app/thermo-node/src/backlog.c#L438) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/backlog.c:470`](../app/thermo-node/src/backlog.c#L470)
 
+
+### crc32_ieee_update
+
+```c
+uint32_t crc32_ieee_update(uint32_t crc, const uint8_t *data, size_t len);
+```
+
+IEEE 準拠の CRC32 を、前の結果に続けて計算する。離れた場所にあるデータを、続けて 1 つの CRC にするときに使う。`crc32_ieee(data, len)` は、`crc32_ieee_update(0, data, len)` と同じ (zlib の `crc32(data, crc)` と同じ値)。
+
+| 引数 | 入出力 | 説明 |
+|:---|:---:|:---|
+| `crc` | in | 前のデータの CRC32 (最初は 0) |
+| `data` | in | 続けて計算するデータ |
+| `len` | in | データの長さ |
+
+戻り値: `crc` のデータに `data` を続けたものの CRC32 の値。
+
+使用箇所: [`app/thermo-node/src/backlog.c:473`](../app/thermo-node/src/backlog.c#L473)
 ## リングバッファ
 
 ### RING_BUF_DECLARE
@@ -259,7 +277,7 @@ static inline uint32_t sys_rand32_get(void);
 
 - 暗号に使える乱数ではない。
 
-使用箇所: [`app/thermo-node/src/sensor.c:175`](../app/thermo-node/src/sensor.c#L175) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/sensor.c:212`](../app/thermo-node/src/sensor.c#L212) (ほか 1 行)
 
 ## ユーティリティ
 
@@ -309,7 +327,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 戻り値: 要素の数。
 
-使用箇所: [`app/common/cfg.c:103`](../app/common/cfg.c#L103) (ほか 5 行), [`app/common/cloud.c:538`](../app/common/cloud.c#L538), [`app/thermo-gateway/src/ble.c:272`](../app/thermo-gateway/src/ble.c#L272) (ほか 1 行), [`app/thermo-gateway/src/switchbot.c:207`](../app/thermo-gateway/src/switchbot.c#L207) ほか 3 ファイル
+使用箇所: [`app/common/cfg.c:103`](../app/common/cfg.c#L103) (ほか 5 行), [`app/common/cloud.c:552`](../app/common/cloud.c#L552), [`app/thermo-gateway/src/ble.c:272`](../app/thermo-gateway/src/ble.c#L272) (ほか 1 行), [`app/thermo-gateway/src/switchbot.c:207`](../app/thermo-gateway/src/switchbot.c#L207) ほか 3 ファイル
 
 ### MIN
 
@@ -326,7 +344,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 戻り値: 小さい方の値。
 
-使用箇所: [`app/common/cloud.c:198`](../app/common/cloud.c#L198), [`app/thermo-node/src/backlog.c:129`](../app/thermo-node/src/backlog.c#L129), [`app/thermo-node/src/history.c:66`](../app/thermo-node/src/history.c#L66) (ほか 1 行)
+使用箇所: [`app/common/cloud.c:206`](../app/common/cloud.c#L206), [`app/thermo-node/src/backlog.c:141`](../app/thermo-node/src/backlog.c#L141), [`app/thermo-node/src/history.c:66`](../app/thermo-node/src/history.c#L66) (ほか 1 行)
 
 ### BIT
 
@@ -342,7 +360,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 戻り値: ビット `n` だけが 1 の値。
 
-使用箇所: [`app/thermo-node/src/sensor.c:155`](../app/thermo-node/src/sensor.c#L155)
+使用箇所: [`app/thermo-node/src/sensor.c:190`](../app/thermo-node/src/sensor.c#L190)
 
 ### CONTAINER_OF
 
@@ -360,7 +378,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 戻り値: 構造体の先頭へのポインタ。
 
-使用箇所: [`app/thermo-gateway/src/ble.c:389`](../app/thermo-gateway/src/ble.c#L389) (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:399`](../app/thermo-gateway/src/ble.c#L399) (ほか 1 行)
 
 ### ARG_UNUSED
 
@@ -374,7 +392,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 |:---|:---:|:---|
 | `x` | in | 使わない引数や変数 |
 
-使用箇所: [`app/common/cfg_shell.c:56`](../app/common/cfg_shell.c#L56) (ほか 10 行), [`app/common/cloud.c:428`](../app/common/cloud.c#L428) (ほか 3 行), [`app/common/wifi_link.c:161`](../app/common/wifi_link.c#L161), [`app/thermo-gateway/src/ble.c:539`](../app/thermo-gateway/src/ble.c#L539) (ほか 3 行) ほか 7 ファイル
+使用箇所: [`app/common/cfg_shell.c:56`](../app/common/cfg_shell.c#L56) (ほか 10 行), [`app/common/cloud.c:442`](../app/common/cloud.c#L442) (ほか 3 行), [`app/common/wifi_link.c:161`](../app/common/wifi_link.c#L161), [`app/thermo-gateway/src/ble.c:548`](../app/thermo-gateway/src/ble.c#L548) (ほか 3 行) ほか 7 ファイル
 
 ### BUILD_ASSERT
 

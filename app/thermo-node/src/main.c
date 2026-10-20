@@ -57,7 +57,7 @@ struct optional_devices {
     bool wifi_ready;    /**< WiFi (時刻の取得) を使えるか */
 };
 
-static void log_sample(int16_t temp_x10, uint16_t humidity_x10);
+static void log_sample(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10);
 
 static void init_optional(struct optional_devices *devs);
 
@@ -67,7 +67,7 @@ static bool set_display_power(bool on);
 
 static void boot_sequence(const struct optional_devices *devs);
 
-static int measure(int16_t *temp_x10, uint16_t *humidity_x10);
+static int measure(int16_t *temp_x10, uint16_t *humidity_x10, uint16_t *pressure_x10);
 
 static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_ms);
 
@@ -151,6 +151,7 @@ int main(void)
     int64_t now_ms = 0;                                   /* 今の稼働時間 [ms] */
     int16_t temp_x10 = 0;                                 /* 温度 [℃ の 10 倍] */
     uint16_t humidity_x10 = 0;                            /* 湿度 [% の 10 倍] */
+    uint16_t pressure_x10 = 0;                            /* 気圧 [hPa の 10 倍] */
     struct optional_devices devs = {0};                   /* 任意の機器を使えるか */
 #ifdef CONFIG_THERMO_RTC
     struct node_datetime datetime = {0}; /* RTC のローカルタイム */
@@ -235,11 +236,11 @@ int main(void)
 
         if (now_ms >= next_sample_ms) {
             next_sample_ms = next_grid_ms(start_ms, now_ms, SAMPLE_INTERVAL_MS);
-            ret = measure(&temp_x10, &humidity_x10);
+            ret = measure(&temp_x10, &humidity_x10, &pressure_x10);
 #ifdef CONFIG_THERMO_DIRECT_MQTT
             /* ゲートウェイにつながらない測定が続いたら, WiFi で直接送る */
             if (ret == EXIT_SUCCESS) {
-                direct_sample(temp_x10, humidity_x10);
+                direct_sample(temp_x10, humidity_x10, pressure_x10);
             }
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
@@ -560,30 +561,31 @@ static void play_button_sound(bool buzzer_ready)
 #endif
 
 /**
- * 温度と湿度を読み取って, ログに出力して, ゲートウェイへ通知する
+ * 温度と湿度と気圧を読み取って, ログに出力して, ゲートウェイへ通知する
  *
  * 読み取りに失敗したときは今回の値を捨てて (通知しない), 次回に再試行する. 通知に失敗しても,
  * 次回に再試行する.
  *
  * @param[out] temp_x10     温度 [℃ の 10 倍] の格納先 (NULL 不可)
  * @param[out] humidity_x10 湿度 [% の 10 倍] の格納先 (NULL 不可)
+ * @param[out] pressure_x10 気圧 [hPa の 10 倍] の格納先 (NULL 不可)
  * @retval EXIT_SUCCESS 読み取りに成功 (通知の失敗は戻り値に含めない)
  * @retval negative     センサの読み取りの失敗 (負の errno)
  */
-static int measure(int16_t *temp_x10, uint16_t *humidity_x10)
+static int measure(int16_t *temp_x10, uint16_t *humidity_x10, uint16_t *pressure_x10)
 {
     int ret = EXIT_SUCCESS;        /* 戻り値 */
     int notify_ret = EXIT_SUCCESS; /* 通知の戻り値 */
 
-    ret = sensor_read(temp_x10, humidity_x10);
+    ret = sensor_read(temp_x10, humidity_x10, pressure_x10);
     if (ret != EXIT_SUCCESS) {
         return ret;
     }
 
-    log_sample(*temp_x10, *humidity_x10);
+    log_sample(*temp_x10, *humidity_x10, *pressure_x10);
 
     /* 接続しているゲートウェイへ通知する (失敗しても次回に再試行する) */
-    notify_ret = ble_notify_temperature(*temp_x10, *humidity_x10);
+    notify_ret = ble_notify_temperature(*temp_x10, *humidity_x10, *pressure_x10);
     if (notify_ret != EXIT_SUCCESS) {
         LOG_ERR("Failed to notify the temperature (err %d)", notify_ret);
     }
@@ -592,15 +594,17 @@ static int measure(int16_t *temp_x10, uint16_t *humidity_x10)
 }
 
 /**
- * 温度と湿度をログに出力する
+ * 温度と湿度と気圧をログに出力する
  *
- * 10 分の 1 の単位の整数を小数点付きの形 (例: -3.5 ℃, 45.0 %) で出力する.
- * 湿度を測れないとき (THERMO_HUMIDITY_NONE) は温度だけを出力する.
+ * 10 分の 1 の単位の整数を小数点付きの形 (例: -3.5 ℃, 45.0 %, 1013.2 hPa) で出力する.
+ * 湿度を測れないとき (THERMO_HUMIDITY_NONE) は温度だけを出力する. 気圧は測れたときだけ,
+ * 別の行に出力する.
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍] (THERMO_PRESSURE_NONE は測れない)
  */
-static void log_sample(int16_t temp_x10, uint16_t humidity_x10)
+static void log_sample(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10)
 {
     int temp = temp_x10; /* 温度 [℃ の 10 倍] */
     /* 0 ℃ 未満は整数部が 0 でも (-0.5 など) 符号を出すため, 符号を別に出力する */
@@ -612,6 +616,9 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10)
     } else {
         LOG_INF("Temperature: %s%u.%u C, humidity: %u.%u %%", sign, magnitude / 10U,
                 magnitude % 10U, humidity_x10 / 10U, humidity_x10 % 10U);
+    }
+    if (pressure_x10 != THERMO_PRESSURE_NONE) {
+        LOG_INF("Pressure: %u.%u hPa", pressure_x10 / 10U, pressure_x10 % 10U);
     }
 }
 

@@ -32,7 +32,7 @@ int fs_mount(struct fs_mount_t *mp);
 
 - ELM FAT のドライバが使えるマウントポイントは、`"/RAM:"` `"/NAND:"` `"/CF:"` `"/SD:"` `"/SD2:"` `"/USB:"` `"/USB2:"` `"/USB3:"` と、1 桁の数字 (`"/0:"` など)。SD カードは `"/SD:"`。
 
-使用箇所: [`app/thermo-node/src/backlog.c:121`](../app/thermo-node/src/backlog.c#L121)
+使用箇所: [`app/thermo-node/src/backlog.c:133`](../app/thermo-node/src/backlog.c#L133)
 
 ### fs_unmount
 
@@ -53,7 +53,7 @@ int fs_unmount(struct fs_mount_t *mp);
 - `-ENOTSUP`: ドライバが対応していない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/backlog.c:113`](../app/thermo-node/src/backlog.c#L113)
+使用箇所: [`app/thermo-node/src/backlog.c:125`](../app/thermo-node/src/backlog.c#L125)
 
 ## ファイル
 
@@ -69,7 +69,7 @@ static inline void fs_file_t_init(struct fs_file_t *zfp);
 |:---|:---:|:---|
 | `zfp` | out | 初期化するファイルオブジェクト |
 
-使用箇所: [`app/thermo-node/src/backlog.c:481`](../app/thermo-node/src/backlog.c#L481), [`app/thermo-node/src/sdlog.c:246`](../app/thermo-node/src/sdlog.c#L246)
+使用箇所: [`app/thermo-node/src/backlog.c:512`](../app/thermo-node/src/backlog.c#L512), [`app/thermo-node/src/sdlog.c:246`](../app/thermo-node/src/sdlog.c#L246)
 
 ### fs_open
 
@@ -100,7 +100,7 @@ int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags);
 
 - `flags` を 0 にすると、あれば開くが、読み書きはできない。
 
-使用箇所: [`app/thermo-node/src/backlog.c:482`](../app/thermo-node/src/backlog.c#L482), [`app/thermo-node/src/sdlog.c:247`](../app/thermo-node/src/sdlog.c#L247)
+使用箇所: [`app/thermo-node/src/backlog.c:513`](../app/thermo-node/src/backlog.c#L513), [`app/thermo-node/src/sdlog.c:247`](../app/thermo-node/src/sdlog.c#L247)
 
 ### fs_close
 
@@ -120,7 +120,7 @@ int fs_close(struct fs_file_t *zfp);
 - `-ENOTSUP`: ドライバが対応していない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/backlog.c:180`](../app/thermo-node/src/backlog.c#L180) (ほか 5 行), [`app/thermo-node/src/sdlog.c:259`](../app/thermo-node/src/sdlog.c#L259)
+使用箇所: [`app/thermo-node/src/backlog.c:191`](../app/thermo-node/src/backlog.c#L191) (ほか 5 行), [`app/thermo-node/src/sdlog.c:259`](../app/thermo-node/src/sdlog.c#L259)
 
 ### fs_read
 
@@ -143,7 +143,7 @@ ssize_t fs_read(struct fs_file_t *zfp, void *ptr, size_t size);
 - `-ENOTSUP`: ドライバが対応していない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/backlog.c:418`](../app/thermo-node/src/backlog.c#L418) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/backlog.c:425`](../app/thermo-node/src/backlog.c#L425) (ほか 1 行)
 
 ### fs_write
 
@@ -170,7 +170,7 @@ ssize_t fs_write(struct fs_file_t *zfp, const void *ptr, size_t size);
 
 - 書いたバイト数が `size` より少ないときは、空き容量がないことがあるので、グローバルの `errno` を調べる。
 
-使用箇所: [`app/thermo-node/src/backlog.c:562`](../app/thermo-node/src/backlog.c#L562) (ほか 1 行), [`app/thermo-node/src/sdlog.c:254`](../app/thermo-node/src/sdlog.c#L254)
+使用箇所: [`app/thermo-node/src/backlog.c:592`](../app/thermo-node/src/backlog.c#L592) (ほか 1 行), [`app/thermo-node/src/sdlog.c:254`](../app/thermo-node/src/sdlog.c#L254)
 
 ### fs_seek
 
@@ -193,7 +193,7 @@ int fs_seek(struct fs_file_t *zfp, off_t offset, int whence);
 - `-ENOTSUP`: ドライバが対応していない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/backlog.c:414`](../app/thermo-node/src/backlog.c#L414) (ほか 2 行)
+使用箇所: [`app/thermo-node/src/backlog.c:421`](../app/thermo-node/src/backlog.c#L421) (ほか 2 行)
 
 ## パス
 
@@ -222,7 +222,7 @@ int fs_stat(const char *path, struct fs_dirent *entry);
 
 - ストレージ上のファイルは、閉じるまで、更新されていないことがある。
 
-使用箇所: [`app/thermo-node/src/backlog.c:128`](../app/thermo-node/src/backlog.c#L128), [`app/thermo-node/src/sdlog.c:309`](../app/thermo-node/src/sdlog.c#L309)
+使用箇所: [`app/thermo-node/src/backlog.c:140`](../app/thermo-node/src/backlog.c#L140), [`app/thermo-node/src/sdlog.c:309`](../app/thermo-node/src/sdlog.c#L309)
 
 ### fs_rename
 
@@ -285,7 +285,7 @@ FS_FATFS  /* enum fs_type */
 
 `fs_mount_t` の `type` に指定する、FAT ファイルシステムの種類。
 
-使用箇所: [`app/thermo-node/src/backlog.c:70`](../app/thermo-node/src/backlog.c#L70)
+使用箇所: [`app/thermo-node/src/backlog.c:81`](../app/thermo-node/src/backlog.c#L81)
 
 ### fs_mount_t
 
@@ -307,4 +307,4 @@ struct fs_mount_t
 
 - 表の引数は、構造体のメンバー。
 
-使用箇所: [`app/thermo-node/src/backlog.c:69`](../app/thermo-node/src/backlog.c#L69)
+使用箇所: [`app/thermo-node/src/backlog.c:80`](../app/thermo-node/src/backlog.c#L80)

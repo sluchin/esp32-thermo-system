@@ -1,18 +1,23 @@
 /*
- * 温湿度センサの接続 (XIAO ESP32C3)
+ * 温湿度センサと気圧センサの接続 (XIAO ESP32C3)
  *
- * DHT11 (3 ピンのモジュール: + / out / -) を次のようにつなぐ.
- *   +   -> 3V3
- *   out -> D7 (GPIO20. 拡張ボードの, 下側のヘッダの RX'7)
- *   -   -> GND
- * dio-gpios は GPIO_ACTIVE_LOW にする (Zephyr のドライバが線が LOW の状態を active として扱うため).
- * D7 は起動時に, 信号が出ない (D6 は ROM のログが出る. D8 と D9 はストラッピングのピン).
- * DHT22 (AM2303) を使うときは dht11 のノードに, dht22; を足す.
+ * AHT20 + BMP280 のモジュール (4 ピン: VCC / GND / SDA / SCL. DC 2.8 V から 5 V) を, 拡張ボードの
+ * I2C (Grove の I2C のコネクタ. D4 が SDA, D5 が SCL) につなぐ (VCC は 3V3).
+ *   AHT20 (温度と湿度. I2C のアドレスは 0x38) は alias thermo-sensor で使う (Zephyr の aosong,aht20
+ *   のドライバ).
+ *   BMP280 (気圧. I2C のアドレスは 0x77) は alias thermo-pressure で使う (Zephyr の bosch,bme280 の
+ *   ドライバ. チップの ID で, BMP280 として動く). モジュールによっては 0x76 なので, 起動のログに
+ *   Pressure sensor is not ready が出たら, bmp280 のノードの reg と, ノードの名前を 0x76 にする.
+ * 温度は AHT20 の値を使う (BMP280 の温度は使わない). BMP280 が使えないときも, 温度と湿度は送る
+ * (気圧なし).
  *
- * ADC のアナログセンサ (LM35 など) に替えるときはこのファイルの aliases と dht11 のノードを
- * 消して, zephyr,user に io-channels を書く (ADC のチャンネルの設定も要る. 例は
- * app/thermo-node/tests/sensor/adc.overlay). 温度への換算は CONFIG_THERMO_ADC_MV_PER_DEG と
- * CONFIG_THERMO_ADC_OFFSET_MV で設定する (prj.conf).
+ * DHT11 (3 ピンのモジュール) に替えるときは, app/thermo-node/sensors/dht11.overlay を足して
+ * ビルドする (THERMO_SENSOR=dht11 docker compose run --rm build-node. SETUP.md).
+ *
+ * ADC のアナログセンサ (LM35 など) に替えるときはこのファイルの aliases の thermo-sensor と
+ * thermo-pressure と, aht20 と bmp280 のノードを消して, zephyr,user に io-channels を書く
+ * (ADC のチャンネルの設定も要る. 例は app/thermo-node/tests/sensor/adc.overlay). 温度への換算は
+ * CONFIG_THERMO_ADC_MV_PER_DEG と CONFIG_THERMO_ADC_OFFSET_MV で設定する (prj.conf).
  *
  * OLED (拡張ボードの SSD1306. I2C のアドレスは 0x3C. D4 が SDA, D5 が SCL) は alias
  * thermo-display で使う. 使わないときは CONFIG_THERMO_DISPLAY=n でビルドする (prj.conf または
@@ -36,7 +41,8 @@
 
 / {
     aliases {
-        thermo-sensor = &dht11;
+        thermo-sensor = &aht20;
+        thermo-pressure = &bmp280;
         thermo-display = &ssd1306_128x64;
         thermo-rtc = &pcf8563_rtc;
         thermo-button = &thermo_button;
@@ -54,14 +60,6 @@
         thermo_button: button_0 {
             gpios = <&xiao_d 1 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
         };
-    };
-
-    dht11: dht11 {
-        compatible = "aosong,dht";
-        status = "okay";
-        /* ドライバは線を LOW にする状態を active として扱う (開始信号は LOW を 18 ms 出す).
-         * GPIO_ACTIVE_HIGH にすると, 開始信号が HIGH になり, センサが応答せず, -EIO になる. */
-        dio-gpios = <&xiao_d 7 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
     };
 };
 
@@ -85,6 +83,18 @@
     pcf8563_rtc: pcf8563@51 {
         compatible = "thermo,pcf8563";
         reg = <0x51>;
+        status = "okay";
+    };
+
+    aht20: aht20@38 {
+        compatible = "aosong,aht20";
+        reg = <0x38>;
+        status = "okay";
+    };
+
+    bmp280: bmp280@77 {
+        compatible = "bosch,bme280";
+        reg = <0x77>;
         status = "okay";
     };
 };

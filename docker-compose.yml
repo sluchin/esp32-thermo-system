@@ -6,11 +6,12 @@ x-build-env: &build-env
   - THERMO_DEBUG_LOG
   - THERMO_DISPLAY
   - THERMO_RTC
+  - THERMO_SENSOR
   - THERMO_DHT_LOCK_IRQS
   - THERMO_BUZZER
 
 services:
-  # thermo-node のビルド (scripts/build.sh. THERMO_DHT_LOCK_IRQS=n で DHT11 の読み取りの間, 割り込みを止めない設定にできる. 既定は y)
+  # thermo-node のビルド (scripts/build.sh. THERMO_SENSOR=dht11 で DHT11 にする (既定は AHT20 と BMP280). THERMO_DHT_LOCK_IRQS=n で DHT11 の読み取りの間, 割り込みを止めない設定にできる. 既定は y)
   build-node:
     build:
       context: .

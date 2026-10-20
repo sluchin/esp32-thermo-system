@@ -9,7 +9,7 @@
 
 /**
  * @file
- * @brief AWS IoT Core への MQTT (TLS) による温度の送信
+ * @brief AWS IoT Core への MQTT (TLS) による温度 (湿度, 気圧) の送信
  *
  * 専用のスレッドが WiFi と MQTT の接続を保ち (切れたら, 間隔をあけて, つなぎ直す),
  * 受信した温度を順に publish する. 設定 (cfg.h) が揃うまでは待つ. ゲートウェイは起動のときから,
@@ -26,10 +26,11 @@
 
 int cloud_init(bool start_enabled);
 
-int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10);
+int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10,
+                              uint16_t pressure_x10);
 
 int cloud_publish_temperature_at(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10,
-                                 int64_t unix_s);
+                                 uint16_t pressure_x10, int64_t unix_s);
 
 int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sample *sample);
 

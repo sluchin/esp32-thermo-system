@@ -121,16 +121,18 @@ ZTEST(sensor_api, test_init_not_ready)
     state->initialized = true;
 }
 
-/** 温度と湿度を 10 倍の整数にして返す */
+/** 温度と湿度を 10 倍の整数にして返す. alias thermo-pressure がないので, 気圧はなし */
 ZTEST(sensor_api, test_read)
 {
     int16_t temp = 0;      /* 温度 */
     uint16_t humidity = 0; /* 湿度 */
+    uint16_t pressure = 0; /* 気圧 */
 
-    /* 期待: 23.5 ℃ は 235, 45 % は 450 */
-    zassert_equal(sensor_read(&temp, &humidity), EXIT_SUCCESS);
+    /* 期待: 23.5 ℃ は 235, 45 % は 450. 気圧は THERMO_PRESSURE_NONE */
+    zassert_equal(sensor_read(&temp, &humidity, &pressure), EXIT_SUCCESS);
     zassert_equal(temp, 235);
     zassert_equal(humidity, 450U);
+    zassert_equal(pressure, THERMO_PRESSURE_NONE);
 }
 
 /** 0 ℃ 未満の温度は負の値で返す */
@@ -138,11 +140,12 @@ ZTEST(sensor_api, test_read_negative_temperature)
 {
     int16_t temp = 0;      /* 温度 */
     uint16_t humidity = 0; /* 湿度 */
+    uint16_t pressure = 0; /* 気圧 */
 
     temp_value = (struct sensor_value){.val1 = -3, .val2 = -500000};
 
     /* 期待: -3.5 ℃ は -35 */
-    zassert_equal(sensor_read(&temp, &humidity), EXIT_SUCCESS);
+    zassert_equal(sensor_read(&temp, &humidity, &pressure), EXIT_SUCCESS);
     zassert_equal(temp, -35);
 }
 
@@ -151,11 +154,12 @@ ZTEST(sensor_api, test_read_without_humidity)
 {
     int16_t temp = 0;      /* 温度 */
     uint16_t humidity = 0; /* 湿度 */
+    uint16_t pressure = 0; /* 気圧 */
 
     humidity_ret = -ENOTSUP;
 
     /* 期待: 温度は読めて, 湿度は THERMO_HUMIDITY_NONE */
-    zassert_equal(sensor_read(&temp, &humidity), EXIT_SUCCESS);
+    zassert_equal(sensor_read(&temp, &humidity, &pressure), EXIT_SUCCESS);
     zassert_equal(temp, 235);
     zassert_equal(humidity, THERMO_HUMIDITY_NONE);
 }
@@ -165,11 +169,12 @@ ZTEST(sensor_api, test_read_humidity_failure)
 {
     int16_t temp = 0;      /* 温度 */
     uint16_t humidity = 0; /* 湿度 */
+    uint16_t pressure = 0; /* 気圧 */
 
     humidity_ret = -EIO;
 
     /* 期待: -ENOTSUP 以外の失敗はそのエラーを返す */
-    zassert_equal(sensor_read(&temp, &humidity), -EIO);
+    zassert_equal(sensor_read(&temp, &humidity, &pressure), -EIO);
 }
 
 /** 温度の取得に失敗したら, そのエラーコードを返す */
@@ -177,11 +182,12 @@ ZTEST(sensor_api, test_read_temperature_failure)
 {
     int16_t temp = 0;      /* 温度 */
     uint16_t humidity = 0; /* 湿度 */
+    uint16_t pressure = 0; /* 気圧 */
 
     temp_ret = -EIO;
 
     /* 期待: 温度の取得の失敗 (-EIO) をそのまま返す */
-    zassert_equal(sensor_read(&temp, &humidity), -EIO);
+    zassert_equal(sensor_read(&temp, &humidity, &pressure), -EIO);
 }
 
 /** センサの測定 (sample_fetch) に失敗したら, そのエラーコードを返す */
@@ -189,11 +195,12 @@ ZTEST(sensor_api, test_read_fetch_failure)
 {
     int16_t temp = 0;      /* 温度 */
     uint16_t humidity = 0; /* 湿度 */
+    uint16_t pressure = 0; /* 気圧 */
 
     fetch_ret = -EIO;
 
     /* 期待: 測定の失敗 (-EIO) をそのまま返す */
-    zassert_equal(sensor_read(&temp, &humidity), -EIO);
+    zassert_equal(sensor_read(&temp, &humidity, &pressure), -EIO);
 }
 
 ZTEST_SUITE(sensor_api, NULL, NULL, before, NULL, NULL);

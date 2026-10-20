@@ -1,6 +1,6 @@
 # main.c の解析
 
-対象: `app/thermo-gateway/src/main.c` (173 行)
+対象: `app/thermo-gateway/src/main.c` (182 行)
 
 ゲートウェイのエントリポイントです。やることは、初期化、コールバックの登録、スキャンの開始の 3 つだけで、そのあとは 10 秒ごとにログを出すだけのループに入ります。温度の受信、時刻の書き込み、AWS IoT Core への送信は、全て別のスレッドやワークキューが行います。
 
@@ -49,8 +49,8 @@ main()
 
 1. `bt_addr_le_to_str()` でアドレスを文字列にします。
 2. 温度を符号と絶対値に分けて出力します。`-0.5` のように整数部が 0 の負の値でも符号が出るように、`temp / 10` と `temp % 10` を使わず、符号 (`"-"` か `""`) を別に作ります。
-3. 湿度が `THERMO_HUMIDITY_NONE` (0xFFFF) のときは、温度だけを出力します。
-4. `CONFIG_THERMO_CLOUD` が有効なら、`cloud_publish_temperature()` で、送信のキューに入れます。失敗しても `LOG_WRN` を出すだけで、受信は続けます (次の通知で、また試すため)。
+3. 湿度が `THERMO_HUMIDITY_NONE` (0xFFFF) のときは、温度だけを出力します。気圧が `THERMO_PRESSURE_NONE` (0xFFFF) でなければ、気圧を別の行 (`Node <アドレス>: pressure: 1013.2 hPa`) に出力します。
+4. `CONFIG_THERMO_CLOUD` が有効なら、`cloud_publish_temperature()` で、送信のキューに入れます (温度、湿度、気圧)。失敗しても `LOG_WRN` を出すだけで、受信は続けます (次の通知で、また試すため)。
 
 Bluetooth のスレッドで動くので、時間のかかる処理はありません。送信そのものは、`cloud.c` のスレッドが行います。
 

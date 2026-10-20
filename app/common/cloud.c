@@ -52,12 +52,12 @@ LOG_MODULE_REGISTER(thermo_cloud, THERMO_LOG_LEVEL);
 /** トピックのバッファのサイズ */
 #define TOPIC_SIZE         128U
 /** ペイロードのバッファのサイズ */
-#define PAYLOAD_SIZE       160U
+#define PAYLOAD_SIZE       176U
 /*
- * ペイロードの最大長が入ること (SwitchBot の機器のアドレス, -3276.7 ℃, 湿度 100 %,
- * 電池 100 %, 稼働時間が最大で UNIX 時刻が 19 桁の場合は 155 文字 + NUL)
+ * ペイロードの最大長が入ること (Thermo ノードの, -3276.8 ℃, 湿度 6553.4 %, 気圧 6553.4 hPa,
+ * 稼働時間が最大で UNIX 時刻が 19 桁の場合は 163 文字 + NUL. SwitchBot は 155 文字 + NUL)
  */
-BUILD_ASSERT(PAYLOAD_SIZE >= 156U, "The payload buffer is too small");
+BUILD_ASSERT(PAYLOAD_SIZE >= 164U, "The payload buffer is too small");
 /** MQTT の送受信バッファのサイズ */
 #define MQTT_BUF_SIZE     512U
 /** スレッドのスタックサイズ (TLS のハンドシェイクを含む) */
@@ -70,20 +70,28 @@ BUILD_ASSERT(PAYLOAD_SIZE >= 156U, "The payload buffer is too small");
 
 /** 送信を待つ値の種類 */
 enum sample_kind {
-    SAMPLE_THERMO,   /**< Thermo ノードの温度と湿度 */
+    SAMPLE_THERMO,   /**< Thermo ノードの温度と湿度と気圧 */
     SAMPLE_SWITCHBOT /**< SwitchBot の温湿度計の値 */
 };
 
-/** 送信を待つ値 1 件 */
+/**
+ * 送信を待つ値 1 件
+ *
+ * キューに QUEUE_LEN 件を持つので, 詰め物が少なくなる順に並べる (32 バイト). kind を enum
+ * (4 バイト) にすると, 40 バイトになる.
+ */
 struct sample {
-    enum sample_kind kind;             /**< 値の種類 */
     bt_addr_le_t addr;                 /**< 送ってきた機器のアドレス */
+    uint8_t kind;                      /**< 値の種類 (enum sample_kind) */
     uint32_t uptime_ms;                /**< 受信したときのゲートウェイの稼働時間 [ms] */
     int16_t temp_x10;                  /**< 温度 [℃ の 10 倍] (SAMPLE_THERMO のとき) */
     uint16_t humidity_x10;             /**< 湿度 [% の 10 倍] (SAMPLE_THERMO のとき) */
+    uint16_t pressure_x10;             /**< 気圧 [hPa の 10 倍] (SAMPLE_THERMO のとき) */
     struct switchbot_sample switchbot; /**< SwitchBot の値 (SAMPLE_SWITCHBOT のとき) */
     int64_t unix_s; /**< 測った UNIX 時刻 [s] (UNIX_FROM_UPTIME のときは稼働時間から求める) */
 };
+/* キューのバッファ (RAM) を増やさないこと (ノードの RAM は, ほとんど余りがない) */
+BUILD_ASSERT(sizeof(struct sample) <= 32U, "struct sample is too large");
 
 /** 送信を待つ温度のキューのバッファ (struct sample が QUEUE_LEN 個入る) */
 static char __aligned(4) cloud_sample_buf[QUEUE_LEN * sizeof(struct sample)];
@@ -263,22 +271,25 @@ void cloud_stop(void)
 }
 
 /**
- * @brief 温度と湿度を送信のキューに入れる (待たずにすぐ戻る)
+ * @brief 温度と湿度と気圧を送信のキューに入れる (待たずにすぐ戻る)
  *
  * Bluetooth のスレッドから呼べる. キューが満杯のときは新しい値を捨てる.
  *
  * @param[in] addr         温度を送ったノードのアドレス
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍] (気圧がなければ THERMO_PRESSURE_NONE)
  * @retval EXIT_SUCCESS 成功
  * @retval -ENOMSG      キューが満杯で, 値を捨てた
  */
-int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10)
+int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10,
+                              uint16_t pressure_x10)
 {
     struct sample s = {.kind = SAMPLE_THERMO,
                        .addr = *addr,
                        .temp_x10 = temp_x10,
                        .humidity_x10 = humidity_x10,
+                       .pressure_x10 = pressure_x10,
                        .uptime_ms = k_uptime_get_32(),
                        .unix_s = UNIX_FROM_UPTIME}; /* キューに入れる, ノードの温度の値 */
 
@@ -286,25 +297,28 @@ int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16
 }
 
 /**
- * @brief 測った時刻 (UNIX 時刻) を指定して, 温度と湿度を送信のキューに入れる (待たずにすぐ戻る)
+ * @brief 測った時刻 (UNIX 時刻) を指定して, 温度と湿度と気圧を送信のキューに入れる
+ * (待たずにすぐ戻る)
  *
  * SD カードに溜めた値のように, 測った時刻が今ではない値を送るときに使う.
  *
  * @param[in] addr         温度を測ったノードのアドレス
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
+ * @param[in] pressure_x10 気圧 [hPa の 10 倍] (気圧がなければ THERMO_PRESSURE_NONE)
  * @param[in] unix_s       測った UNIX 時刻 [s] (0 以上)
  * @retval EXIT_SUCCESS 成功
  * @retval -ENOMSG      キューが満杯で, 値を捨てた
  * @retval -ENOTCONN    止められている (cloud_set_enabled(false))
  */
 int cloud_publish_temperature_at(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10,
-                                 int64_t unix_s)
+                                 uint16_t pressure_x10, int64_t unix_s)
 {
     struct sample s = {.kind = SAMPLE_THERMO,
                        .addr = *addr,
                        .temp_x10 = temp_x10,
                        .humidity_x10 = humidity_x10,
+                       .pressure_x10 = pressure_x10,
                        .uptime_ms = k_uptime_get_32(),
                        .unix_s = unix_s}; /* キューに入れる, 時刻つきの温度の値 */
 
@@ -605,8 +619,9 @@ static int publish_sample(const struct sample *s)
                                                s->uptime_ms, unix_s);
     } else {
         topic_len = payload_format_topic(topic, sizeof(topic), client_id, &s->addr);
-        payload_len = payload_format_temperature(payload, sizeof(payload), &s->addr, s->temp_x10,
-                                                 s->humidity_x10, s->uptime_ms, unix_s);
+        payload_len =
+                payload_format_temperature(payload, sizeof(payload), &s->addr, s->temp_x10,
+                                           s->humidity_x10, s->pressure_x10, s->uptime_ms, unix_s);
     }
 
     /* ペイロードは必ずバッファに入る. トピックは長いクライアント ID で, 入らないことがある */

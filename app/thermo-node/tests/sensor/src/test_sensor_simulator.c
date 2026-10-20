@@ -8,7 +8,7 @@
  * @file
  * @brief sensor.c の単体テスト (シミュレーション値)
  *
- * CONFIG_SIMULATOR=y のとき, センサも ADC も使わず, 乱数で温度と湿度を作る.
+ * CONFIG_SIMULATOR=y のとき, センサも ADC も使わず, 乱数で温度と湿度と気圧を作る.
  */
 
 #include <zephyr/ztest.h>
@@ -25,6 +25,10 @@
 #define HUMIDITY_MIN_X10   300U
 /** シミュレーションの湿度の上限 [% の 10 倍] (90.0 % 未満) */
 #define HUMIDITY_LIMIT_X10 900U
+/** シミュレーションの気圧の下限 [hPa の 10 倍] (990.0 hPa 以上) */
+#define PRESSURE_MIN_X10   9900U
+/** シミュレーションの気圧の上限 [hPa の 10 倍] (1030.0 hPa 未満) */
+#define PRESSURE_LIMIT_X10 10300U
 /** 繰り返し回数 */
 #define REPEAT             200
 
@@ -35,19 +39,22 @@ ZTEST(sensor_simulator, test_init)
     zassert_equal(sensor_init(), EXIT_SUCCESS);
 }
 
-/** sensor_read() は決められた範囲の温度と湿度を返す */
+/** sensor_read() は決められた範囲の温度と湿度と気圧を返す */
 ZTEST(sensor_simulator, test_read_range)
 {
     int16_t temp = 0;      /* 温度 */
     uint16_t humidity = 0; /* 湿度 */
+    uint16_t pressure = 0; /* 気圧 */
     int i = 0;             /* ループ用の添字 */
 
     for (i = 0; i < REPEAT; i++) {
-        /* 期待: 温度と湿度は常に決められた範囲に収まる */
-        zassert_equal(sensor_read(&temp, &humidity), EXIT_SUCCESS);
+        /* 期待: 温度と湿度と気圧は常に決められた範囲に収まる */
+        zassert_equal(sensor_read(&temp, &humidity, &pressure), EXIT_SUCCESS);
         zassert_true((temp >= TEMP_MIN_X10) && (temp < TEMP_LIMIT_X10), "temp=%d", temp);
         zassert_true((humidity >= HUMIDITY_MIN_X10) && (humidity < HUMIDITY_LIMIT_X10),
                      "humidity=%u", humidity);
+        zassert_true((pressure >= PRESSURE_MIN_X10) && (pressure < PRESSURE_LIMIT_X10),
+                     "pressure=%u", pressure);
     }
 }
 
@@ -57,13 +64,14 @@ ZTEST(sensor_simulator, test_read_varies)
     int16_t first = 0;     /* 最初の温度 */
     int16_t temp = 0;      /* 温度 */
     uint16_t humidity = 0; /* 湿度 */
+    uint16_t pressure = 0; /* 気圧 */
     bool changed = false;  /* 値が変わったか */
     int i = 0;             /* ループ用の添字 */
 
     /* 繰り返しの間に最初と違う値が 1 回でも出れば, 値は変化している */
-    zassert_equal(sensor_read(&first, &humidity), EXIT_SUCCESS);
+    zassert_equal(sensor_read(&first, &humidity, &pressure), EXIT_SUCCESS);
     for (i = 0; i < REPEAT; i++) {
-        zassert_equal(sensor_read(&temp, &humidity), EXIT_SUCCESS);
+        zassert_equal(sensor_read(&temp, &humidity, &pressure), EXIT_SUCCESS);
         if (temp != first) {
             changed = true;
         }
