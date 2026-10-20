@@ -34,7 +34,7 @@ k_tid_t k_thread_create(struct k_thread *new_thread, k_thread_stack_t *stack,
 
 戻り値: 新しいスレッドの ID。
 
-使用箇所: [`app/common/cloud.c:240`](../app/common/cloud.c#L240)
+使用箇所: [`app/common/cloud.c:248`](../app/common/cloud.c#L248)
 
 ### k_thread_name_set
 
@@ -56,7 +56,7 @@ int k_thread_name_set(k_tid_t thread, const char *str);
 - `-ENOSYS`: スレッド名の設定が無効。
 - `-EINVAL`: 名前が長すぎる。
 
-使用箇所: [`app/common/cloud.c:242`](../app/common/cloud.c#L242)
+使用箇所: [`app/common/cloud.c:250`](../app/common/cloud.c#L250)
 
 ### k_thread_abort
 
@@ -75,7 +75,7 @@ void k_thread_abort(k_tid_t thread);
 - スレッドが持っているカーネルの資源 (ミューテックスやメモリブロックなど) は、解放されない。後始末は、呼び出し側の責任。
 - 関数が戻った後は、そのスレッドが、動いていないことと、動けるようにならないことが保証される。
 
-使用箇所: [`app/common/cloud.c:254`](../app/common/cloud.c#L254)
+使用箇所: [`app/common/cloud.c:262`](../app/common/cloud.c#L262)
 
 ## スリープと時刻
 
@@ -93,7 +93,7 @@ int32_t k_sleep(k_timeout_t timeout);
 
 戻り値: 時間が経ったら 0。`k_wakeup()` で起こされたら、残りの時間 (ミリ秒に切り上げ。`INT_MAX` で切り詰める)。
 
-使用箇所: [`app/common/cloud.c:155`](../app/common/cloud.c#L155) (ほか 3 行), [`app/thermo-gateway/src/main.c:93`](../app/thermo-gateway/src/main.c#L93)
+使用箇所: [`app/common/cloud.c:157`](../app/common/cloud.c#L157) (ほか 3 行), [`app/thermo-gateway/src/main.c:93`](../app/thermo-gateway/src/main.c#L93)
 
 ### k_msleep
 
@@ -141,7 +141,7 @@ uint32_t k_uptime_get_32(void);
 
 - `k_uptime_get()` に比べて、利点はほとんどない (アプリが `2^32` ティックを超えて動かないと分かっているときだけ)。割り込みを止めて、64 ビットの計算をすることがある。
 
-使用箇所: [`app/common/cloud.c:274`](../app/common/cloud.c#L274) (ほか 3 行), [`app/thermo-gateway/src/main.c:154`](../app/thermo-gateway/src/main.c#L154)
+使用箇所: [`app/common/cloud.c:282`](../app/common/cloud.c#L282) (ほか 3 行), [`app/thermo-gateway/src/main.c:154`](../app/thermo-gateway/src/main.c#L154)
 
 ### k_ticks_to_ms_ceil32
 
@@ -222,34 +222,63 @@ void k_sem_reset(struct k_sem *sem);
 
 ### 定義と宣言
 
-キューは、`K_MSGQ_DEFINE` で、静的に定義する (下の「マクロ」)。このマクロは、変数の定義そのものに展開される。
+キューを作るには、2 つの方法がある。
 
-```c
-/* K_MSGQ_DEFINE(cloud_sample_q, sizeof(struct sample), QUEUE_LEN, 4); の展開 (概略) */
-static char __noinit __aligned(4) _k_fifo_buf_cloud_sample_q[QUEUE_LEN * sizeof(struct sample)];
-STRUCT_SECTION_ITERABLE(k_msgq, cloud_sample_q) = /* struct k_msgq cloud_sample_q (専用のセクションに置く) */
-    Z_MSGQ_INITIALIZER(cloud_sample_q, _k_fifo_buf_cloud_sample_q, sizeof(struct sample), QUEUE_LEN);
-```
+1. **`k_msgq_init()` で、実行時に初期化する** (このプロジェクトの方法): バッファと、キューの本体 (`struct k_msgq`) を、ふつうの変数として宣言して、使う前に `k_msgq_init()` で初期化する。`static` を付けて、ファイルの中だけの名前にできる。
 
-- バッファ (`_k_fifo_buf_<名前>`) は `static`、キューの本体 (`struct k_msgq <名前>`) は、`static` ではない (全てのファイルから見える名前になる)。
-- 同じファイルの中では、定義より後ろなら、宣言なしで使える。
-- ほかのファイルから使うときは、`extern struct k_msgq <名前>;` と宣言する (このプロジェクトでは、`extern` の宣言は、`.c` ではなく、ヘッダに書く。`CODING_STYLE.md` の「MISRA-C 準拠ルール」の 7)。
-- マクロの前に、`static` を付けることはできない (展開の先頭が `static char ...` なので、`static static` になる)。
-- `static` で定義するマクロ `K_MSGQ_DEFINE_STATIC` は、Zephyr v4.4 で加わったもので、このプロジェクトの v4.3.0 には、ない。
-- 実行時に初期化する `k_msgq_init()` もある (このプロジェクトでは、使っていない)。
+   ```c
+   static char __aligned(4) cloud_sample_buf[QUEUE_LEN * sizeof(struct sample)]; /* バッファ */
+   static struct k_msgq cloud_sample_q;                                            /* キューの本体 */
+
+   k_msgq_init(&cloud_sample_q, cloud_sample_buf, sizeof(struct sample), QUEUE_LEN); /* 使う前に */
+   ```
+
+   初期化する前に、キューを使ってはいけない。このプロジェクトでは、`cloud_init()` の最初で初期化し、ほかの `cloud_*` の関数は、`cloud_init()` の後でだけ呼ぶ。
+
+2. **`K_MSGQ_DEFINE` で、静的に定義する** (このプロジェクトでは、使っていない): マクロが、バッファとキューの本体の定義に展開され、初期化も済んだ状態になる。
+
+   ```c
+   /* K_MSGQ_DEFINE(q, sizeof(struct sample), QUEUE_LEN, 4); の展開 (概略) */
+   static char __noinit __aligned(4) _k_fifo_buf_q[QUEUE_LEN * sizeof(struct sample)];
+   STRUCT_SECTION_ITERABLE(k_msgq, q) = /* struct k_msgq q (専用のセクションに置く) */
+       Z_MSGQ_INITIALIZER(q, _k_fifo_buf_q, sizeof(struct sample), QUEUE_LEN);
+   ```
+
+   - バッファは `static` だが、キューの本体 (`struct k_msgq q`) は、`static` ではない (全てのファイルから見える名前になる)。ほかのファイルからは、`extern struct k_msgq q;` と宣言して使う。
+   - マクロの前に、`static` を付けることはできない (展開の先頭が `static char ...` なので、`static static` になる)。
+   - 変数の宣言がマクロの中に隠れるので、型と、`static` かどうかが、ソースから読み取りにくい。このプロジェクトが `k_msgq_init()` を使うのは、このため。
+   - `static` で定義するマクロ `K_MSGQ_DEFINE_STATIC` は、Zephyr v4.4 で加わったもので、このプロジェクトの v4.3.0 には、ない。
 
 ### このプロジェクトでの使い方
 
-AWS IoT Core へ送る値のキュー `cloud_sample_q` ([`app/common/cloud.c:89`](../app/common/cloud.c#L89)) だけで使う。
+AWS IoT Core へ送る値のキュー `cloud_sample_q` ([`app/common/cloud.c:91`](../app/common/cloud.c#L91)) だけで使う。
 
 | 項目 | 内容 |
 |:---|:---|
 | メッセージ | `struct sample` (Thermo ノードか SwitchBot の値と、受信したときの稼働時間、測った UNIX 時刻) |
 | 最大の数 | `QUEUE_LEN` (16) |
+| 初期化 | `cloud_init()` の最初に、`k_msgq_init()` で |
 | 送る側 | `cloud_publish_temperature()` などから、`enqueue_sample()` で送る。ゲートウェイは、Bluetooth のスレッドから、ノードは、ゲートウェイにつながらないとき (`direct.c`) に呼ぶ。`K_NO_WAIT` で送り、満杯なら、値を捨てて `-ENOMSG` を返す |
 | 受け取る側 | 送信のスレッド (`run_session()`)。最大 `SESSION_TICK_MS` (1 秒) 待って受け取り、MQTT で publish する。待ち時間が切れたら、受信と keep alive の確認に進む |
 | 空にする | 送信を再び始めるとき (`cloud_set_enabled(true)`)、止めていた間の古い値を捨てる |
 | 数を調べる | `cloud_pending()`。SD カードの未送信の値を、キューを満杯にしないように入れるのに使う |
+
+### k_msgq_init
+
+```c
+void k_msgq_init(struct k_msgq *msgq, char *buffer, size_t msg_size, uint32_t max_msgs);
+```
+
+メッセージキューを、使う前に初期化する。キューのバッファ (`buffer`) には、`msg_size` バイトのメッセージが、`max_msgs` 個入る大きさが要る。バッファのアラインメントは、必須ではない。
+
+| 引数 | 入出力 | 説明 |
+|:---|:---:|:---|
+| `msgq` | out | 初期化するメッセージキュー |
+| `buffer` | in | メッセージを溜めるバッファ (リングバッファ。`msg_size × max_msgs` バイト) |
+| `msg_size` | in | メッセージの大きさ [バイト] |
+| `max_msgs` | in | 入れられるメッセージの最大の数 |
+
+使用箇所: [`app/common/cloud.c:232`](../app/common/cloud.c#L232)
 
 ### k_msgq_put
 
@@ -271,7 +300,7 @@ int k_msgq_put(struct k_msgq *msgq, const void *data, k_timeout_t timeout);
 - `-ENOMSG`: 待たずに戻った (キューが満杯)、またはキューが空にされた。
 - `-EAGAIN`: 待ち時間が切れた。
 
-使用箇所: [`app/common/cloud.c:714`](../app/common/cloud.c#L714)
+使用箇所: [`app/common/cloud.c:722`](../app/common/cloud.c#L722)
 
 ### k_msgq_get
 
@@ -293,7 +322,7 @@ int k_msgq_get(struct k_msgq *msgq, void *data, k_timeout_t timeout);
 - `-ENOMSG`: 待たずに戻った (キューが空)、またはキューが空にされた。
 - `-EAGAIN`: 待ち時間が切れた。
 
-使用箇所: [`app/common/cloud.c:642`](../app/common/cloud.c#L642)
+使用箇所: [`app/common/cloud.c:650`](../app/common/cloud.c#L650)
 
 ### k_msgq_num_used_get
 
@@ -309,7 +338,7 @@ uint32_t k_msgq_num_used_get(struct k_msgq *msgq);
 
 戻り値: キューに入っているメッセージの数。
 
-使用箇所: [`app/common/cloud.c:388`](../app/common/cloud.c#L388)
+使用箇所: [`app/common/cloud.c:396`](../app/common/cloud.c#L396)
 
 ### k_msgq_purge
 
@@ -323,7 +352,7 @@ void k_msgq_purge(struct k_msgq *msgq);
 |:---|:---:|:---|
 | `msgq` | in,out | メッセージキュー |
 
-使用箇所: [`app/common/cloud.c:341`](../app/common/cloud.c#L341)
+使用箇所: [`app/common/cloud.c:349`](../app/common/cloud.c#L349)
 
 ## ワーク (遅延実行)
 
@@ -396,7 +425,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 |:---|:---:|:---|
 | `ms` | in | ミリ秒 |
 
-使用箇所: [`app/common/cloud.c:155`](../app/common/cloud.c#L155) (ほか 2 行), [`app/thermo-gateway/src/ble.c:691`](../app/thermo-gateway/src/ble.c#L691), [`app/thermo-node/src/buzzer.c:113`](../app/thermo-node/src/buzzer.c#L113)
+使用箇所: [`app/common/cloud.c:157`](../app/common/cloud.c#L157) (ほか 2 行), [`app/thermo-gateway/src/ble.c:691`](../app/thermo-gateway/src/ble.c#L691), [`app/thermo-node/src/buzzer.c:113`](../app/thermo-node/src/buzzer.c#L113)
 
 ### K_SECONDS
 
@@ -410,7 +439,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 |:---|:---:|:---|
 | `s` | in | 秒 |
 
-使用箇所: [`app/common/cloud.c:161`](../app/common/cloud.c#L161) (ほか 3 行), [`app/thermo-gateway/src/ble.c:583`](../app/thermo-gateway/src/ble.c#L583), [`app/thermo-gateway/src/main.c:93`](../app/thermo-gateway/src/main.c#L93), [`app/thermo-node/src/wifi_time.c:73`](../app/thermo-node/src/wifi_time.c#L73) (ほか 1 行)
+使用箇所: [`app/common/cloud.c:163`](../app/common/cloud.c#L163) (ほか 3 行), [`app/thermo-gateway/src/ble.c:583`](../app/thermo-gateway/src/ble.c#L583), [`app/thermo-gateway/src/main.c:93`](../app/thermo-gateway/src/main.c#L93), [`app/thermo-node/src/wifi_time.c:73`](../app/thermo-node/src/wifi_time.c#L73) (ほか 1 行)
 
 ### K_SEM_DEFINE
 
@@ -428,31 +457,6 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 
 使用箇所: [`app/common/wifi_link.c:31`](../app/common/wifi_link.c#L31)
 
-### K_MSGQ_DEFINE
-
-```c
-#define K_MSGQ_DEFINE(q_name, q_msg_size, q_max_msgs, q_align)
-```
-
-メッセージキューを、静的に定義して、初期化する。キューのバッファには、`q_msg_size` バイトのメッセージが、`q_max_msgs` 個入る。バッファのアラインメントは、必須ではなく、`q_align` は 1 でよい。
-
-定義したキューは、定義したファイルの外から、次の宣言で使える。
-
-```c
-extern struct k_msgq <name>;
-```
-
-このマクロには、`static` を付けられない (上の「定義と宣言」)。
-
-| 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
-| `q_name` | in | キューの名前 |
-| `q_msg_size` | in | メッセージの大きさ [バイト] |
-| `q_max_msgs` | in | 入れられるメッセージの最大の数 |
-| `q_align` | in | バッファのアラインメント (2 のべき乗) |
-
-使用箇所: [`app/common/cloud.c:89`](../app/common/cloud.c#L89)
-
 ### K_THREAD_STACK_DEFINE
 
 ```c
@@ -466,7 +470,7 @@ extern struct k_msgq <name>;
 | `sym` | in | スタックの名前 |
 | `size` | in | スタックの大きさ [バイト] |
 
-使用箇所: [`app/common/cloud.c:124`](../app/common/cloud.c#L124)
+使用箇所: [`app/common/cloud.c:126`](../app/common/cloud.c#L126)
 
 ### K_THREAD_STACK_SIZEOF
 
@@ -482,7 +486,7 @@ extern struct k_msgq <name>;
 
 戻り値: スタックの大きさ [バイト]。
 
-使用箇所: [`app/common/cloud.c:240`](../app/common/cloud.c#L240)
+使用箇所: [`app/common/cloud.c:248`](../app/common/cloud.c#L248)
 
 ### K_WORK_DELAYABLE_DEFINE
 

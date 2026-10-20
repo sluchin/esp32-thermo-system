@@ -10,7 +10,7 @@ AWS IoT Core へ、WiFi と MQTT over TLS で値を送るコードです。ゲ�
 
 | 関数 | 役割 |
 |:---|:---|
-| `cloud_init(start_enabled)` | 設定を読み込み、WiFi を準備して、送信のスレッドを作る |
+| `cloud_init(start_enabled)` | 送信のキューを初期化し、設定を読み込み、WiFi を準備して、送信のスレッドを作る |
 | `cloud_publish_temperature()` | Thermo ノードの温度と湿度をキューに入れる (時刻は、受信したとき) |
 | `cloud_publish_temperature_at()` | 測った UNIX 時刻を指定して、キューに入れる (SD カードの記録用) |
 | `cloud_publish_switchbot()` | SwitchBot の値をキューに入れる |
@@ -52,7 +52,7 @@ AWS IoT Core へ、WiFi と MQTT over TLS で値を送るコードです。ゲ�
 | `switchbot` | SwitchBot の値 |
 | `unix_s` | 測った UNIX 時刻。`UNIX_FROM_UPTIME` (-1) なら、publish のときに求める |
 
-キューは `K_MSGQ_DEFINE(cloud_sample_q, ...)` で、先入れ先出しです。
+キューは `static struct k_msgq cloud_sample_q` (`cloud.c` の中だけで使う) で、先入れ先出しです。バッファ `cloud_sample_buf` と合わせて `static` で宣言し、`cloud_init()` の最初に `k_msgq_init()` で初期化します (ほかの `cloud_*` の関数より先に、`cloud_init()` を呼びます)。
 
 ## スレッドの動き (cloud_step)
 
@@ -84,10 +84,13 @@ WiFi に接続 (30 秒)
 
 ## cloud_init
 
-1. `cfg_init()` で、フラッシュから設定を読み込みます。
-2. `enabled = start_enabled`、`gave_up = false`、`attempts = 0`。
-3. `wifi_link_init()` で、WiFi のイベントのコールバックを登録します。
-4. スレッドを作ります (名前は `cloud`)。
+1. `k_msgq_init()` で、送信のキュー (`cloud_sample_q`) を初期化します。ほかの処理より先にするので、このあとで失敗して戻っても、キューは使えます。
+2. `cfg_init()` で、フラッシュから設定を読み込みます。
+3. `enabled = start_enabled`、`gave_up = false`、`attempts = 0`。
+4. `wifi_link_init()` で、WiFi のイベントのコールバックを登録します。
+5. スレッドを作ります (名前は `cloud`)。
+
+ほかの `cloud_*` の関数より先に、1 回だけ呼びます (キューを初期化するため)。
 
 `start_enabled` は、ゲートウェイでは `true` (すぐに接続)、ノードでは `false` (`cloud_set_enabled(true)` まで待つ) です。
 

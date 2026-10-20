@@ -85,8 +85,10 @@ struct sample {
     int64_t unix_s; /**< 測った UNIX 時刻 [s] (UNIX_FROM_UPTIME のときは稼働時間から求める) */
 };
 
-/** 送信を待つ温度のキュー */
-K_MSGQ_DEFINE(cloud_sample_q, sizeof(struct sample), QUEUE_LEN, 4);
+/** 送信を待つ温度のキューのバッファ (struct sample が QUEUE_LEN 個入る) */
+static char __aligned(4) cloud_sample_buf[QUEUE_LEN * sizeof(struct sample)];
+/** 送信を待つ温度のキュー (cloud_init() で初期化する) */
+static struct k_msgq cloud_sample_q;
 
 /** MQTT クライアント */
 static struct mqtt_client client;
@@ -213,7 +215,9 @@ int cloud_step(void)
 }
 
 /**
- * @brief 設定を読み込んで, WiFi と MQTT のスレッドを開始する
+ * @brief 送信のキューを初期化して, 設定を読み込んで, WiFi と MQTT のスレッドを開始する
+ *
+ * ほかの cloud_* の関数より先に, 1 回だけ呼ぶ.
  *
  * @param[in] start_enabled true なら, すぐに接続して送る (ゲートウェイ). false なら,
  * cloud_set_enabled(true) が呼ばれるまで, 接続しないで待つ (ノード)
@@ -222,8 +226,12 @@ int cloud_step(void)
  */
 int cloud_init(bool start_enabled)
 {
-    int err = cfg_init(); /* エラーコード */
+    int err = EXIT_SUCCESS; /* エラーコード */
 
+    /* 送信のキューは, ほかの処理より先に初期化する (失敗して戻っても, キューは使える) */
+    k_msgq_init(&cloud_sample_q, cloud_sample_buf, sizeof(struct sample), QUEUE_LEN);
+
+    err = cfg_init();
     if (err != 0) {
         return err;
     }

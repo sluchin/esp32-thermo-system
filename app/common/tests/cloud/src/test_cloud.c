@@ -858,6 +858,22 @@ ZTEST(cloud, test_init_cfg_failure)
     zassert_equal(wifi_link_init_fake.call_count, 0U);
 }
 
+/** 初期化: 送信のキューを空にして初期化し, 設定の読み込みに失敗しても, キューは使える */
+ZTEST(cloud, test_init_resets_queue)
+{
+    zassert_equal(cloud_publish_temperature(&node, 215, 450U), EXIT_SUCCESS);
+    zassert_equal(cloud_pending(), 1U);
+    cfg_init_fake.return_val = -EIO;
+
+    /* 期待: キューは空になり, 失敗して戻ったあとも, 値を入れられる */
+    zassert_equal(cloud_init(true), -EIO);
+    zassert_equal(cloud_pending(), 0U);
+    zassert_equal(cloud_publish_temperature(&node, 215, 450U), EXIT_SUCCESS);
+    zassert_equal(cloud_pending(), 1U);
+
+    drain_queue();
+}
+
 /** 初期化: WiFi の初期化に失敗したら, そのエラーを返す */
 ZTEST(cloud, test_init_wifi_failure)
 {
@@ -1077,4 +1093,20 @@ ZTEST(cloud, test_publish_at_uses_the_given_time)
     zassert_true(connected_seen);
 }
 
-ZTEST_SUITE(cloud, NULL, NULL, before, NULL, NULL);
+/**
+ * テストを始める前に 1 回, 送信のキューを初期化する (cloud_init())
+ *
+ * スレッドは作らないように, 設定の読み込みを失敗させる (キューは, その前に初期化される).
+ *
+ * @return 使用しない (NULL)
+ */
+static void *suite_setup(void)
+{
+    RESET_FAKE(cfg_init);
+    cfg_init_fake.return_val = -EIO;
+    zassert_equal(cloud_init(true), -EIO);
+
+    return NULL;
+}
+
+ZTEST_SUITE(cloud, NULL, suite_setup, before, NULL, NULL);

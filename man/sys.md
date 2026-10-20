@@ -309,7 +309,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 戻り値: 要素の数。
 
-使用箇所: [`app/common/cfg.c:103`](../app/common/cfg.c#L103) (ほか 5 行), [`app/common/cloud.c:530`](../app/common/cloud.c#L530), [`app/thermo-gateway/src/ble.c:272`](../app/thermo-gateway/src/ble.c#L272) (ほか 1 行), [`app/thermo-gateway/src/switchbot.c:207`](../app/thermo-gateway/src/switchbot.c#L207) ほか 3 ファイル
+使用箇所: [`app/common/cfg.c:103`](../app/common/cfg.c#L103) (ほか 5 行), [`app/common/cloud.c:538`](../app/common/cloud.c#L538), [`app/thermo-gateway/src/ble.c:272`](../app/thermo-gateway/src/ble.c#L272) (ほか 1 行), [`app/thermo-gateway/src/switchbot.c:207`](../app/thermo-gateway/src/switchbot.c#L207) ほか 3 ファイル
 
 ### MIN
 
@@ -326,7 +326,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 戻り値: 小さい方の値。
 
-使用箇所: [`app/common/cloud.c:196`](../app/common/cloud.c#L196), [`app/thermo-node/src/backlog.c:129`](../app/thermo-node/src/backlog.c#L129), [`app/thermo-node/src/history.c:66`](../app/thermo-node/src/history.c#L66) (ほか 1 行)
+使用箇所: [`app/common/cloud.c:198`](../app/common/cloud.c#L198), [`app/thermo-node/src/backlog.c:129`](../app/thermo-node/src/backlog.c#L129), [`app/thermo-node/src/history.c:66`](../app/thermo-node/src/history.c#L66) (ほか 1 行)
 
 ### BIT
 
@@ -374,7 +374,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 |:---|:---:|:---|
 | `x` | in | 使わない引数や変数 |
 
-使用箇所: [`app/common/cfg_shell.c:56`](../app/common/cfg_shell.c#L56) (ほか 10 行), [`app/common/cloud.c:420`](../app/common/cloud.c#L420) (ほか 3 行), [`app/common/wifi_link.c:161`](../app/common/wifi_link.c#L161), [`app/thermo-gateway/src/ble.c:539`](../app/thermo-gateway/src/ble.c#L539) (ほか 3 行) ほか 7 ファイル
+使用箇所: [`app/common/cfg_shell.c:56`](../app/common/cfg_shell.c#L56) (ほか 10 行), [`app/common/cloud.c:428`](../app/common/cloud.c#L428) (ほか 3 行), [`app/common/wifi_link.c:161`](../app/common/wifi_link.c#L161), [`app/thermo-gateway/src/ble.c:539`](../app/thermo-gateway/src/ble.c#L539) (ほか 3 行) ほか 7 ファイル
 
 ### BUILD_ASSERT
 
