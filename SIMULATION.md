@@ -108,9 +108,9 @@ native_sim 用の Zephyr プロジェクト設定：
 - `CONFIG_SIMULATOR=y` - シミュレーターモードを有効化
 - `CONFIG_TEST_RANDOM_GENERATOR=y` - ランダム数生成を有効化
 
-### app/thermo-node/boards/native_sim.overlay
+### app/thermo-node/boards/native_sim_native_64.overlay
 
-native_sim ボード用の device tree overlay。
+native_sim/native/64 ボード用の device tree overlay (Zephyr は `boards/<ボード>_<修飾子>.overlay` を探すので、`native_sim.overlay` では読まれない)。
 
 ## 開発ワークフロー
 

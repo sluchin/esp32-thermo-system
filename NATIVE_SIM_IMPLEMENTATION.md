@@ -63,9 +63,9 @@ CONFIG_MAIN_STACK_SIZE=8192
 
 ### 5. Device Tree Overlay
 
-**ファイル**: `app/thermo-node/boards/native_sim.overlay`
+**ファイル**: `app/thermo-node/boards/native_sim_native_64.overlay`
 
-- native_sim ボード用の zephyr_user デバイスノード定義
+- native_sim/native/64 ボード用の zephyr,user ノードの定義
 - ADC が不要な環境での互換性を確保
 
 ### 6. Docker Compose サポート
