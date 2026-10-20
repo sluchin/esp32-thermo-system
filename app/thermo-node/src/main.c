@@ -13,7 +13,7 @@
 #include <zephyr/logging/log.h>
 #include <stdbool.h> /* true */
 #include <stdint.h>  /* int16_t uint16_t */
-#include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE */
+#include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE abs */
 
 #include "ble.h"
 #if defined(CONFIG_THERMO_BOOT_SCREEN) || defined(CONFIG_THERMO_BUZZER)
@@ -604,8 +604,8 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10)
 {
     int temp = temp_x10; /* 温度 [℃ の 10 倍] */
     /* 0 ℃ 未満は整数部が 0 でも (-0.5 など) 符号を出すため, 符号を別に出力する */
-    const char *sign = ((temp < 0) ? "-" : "");                         /* 符号 */
-    unsigned int magnitude = (unsigned int)((temp < 0) ? -temp : temp); /* 絶対値 */
+    const char *sign = ((temp < 0) ? "-" : "");       /* 符号 */
+    unsigned int magnitude = (unsigned int)abs(temp); /* 絶対値 */
 
     if (humidity_x10 == THERMO_HUMIDITY_NONE) {
         LOG_INF("Temperature: %s%u.%u C", sign, magnitude / 10U, magnitude % 10U);

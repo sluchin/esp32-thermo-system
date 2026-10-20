@@ -13,7 +13,7 @@
 #include <zephyr/logging/log.h>
 #include <stdbool.h> /* true */
 #include <stdint.h>  /* int16_t uint16_t */
-#include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE */
+#include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE abs */
 
 #include "ble.h"
 #ifdef CONFIG_THERMO_CLOUD
@@ -110,8 +110,8 @@ static void on_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t 
     char addr_str[BT_ADDR_LE_STR_LEN] = {0}; /* アドレスの文字列 */
     int temp = temp_x10;                     /* 温度 [℃ の 10 倍] */
     /* 0 ℃ 未満は整数部が 0 でも (-0.5 など) 符号を出すため, 符号を別に出力する */
-    const char *sign = ((temp < 0) ? "-" : "");                         /* 符号 */
-    unsigned int magnitude = (unsigned int)((temp < 0) ? -temp : temp); /* 絶対値 */
+    const char *sign = ((temp < 0) ? "-" : "");       /* 符号 */
+    unsigned int magnitude = (unsigned int)abs(temp); /* 絶対値 */
 #ifdef CONFIG_THERMO_CLOUD
     int ret = EXIT_SUCCESS; /* 戻り値 */
 #endif
@@ -160,7 +160,7 @@ static void on_switchbot(const bt_addr_le_t *addr, const struct switchbot_ad *ad
     /* 0 ℃ 未満は整数部が 0 でも (-0.5 など) 符号を出すため, 符号と絶対値に分けて表示する */
     temp = sample.temp_x10;
     sign = ((temp < 0) ? "-" : "");
-    magnitude = (unsigned int)((temp < 0) ? -temp : temp);
+    magnitude = (unsigned int)abs(temp);
 
     (void)bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
     LOG_INF("SwitchBot %s: %s%u.%u C, %u %%, battery %d %%", addr_str, sign, magnitude / 10U,
