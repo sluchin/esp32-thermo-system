@@ -426,13 +426,43 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 #define DT_PATH(...)
 ```
 
-ノードのパスから、ノードの識別子を得る (例: `DT_PATH(zephyr_user)`)。
+ノードのパスから、ノードの識別子を得る (例: `DT_PATH(zephyr_user)`)。ルート `/` から、ノードの名前を、順に引数に並べる。得た識別子は、`DT_PROP()` `DT_NODE_HAS_PROP()` `ADC_DT_SPEC_GET()` などの、ほかの `DT_*` のマクロに渡して使う。コンパイルのときに決まる値で、実行時の処理はない。
+
+ノードの名前は、小文字にして、C の識別子に使えない文字 (`,` `-` `@`) を `_` に置き換えて書く。ユニットアドレス (`@` の後ろ) も、名前に含める。
+
+| パス | 書き方 |
+|:---|:---|
+| `/zephyr,user` | `DT_PATH(zephyr_user)` |
+| `/soc/i2c@12340000` | `DT_PATH(soc, i2c_12340000)` |
+| `/aliases` | `DT_PATH(aliases)` |
+
+`,` と `_` は、どちらも `_` になるので、`zephyr,user` と `zephyr_user` という名前のノードは、同じ書き方になる。Devicetree の上では別のノードなので、overlay では、ノードの名前を `zephyr,user` にそろえる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
-| `...` | in | ルートからのノード名の並び |
+| `...` | in | ルートからのノード名の並び (小文字にして、`,` `-` `@` を `_` に置き換えたもの) |
 
-戻り値: ノードの識別子。
+戻り値: ノードの識別子。パスにノードがなければ、ノードの識別子として使えない値になり、ほかの `DT_*` のマクロに渡すと、コンパイルのエラーになる (`DT_NODE_EXISTS()` と `DT_NODE_HAS_PROP()` は、0 になる)。
+
+#### zephyr,user ノード
+
+`/zephyr,user` は、アプリのための特別なノード。binding (プロパティの書式の定義) を書かなくても、任意のプロパティを置ける (プロパティの型は、値から推定される)。ボードごとに変えたい値 (ADC のチャンネル、GPIO のピン、数値など) を、overlay に書いて、アプリから読むのに使う。Zephyr のドライバやサブシステムではなく、アプリとサンプルのためのもの。
+
+このプロジェクトでは、ノードの温度センサの ADC のチャンネル (`io-channels`) を置く。`io-channels` があれば ADC を読み、なければ、ほかの方法 (センサ API か、シミュレーション) にする ([`app/thermo-node/src/sensor.c:28`](../app/thermo-node/src/sensor.c#L28))。
+
+```dts
+/ {
+    zephyr,user {
+        io-channels = <&adc0 0>; /* adc0 のチャンネル 0 */
+    };
+};
+```
+
+```c
+#if DT_NODE_HAS_PROP(DT_PATH(zephyr_user), io_channels)
+static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
+#endif
+```
 
 使用箇所: [`app/thermo-node/src/sensor.c:28`](../app/thermo-node/src/sensor.c#L28) (ほか 1 行)
 
