@@ -50,7 +50,7 @@ jobs:
           fi
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ${{ matrix.artifact }}
@@ -89,7 +89,7 @@ jobs:
           env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee "$RUNNER_TEMP/test.log"
 
       - name: Upload the test log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ${{ matrix.artifact }}_log
@@ -124,7 +124,7 @@ jobs:
           env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee "$RUNNER_TEMP/coverage.log"
 
       - name: Upload the coverage log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ${{ matrix.artifact }}_log
@@ -149,7 +149,7 @@ jobs:
           env UID="$(id -u)" GID="$(id -g)" docker compose run --rm docs 2>&1 | tee "$RUNNER_TEMP/docs.log"
 
       - name: Upload the documentation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: docs
@@ -158,7 +158,7 @@ jobs:
           retention-days: 3
 
       - name: Upload the documentation log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: docs_log
@@ -219,7 +219,7 @@ jobs:
           env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee "$RUNNER_TEMP/analyze.log"
 
       - name: Upload the analysis log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ${{ matrix.artifact }}_log
@@ -254,7 +254,7 @@ jobs:
           env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee "$RUNNER_TEMP/lint.log"
 
       - name: Upload the lint log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ${{ matrix.artifact }}_log
