@@ -20,7 +20,7 @@ jobs:
     steps:
       # サブモジュール (private/ の素材) は取り込まない. 素材を入れたファームウェアは公開しない (.claude/CLAUDE.md)
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build the development image
         uses: ./.github/actions/docker-image
