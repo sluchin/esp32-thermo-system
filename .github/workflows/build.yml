@@ -265,6 +265,7 @@ jobs:
   # 3 日より前の実行 (ログと artifact) を削除する. 実行中のものは 3 日より前に始まっていても, 削除できないので, 無視する
   cleanup:
     name: Delete the old runs
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       actions: write
