@@ -1,5 +1,6 @@
 # Dependabot: 依存の更新を, 週に 1 回 PR にする (マイナー版とパッチ版は, 種類ごとに 1 つの PR にまとめる).
 # PR では, いつもの CI が走る. マージは手で行う.
+# サブモジュールは入れない (thermo-assets は非公開で, Dependabot は取れない).
 version: 2
 updates:
   - package-ecosystem: "docker"
@@ -13,14 +14,6 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
-  - package-ecosystem: "gitsubmodule"
-    directories:
-      - "/"
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "build"
-      include: "scope"
   - package-ecosystem: "github-actions"
     directories:
       - "/"
