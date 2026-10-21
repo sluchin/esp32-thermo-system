@@ -6,6 +6,10 @@ updates:
   - package-ecosystem: "docker"
     directories:
       - "/"
+    ignore:
+      # Ubuntu 26.04 では, カバレッジの gcovr が失敗する (Zephyr の SDK が対応するまで, 24.04 のまま).
+      - dependency-name: "ubuntu"
+        versions: [">= 26.04"]
     schedule:
       interval: "weekly"
     commit-message:
