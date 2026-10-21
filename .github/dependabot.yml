@@ -7,9 +7,9 @@ updates:
     directories:
       - "/"
     ignore:
-      # Ubuntu 26.04 では, カバレッジの gcovr が失敗する (Zephyr の SDK が対応するまで, 24.04 のまま).
+      # Ubuntu 24.04 より新しい版では, カバレッジの gcovr が失敗する (Zephyr の SDK が対応するまで, 24.04 のまま).
       - dependency-name: "ubuntu"
-        versions: [">= 26.04"]
+        versions: [">= 24.10"]
     schedule:
       interval: "weekly"
     commit-message:
