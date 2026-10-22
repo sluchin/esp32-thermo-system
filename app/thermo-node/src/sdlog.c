@@ -55,10 +55,18 @@ LOG_MODULE_REGISTER(thermo_sdlog, THERMO_LOG_LEVEL);
     (LOG_OUTPUT_FLAG_LEVEL | LOG_OUTPUT_FLAG_TIMESTAMP | LOG_OUTPUT_FLAG_FORMAT_TIMESTAMP |        \
      LOG_OUTPUT_FLAG_CRLF_LFONLY)
 
+/*
+ * RING_BUF_DECLARE はリングバッファを外部結合で定義するので, GCC 14 以降の
+ * -Wmissing-variable-declarations に掛かる. このファイルの中だけで使うので static にする.
+ */
+/** 起動のログを溜めるリングバッファの領域 */
+static uint8_t __noinit sdlog_boot_buf[CONFIG_THERMO_SDLOG_BOOT_BUF_SIZE];
 /** 起動のログを溜めるリングバッファ */
-RING_BUF_DECLARE(sdlog_boot_ring, CONFIG_THERMO_SDLOG_BOOT_BUF_SIZE);
+static struct ring_buf sdlog_boot_ring = RING_BUF_INIT(sdlog_boot_buf, sizeof(sdlog_boot_buf));
+/** エラーのログを溜めるリングバッファの領域 */
+static uint8_t __noinit sdlog_error_buf[CONFIG_THERMO_SDLOG_ERROR_BUF_SIZE];
 /** エラーのログを溜めるリングバッファ */
-RING_BUF_DECLARE(sdlog_error_ring, CONFIG_THERMO_SDLOG_ERROR_BUF_SIZE);
+static struct ring_buf sdlog_error_ring = RING_BUF_INIT(sdlog_error_buf, sizeof(sdlog_error_buf));
 /** 起動のログで, 溜められずに捨てたバイト数 */
 static atomic_t boot_dropped;
 /** エラーのログで, 溜められずに捨てたバイト数 */
