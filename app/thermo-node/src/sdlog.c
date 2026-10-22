@@ -241,12 +241,12 @@ static void store(struct ring_buf *ring, atomic_t *dropped, const uint8_t *data,
  */
 static int write_ring(const char *path, struct ring_buf *ring, fs_mode_t flags)
 {
-    struct fs_file_t file = {0};     /* ファイル */
-    uint8_t chunk[CHUNK_SIZE] = {0}; /* 書き込む塊 */
-    uint32_t size = 0U;              /* 塊の大きさ [byte] */
-    ssize_t written = 0;             /* 書いたバイト数 */
-    int err = EXIT_SUCCESS;          /* エラーコード */
-    int close_err = EXIT_SUCCESS;    /* 閉じたときのエラーコード */
+    struct fs_file_t file = {0};      /* ファイル */
+    uint8_t chunk[CHUNK_SIZE] = {0U}; /* 書き込む塊 */
+    uint32_t size = 0U;               /* 塊の大きさ [byte] */
+    ssize_t written = 0;              /* 書いたバイト数 */
+    int err = EXIT_SUCCESS;           /* エラーコード */
+    int close_err = EXIT_SUCCESS;     /* 閉じたときのエラーコード */
 
     fs_file_t_init(&file);
     err = fs_open(&file, path, FS_O_CREATE | FS_O_WRITE | flags);

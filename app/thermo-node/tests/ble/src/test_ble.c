@@ -357,7 +357,7 @@ ZTEST(ble_node, test_read_temperature)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
     const struct bt_gatt_attr *attr = &service->attrs[ATTR_VALUE];  /* 値の属性 */
-    uint8_t buf[THERMO_TEMPERATURE_SIZE] = {0};                     /* 出力バッファ */
+    uint8_t buf[THERMO_TEMPERATURE_SIZE] = {0U};                    /* 出力バッファ */
     ssize_t len = 0;                                                /* 長さ [バイト] */
 
     /* 0 に更新したあとは 0 (値は ble.c の static 変数なので, 前のテストの値が残っている) */
@@ -608,7 +608,7 @@ ZTEST(ble_node, test_write_time_without_callback)
 ZTEST(ble_node, test_write_time_bad_length)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
-    const uint8_t value[THERMO_TIME_SIZE + 1U] = {0};               /* 長さが 1 バイト長い値 */
+    const uint8_t value[THERMO_TIME_SIZE + 1U] = {0U};              /* 長さが 1 バイト長い値 */
 
     ble_set_time_callback(on_time);
 
@@ -623,7 +623,7 @@ ZTEST(ble_node, test_write_time_bad_length)
 ZTEST(ble_node, test_write_time_bad_offset)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
-    const uint8_t value[THERMO_TIME_SIZE] = {0}; /* 時刻の特性に書き込む値 (すべて 0) */
+    const uint8_t value[THERMO_TIME_SIZE] = {0U}; /* 時刻の特性に書き込む値 (すべて 0) */
 
     ble_set_time_callback(on_time);
 
@@ -636,7 +636,7 @@ ZTEST(ble_node, test_write_time_bad_offset)
 ZTEST(ble_node, test_write_time_out_of_range)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
-    const uint8_t value[THERMO_TIME_SIZE] = {0}; /* 時刻の特性に書き込む値 (すべて 0) */
+    const uint8_t value[THERMO_TIME_SIZE] = {0U}; /* 時刻の特性に書き込む値 (すべて 0) */
 
     ble_set_time_callback(on_time);
     time_received.ret = -ERANGE;
@@ -650,7 +650,7 @@ ZTEST(ble_node, test_write_time_out_of_range)
 ZTEST(ble_node, test_write_time_failure)
 {
     const struct bt_gatt_service *service = init_and_get_service(); /* サービス */
-    const uint8_t value[THERMO_TIME_SIZE] = {0}; /* 時刻の特性に書き込む値 (すべて 0) */
+    const uint8_t value[THERMO_TIME_SIZE] = {0U}; /* 時刻の特性に書き込む値 (すべて 0) */
 
     ble_set_time_callback(on_time);
     time_received.ret = -EIO;

@@ -191,7 +191,7 @@ ZTEST(backlog, test_append_and_read)
 /** 気圧を足す前の記録 (気圧と予約が 0. CRC は先頭の 8 バイトだけ) は, 気圧なしとして読める */
 ZTEST(backlog, test_record_without_pressure)
 {
-    uint8_t old[RECORD_SIZE] = {0};  /* 気圧を足す前の形の記録 */
+    uint8_t old[RECORD_SIZE] = {0U}; /* 気圧を足す前の形の記録 */
     struct backlog_record got = {0}; /* 読み出した記録 */
 
     sys_put_le32((uint32_t)BASE_UNIX, &old[0]);

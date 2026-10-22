@@ -165,7 +165,7 @@ int backlog_append(const struct backlog_record *rec, bool sent)
 {
     struct fs_file_t file = {0};                      /* 記録のファイル */
     struct backlog_record old = {0};                  /* 上書きされる記録 */
-    uint8_t buf[RECORD_SIZE] = {0};                   /* 書き込む記録 */
+    uint8_t buf[RECORD_SIZE] = {0U};                  /* 書き込む記録 */
     const bool full = (count >= BACKLOG_MAX_RECORDS); /* 輪になっているか */
     bool old_sent = true;         /* 上書きされる記録が送信済みか (読めなければ, 送信済み) */
     int err = EXIT_SUCCESS;       /* エラーコード */
@@ -240,12 +240,12 @@ unsigned int backlog_pending(void)
  */
 int backlog_read(struct backlog_record *rec, unsigned int index)
 {
-    struct fs_file_t file = {0};    /* 記録のファイル */
-    uint8_t buf[RECORD_SIZE] = {0}; /* 読み出した記録 */
-    unsigned int pos = first_pos;   /* 論理の位置 */
-    unsigned int seen = 0U;         /* 数えた未送信の記録の数 */
-    bool sent = false;              /* 送信済みか */
-    int err = EXIT_SUCCESS;         /* エラーコード */
+    struct fs_file_t file = {0};     /* 記録のファイル */
+    uint8_t buf[RECORD_SIZE] = {0U}; /* 読み出した記録 */
+    unsigned int pos = first_pos;    /* 論理の位置 */
+    unsigned int seen = 0U;          /* 数えた未送信の記録の数 */
+    bool sent = false;               /* 送信済みか */
+    int err = EXIT_SUCCESS;          /* エラーコード */
 
     if (index >= pending) {
         return -EINVAL;
@@ -285,7 +285,7 @@ int backlog_read(struct backlog_record *rec, unsigned int index)
 int backlog_commit(unsigned int n)
 {
     struct fs_file_t file = {0};     /* 記録のファイル */
-    uint8_t buf[RECORD_SIZE] = {0};  /* 読み出した記録 */
+    uint8_t buf[RECORD_SIZE] = {0U}; /* 読み出した記録 */
     struct backlog_record rec = {0}; /* 読み出した記録の内容 */
     unsigned int marked = 0U;        /* 送り終えたことにした数 */
     bool sent = false;               /* 送信済みか */
@@ -348,7 +348,7 @@ int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx
 {
     struct fs_file_t file = {0};     /* 記録のファイル */
     struct backlog_record rec = {0}; /* 読み出した記録 */
-    uint8_t buf[RECORD_SIZE] = {0};  /* 読み出した記録 */
+    uint8_t buf[RECORD_SIZE] = {0U}; /* 読み出した記録 */
     unsigned int lo = 0U;            /* 探す範囲の下端 (論理の位置) */
     unsigned int hi = count;         /* 探す範囲の上端 */
     unsigned int mid = 0U;           /* 探す位置 */
@@ -527,7 +527,7 @@ static void scan(unsigned int slots)
 {
     struct fs_file_t file = {0};     /* 記録のファイル */
     struct backlog_record rec = {0}; /* 読み出した記録 */
-    uint8_t buf[RECORD_SIZE] = {0};  /* 読み出した記録 */
+    uint8_t buf[RECORD_SIZE] = {0U}; /* 読み出した記録 */
     int64_t newest = -1;             /* 最も新しい記録の時刻 */
     int64_t oldest_unsent = -1;      /* 最も古い未送信の記録の時刻 */
     unsigned int newest_phys = 0U;   /* 最も新しい記録の物理の位置 */

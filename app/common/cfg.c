@@ -328,7 +328,7 @@ int cfg_reset(void)
 int cfg_tether(const char *ssid, const char *psk)
 {
     char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
-    uint8_t blob[CFG_BACKUP_MAX] = {0};  /* 元の SSID とパスワードを並べた値 */
+    uint8_t blob[CFG_BACKUP_MAX] = {0U}; /* 元の SSID とパスワードを並べた値 */
     size_t ssid_len = strlen(ssid);      /* 新しい SSID の長さ [バイト] */
     size_t old_len = 0U;                 /* 今の SSID の長さ [バイト] */
     size_t psk_len = 0U;                 /* 今のパスワードの長さ [バイト] */
@@ -528,10 +528,10 @@ static void clear_backup(void)
  */
 static void load_backup(size_t len, settings_read_cb read_cb, void *cb_arg)
 {
-    uint8_t blob[CFG_BACKUP_MAX] = {0}; /* 保存されていた値 */
-    size_t ssid_len = 0U;               /* SSID の長さ [バイト] */
-    size_t psk_len = 0U;                /* パスワードの長さ [バイト] */
-    ssize_t read_len = 0;               /* 読み込んだ長さ [バイト] */
+    uint8_t blob[CFG_BACKUP_MAX] = {0U}; /* 保存されていた値 */
+    size_t ssid_len = 0U;                /* SSID の長さ [バイト] */
+    size_t psk_len = 0U;                 /* パスワードの長さ [バイト] */
+    ssize_t read_len = 0;                /* 読み込んだ長さ [バイト] */
 
     if ((len < 2U) || (sizeof(blob) < len)) {
         LOG_WRN("Ignoring '%s' with an invalid length %zu", BACKUP_NAME, len);

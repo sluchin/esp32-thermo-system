@@ -261,10 +261,10 @@ ZTEST(sdlog, test_6_error_log_rotates)
  */
 ZTEST(sdlog, test_7_disk_full_stops_until_restart)
 {
-    struct fs_file_t file = {0};     /* 容量を使い切るファイル */
-    uint8_t block[BLOCK_SIZE] = {0}; /* 書く内容 */
-    size_t before = 0U;              /* 止まったあとの error.log の大きさ [byte] */
-    int i = 0;                       /* ループ用の添字 */
+    struct fs_file_t file = {0};      /* 容量を使い切るファイル */
+    uint8_t block[BLOCK_SIZE] = {0U}; /* 書く内容 */
+    size_t before = 0U;               /* 止まったあとの error.log の大きさ [byte] */
+    int i = 0;                        /* ループ用の添字 */
 
     fs_file_t_init(&file);
     zassert_equal(fs_open(&file, FILL_PATH, FS_O_CREATE | FS_O_WRITE), 0);

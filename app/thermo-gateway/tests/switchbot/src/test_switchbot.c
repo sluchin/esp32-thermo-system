@@ -110,7 +110,7 @@ ZTEST(switchbot, test_parse_manufacturer_positive)
 /** 製造者データ: 0 ℃ 未満の温度 (整数部の最上位の bit が 0) */
 ZTEST(switchbot, test_parse_manufacturer_negative)
 {
-    uint8_t data[sizeof(mfr_plus)] = {0};              /* 入力データ */
+    uint8_t data[sizeof(mfr_plus)] = {0U};             /* 入力データ */
     struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     make_mfr(data, 0x03U, 0x05U, 0x37U);
@@ -124,7 +124,7 @@ ZTEST(switchbot, test_parse_manufacturer_negative)
 /** 製造者データ: 小数部の上位 4 bit は別の意味なので取り除く. 0.0 ℃ は符号なしで 0 */
 ZTEST(switchbot, test_parse_manufacturer_decimal_mask_and_zero)
 {
-    uint8_t data[sizeof(mfr_plus)] = {0};              /* 入力データ */
+    uint8_t data[sizeof(mfr_plus)] = {0U};             /* 入力データ */
     struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     make_mfr(data, 0xA7U, 0x80U, 0x37U);
@@ -142,7 +142,7 @@ ZTEST(switchbot, test_parse_manufacturer_decimal_mask_and_zero)
 /** 製造者データ: 湿度は下位 7 bit で 100 % まで. それを超えたら, 壊れたデータとして捨てる */
 ZTEST(switchbot, test_parse_manufacturer_humidity_limit)
 {
-    uint8_t data[sizeof(mfr_plus)] = {0};              /* 入力データ */
+    uint8_t data[sizeof(mfr_plus)] = {0U};             /* 入力データ */
     struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     make_mfr(data, 0x05U, 0x97U, 0x64U);
@@ -184,7 +184,7 @@ ZTEST(switchbot, test_parse_too_short_for_id)
 /** UUID, 会社 ID, AD の種類が違うデータは SwitchBot のものではないので, 拒否する */
 ZTEST(switchbot, test_parse_other_data)
 {
-    uint8_t data[sizeof(mfr_plus)] = {0};              /* 入力データ */
+    uint8_t data[sizeof(mfr_plus)] = {0U};             /* 入力データ */
     struct switchbot_ad ad = {.kind = SWITCHBOT_NONE}; /* 広告データ */
 
     /* サービスデータ: UUID の下位, 上位の byte がそれぞれ違う */

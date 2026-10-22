@@ -205,8 +205,8 @@ int ble_advertise(void)
  */
 int ble_notify_temperature(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10)
 {
-    uint8_t value[THERMO_TEMPERATURE_SIZE] = {0}; /* 温度と湿度と気圧 (リトルエンディアン) */
-    int err = EXIT_SUCCESS;                       /* エラーコード */
+    uint8_t value[THERMO_TEMPERATURE_SIZE] = {0U}; /* 温度と湿度と気圧 (リトルエンディアン) */
+    int err = EXIT_SUCCESS;                        /* エラーコード */
 
     latest_temp_x10 = temp_x10;
     latest_humidity_x10 = humidity_x10;
@@ -253,7 +253,7 @@ void ble_set_time_callback(ble_time_cb_t cb)
 static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
                                 uint16_t len, uint16_t offset)
 {
-    uint8_t value[THERMO_TEMPERATURE_SIZE] = {0}; /* 温度と湿度と気圧 (リトルエンディアン) */
+    uint8_t value[THERMO_TEMPERATURE_SIZE] = {0U}; /* 温度と湿度と気圧 (リトルエンディアン) */
 
     pack_value(value, latest_temp_x10, latest_humidity_x10, latest_pressure_x10);
     LOG_HEXDUMP_DBG(value, sizeof(value), "Read response");

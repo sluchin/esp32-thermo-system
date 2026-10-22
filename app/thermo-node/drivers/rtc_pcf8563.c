@@ -119,7 +119,7 @@ static DEVICE_API(rtc, pcf8563_api) = {
 static int pcf8563_set_time(const struct device *dev, const struct rtc_time *timeptr)
 {
     const struct pcf8563_config *config = NULL; /* ドライバの設定 */
-    uint8_t raw[PCF8563_TIME_BYTES] = {0};      /* 時刻のレジスタの値 (BCD) */
+    uint8_t raw[PCF8563_TIME_BYTES] = {0U};     /* 時刻のレジスタの値 (BCD) */
     int err = EXIT_SUCCESS;                     /* エラーコード */
 
     config = (const struct pcf8563_config *)dev->config;
@@ -169,7 +169,7 @@ static int pcf8563_set_time(const struct device *dev, const struct rtc_time *tim
 static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
 {
     const struct pcf8563_config *config = NULL; /* ドライバの設定 */
-    uint8_t raw[PCF8563_TIME_BYTES] = {0};      /* 時刻のレジスタの値 (BCD) */
+    uint8_t raw[PCF8563_TIME_BYTES] = {0U};     /* 時刻のレジスタの値 (BCD) */
     int weekday = 0;                            /* 曜日 (日曜日が 0) */
     int err = EXIT_SUCCESS;                     /* エラーコード */
 
