@@ -15,7 +15,7 @@
 # プロキシは HTTPS (curl, pip, west の git) だけに渡す. HTTP_PROXY は渡さない: apt (Ubuntu のミラーは HTTP) が
 # プロキシ経由になって, 拒否されたため (プロキシを通さずに, 直接つながる).
 #
-# build はベースのイメージ (ubuntu:24.04) を Docker Hub から取る. 429 (回数制限) で失敗したときは
+# build はベースのイメージ (ubuntu:26.04) を Docker Hub から取る. 429 (回数制限) で失敗したときは
 # Google のミラー (mirror.gcr.io) から取って, 元のタグを付ける.
 #
 # リポジトリの Dockerfile は変えない (一時的なコピーに, CA を取り込む行を足して, ビルドする).
