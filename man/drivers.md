@@ -159,7 +159,7 @@ I2C のバスが使えるかを調べる。
 
 戻り値: 使えれば `true`、使えなければ `false`。
 
-使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:233`](../app/thermo-node/drivers/rtc_pcf8563.c#L233)
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:230`](../app/thermo-node/drivers/rtc_pcf8563.c#L230)
 
 ### i2c_burst_read_dt
 
@@ -178,7 +178,7 @@ I2C デバイスの内部アドレスから、複数バイトを読む。`i2c_bu
 
 戻り値: `i2c_burst_read()` の値。
 
-使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:180`](../app/thermo-node/drivers/rtc_pcf8563.c#L180)
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:178`](../app/thermo-node/drivers/rtc_pcf8563.c#L178)
 
 ### i2c_burst_write_dt
 
@@ -197,7 +197,7 @@ I2C デバイスの内部アドレスへ、複数バイトを書く。`i2c_burst
 
 戻り値: `i2c_burst_write()` の値。
 
-使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:152`](../app/thermo-node/drivers/rtc_pcf8563.c#L152)
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:151`](../app/thermo-node/drivers/rtc_pcf8563.c#L151)
 
 ### i2c_reg_write_byte_dt
 
@@ -215,7 +215,7 @@ I2C デバイスの内部レジスタに、1 バイトを書く。`i2c_reg_write
 
 戻り値: `i2c_reg_write_byte()` の値。
 
-使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:146`](../app/thermo-node/drivers/rtc_pcf8563.c#L146)
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:145`](../app/thermo-node/drivers/rtc_pcf8563.c#L145)
 
 ## PWM
 
@@ -251,7 +251,7 @@ static inline int pwm_set_dt(const struct pwm_dt_spec *spec, uint32_t period, ui
 
 戻り値: `pwm_set()` の値。
 
-使用箇所: [`app/thermo-node/src/buzzer.c:136`](../app/thermo-node/src/buzzer.c#L136)
+使用箇所: [`app/thermo-node/src/buzzer.c:134`](../app/thermo-node/src/buzzer.c#L134)
 
 ### pwm_set_pulse_dt
 
@@ -268,7 +268,7 @@ static inline int pwm_set_pulse_dt(const struct pwm_dt_spec *spec, uint32_t puls
 
 戻り値: `pwm_set()` の値。
 
-使用箇所: [`app/thermo-node/src/buzzer.c:131`](../app/thermo-node/src/buzzer.c#L131)
+使用箇所: [`app/thermo-node/src/buzzer.c:129`](../app/thermo-node/src/buzzer.c#L129)
 
 ## RTC
 
@@ -291,7 +291,7 @@ RTC の時刻を取得する。
 - `-ENODATA`: RTC に時刻が設定されていない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/node_time.c:225`](../app/thermo-node/src/node_time.c#L225)
+使用箇所: [`app/thermo-node/src/node_time.c:221`](../app/thermo-node/src/node_time.c#L221)
 
 ### rtc_set_time
 
@@ -312,7 +312,7 @@ RTC の時刻を設定する。
 - `-EINVAL`: 時刻が不正、または、ハードウェアの範囲を超えている。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/node_time.c:200`](../app/thermo-node/src/node_time.c#L200)
+使用箇所: [`app/thermo-node/src/node_time.c:197`](../app/thermo-node/src/node_time.c#L197)
 
 ## センサ
 
@@ -546,7 +546,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 |:---|:---:|:---|
 | `inst` | in | インスタンスの番号 |
 
-使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:263`](../app/thermo-node/drivers/rtc_pcf8563.c#L263)
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:259`](../app/thermo-node/drivers/rtc_pcf8563.c#L259)
 
 ### DEVICE_DT_INST_DEFINE
 
@@ -567,7 +567,17 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 | `prio` | in | 段階の中の優先度 |
 | `api` | in | API の構造体 |
 
-使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:265`](../app/thermo-node/drivers/rtc_pcf8563.c#L265)
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:261`](../app/thermo-node/drivers/rtc_pcf8563.c#L261)
+
+### POST_KERNEL
+
+```c
+POST_KERNEL  /* 初期化のレベル */
+```
+
+デバイスの初期化のレベル。カーネルが動き出したあとに、初期化する (カーネルのサービス (スリープ、セマフォなど) と、ほかのドライバ (I2C など) を使える)。`DEVICE_DT_INST_DEFINE()` の `level` に渡す。同じレベルの中の順番は、`prio` (優先度。小さいほど先) で決まる。
+
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:261`](../app/thermo-node/drivers/rtc_pcf8563.c#L261)
 
 ### DT_INST_FOREACH_STATUS_OKAY
 
@@ -581,7 +591,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 |:---|:---:|:---|
 | `fn` | in | インスタンスの番号を引数に取るマクロ |
 
-使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:275`](../app/thermo-node/drivers/rtc_pcf8563.c#L275)
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:271`](../app/thermo-node/drivers/rtc_pcf8563.c#L271)
 
 ### DEVICE_API
 

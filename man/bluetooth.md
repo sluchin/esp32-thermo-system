@@ -635,6 +635,22 @@ ATT のエラーコードを、GATT のコールバックの戻り値に変え�
 
 使用箇所: [`app/thermo-gateway/src/ble.c:72`](../app/thermo-gateway/src/ble.c#L72)
 
+### BT_UUID_DECLARE_128
+
+```c
+#define BT_UUID_DECLARE_128(value...)
+```
+
+128 ビットの UUID を、その場で作って、汎用の UUID のポインタ (`const struct bt_uuid *`) にする。
+
+| 引数 | 入出力 | 説明 |
+|:---|:---:|:---|
+| `value` | in | 128 ビットの UUID のバイト列 (リトルエンディアン。`BT_UUID_128_ENCODE()` で、読める形から作れる) |
+
+戻り値: 汎用の UUID のポインタ。
+
+使用箇所: [`app/common/thermo_ble_uuid.h:34`](../app/common/thermo_ble_uuid.h#L34) (ほか 2 行)
+
 ### BT_GAP_MS_TO_SCAN_INTERVAL
 
 ```c
@@ -674,3 +690,117 @@ ATT のエラーコードを、GATT のコールバックの戻り値に変え�
 - 単位の倍数でなければ、切り捨てる。例えば `BT_GAP_MS_TO_SCAN_WINDOW(21)` は 20.625 ms になる。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:246`](../app/thermo-gateway/src/ble.c#L246)
+
+## 定数と型
+
+### BT_DATA_*
+
+```c
+#define BT_DATA_FLAGS              0x01
+#define BT_DATA_UUID128_ALL        0x07
+#define BT_DATA_NAME_COMPLETE      0x09
+#define BT_DATA_SVC_DATA16         0x16
+#define BT_DATA_MANUFACTURER_DATA  0xff
+```
+
+アドバタイズのデータ (AD) の要素の種類 (`zephyr/bluetooth/assigned_numbers.h`。Bluetooth の Assigned Numbers の値)。`BT_DATA()` と `BT_DATA_BYTES()` の `_type` に渡すか、`bt_data_parse()` のコールバックで受けた要素の `type` と比べる。
+
+| 定数 | 値 | 説明 | 使用箇所 |
+|:---|:---:|:---|:---|
+| `BT_DATA_FLAGS` | 0x01 | フラグ (検出のモードと、BR/EDR に対応するか。`BT_LE_AD_*`) | [`app/thermo-node/src/ble.c:32`](../app/thermo-node/src/ble.c#L32) |
+| `BT_DATA_UUID128_ALL` | 0x07 | 128 ビットの UUID の、完全な一覧 (サービスの UUID を全て載せる。ほかに、ない) | [`app/thermo-node/src/ble.c:43`](../app/thermo-node/src/ble.c#L43)、[`app/thermo-gateway/src/ble.c:323`](../app/thermo-gateway/src/ble.c#L323) |
+| `BT_DATA_NAME_COMPLETE` | 0x09 | 完全な名前 (デバイス名) | [`app/thermo-node/src/ble.c:33`](../app/thermo-node/src/ble.c#L33) |
+| `BT_DATA_SVC_DATA16` | 0x16 | サービスデータ (先頭の 2 バイトが 16 ビットの UUID。リトルエンディアン。続けてデータ) | [`app/thermo-gateway/src/switchbot.c:72`](../app/thermo-gateway/src/switchbot.c#L72) |
+| `BT_DATA_MANUFACTURER_DATA` | 0xff | 製造者固有のデータ (先頭の 2 バイトが会社の ID。リトルエンディアン。続けてデータ) | [`app/thermo-gateway/src/switchbot.c:76`](../app/thermo-gateway/src/switchbot.c#L76) |
+
+注意:
+
+- `_ALL` は「一覧が完全」の意味。一覧の一部だけを載せるときは `BT_DATA_UUID128_SOME` (0x06) を使う。
+- このプロジェクトでは、ノードがスキャン応答に Thermo サービスの UUID を `BT_DATA_UUID128_ALL` で載せ、ゲートウェイが、種類と長さ (16 バイト) と中身で、Thermo のノードかを見分ける。
+
+### BT_LE_AD_*
+
+```c
+#define BT_LE_AD_GENERAL   0x02
+#define BT_LE_AD_NO_BREDR  0x04
+```
+
+`BT_DATA_FLAGS` の要素に入れるフラグ (ビットの OR で組み合わせる)。
+
+| 定数 | 値 | 説明 |
+|:---|:---:|:---|
+| `BT_LE_AD_GENERAL` | 0x02 | 一般の検出モード (時間の制限なく、検出される) |
+| `BT_LE_AD_NO_BREDR` | 0x04 | BR/EDR (クラシックの Bluetooth) に対応しない (LE だけ) |
+
+使用箇所: [`app/thermo-node/src/ble.c:32`](../app/thermo-node/src/ble.c#L32)
+
+### BT_LE_ADV_CONN_FAST_1
+
+```c
+#define BT_LE_ADV_CONN_FAST_1 \
+    BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_FAST_INT_MIN_1, BT_GAP_ADV_FAST_INT_MAX_1, NULL)
+```
+
+`bt_le_adv_start()` に渡す、アドバタイズのパラメータ。接続できるアドバタイズ (`BT_LE_ADV_OPT_CONN`) を、速い間隔 (30 ms から 60 ms) で出す。
+
+注意:
+
+- 間隔が短いので、見つかりやすく、すぐにつながるが、電力を多く使う。
+
+使用箇所: [`app/thermo-node/src/ble.c:184`](../app/thermo-node/src/ble.c#L184)
+
+### BT_LE_SCAN_*
+
+```c
+BT_LE_SCAN_TYPE_ACTIVE = 0x01  /* enum bt_le_scan_type */
+BT_LE_SCAN_OPT_NONE    = 0     /* enum bt_le_scan_opt */
+```
+
+`bt_le_scan_start()` に渡す `struct bt_le_scan_param` の、`type` と `options` の値。
+
+| 定数 | 値 | 説明 | 使用箇所 |
+|:---|:---:|:---|:---|
+| `BT_LE_SCAN_TYPE_ACTIVE` | 0x01 | アクティブスキャン。見つけた全ての機器に、スキャン要求を送る。スキャン応答は、アドバタイズと同じコールバックに届く | [`app/thermo-gateway/src/ble.c:243`](../app/thermo-gateway/src/ble.c#L243) |
+| `BT_LE_SCAN_OPT_NONE` | 0 | オプションなし (重複を除かない。同じ機器のアドバタイズも、毎回届く) | [`app/thermo-gateway/src/ble.c:244`](../app/thermo-gateway/src/ble.c#L244) |
+
+注意:
+
+- ノードは、Thermo サービスの UUID をスキャン応答に載せるので、ゲートウェイは、アクティブスキャンでないと、ノードを見分けられない。
+
+### BT_ATT_*_ATTRIBUTE_HANDLE
+
+```c
+#define BT_ATT_FIRST_ATTRIBUTE_HANDLE  0x0001
+#define BT_ATT_LAST_ATTRIBUTE_HANDLE   0xffff
+```
+
+属性のハンドルの、有効な範囲の最初と最後 (0x0000 は、将来のために予約)。`bt_gatt_discover()` で、全ての範囲を探すときに、`start_handle` と `end_handle` に入れる。
+
+| 定数 | 値 | 使用箇所 |
+|:---|:---:|:---|
+| `BT_ATT_FIRST_ATTRIBUTE_HANDLE` | 0x0001 | [`app/thermo-gateway/src/ble.c:634`](../app/thermo-gateway/src/ble.c#L634) |
+| `BT_ATT_LAST_ATTRIBUTE_HANDLE` | 0xffff | [`app/thermo-gateway/src/ble.c:635`](../app/thermo-gateway/src/ble.c#L635) |
+
+### BT_GATT_ITER_*
+
+```c
+BT_GATT_ITER_STOP = 0       /* enum bt_gatt_iter */
+BT_GATT_ITER_CONTINUE = 1
+```
+
+GATT のコールバック (`bt_gatt_subscribe()` の通知、`bt_gatt_discover()` の探索など) の戻り値。
+
+| 定数 | 値 | 説明 | 使用箇所 |
+|:---|:---:|:---|:---|
+| `BT_GATT_ITER_STOP` | 0 | 止める (通知なら、購読を解除する) | [`app/thermo-gateway/src/ble.c:361`](../app/thermo-gateway/src/ble.c#L361) |
+| `BT_GATT_ITER_CONTINUE` | 1 | 続ける (通知なら、購読を続ける) | [`app/thermo-gateway/src/ble.c:367`](../app/thermo-gateway/src/ble.c#L367) (ほか 1 行) |
+
+### BT_UUID_GATT_CCC_VAL
+
+```c
+#define BT_UUID_GATT_CCC_VAL 0x2902
+```
+
+クライアント特性構成記述子 (CCC。Client Characteristic Configuration) の、16 ビットの UUID の値。通知を購読するときに、CCC の記述子を探す UUID に使う。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:72`](../app/thermo-gateway/src/ble.c#L72)

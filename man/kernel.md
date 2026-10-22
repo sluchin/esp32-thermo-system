@@ -125,7 +125,7 @@ int64_t k_uptime_get(void);
 
 - 単位はミリ秒だが、分解能がミリ秒とは限らない。実際の分解能は、`CONFIG_SYS_CLOCK_TICKS_PER_SEC` で決まる。
 
-使用箇所: [`app/common/ntp.c:59`](../app/common/ntp.c#L59) (ほか 1 行), [`app/thermo-gateway/src/ble.c:552`](../app/thermo-gateway/src/ble.c#L552) (ほか 1 行), [`app/thermo-node/src/main.c:147`](../app/thermo-node/src/main.c#L147) (ほか 2 行), [`app/thermo-node/src/sdlog.c:165`](../app/thermo-node/src/sdlog.c#L165)
+使用箇所: [`app/common/ntp.c:59`](../app/common/ntp.c#L59) (ほか 1 行), [`app/thermo-gateway/src/ble.c:552`](../app/thermo-gateway/src/ble.c#L552) (ほか 1 行), [`app/thermo-node/src/main.c:147`](../app/thermo-node/src/main.c#L147) (ほか 2 行), [`app/thermo-node/src/sdlog.c:173`](../app/thermo-node/src/sdlog.c#L173)
 
 ### k_uptime_get_32
 
@@ -371,7 +371,7 @@ int k_work_schedule(struct k_work_delayable *dwork, k_timeout_t delay);
 
 戻り値: `k_work_schedule_for_queue()` と同じ。
 
-使用箇所: [`app/thermo-gateway/src/ble.c:795`](../app/thermo-gateway/src/ble.c#L795), [`app/thermo-node/src/buzzer.c:78`](../app/thermo-node/src/buzzer.c#L78) (ほか 1 行)
+使用箇所: [`app/thermo-gateway/src/ble.c:795`](../app/thermo-gateway/src/ble.c#L795), [`app/thermo-node/src/buzzer.c:77`](../app/thermo-node/src/buzzer.c#L77) (ほか 1 行)
 
 ### k_work_reschedule
 
@@ -409,7 +409,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 - 戻ったときも、ワークがまだ動いていることがある。動いていないことを確かめるには、`k_work_flush_delayable()` か `k_work_cancel_delayable_sync()` を使う。
 - 取り消しても、再び登録することは防げない。取り消しが終わるまで、実行の登録だけを防ぐ。
 
-使用箇所: [`app/thermo-node/src/buzzer.c:73`](../app/thermo-node/src/buzzer.c#L73)
+使用箇所: [`app/thermo-node/src/buzzer.c:72`](../app/thermo-node/src/buzzer.c#L72)
 
 ## マクロ
 
@@ -425,7 +425,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 |:---|:---:|:---|
 | `ms` | in | ミリ秒 |
 
-使用箇所: [`app/common/cloud.c:165`](../app/common/cloud.c#L165) (ほか 2 行), [`app/thermo-gateway/src/ble.c:700`](../app/thermo-gateway/src/ble.c#L700), [`app/thermo-node/src/buzzer.c:113`](../app/thermo-node/src/buzzer.c#L113)
+使用箇所: [`app/common/cloud.c:165`](../app/common/cloud.c#L165) (ほか 2 行), [`app/thermo-gateway/src/ble.c:700`](../app/thermo-gateway/src/ble.c#L700), [`app/thermo-node/src/buzzer.c:112`](../app/thermo-node/src/buzzer.c#L112)
 
 ### K_SECONDS
 
@@ -440,6 +440,24 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 | `s` | in | 秒 |
 
 使用箇所: [`app/common/cloud.c:171`](../app/common/cloud.c#L171) (ほか 3 行), [`app/thermo-gateway/src/ble.c:592`](../app/thermo-gateway/src/ble.c#L592), [`app/thermo-gateway/src/main.c:96`](../app/thermo-gateway/src/main.c#L96), [`app/thermo-node/src/wifi_time.c:73`](../app/thermo-node/src/wifi_time.c#L73) (ほか 1 行)
+
+### MSEC_PER_SEC と NSEC_PER_SEC
+
+```c
+#define MSEC_PER_SEC 1000U
+#define NSEC_PER_SEC ((NSEC_PER_USEC) * (USEC_PER_MSEC) * (MSEC_PER_SEC))  /* 1000000000 */
+```
+
+1 秒のミリ秒の数と、ナノ秒の数 (`zephyr/sys/clock.h`)。時間の単位を換算するときに使う。
+
+| 定数 | 値 | 使用箇所 |
+|:---|:---:|:---|
+| `MSEC_PER_SEC` | 1000 | [`app/thermo-gateway/src/ble.c:528`](../app/thermo-gateway/src/ble.c#L528) (ほか 2 行) |
+| `NSEC_PER_SEC` | 1000000000 | [`app/thermo-node/src/buzzer.c:132`](../app/thermo-node/src/buzzer.c#L132) |
+
+注意:
+
+- どちらも符号なし (`U`)。符号つきの値と掛けるときは、型をそろえる (例: `(int64_t)秒 * MSEC_PER_SEC`)。
 
 ### K_SEM_DEFINE
 

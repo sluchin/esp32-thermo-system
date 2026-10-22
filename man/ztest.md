@@ -50,7 +50,7 @@ ZTEST_SUITE(SUITE_NAME, PREDICATE, setup_fn, before_fn, after_fn, teardown_fn);
 - 各テストの初期化 (FFF のフェイクのリセットなど) は、`before_fn` に書く。`setup_fn` は、スイートの間で状態を引き継ぐテスト (`sdlog` の RAM ディスクのマウントなど) だけが使う。
 - `main()` は、書かない。Ztest が提供する。
 
-使用箇所: [`app/thermo-gateway/tests/main/src/test_main.c:318`](../app/thermo-gateway/tests/main/src/test_main.c#L318) (`app/*/tests/` の全体で、31 か所。`setup_fn` を使うのは [`app/thermo-node/tests/sdlog/src/test_sdlog.c:296`](../app/thermo-node/tests/sdlog/src/test_sdlog.c#L296) など 3 か所)
+使用箇所: [`app/thermo-gateway/tests/main/src/test_main.c:318`](../app/thermo-gateway/tests/main/src/test_main.c#L318) (`app/*/tests/` の全体で、31 か所。`setup_fn` を使うのは [`app/thermo-node/tests/sdlog/src/test_sdlog.c:295`](../app/thermo-node/tests/sdlog/src/test_sdlog.c#L295) など 3 か所)
 
 ### ZTEST
 
@@ -76,14 +76,14 @@ ZTEST(suite, fn)
 
 | マクロ | 成り立つべき条件 | 使用箇所 (最初) | 数 |
 |:---|:---|:---|---:|
-| `zassert_equal(a, b, ...)` | `a == b` (型は変換せず、そのまま比べる) | [`test_main.c:171`](../app/thermo-gateway/tests/main/src/test_main.c#L171) | 1573 |
-| `zassert_not_equal(a, b, ...)` | `a != b` | [`test_cloud.c:410`](../app/common/tests/cloud/src/test_cloud.c#L410) | 5 |
-| `zassert_true(cond, ...)` | `cond` が真 | [`test_ble.c:475`](../app/thermo-gateway/tests/ble/src/test_ble.c#L475) | 146 |
+| `zassert_equal(a, b, ...)` | `a == b` (型は変換せず、そのまま比べる) | [`test_main.c:173`](../app/thermo-gateway/tests/main/src/test_main.c#L173) | 1573 |
+| `zassert_not_equal(a, b, ...)` | `a != b` | [`test_cloud.c:411`](../app/common/tests/cloud/src/test_cloud.c#L411) | 5 |
+| `zassert_true(cond, ...)` | `cond` が真 | [`test_ble.c:479`](../app/thermo-gateway/tests/ble/src/test_ble.c#L479) | 146 |
 | `zassert_false(cond, ...)` | `cond` が偽 | [`test_switchbot.c:155`](../app/thermo-gateway/tests/switchbot/src/test_switchbot.c#L155) | 95 |
-| `zassert_is_null(ptr, ...)` | `ptr` が `NULL` | [`test_ble.c:436`](../app/thermo-gateway/tests/ble/src/test_ble.c#L436) | 9 |
-| `zassert_not_null(ptr, ...)` | `ptr` が `NULL` でない | [`test_main.c:218`](../app/thermo-gateway/tests/main/src/test_main.c#L218) | 78 |
-| `zassert_str_equal(s1, s2, ...)` | `strcmp(s1, s2) == 0` | [`test_cloud.c:446`](../app/common/tests/cloud/src/test_cloud.c#L446) | 85 |
-| `zassert_mem_equal(buf, exp, size, ...)` | `memcmp(buf, exp, size) == 0` | [`test_ble.c:874`](../app/thermo-gateway/tests/ble/src/test_ble.c#L874) | 11 |
+| `zassert_is_null(ptr, ...)` | `ptr` が `NULL` | [`test_ble.c:440`](../app/thermo-gateway/tests/ble/src/test_ble.c#L440) | 9 |
+| `zassert_not_null(ptr, ...)` | `ptr` が `NULL` でない | [`test_main.c:220`](../app/thermo-gateway/tests/main/src/test_main.c#L220) | 78 |
+| `zassert_str_equal(s1, s2, ...)` | `strcmp(s1, s2) == 0` | [`test_cloud.c:447`](../app/common/tests/cloud/src/test_cloud.c#L447) | 85 |
+| `zassert_mem_equal(buf, exp, size, ...)` | `memcmp(buf, exp, size) == 0` | [`test_ble.c:880`](../app/thermo-gateway/tests/ble/src/test_ble.c#L880) | 11 |
 | `zassert_within(a, b, d, ...)` | `b - d <= a <= b + d` | [`test_ntp.c:152`](../app/common/tests/ntp/src/test_ntp.c#L152) | 4 |
 
 (使用箇所は、全て `app/` の下のテスト。数は、`app/` 全体の呼び出しの数。)

@@ -23,7 +23,7 @@ atomic_val_t atomic_add(atomic_t *target, atomic_val_t value);
 
 戻り値: `target` の、足す前の値。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:220`](../app/thermo-node/src/sdlog.c#L220)
+使用箇所: [`app/thermo-node/src/sdlog.c:226`](../app/thermo-node/src/sdlog.c#L226)
 
 ### atomic_set
 
@@ -40,7 +40,7 @@ atomic_val_t atomic_set(atomic_t *target, atomic_val_t value);
 
 戻り値: `target` の、設定する前の値。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:325`](../app/thermo-node/src/sdlog.c#L325)
+使用箇所: [`app/thermo-node/src/sdlog.c:330`](../app/thermo-node/src/sdlog.c#L330)
 
 ## バイトオーダー
 
@@ -145,20 +145,24 @@ IEEE 準拠の CRC32 を、前の結果に続けて計算する。離れた場�
 使用箇所: [`app/thermo-node/src/backlog.c:473`](../app/thermo-node/src/backlog.c#L473)
 ## リングバッファ
 
-### RING_BUF_DECLARE
+### RING_BUF_INIT
 
 ```c
-#define RING_BUF_DECLARE(name, size8)
+#define RING_BUF_INIT(buf, size8)
 ```
 
-バイト単位のリングバッファを、静的に定義して、初期化する。
+バイト単位のリングバッファ (`struct ring_buf`) の、初期化子 (静的な変数の初期値) を作る。領域は、呼び出し側が用意する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
-| `name` | in | リングバッファの名前 |
-| `size8` | in | バッファの大きさ [バイト] |
+| `buf` | in | データを入れる領域 (`uint8_t` の配列) |
+| `size8` | in | 領域の大きさ [バイト] |
 
-使用箇所: [`app/thermo-node/src/sdlog.c:59`](../app/thermo-node/src/sdlog.c#L59) (ほか 1 行)
+注意:
+
+- 同じ働きの `RING_BUF_DECLARE(name, size8)` は、リングバッファを外部結合 (`static` なし) で定義するので、GCC 14 以降の `-Wmissing-variable-declarations` に掛かる。このプロジェクトでは、領域とリングバッファを `static` で定義して、`RING_BUF_INIT` で初期化する。
+
+使用箇所: [`app/thermo-node/src/sdlog.c:65`](../app/thermo-node/src/sdlog.c#L65) (ほか 1 行)
 
 ### ring_buf_put
 
@@ -181,7 +185,7 @@ uint32_t ring_buf_put(struct ring_buf *buf, const uint8_t *data, uint32_t size);
 - 複数の書き手が、同時に書かないようにする (プリエンプトを防ぐか、ミューテックスで守る)。
 - バイト単位の操作と、アイテム単位 (`ring_buf_item_*`) の操作は混ぜない。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:217`](../app/thermo-node/src/sdlog.c#L217)
+使用箇所: [`app/thermo-node/src/sdlog.c:223`](../app/thermo-node/src/sdlog.c#L223)
 
 ### ring_buf_get
 
@@ -203,7 +207,7 @@ uint32_t ring_buf_get(struct ring_buf *buf, uint8_t *data, uint32_t size);
 
 - 複数の読み手が、同時に読まないようにする。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:253`](../app/thermo-node/src/sdlog.c#L253)
+使用箇所: [`app/thermo-node/src/sdlog.c:258`](../app/thermo-node/src/sdlog.c#L258)
 
 ### ring_buf_is_empty
 
@@ -219,7 +223,7 @@ static inline bool ring_buf_is_empty(const struct ring_buf *buf);
 
 戻り値: 空なら `true`、そうでなければ `false`。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:252`](../app/thermo-node/src/sdlog.c#L252) (ほか 2 行)
+使用箇所: [`app/thermo-node/src/sdlog.c:257`](../app/thermo-node/src/sdlog.c#L257) (ほか 2 行)
 
 ## 時刻と乱数
 
@@ -344,7 +348,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 
 戻り値: 小さい方の値。
 
-使用箇所: [`app/common/cloud.c:206`](../app/common/cloud.c#L206), [`app/thermo-node/src/backlog.c:141`](../app/thermo-node/src/backlog.c#L141), [`app/thermo-node/src/history.c:66`](../app/thermo-node/src/history.c#L66) (ほか 1 行)
+使用箇所: [`app/common/cloud.c:206`](../app/common/cloud.c#L206), [`app/thermo-node/src/backlog.c:141`](../app/thermo-node/src/backlog.c#L141), [`app/thermo-node/src/history.c:65`](../app/thermo-node/src/history.c#L65) (ほか 1 行)
 
 ### BIT
 

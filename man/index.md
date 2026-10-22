@@ -9,15 +9,15 @@
 
 | ファイル | 内容 | API の数 |
 |:---|:---|---:|
-| [bluetooth.md](bluetooth.md) | Bluetooth LE | 34 |
-| [kernel.md](kernel.md) | カーネル | 25 |
-| [drivers.md](drivers.md) | デバイスとドライバ | 32 |
-| [display.md](display.md) | 表示装置と文字のフレームバッファ | 11 |
+| [bluetooth.md](bluetooth.md) | Bluetooth LE | 42 |
+| [kernel.md](kernel.md) | カーネル | 26 |
+| [drivers.md](drivers.md) | デバイスとドライバ | 33 |
+| [display.md](display.md) | 表示装置と文字のフレームバッファ | 12 |
 | [fs.md](fs.md) | ファイルシステム | 13 |
-| [net.md](net.md) | ネットワーク | 25 |
+| [net.md](net.md) | ネットワーク | 31 |
 | [settings.md](settings.md) | 設定 | 5 |
 | [shell.md](shell.md) | シェル | 7 |
-| [logging.md](logging.md) | ログ | 11 |
+| [logging.md](logging.md) | ログ | 12 |
 | [sys.md](sys.md) | システムのユーティリティ | 23 |
 | [ztest.md](ztest.md) | 単体テスト (Ztest) | 11 |
 | [fff.md](fff.md) | 単体テストのモック (FFF) | 13 |

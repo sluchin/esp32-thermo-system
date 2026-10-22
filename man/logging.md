@@ -116,7 +116,7 @@
 | `_autostart` | in | `true` なら、ログのシステムの初期化と一緒に、バックエンドを初期化して有効にする |
 | `...` | in | 任意のコンテキスト |
 
-使用箇所: [`app/thermo-node/src/sdlog.c:97`](../app/thermo-node/src/sdlog.c#L97)
+使用箇所: [`app/thermo-node/src/sdlog.c:105`](../app/thermo-node/src/sdlog.c#L105)
 
 ### LOG_OUTPUT_DEFINE
 
@@ -133,7 +133,27 @@
 | `_buf` | in | 出力のバッファ |
 | `_size` | in | バッファの大きさ |
 
-使用箇所: [`app/thermo-node/src/sdlog.c:86`](../app/thermo-node/src/sdlog.c#L86) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/sdlog.c:94`](../app/thermo-node/src/sdlog.c#L94) (ほか 1 行)
+
+### LOG_OUTPUT_FLAG_*
+
+```c
+#define LOG_OUTPUT_FLAG_TIMESTAMP         BIT(1)
+#define LOG_OUTPUT_FLAG_FORMAT_TIMESTAMP  BIT(2)
+#define LOG_OUTPUT_FLAG_LEVEL             BIT(3)
+#define LOG_OUTPUT_FLAG_CRLF_LFONLY       BIT(5)
+```
+
+ログのメッセージを文字列にするときの書式のフラグ (`zephyr/logging/log_output.h`)。`log_format_func_t_get()` で得た関数の `flags` に、ビットの OR で渡す。
+
+| 定数 | 説明 |
+|:---|:---|
+| `LOG_OUTPUT_FLAG_TIMESTAMP` | 時刻 (起動からの時間) を付ける |
+| `LOG_OUTPUT_FLAG_FORMAT_TIMESTAMP` | 時刻を、`時:分:秒.ミリ秒,マイクロ秒` の形にする |
+| `LOG_OUTPUT_FLAG_LEVEL` | レベル (`<err>` など) を付ける |
+| `LOG_OUTPUT_FLAG_CRLF_LFONLY` | 改行を LF だけにする (CR を付けない) |
+
+使用箇所: [`app/thermo-node/src/sdlog.c:55`](../app/thermo-node/src/sdlog.c#L55) (ほか 1 行)
 
 ### log_format_func_t_get
 
@@ -149,7 +169,7 @@ log_format_func_t log_format_func_t_get(uint32_t log_type);
 
 戻り値: メッセージを整形する関数。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:161`](../app/thermo-node/src/sdlog.c#L161)
+使用箇所: [`app/thermo-node/src/sdlog.c:169`](../app/thermo-node/src/sdlog.c#L169)
 
 ### log_msg_get_level
 
@@ -165,7 +185,7 @@ static inline uint8_t log_msg_get_level(struct log_msg *msg);
 
 戻り値: ログのレベル (`LOG_LEVEL_ERR` など)。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:168`](../app/thermo-node/src/sdlog.c#L168)
+使用箇所: [`app/thermo-node/src/sdlog.c:176`](../app/thermo-node/src/sdlog.c#L176)
 
 ### log_backend_api
 
@@ -175,4 +195,4 @@ struct log_backend_api
 
 ログのバックエンドの API。メッセージを処理する `process`、初期化の `init`、パニックのときの `panic`、取りこぼしの通知 `dropped` などの関数を持つ。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:91`](../app/thermo-node/src/sdlog.c#L91)
+使用箇所: [`app/thermo-node/src/sdlog.c:99`](../app/thermo-node/src/sdlog.c#L99)

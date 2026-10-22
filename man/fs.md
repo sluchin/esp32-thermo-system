@@ -69,7 +69,7 @@ static inline void fs_file_t_init(struct fs_file_t *zfp);
 |:---|:---:|:---|
 | `zfp` | out | 初期化するファイルオブジェクト |
 
-使用箇所: [`app/thermo-node/src/backlog.c:512`](../app/thermo-node/src/backlog.c#L512), [`app/thermo-node/src/sdlog.c:246`](../app/thermo-node/src/sdlog.c#L246)
+使用箇所: [`app/thermo-node/src/backlog.c:512`](../app/thermo-node/src/backlog.c#L512), [`app/thermo-node/src/sdlog.c:251`](../app/thermo-node/src/sdlog.c#L251)
 
 ### fs_open
 
@@ -100,7 +100,7 @@ int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags);
 
 - `flags` を 0 にすると、あれば開くが、読み書きはできない。
 
-使用箇所: [`app/thermo-node/src/backlog.c:513`](../app/thermo-node/src/backlog.c#L513), [`app/thermo-node/src/sdlog.c:247`](../app/thermo-node/src/sdlog.c#L247)
+使用箇所: [`app/thermo-node/src/backlog.c:513`](../app/thermo-node/src/backlog.c#L513), [`app/thermo-node/src/sdlog.c:252`](../app/thermo-node/src/sdlog.c#L252)
 
 ### fs_close
 
@@ -120,7 +120,7 @@ int fs_close(struct fs_file_t *zfp);
 - `-ENOTSUP`: ドライバが対応していない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/backlog.c:191`](../app/thermo-node/src/backlog.c#L191) (ほか 5 行), [`app/thermo-node/src/sdlog.c:259`](../app/thermo-node/src/sdlog.c#L259)
+使用箇所: [`app/thermo-node/src/backlog.c:191`](../app/thermo-node/src/backlog.c#L191) (ほか 5 行), [`app/thermo-node/src/sdlog.c:264`](../app/thermo-node/src/sdlog.c#L264)
 
 ### fs_read
 
@@ -170,7 +170,7 @@ ssize_t fs_write(struct fs_file_t *zfp, const void *ptr, size_t size);
 
 - 書いたバイト数が `size` より少ないときは、空き容量がないことがあるので、グローバルの `errno` を調べる。
 
-使用箇所: [`app/thermo-node/src/backlog.c:592`](../app/thermo-node/src/backlog.c#L592) (ほか 1 行), [`app/thermo-node/src/sdlog.c:254`](../app/thermo-node/src/sdlog.c#L254)
+使用箇所: [`app/thermo-node/src/backlog.c:592`](../app/thermo-node/src/backlog.c#L592) (ほか 1 行), [`app/thermo-node/src/sdlog.c:259`](../app/thermo-node/src/sdlog.c#L259)
 
 ### fs_seek
 
@@ -222,7 +222,7 @@ int fs_stat(const char *path, struct fs_dirent *entry);
 
 - ストレージ上のファイルは、閉じるまで、更新されていないことがある。
 
-使用箇所: [`app/thermo-node/src/backlog.c:140`](../app/thermo-node/src/backlog.c#L140), [`app/thermo-node/src/sdlog.c:309`](../app/thermo-node/src/sdlog.c#L309)
+使用箇所: [`app/thermo-node/src/backlog.c:140`](../app/thermo-node/src/backlog.c#L140), [`app/thermo-node/src/sdlog.c:314`](../app/thermo-node/src/sdlog.c#L314)
 
 ### fs_rename
 
@@ -251,7 +251,7 @@ int fs_rename(const char *from, const char *to);
 - 移動先にすでにあるものは、先に削除 (unlink) される。
 - マウントポイントをまたぐ移動はできない。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:313`](../app/thermo-node/src/sdlog.c#L313)
+使用箇所: [`app/thermo-node/src/sdlog.c:318`](../app/thermo-node/src/sdlog.c#L318)
 
 ### fs_unlink
 
@@ -273,7 +273,7 @@ int fs_unlink(const char *path);
 - `-ENOTSUP`: ドライバが対応していない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/sdlog.c:312`](../app/thermo-node/src/sdlog.c#L312)
+使用箇所: [`app/thermo-node/src/sdlog.c:317`](../app/thermo-node/src/sdlog.c#L317)
 
 ## 定数と型
 

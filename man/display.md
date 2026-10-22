@@ -25,6 +25,16 @@ static inline int display_set_pixel_format(const struct device *dev, const enum 
 
 使用箇所: [`app/thermo-node/src/oled.c:142`](../app/thermo-node/src/oled.c#L142)
 
+### PIXEL_FORMAT_MONO10
+
+```c
+PIXEL_FORMAT_MONO10 = BIT(2)  /* enum display_pixel_format */
+```
+
+単色の画素の形式で、1 が黒、0 が白 (`PIXEL_FORMAT_MONO01` は、その逆)。`display_set_pixel_format()` に渡す。
+
+使用箇所: [`app/thermo-node/src/oled.c:142`](../app/thermo-node/src/oled.c#L142)
+
 ### display_blanking_on
 
 ```c
@@ -44,7 +54,7 @@ static inline int display_blanking_on(const struct device *dev);
 - ドライバがバックライトの制御に対応していれば、バックライトを消す。バックライトの設定は、保持される。
 - ドライバがブランキングに対応していれば、ドライバの初期の状態は、この関数を呼んだ状態と同じ。
 
-使用箇所: [`app/thermo-node/src/oled.c:198`](../app/thermo-node/src/oled.c#L198)
+使用箇所: [`app/thermo-node/src/oled.c:197`](../app/thermo-node/src/oled.c#L197)
 
 ### display_blanking_off
 
@@ -149,7 +159,7 @@ int cfb_print(const struct device *dev, const char *const str, uint16_t x, uint1
 
 戻り値: 成功は 0、失敗は負の値。
 
-使用箇所: [`app/thermo-node/src/oled.c:434`](../app/thermo-node/src/oled.c#L434) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/oled.c:427`](../app/thermo-node/src/oled.c#L427) (ほか 1 行)
 
 ### cfb_draw_point
 
@@ -166,7 +176,7 @@ int cfb_draw_point(const struct device *dev, const struct cfb_position *pos);
 
 戻り値: 成功は 0、失敗は負の値。
 
-使用箇所: [`app/thermo-node/src/oled.c:408`](../app/thermo-node/src/oled.c#L408) (ほか 2 行)
+使用箇所: [`app/thermo-node/src/oled.c:402`](../app/thermo-node/src/oled.c#L402) (ほか 2 行)
 
 ### cfb_draw_line
 
@@ -184,7 +194,7 @@ int cfb_draw_line(const struct device *dev, const struct cfb_position *start, co
 
 戻り値: 成功は 0、失敗は負の値。
 
-使用箇所: [`app/thermo-node/src/oled.c:406`](../app/thermo-node/src/oled.c#L406)
+使用箇所: [`app/thermo-node/src/oled.c:400`](../app/thermo-node/src/oled.c#L400)
 
 ### cfb_framebuffer_finalize
 
@@ -204,4 +214,4 @@ int cfb_framebuffer_finalize(const struct device *dev);
 
 - 描いたあとに呼ばないと、画面に出ない。
 
-使用箇所: [`app/thermo-node/src/oled.c:244`](../app/thermo-node/src/oled.c#L244) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/oled.c:242`](../app/thermo-node/src/oled.c#L242) (ほか 1 行)

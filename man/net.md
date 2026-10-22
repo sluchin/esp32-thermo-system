@@ -69,6 +69,16 @@ void net_mgmt_add_event_callback(struct net_mgmt_event_callback *cb);
 
 使用箇所: [`app/common/wifi_link.c:49`](../app/common/wifi_link.c#L49) (ほか 1 行)
 
+### NET_EVENT_IPV4_ADDR_ADD
+
+```c
+#define NET_EVENT_IPV4_ADDR_ADD (NET_EVENT_IPV4_BASE | NET_EVENT_IPV4_CMD_ADDR_ADD)
+```
+
+IPv4 のアドレスが、インターフェースに付いたときのイベント (DHCP でアドレスを得たとき)。`net_mgmt_init_event_callback()` の `mgmt_event_mask` に渡して、WiFi の接続のあと、通信できるようになったことを知る。
+
+使用箇所: [`app/common/wifi_link.c:51`](../app/common/wifi_link.c#L51) (ほか 1 行)
+
 ### wifi_connect_req_params
 
 ```c
@@ -78,6 +88,32 @@ struct wifi_connect_req_params
 WiFi の接続の要求に渡すパラメータ (SSID、パスワード、セキュリティの種類、バンドなど)。`NET_REQUEST_WIFI_CONNECT` の `_data` に渡す。
 
 使用箇所: [`app/common/wifi_link.c:74`](../app/common/wifi_link.c#L74)
+
+### WIFI_* (接続のパラメータの値)
+
+```c
+WIFI_SECURITY_TYPE_NONE = 0   /* enum wifi_security_type */
+WIFI_SECURITY_TYPE_PSK        /* WPA2-PSK */
+WIFI_FREQ_BAND_UNKNOWN        /* enum wifi_frequency_bands */
+#define WIFI_CHANNEL_ANY 255
+WIFI_MFP_OPTIONAL             /* enum wifi_mfp_options */
+#define SYS_FOREVER_MS (-1)
+```
+
+`wifi_connect_req_params` の、`security`、`band`、`channel`、`mfp`、`timeout` に入れる値。
+
+| 定数 | 入れるメンバー | 説明 | 使用箇所 |
+|:---|:---|:---|:---|
+| `WIFI_SECURITY_TYPE_NONE` | `security` | 暗号化なし (パスワードが空のとき) | [`app/common/wifi_link.c:91`](../app/common/wifi_link.c#L91) |
+| `WIFI_SECURITY_TYPE_PSK` | `security` | WPA2-PSK (パスワードがあるとき) | [`app/common/wifi_link.c:91`](../app/common/wifi_link.c#L91) |
+| `WIFI_FREQ_BAND_UNKNOWN` | `band` | 周波数帯を決めない (どの帯でもよい) | [`app/common/wifi_link.c:92`](../app/common/wifi_link.c#L92) |
+| `WIFI_CHANNEL_ANY` | `channel` | チャンネルを決めない (どのチャンネルでもよい) | [`app/common/wifi_link.c:93`](../app/common/wifi_link.c#L93) |
+| `WIFI_MFP_OPTIONAL` | `mfp` | 管理フレームの保護 (IEEE 802.11w) を、アクセスポイントが対応していれば使う | [`app/common/wifi_link.c:94`](../app/common/wifi_link.c#L94) |
+| `SYS_FOREVER_MS` | `timeout` | 接続を待つ時間を、無期限にする (`zephyr/sys/time_units.h`) | [`app/common/wifi_link.c:95`](../app/common/wifi_link.c#L95) |
+
+注意:
+
+- `SYS_FOREVER_MS` は、カーネルの関数とマクロには、そのまま渡せない (`k_timeout_t` ではない。カーネルには `SYS_TIMEOUT_MS()` か `K_FOREVER` を使う)。
 
 ### NET_REQUEST_WIFI_CONNECT
 
@@ -141,6 +177,22 @@ void zsock_freeaddrinfo(struct zsock_addrinfo *ai);
 
 使用箇所: [`app/common/cloud.c:481`](../app/common/cloud.c#L481), [`app/common/ntp.c:148`](../app/common/ntp.c#L148), [`app/thermo-node/src/wifi_time.c:151`](../app/thermo-node/src/wifi_time.c#L151)
 
+### AF_INET と SOCK_*
+
+```c
+#define AF_INET  PF_INET      /* IPv4 */
+SOCK_STREAM = 1               /* enum net_sock_type */
+SOCK_DGRAM  = 2
+```
+
+`zsock_getaddrinfo()` の `hints` (`ai_family` と `ai_socktype`) に入れる、アドレスの種類と、ソケットの種類。
+
+| 定数 | 説明 | 使用箇所 |
+|:---|:---|:---|
+| `AF_INET` | IPv4 のアドレス | [`app/common/ntp.c:137`](../app/common/ntp.c#L137)、[`app/common/cloud.c:471`](../app/common/cloud.c#L471)、[`app/thermo-node/src/wifi_time.c:140`](../app/thermo-node/src/wifi_time.c#L140) |
+| `SOCK_STREAM` | ストリーム (TCP。MQTT over TLS) | [`app/common/cloud.c:471`](../app/common/cloud.c#L471) |
+| `SOCK_DGRAM` | データグラム (UDP。SNTP) | [`app/common/ntp.c:137`](../app/common/ntp.c#L137)、[`app/thermo-node/src/wifi_time.c:140`](../app/thermo-node/src/wifi_time.c#L140) |
+
 ### zsock_poll
 
 ```c
@@ -162,6 +214,28 @@ static inline int zsock_poll(struct zsock_pollfd *fds, int nfds, int timeout);
 - 失敗は -1 (`errno`)。
 
 使用箇所: [`app/common/cloud.c:498`](../app/common/cloud.c#L498)
+
+### ZSOCK_POLL*
+
+```c
+#define ZSOCK_POLLIN   1
+#define ZSOCK_POLLERR  8
+#define ZSOCK_POLLHUP  0x10
+#define ZSOCK_POLLNVAL 0x20
+```
+
+`zsock_poll()` の `events` (待つイベント) と `revents` (起きたイベント) のビット (Linux の `POLL*` と同じ値)。
+
+| 定数 | 値 | 説明 | 使用箇所 |
+|:---|:---:|:---|:---|
+| `ZSOCK_POLLIN` | 1 | 読めるデータがある | [`app/common/cloud.c:497`](../app/common/cloud.c#L497) |
+| `ZSOCK_POLLERR` | 8 | エラー (`revents` だけ) | [`app/common/cloud.c:508`](../app/common/cloud.c#L508) |
+| `ZSOCK_POLLHUP` | 0x10 | 接続が切れた (`revents` だけ) | [`app/common/cloud.c:508`](../app/common/cloud.c#L508) |
+| `ZSOCK_POLLNVAL` | 0x20 | ソケットが無効 (`revents` だけ) | [`app/common/cloud.c:508`](../app/common/cloud.c#L508) |
+
+注意:
+
+- `ZSOCK_POLLERR`、`ZSOCK_POLLHUP`、`ZSOCK_POLLNVAL` は、`events` に入れなくても、`revents` に入る。
 
 ## SNTP (時刻の取得)
 
@@ -312,6 +386,16 @@ MQTT のクライアントを初期化する。パラメータの設定と、ブ
 
 使用箇所: [`app/common/cloud.c:534`](../app/common/cloud.c#L534)
 
+### MQTT_VERSION_3_1_1
+
+```c
+MQTT_VERSION_3_1_1 = 4  /* enum mqtt_version */
+```
+
+MQTT 3.1.1 の、プロトコルのレベル。`struct mqtt_client` の `protocol_version` に入れる (AWS IoT Core は、3.1.1 に対応する)。
+
+使用箇所: [`app/common/cloud.c:539`](../app/common/cloud.c#L539)
+
 ### mqtt_connect
 
 ```c
@@ -351,6 +435,16 @@ int mqtt_publish(struct mqtt_client *client, const struct mqtt_publish_param *pa
 戻り値: 成功は 0、失敗は負の errno。
 
 使用箇所: [`app/common/cloud.c:646`](../app/common/cloud.c#L646)
+
+### MQTT_QOS_1_AT_LEAST_ONCE
+
+```c
+MQTT_QOS_1_AT_LEAST_ONCE = 0x01  /* enum mqtt_qos */
+```
+
+メッセージの QoS 1 (少なくとも 1 回届ける)。送ったメッセージに、受け取りの確認 (PUBACK) が返る。重なって届くことがある。`mqtt_publish()` に渡す `param.message.topic.qos` に入れる。
+
+使用箇所: [`app/common/cloud.c:634`](../app/common/cloud.c#L634)
 
 ### mqtt_input
 
