@@ -19,7 +19,7 @@ on:
 jobs:
   build:
     name: Build (${{ matrix.service }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +64,7 @@ jobs:
 
   test:
     name: Unit tests (${{ matrix.service }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -99,7 +99,7 @@ jobs:
 
   coverage:
     name: Coverage (${{ matrix.service }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -134,7 +134,7 @@ jobs:
 
   docs:
     name: Documentation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -178,7 +178,7 @@ jobs:
     name: Deploy the documentation
     needs: docs
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       pages: write
       id-token: write
@@ -196,7 +196,7 @@ jobs:
 
   analyze:
     name: Static analysis (${{ matrix.service }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -229,7 +229,7 @@ jobs:
 
   lint:
     name: Format and lint (${{ matrix.service }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -266,7 +266,7 @@ jobs:
   cleanup:
     name: Delete the old runs
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       actions: write
     env:
