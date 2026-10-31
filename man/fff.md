@@ -66,15 +66,15 @@ FAKE_VOID_FUNC(FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 | メンバー | 型 | 内容 |
 |:---|:---|:---|
 | `call_count` | `unsigned int` | 呼ばれた回数 |
-| `arg0_val`, `arg1_val` ... | 引数の型 | 最後に呼ばれたときの、引数の値 |
-| `arg0_history[]`, `arg1_history[]` ... | 引数の型の配列 | 呼ばれた順の、引数の値。`arg0_history[0]` が 1 回目。長さは 50 (`FFF_ARG_HISTORY_LEN`)。それより多く呼ばれた分は、記録されず、`arg_histories_dropped` が増える |
+| `arg0_val`、`arg1_val` ... | 引数の型 | 最後に呼ばれたときの、引数の値 |
+| `arg0_history[]`、`arg1_history[]` ... | 引数の型の配列 | 呼ばれた順の、引数の値。`arg0_history[0]` が 1 回目。長さは 50 (`FFF_ARG_HISTORY_LEN`)。それより多く呼ばれた分は、記録されず、`arg_histories_dropped` が増える |
 | `arg_history_len` | `unsigned int` | 引数の履歴の長さ (50) |
 | `arg_histories_dropped` | `unsigned int` | 履歴に入らなかった呼び出しの回数 |
 | `return_val` | 戻り値の型 | 返す値 (値を返すフェイクだけ) |
-| `return_val_seq`, `return_val_seq_len` | 配列、`int` | 返す値の列 (`SET_RETURN_SEQ` が設定する) |
+| `return_val_seq`、`return_val_seq_len` | 配列、`int` | 返す値の列 (`SET_RETURN_SEQ` が設定する) |
 | `return_val_history[]` | 戻り値の型の配列 | 返した値の履歴 (値を返すフェイクだけ) |
 | `custom_fake` | 関数ポインタ | 実物の代わりに呼ぶ関数。戻り値と引数は、偽の関数と同じ |
-| `custom_fake_seq`, `custom_fake_seq_len` | 関数ポインタの配列、`int` | `custom_fake` の列 (`SET_CUSTOM_FAKE_SEQ` が設定する) |
+| `custom_fake_seq`、`custom_fake_seq_len` | 関数ポインタの配列、`int` | `custom_fake` の列 (`SET_CUSTOM_FAKE_SEQ` が設定する) |
 
 ### 呼ばれたときの動作
 

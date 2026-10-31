@@ -15,16 +15,16 @@
 
 ### 対象範囲
 
-- **対象**: `app/` 配下のアプリケーションの C ソース (`app/thermo-node/src/`, `app/thermo-gateway/src/`)。
+- **対象**: `app/` 配下のアプリケーションの C ソース (`app/thermo-node/src/`、`app/thermo-gateway/src/`)。
 - **対象外**: 単体テスト (`app/*/tests/`)、Zephyr RTOS 本体、Bluetooth スタック、HAL (`hal_espressif`) などのサードパーティのコード。ただし、テストにも、同じ警告オプションを付けて、警告ゼロを維持します。シミュレーション (`native_sim`) で使うホストの libc も対象外です。
 
 Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マクロはアプリ側のコードに展開されるため、`#pragma` で囲むだけでは警告を抑えられません。そのため `app/warnings.cmake` で、Zephyr の include ディレクトリをシステムヘッダとして扱います (警告オプションは、アプリのソースだけに付けます)。
 
 ### 準拠・対応している主なプラクティス
 
-- **制御式の本質的ブール型評価 (Rule 14.4)**: 条件式は bool だけにする。整数やポインタは、比較して bool にする (`if (err != 0)`, `if (ptr != NULL)`)。bool の値は、そのまま書く (`if (ready)`, `if (!ready)`。`== false` とは比較しない)。
-- **条件式の中の関数呼び出し (Rule 13.5 の趣旨)**: 副作用のある関数 (`bt_enable()`, `sensor_init()`, `adc_read_dt()`, `k_sleep()` など、状態を変える、書き込む、開始・初期化・設定する関数) は、先に呼び出して、戻り値を変数に入れてから比較する。
-  - **許容している書き方**: 判定だけをする関数 (状態を調べるだけで、何も変えない関数。`adc_is_ready_dt()`, `device_is_ready()`, `strcmp()` など) は、戻り値を変数に入れずに、そのまま条件式に書く。厳密には、変数に入れてから判定するべきだが、読みやすさのために許容している (Rule 13.5 は、`&&` / `||` の右側に、副作用のある関数呼び出しを書くことを禁じるもので、単独の判定は、対象外)。
+- **制御式の本質的ブール型評価 (Rule 14.4)**: 条件式は bool だけにする。整数やポインタは、比較して bool にする (`if (err != 0)`、`if (ptr != NULL)`)。bool の値は、そのまま書く (`if (ready)`、`if (!ready)`。`== false` とは比較しない)。
+- **条件式の中の関数呼び出し (Rule 13.5 の趣旨)**: 副作用のある関数 (`bt_enable()`、`sensor_init()`、`adc_read_dt()`、`k_sleep()` など、状態を変える、書き込む、開始・初期化・設定する関数) は、先に呼び出して、戻り値を変数に入れてから比較する。
+  - **許容している書き方**: 判定だけをする関数 (状態を調べるだけで、何も変えない関数。`adc_is_ready_dt()`、`device_is_ready()`、`strcmp()` など) は、戻り値を変数に入れずに、そのまま条件式に書く。厳密には、変数に入れてから判定するべきだが、読みやすさのために許容している (Rule 13.5 は、`&&` / `||` の右側に、副作用のある関数呼び出しを書くことを禁じるもので、単独の判定は、対象外)。
 - **戻り値のリテラル直書きの排除**: `return 0;` / `return -1;` を使わず、`EXIT_SUCCESS` / `EXIT_FAILURE` / `-ENODEV` などの名前付き定数を使う。
 - **マジックナンバーの排除**: 時間、解像度、範囲などは `#define` で名前を付ける。
 - **ローカル変数の初期化 (Rule 9.1)**: 宣言時に必ず初期化する。
@@ -46,11 +46,11 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 
 | No. | MISRA C:2012 | 分類 | 概要 | プロジェクトでの主な該当箇所 |
 |:---:|:---|:---:|:---|:---|
-| 1 | Rule 1.2 | Advisory | 言語拡張 (GNU 拡張) の使用 | Zephyr API のマクロ (`LOG_*`, `BT_DATA*`, `K_SECONDS`, `BIT`, `ARRAY_SIZE`, `ADC_DT_SPEC_GET`) |
+| 1 | Rule 1.2 | Advisory | 言語拡張 (GNU 拡張) の使用 | Zephyr API のマクロ (`LOG_*`、`BT_DATA*`、`K_SECONDS`、`BIT`、`ARRAY_SIZE`、`ADC_DT_SPEC_GET`) |
 | 2 | Dir 4.9 | Advisory | 関数形式マクロの使用 | Zephyr API のマクロ (上記と同じ) |
 | 3 | Rule 20.7, 20.10, 20.12 | Required / Advisory | マクロ引数の括弧、`#` / `##` 演算子、マクロ引数の展開 | `LOG_MODULE_REGISTER`, Devicetree マクロ (`DT_*`) |
-| 4 | Rule 11.3 | Required | オブジェクトポインタの型のキャスト | `BT_DATA` が文字列を `uint8_t *` として扱う (`app/thermo-node/src/ble.c`)。API の引数の型に合わせる文字列と配列のキャスト (`cloud.c`, `wifi_link.c`, `ble.c`) |
-| 5 | Rule 15.5 | Advisory | 早期リターン (単一終了点規則の例外) | エラー時の `return err;` (`ble.c`, `sensor.c`, `main.c`) |
+| 4 | Rule 11.3 | Required | オブジェクトポインタの型のキャスト | `BT_DATA` が文字列を `uint8_t *` として扱う (`app/thermo-node/src/ble.c`)。API の引数の型に合わせる文字列と配列のキャスト (`cloud.c`、`wifi_link.c`、`ble.c`) |
+| 5 | Rule 15.5 | Advisory | 早期リターン (単一終了点規則の例外) | エラー時の `return err;` (`ble.c`、`sensor.c`、`main.c`) |
 | 6 | Rule 14.3 | Required | 不変な制御式 (`while (true)`) | ファームウェアの無限ループ (`main.c`) |
 | 7 | Rule 15.6 | Required | 制御構文の本体を `{}` で囲まない (本体が 1 文のとき) | 1 文の `if` / `else` / `for` / `while` (`CODING_STYLE.md` の例外 5) |
 | 8 | Rule 18.4 | Advisory | ポインタへの整数の加算 | 通知データの 2 つ目の値の位置 (`app/thermo-gateway/src/ble.c`) |
@@ -98,7 +98,7 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 - **該当ルール**: MISRA C:2012 Rule 15.5 (Advisory)
   - 「関数は末尾に単一の終了点を持つべきである」
 - **理由 (Rationale)**:
-  - 初期化処理 (`ble_init()`, `sensor_init()` など) では、各 API の失敗ごとに、エラーコードをすぐに呼び出し元へ返します。単一の終了点にすると、エラー状態を保持する変数と、ネストが増え、かえって読みにくくなります。
+  - 初期化処理 (`ble_init()`、`sensor_init()` など) では、各 API の失敗ごとに、エラーコードをすぐに呼び出し元へ返します。単一の終了点にすると、エラー状態を保持する変数と、ネストが増え、かえって読みにくくなります。
 - **安全対策 (Mitigation)**:
   - エラーを返す前に、`LOG_ERR` で原因をログに出力します。
   - 成功は `EXIT_SUCCESS`、失敗は負の `errno` 値 (`-ENODEV` など) か、API が返したエラーコードにそろえます。
