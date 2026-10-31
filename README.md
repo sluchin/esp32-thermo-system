@@ -291,7 +291,7 @@ CONFIG_LOG_DEFAULT_LEVEL=4  # DEBUG レベル
 
 ## トラブルシューティング
 
-問題が発生した場合は、[SETUP.md](docs/setup.md) のトラブルシューティングセクションを参照してください。
+問題が発生した場合は、[SETUP.md](docs/setup.md) のトラブルシューティングセクションを参照してください。未対応の課題や今後の予定については [TODO.md](TODO.md) を参照してください。
 
 ## リリース
 

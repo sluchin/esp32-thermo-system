@@ -522,7 +522,7 @@ thermo show                       (ready to connect: yes になれば、揃っ�
 - **RAM の余裕が小さい**: SD カードと TLS を加えて、静的な RAM (`dram0`) の空きは、約 1.5 KB です。`prj.conf` で、ネットワークのバッファ (`CONFIG_NET_BUF_*_COUNT` と `CONFIG_NET_PKT_*_COUNT`) と、FatFS の同時に開くファイル (`CONFIG_FS_FATFS_NUM_FILES`) を、減らしています。機能を足すと、`region dram0_0_seg overflowed` で、ビルドが失敗します (そのときは、`CONFIG_MBEDTLS_HEAP_SIZE` など、ほかの設定を見直します)。
 - **BLE は、1 台にしか、つながりません** (`CONFIG_BT_MAX_CONN=1`)。2 にすると、BLE が使うヒープが増えて、WiFi と TLS のぶんが足りなくなり、直接の送信が届かなくなります (実機で確認)。スマートフォンのアプリ [thermo-term](https://github.com/sluchin/thermo-term) の BLE のタブで、温度と湿度を見るときは、ゲートウェイを止めます。スマートフォンがつないでいる間は、ノードは、ゲートウェイにつながっているとみなして、直接の送信をしません。
 - 「送り終えた」は、publish の成功で、判断します (PUBACK は、待ちません)。接続が切れる直前の値は、AWS に届かずに、失われることがあります。
-- BLE だけで、WiFi の設定がない場合の、ゲートウェイ経由での、SD カードの記録の送信は、まだありません ([TODO.md](todo.md))。
+- BLE だけで、WiFi の設定がない場合の、ゲートウェイ経由での、SD カードの記録の送信は、まだありません ([TODO.md](../TODO.md))。
 
 ### DHT11 の読み取りの失敗と、割り込みを止める設定
 
