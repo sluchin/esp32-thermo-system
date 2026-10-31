@@ -52,7 +52,7 @@ esp32-thermo-system/
 
 `man/` に、このプロジェクトが使っている Zephyr (v4.3.0) の API を、日本語に訳して置いています。`app/` のソース (単体テストを除く) が呼んでいる API だけを、サブシステムごとの Markdown にまとめました。
 
-- 入口は [man/index.md](https://github.com/sluchin/esp32-thermo-system/blob/main/man/index.md) です。Bluetooth LE、カーネル、デバイスとドライバ、表示装置、ファイルシステム、ネットワーク、設定、シェル、ログ、システムのユーティリティの 10 ファイルです。
+- 入口は [man/index.md](docs/man/index.md) です。Bluetooth LE、カーネル、デバイスとドライバ、表示装置、ファイルシステム、ネットワーク、設定、シェル、ログ、システムのユーティリティの 10 ファイルです。
 - 各 API に、関数のシグネチャ、説明、引数 (1 つ 1 行の表。`in` / `out` / `in,out` の区別つき)、戻り値、注意、このリポジトリの呼び出し箇所 (GitHub のソースの行へのリンク) を載せました。
 - 訳の元は、Zephyr のヘッダの Doxygen コメントです。**英語の原文が正**なので、細かい挙動は、ヘッダか公式の文書で確かめてください。
 - `docs/` は、Doxygen の生成物で、ビルドのたびに消えるため、`man/` は、リポジトリ直下に置きました。
@@ -74,7 +74,7 @@ docker compose run --rm build-gateway-sim
 ./build/thermo-gateway-sim/zephyr/zephyr.exe
 ```
 
-詳細は [SIMULATION.md](./SIMULATION.md) を参照してください。
+詳細は [SIMULATION.md](docs/simulation.md) を参照してください。
 
 ### Docker を使用したビルド
 
@@ -143,7 +143,7 @@ docker compose run --rm whitespace
 
 ### ローカル開発環境構築
 
-Docker を使用しない場合は、[SETUP.md](./SETUP.md) を参照してください。
+Docker を使用しない場合は、[SETUP.md](docs/setup.md) を参照してください。
 
 ```bash
 # West ワークスペース初期化
@@ -291,7 +291,7 @@ CONFIG_LOG_DEFAULT_LEVEL=4  # DEBUG レベル
 
 ## トラブルシューティング
 
-問題が発生した場合は、[SETUP.md](./SETUP.md) のトラブルシューティングセクションを参照してください。
+問題が発生した場合は、[SETUP.md](docs/setup.md) のトラブルシューティングセクションを参照してください。
 
 ## リリース
 

@@ -191,5 +191,5 @@ SD カードを挿し直したあと、再起動せずに、使えるように�
 - [node_time.md](node_time.md): `node_time_unix()`
 - [wifi_shell.md](wifi_shell.md): `thermo sd`
 - [main.md](main.md): `direct_sample()` の呼び出し
-- [../../../SD_LOG.md](../../../SD_LOG.md): SD カードの記録の読み方
+- [../../../SD_LOG.md](../../../docs/sd_log.md): SD カードの記録の読み方
 - [index.md](index.md): このディレクトリの文書の一覧

@@ -51,5 +51,5 @@ direct_init_status() が 0 でなければ → 警告 "Saving is off: direct_ini
 - [direct.md](direct.md): `direct_sd_check()`、`direct_init_status()`
 - [wifi_time.md](wifi_time.md): `wifi_time_fetch()`
 - [node_time.md](node_time.md): `node_time_set()`
-- [../../../SD_LOG.md](../../../SD_LOG.md): `thermo sd` を使った SD カードの確認
+- [../../../SD_LOG.md](../../../docs/sd_log.md): `thermo sd` を使った SD カードの確認
 - [index.md](index.md): このディレクトリの文書の一覧

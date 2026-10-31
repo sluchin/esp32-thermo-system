@@ -4,7 +4,7 @@
 
 SD カードに、測定値の記録を保存するコードです。1 つのファイル `backlog.bin` を、一定の件数の **輪 (リング)** として使い、記録ごとに「送信済み」のフラグを持ちます。ゲートウェイにも WiFi にもつながらなかった間の測定値を溜めて、つながったときに、古い順に送るために使います (ストア・アンド・フォワード)。`direct.c` が呼び出し元で、グラフの履歴の復元 (`history_store.c`) も、この記録を読みます。
 
-ファイルの形式と、PC やシリアルでの読み方は、[../../../SD_LOG.md](../../../SD_LOG.md) にまとめてあります。この文書は、実装の動きを説明します。
+ファイルの形式と、PC やシリアルでの読み方は、[../../../SD_LOG.md](../../../docs/sd_log.md) にまとめてあります。この文書は、実装の動きを説明します。
 
 ## 公開する関数 (backlog.h)
 
@@ -195,5 +195,5 @@ encode() → head の位置に write_record() → close
 - [direct.md](direct.md): 呼び出し元。送信と、`backlog_commit()` のタイミング
 - [history_store.md](history_store.md): `backlog_foreach_since()` の利用
 - [sdlog.md](sdlog.md): `sdlog_start()` の呼び出し
-- [../../../SD_LOG.md](../../../SD_LOG.md): 記録の読み方
+- [../../../SD_LOG.md](../../../docs/sd_log.md): 記録の読み方
 - [index.md](index.md): このディレクトリの文書の一覧

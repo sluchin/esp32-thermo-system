@@ -29,5 +29,5 @@
 ## 関連する文書
 
 - [../../../README.md](../../../README.md): プロジェクトの概要
-- [../../../SETUP.md](../../../SETUP.md): 配線と、シェルの使い方
+- [../../../SETUP.md](../../../docs/setup.md): 配線と、シェルの使い方
 - `app/thermo-node/docs/index.md`: ノードのソースコードの解析

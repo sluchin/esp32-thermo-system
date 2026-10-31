@@ -10,11 +10,11 @@ Zephyr と同じ道具を、Zephyr のバージョン (v4.3.0) に合わせて�
 
 | 道具 | 設定 | 内容 |
 |:---|:---|:---|
-| clang-format | [.clang-format](.clang-format) | 整形。Zephyr の `.clang-format` に、6 点だけ変えたもの (例外 1、例外 5。`StatementMacros` の追加は、下の注を参照) |
-| EditorConfig | [.editorconfig](.editorconfig) | エディタの設定。Zephyr の `.editorconfig` に、C / C++ / Perl と、Devicetree / Kconfig のインデントだけ変えたもの (例外 1) |
+| clang-format | [.clang-format](../.clang-format) | 整形。Zephyr の `.clang-format` に、6 点だけ変えたもの (例外 1、例外 5。`StatementMacros` の追加は、下の注を参照) |
+| EditorConfig | [.editorconfig](../.editorconfig) | エディタの設定。Zephyr の `.editorconfig` に、C / C++ / Perl と、Devicetree / Kconfig のインデントだけ変えたもの (例外 1) |
 | checkpatch.pl | Zephyr の `.checkpatch.conf` | Zephyr のリンター。インデントの 3 種類だけ無視する (例外 1) |
 | 行末の空白 | `scripts/check-whitespace.sh` | 全てのテキストファイル (Markdown、YAML、CMake、シェルスクリプトなど) に、行末の空白がないことを確認する (`.editorconfig` の `trim_trailing_whitespace = true` に対応。patch ファイルと `LICENSE` は、対象外) |
-| コンパイラの警告 | [app/warnings.txt](app/warnings.txt) | 約 55 個の警告オプション。警告ゼロを維持する |
+| コンパイラの警告 | [app/warnings.txt](../app/warnings.txt) | 約 55 個の警告オプション。警告ゼロを維持する |
 | 静的解析 | gcc `-fanalyzer` | 指摘ゼロを維持する |
 
 ```bash
@@ -53,7 +53,7 @@ Zephyr のバージョンを上げたときは、Zephyr の `.clang-format` と 
    */
   ```
 
-  ライセンスの種類だけは、Zephyr (Apache-2.0) と違い、このリポジトリの [LICENSE](LICENSE) (GPLv3) に合わせて、`GPL-3.0-or-later` です。新しいファイルにも、付けてください。
+  ライセンスの種類だけは、Zephyr (Apache-2.0) と違い、このリポジトリの [LICENSE](../app/thermo-node/private/LICENSE) (GPLv3) に合わせて、`GPL-3.0-or-later` です。新しいファイルにも、付けてください。
 
 ## 3. 例外 (Zephyr と違うところ)
 

@@ -85,6 +85,6 @@
 ## 関連する文書
 
 - [../../../README.md](../../../README.md): プロジェクトの概要
-- [../../../SETUP.md](../../../SETUP.md): 配線と、シェルの使い方
-- [../../../SD_LOG.md](../../../SD_LOG.md): SD カードの記録の読み方
+- [../../../SETUP.md](../../../docs/setup.md): 配線と、シェルの使い方
+- [../../../SD_LOG.md](../../../docs/sd_log.md): SD カードの記録の読み方
 - `app/thermo-gateway/docs/index.md`: ゲートウェイのソースコードの解析

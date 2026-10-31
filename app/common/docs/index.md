@@ -30,4 +30,4 @@ cfg_shell.c ──▶ cfg.c ◀──── cloud.c ──▶ payload.c
 
 - `app/thermo-node/docs/index.md`: ノードのソースコードの解析
 - `app/thermo-gateway/docs/index.md`: ゲートウェイのソースコードの解析
-- [../../../AWS_SETUP.md](../../../AWS_SETUP.md): AWS IoT Core の設定
+- [../../../AWS_SETUP.md](../../../docs/aws_setup.md): AWS IoT Core の設定

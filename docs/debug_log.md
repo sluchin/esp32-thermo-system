@@ -17,7 +17,7 @@ picocom -b 115200 --logfile debug.log /dev/ttyACM0
 
 - `picocom` は、`Ctrl-A` のあと `Ctrl-X` で終了します。
 - 通常のビルドに戻すときは、`THERMO_DEBUG_LOG=ON` を付けずに、ビルドし直します (`build/thermo-gateway` を、同じ場所に作るので、そのまま上書きされます)。
-- デバッグログは、アプリのソース (`app/thermo-gateway/src/`) だけで出ます。Zephyr の内部 (Bluetooth、ネットワーク、mbedTLS) のログは、通常と同じです (詳しくは [README.md](README.md) の「デバッグログ」)。
+- デバッグログは、アプリのソース (`app/thermo-gateway/src/`) だけで出ます。Zephyr の内部 (Bluetooth、ネットワーク、mbedTLS) のログは、通常と同じです (詳しくは [README.md](../README.md) の「デバッグログ」)。
 
 ## 2. 1 行の形式
 
