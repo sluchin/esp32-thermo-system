@@ -1,5 +1,5 @@
 #!/bin/bash
-# Doxygen で, アプリごとに, ドキュメント (HTML) を docs/<アプリ>/html に生成する (docs/index.html から開く).
+# Doxygen で, アプリごとに, ドキュメント (HTML) を build/docs/<アプリ>/html に生成する (build/docs/index.html から開く).
 # 警告が 1 つでもあれば, 失敗する.
 #
 # 2 つのアプリには同じ名前の関数 (ble_init() など) があるので, アプリごとに, 別々に生成する.
@@ -13,17 +13,17 @@ project=$(cd "$(dirname "$0")/.." && pwd)
 status=0
 
 cd "$project"
-rm -rf docs
-mkdir -p docs
+rm -rf build/docs
+mkdir -p build/docs
 
 for app in thermo-node thermo-gateway; do
-    mkdir -p "docs/$app"
-    if ! DOCS_APP=$app DOCS_NAME="Thermo System ($app)" doxygen Doxyfile > "docs/$app/doxygen.log" 2>&1; then
-        cat "docs/$app/doxygen.log"
+    mkdir -p "build/docs/$app"
+    if ! DOCS_APP=$app DOCS_NAME="Thermo System ($app)" doxygen Doxyfile > "build/docs/$app/doxygen.log" 2>&1; then
+        cat "build/docs/$app/doxygen.log"
         exit 1
     fi
 
-    warnings=$(grep -v 'selected output language' "docs/$app/doxygen-warnings.log" || true)
+    warnings=$(grep -v 'selected output language' "build/docs/$app/doxygen-warnings.log" || true)
     if [ -n "$warnings" ]; then
         echo "$warnings"
         echo "docs: $app: $(echo "$warnings" | grep -c 'warning:') warning(s)"
@@ -31,7 +31,7 @@ for app in thermo-node thermo-gateway; do
     fi
 done
 
-cat > docs/index.html <<'HTML'
+cat > build/docs/index.html <<'HTML'
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8"><title>Thermo System</title></head>
 <body><h1>Thermo System</h1><ul>
@@ -41,6 +41,6 @@ cat > docs/index.html <<'HTML'
 HTML
 
 if [ "$status" -eq 0 ]; then
-    echo "docs: ok (docs/index.html)"
+    echo "build/docs: ok (build/docs/index.html)"
 fi
 exit "$status"

@@ -8,7 +8,7 @@ Zephyr RTOS-based BLE thermometer system featuring a sensor node and a gateway f
 
 - **Thermo Node**: 温湿度センサと気圧センサを備えたエッジノード。温度、湿度、気圧のデータを BLE 経由で配信
 - **Thermo Gateway**: 複数のノードから温度データを収集・集約するゲートウェイ
-- **thermon** (別のリポジトリ): ゲートウェイが AWS IoT Core 経由で DynamoDB に保存したデータを、Cognito の未認証ロールで読み取って表示する Android アプリ ([sluchin/thermon](https://github.com/sluchin/thermon)。手順は [AWS_DYNAMODB.md](AWS_DYNAMODB.md))
+- **thermon** (別のリポジトリ): ゲートウェイが AWS IoT Core 経由で DynamoDB に保存したデータを、Cognito の未認証ロールで読み取って表示する Android アプリ ([sluchin/thermon](https://github.com/sluchin/thermon)。手順は [AWS_DYNAMODB.md](docs/aws_dynamodb.md))
 
 ## プロジェクト構成
 
@@ -127,7 +127,7 @@ docker compose run --rm docs
 
 ### 整形と lint
 
-コーディングスタイルは Zephyr の規約に合わせています (違う点は [CODING_STYLE.md](CODING_STYLE.md))。
+コーディングスタイルは Zephyr の規約に合わせています (違う点は [CODING_STYLE.md](docs/coding_style.md))。
 
 ```bash
 # 「対象」が node、gateway の場合
@@ -161,7 +161,7 @@ west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-si
 ### デバッグログ
 
 `LOG_DBG` と `LOG_HEXDUMP_DBG` (BLE で送受信したデータの 16 進ダンプ) は、通常のビルドでは、コードごと消えます。有効にするときは、cmake のオプション `THERMO_DEBUG_LOG` を `ON` にして、ビルドします。
-アプリのソース (`app/thermo-*/src/`) だけに、`THERMO_LOG_LEVEL=4` (DBG) が付きます (`app/common/thermo_log.h`)。Zephyr のモジュール (Bluetooth、ネットワーク、mbedTLS など) は、`CONFIG_LOG_DEFAULT_LEVEL` (3) のままです。全体を DBG にすると、ログの量が多すぎて、スタックが足りなくなり、動かなくなるためです。Zephyr のモジュールのログが必要なときは、`-DCONFIG_NET_LOG=y -DCONFIG_NET_SOCKETS_LOG_LEVEL_ERR=y` などを、個別に足してください ([AWS_SETUP.md](AWS_SETUP.md) の 5.1 を参照)。
+アプリのソース (`app/thermo-*/src/`) だけに、`THERMO_LOG_LEVEL=4` (DBG) が付きます (`app/common/thermo_log.h`)。Zephyr のモジュール (Bluetooth、ネットワーク、mbedTLS など) は、`CONFIG_LOG_DEFAULT_LEVEL` (3) のままです。全体を DBG にすると、ログの量が多すぎて、スタックが足りなくなり、動かなくなるためです。Zephyr のモジュールのログが必要なときは、`-DCONFIG_NET_LOG=y -DCONFIG_NET_SOCKETS_LOG_LEVEL_ERR=y` などを、個別に足してください ([AWS_SETUP.md](docs/aws_setup.md) の 5.1 を参照)。
 
 ```bash
 # Docker: 環境変数 THERMO_DEBUG_LOG を ON にして、build-* のサービスを実行する (既定は OFF)
@@ -174,7 +174,7 @@ west build -p always -b xiao_esp32c3 app/thermo-node -- -DTHERMO_DEBUG_LOG=ON
 
 gateway がスキャンで受け取る広告データの 16 進ダンプは、大量に届くので、50 要素に 1 回だけ出します (`app/thermo-gateway/src/ble.c` の `ADV_HEXDUMP_EVERY`。`THERMO_DEBUG_LOG=ON` のときだけ有効)。
 
-ログの読み方 (16 進ダンプの見方、SwitchBot の受信から AWS への送信までの流れ) は、[DEBUG_LOG.md](DEBUG_LOG.md) を参照してください。
+ログの読み方 (16 進ダンプの見方、SwitchBot の受信から AWS への送信までの流れ) は、[DEBUG_LOG.md](docs/debug_log.md) を参照してください。
 
 設定を切り替えるときは、前のビルドが残っていると、反映されないことがあるので、ビルドのディレクトリ (`build/thermo-node` など) を削除してから、ビルドし直します (west は `-p always`)。
 
@@ -193,21 +193,21 @@ scripts/flash.sh gateway /dev/ttyACM0
 
 ### Thermo Node
 
-- 温湿度センサと気圧センサ (AHT20 + BMP280 のモジュール。I2C) の読取 (Zephyr のセンサ API。配線は [SETUP.md](SETUP.md) の「Thermo ノードのセンサ」)。DHT11 (気圧なし) にも、ビルドのオプション (`THERMO_SENSOR=dht11`) で替えられます。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
+- 温湿度センサと気圧センサ (AHT20 + BMP280 のモジュール。I2C) の読取 (Zephyr のセンサ API。配線は [SETUP.md](docs/setup.md) の「Thermo ノードのセンサ」)。DHT11 (気圧なし) にも、ビルドのオプション (`THERMO_SENSOR=dht11`) で替えられます。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
 - BLE GATT サービスで、温度、湿度、気圧のデータを配信
-- 拡張ボードの OLED に、温度、湿度、日付、時刻と、温度と湿度のグラフ (直近の約 6 時間。SD カードの記録から、再起動のあとも戻す) を表示 (ユーザボタンでページを切り替え。OLED は、起動のときとボタンを押したときに点灯して、10 秒たつと消える。消えている間にボタンを押すと、点灯する)。時刻は、拡張ボードの RTC (PCF8563) から読みます (RTC は、ゲートウェイから BLE で受け取った時刻に合わせます) (設定は [SETUP.md](SETUP.md) の「OLED の表示と時刻」。`THERMO_DISPLAY=n` と `THERMO_RTC=n` で、別々に外せます)
-- ゲートウェイにつながらない測定が 5 回続いたら、ノードが、WiFi で、AWS IoT Core に、直接 MQTT で送る (ゲートウェイにつながったら止める。5 回失敗したらあきらめる)。全ての測定値 (5 秒ごと) は、送信済みフラグつきで、拡張ボードの SD カードに保存する (最大 100000 件。超えたら、古い記録から上書きする)。BLE も WiFi も使えない間は、未送信で保存し続けて、つながったときに、測った時刻のまま、古い順に送る ([SETUP.md](SETUP.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」。ノードごとの証明書は、[AWS_SETUP.md](AWS_SETUP.md) の 7 章)。
-- ノードのログも、SD カードに、テキストで保存する (`boot.log`: 起動から 60 秒の全てのログ、`error.log`: エラーのログ。形式は [SD_LOG.md](SD_LOG.md))。
-- 起動のときに、OLED に、約 3 秒の起動画面 (丸い絵が、ドットを食べながら走る) を出して、ブザーで、短いメロディを鳴らす (オリジナルの絵と曲。差し替えは、[SETUP.md](SETUP.md) の「起動画面と起動音」)。ボタン (D1) を押すと、ページを切り替えて、ブザーで、短い音を鳴らす (差し替えは、同じ「ボタンを押したときの音」)
+- 拡張ボードの OLED に、温度、湿度、日付、時刻と、温度と湿度のグラフ (直近の約 6 時間。SD カードの記録から、再起動のあとも戻す) を表示 (ユーザボタンでページを切り替え。OLED は、起動のときとボタンを押したときに点灯して、10 秒たつと消える。消えている間にボタンを押すと、点灯する)。時刻は、拡張ボードの RTC (PCF8563) から読みます (RTC は、ゲートウェイから BLE で受け取った時刻に合わせます) (設定は [SETUP.md](docs/setup.md) の「OLED の表示と時刻」。`THERMO_DISPLAY=n` と `THERMO_RTC=n` で、別々に外せます)
+- ゲートウェイにつながらない測定が 5 回続いたら、ノードが、WiFi で、AWS IoT Core に、直接 MQTT で送る (ゲートウェイにつながったら止める。5 回失敗したらあきらめる)。全ての測定値 (5 秒ごと) は、送信済みフラグつきで、拡張ボードの SD カードに保存する (最大 100000 件。超えたら、古い記録から上書きする)。BLE も WiFi も使えない間は、未送信で保存し続けて、つながったときに、測った時刻のまま、古い順に送る ([SETUP.md](docs/setup.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」。ノードごとの証明書は、[AWS_SETUP.md](docs/aws_setup.md) の 7 章)。
+- ノードのログも、SD カードに、テキストで保存する (`boot.log`: 起動から 60 秒の全てのログ、`error.log`: エラーのログ。形式は [SD_LOG.md](docs/sd_log.md))。
+- 起動のときに、OLED に、約 3 秒の起動画面 (丸い絵が、ドットを食べながら走る) を出して、ブザーで、短いメロディを鳴らす (オリジナルの絵と曲。差し替えは、[SETUP.md](docs/setup.md) の「起動画面と起動音」)。ボタン (D1) を押すと、ページを切り替えて、ブザーで、短い音を鳴らす (差し替えは、同じ「ボタンを押したときの音」)
 - ログ出力（UART シリアルコンソール）
 
 ### Thermo Gateway
 
 - BLE スキャンで周辺ノードを検出して、GATT で接続し、温度、湿度、気圧の通知を受信 (最大 3 台。気圧を送らない以前のノードも受信できる)
 - SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズ (接続しない) を受信して、温度 (℃)・湿度・電池残量を、10 秒に 1 回、AWS IoT Core に送信
-- WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度、湿度、気圧を送信 (設定手順は [AWS_SETUP.md](AWS_SETUP.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](AWS_GRAPH.md)。DynamoDB に保存して、アプリから読む手順は [AWS_DYNAMODB.md](AWS_DYNAMODB.md))
-- SNTP で同期した時刻を、接続したノードに BLE (GATT の書き込み) で渡して、ノードの RTC を合わせる (1 時間ごと。[SETUP.md](SETUP.md) の「ゲートウェイからの時刻の同期」)
-- 起動の 1 分後から 1 分ごとに、ノードの RTC に時刻がなければ、ノードが自分で WiFi と SNTP で時刻を取って、WiFi を切る (最大 5 回) (BLE の予備。[SETUP.md](SETUP.md) の「WiFi での時刻の取得」)
+- WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度、湿度、気圧を送信 (設定手順は [AWS_SETUP.md](docs/aws_setup.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](docs/aws_graph.md)。DynamoDB に保存して、アプリから読む手順は [AWS_DYNAMODB.md](docs/aws_dynamodb.md))
+- SNTP で同期した時刻を、接続したノードに BLE (GATT の書き込み) で渡して、ノードの RTC を合わせる (1 時間ごと。[SETUP.md](docs/setup.md) の「ゲートウェイからの時刻の同期」)
+- 起動の 1 分後から 1 分ごとに、ノードの RTC に時刻がなければ、ノードが自分で WiFi と SNTP で時刻を取って、WiFi を切る (最大 5 回) (BLE の予備。[SETUP.md](docs/setup.md) の「WiFi での時刻の取得」)
 - WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存
 - デバッグシェル対応
 

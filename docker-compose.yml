@@ -344,5 +344,5 @@ services:
       - .:/workspace/esp32-thermo-system
     working_dir: /workspace/esp32-thermo-system
     user: "${UID:-0}:${GID:-0}"
-    command: sh -c "rm -rf build docs && echo 'Removed build/ and docs/'"
+    command: sh -c "rm -rf build && echo 'Removed build/'"
 

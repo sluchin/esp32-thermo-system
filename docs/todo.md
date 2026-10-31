@@ -2,7 +2,7 @@
 
 ## 未対応
 
-- [x] **AWS IoT Core への送信** (XIAO ESP32C3。外付けアンテナあり): WiFi、SNTP、TLS (相互認証)、MQTT で、SwitchBot の値を、10 秒ごとに送る。手順は [AWS_SETUP.md](AWS_SETUP.md)。TLS の設定 (PEM、ECDHE-RSA、AES-GCM、PSA、バッファ 6144、時間制限 30 秒) は、[AWS_SETUP.md](AWS_SETUP.md) の 5.1。
+- [x] **AWS IoT Core への送信** (XIAO ESP32C3。外付けアンテナあり): WiFi、SNTP、TLS (相互認証)、MQTT で、SwitchBot の値を、10 秒ごとに送る。手順は [AWS_SETUP.md](aws_setup.md)。TLS の設定 (PEM、ECDHE-RSA、AES-GCM、PSA、バッファ 6144、時間制限 30 秒) は、[AWS_SETUP.md](aws_setup.md) の 5.1。
   - [ ] 残り: 長時間 (数時間) 動かして、再接続とメモリ (`CONFIG_MBEDTLS_HEAP_SIZE`) を確認する。(外付けアンテナなしでは、WiFi が不安定なので、アンテナは必須)
 - [ ] **スマートフォンのテザリングで、簡単につなぐ** (Android アプリから SSID を書き込む。ファームウェアの `thermo tether` と `thermo restore` と、Android アプリ [thermo-term](https://github.com/sluchin/thermo-term) は、実装した。**実機では、まだ確認していない**): ノードとゲートウェイを、スマートフォンのテザリングで、ネットにつなぐとき、シェルの `thermo set ssid ...` を、手で打たずに、Android アプリから、SSID (とパスワード) を、書き込めるようにする。
   - **先に確認すること**: Android の「USB テザリング」は、相手が USB のホストで、RNDIS/NCM に対応しているときだけ使える。XIAO ESP32C3 の USB は、デバイス側 (USB シリアル/JTAG) なので、**USB テザリングでは、つなげない** (ネットを共有してもらう通信は、基板が USB ホストになる必要がある)。使うのは、スマートフォンの **Wi-Fi テザリング (ホットスポット)**。USB ケーブルは、SSID を書き込むときだけに使う。ホットスポットは、**2.4 GHz** に設定する (ESP32-C3 は 5 GHz に対応しない。Android の既定が 5 GHz のことがある)。暗号化は、WPA2-PSK を使う (WPA3 だけの設定は、つながらないことがある)。
@@ -10,7 +10,7 @@
   - 候補 (B): BLE の書き込み用の特性 (暗号化、ボンディング) を、ノードに足す (ノードだけ。ゲートウェイは、セントラルなので、別の対応が要る)。A (USB シリアル) を先に進める。
   - **決めたこと**: Android アプリは、自作する。**決めること**: アプリの置き場所 (このリポジトリの `android/`、`thermon`、新しいリポジトリ)。アプリの機能 (SSID とパスワードの入力、設定の確認 `thermo show`、証明書の登録 `cred add` も扱うか)。パスワードの扱い (端末に保存しない。ログに出さない)。ホットスポットの SSID を、アプリが読めるか (Android の制限で、読めないことがある。手で入力する)。
   - 関連: 下の「ノードの BLE が使えないときの、WiFi での直接の MQTT」。
-- [x] **ノードの BLE が使えないときの、WiFi での直接の MQTT** (実装した。**実機では、まだ確認していない**): ゲートウェイにつながらない測定が 5 回続いたら、WiFi と MQTT で、直接送る。ゲートウェイにつながったら止める。接続が 5 回失敗したらあきらめる。ノードごとの証明書、クライアント ID、ポリシー。共有コードは `app/common/` (`cfg` `cfg_shell` `cloud` `ntp` `payload` `wifi_link`)、ノードの制御は `app/thermo-node/src/direct.c`。手順は [SETUP.md](SETUP.md) と [AWS_SETUP.md](AWS_SETUP.md) の 7 章。
+- [x] **ノードの BLE が使えないときの、WiFi での直接の MQTT** (実装した。**実機では、まだ確認していない**): ゲートウェイにつながらない測定が 5 回続いたら、WiFi と MQTT で、直接送る。ゲートウェイにつながったら止める。接続が 5 回失敗したらあきらめる。ノードごとの証明書、クライアント ID、ポリシー。共有コードは `app/common/` (`cfg` `cfg_shell` `cloud` `ntp` `payload` `wifi_link`)、ノードの制御は `app/thermo-node/src/direct.c`。手順は [SETUP.md](setup.md) と [AWS_SETUP.md](aws_setup.md) の 7 章。
 - [x] **ノードの、SD カードへの保存と、あとからの送信 (ストア・アンド・フォワード)** (実装した。**実機では、まだ確認していない**): 全ての測定値 (UNIX 時刻、温度、湿度。5 秒ごと) を、送信済みフラグつきで、SD カードに保存する (`backlog.c`。FatFS。16 バイトの固定長、CRC つき。件数が上限の輪で、超えたら、古い記録から上書きする)。ゲートウェイにつながっている間の測定値は、送信済み、つながっていない間は、未送信で保存する。未送信の記録があれば、ゲートウェイにつながっていても、WiFi と MQTT で、古い順に、測った時刻のまま送って、publish できた分を、送信済みにする。
 - [ ] 上の 2 つの、**実機での確認**: BLE と WiFi と TLS と SD カードを同時に動かしたときの動作と RAM (静的な RAM の空きは、約 1.5 KB しかない)、ゲートウェイを止めたときの切り替えと、戻ったときの停止、SD カードの読み書き (配線、FAT のフォーマット、抜き差し、電源断)、あとからの送信 (AWS の DynamoDB に、測った時刻で入ること)。
 - [ ] SD カードの記録を、**PUBACK を確認してから**、送り終えたことにする (今は、publish の成功だけ。接続が切れる直前の値は、失われることがある)。
@@ -27,7 +27,7 @@
   - [x] OLED のグラフ: 温度と湿度の履歴 (170 秒ごとの平均を 128 点。約 6 時間) の折れ線を、ユーザボタン (D1) で切り替えるページに表示する (`history.c`、`button.c`)。測定値のない区切りは、線を引かない。履歴は、起動のときに、SD カードの記録 (`backlog.c`) から、区切りごとの平均を作り直して戻す (`history_store.c`)。
   - [x] 段階 4: BLE で時刻が届かないときの予備として、ノードが、WiFi で、直接、SNTP の時刻を取得する (`wifi_time.c`。`CONFIG_THERMO_WIFI_TIME`)。起動の 1 分後から 1 分ごとに、RTC に時刻があるかを確かめ、なければ、WiFi につないで時刻を取り、RTC に設定して、WiFi を切る (最大 5 回)。SSID とパスワードは、シェル (`thermo set`) か、`scripts/send-wifi.sh` で設定する。
   - [ ] 残り: WiFi と BLE の同時動作で、アドバタイズと DHT11 の読み取りが、続くか (長時間)。スタックとヒープの余裕。
-- [x] **ノードのログを SD カードに保存する** (実装した。**実機では、まだ確認していない**): 起動から 60 秒の全てのログ (`boot.log`) と、エラーのログ (`error.log`) を、テキストで保存する (`sdlog.c`。ログのバックエンド。[SD_LOG.md](SD_LOG.md))。
+- [x] **ノードのログを SD カードに保存する** (実装した。**実機では、まだ確認していない**): 起動から 60 秒の全てのログ (`boot.log`) と、エラーのログ (`error.log`) を、テキストで保存する (`sdlog.c`。ログのバックエンド。[SD_LOG.md](sd_log.md))。
 - [ ] **測定値を CSV で mini SD カードに保存する** (拡張ボードの SD カードスロット。SPI): Zephyr の FAT (FatFS) で、CSV (時刻、温度、湿度) を追記する。Zephyr は、ext4 に対応していない (ext2、FAT、LittleFS だけ)。PC で読むには FAT32 が簡単。SPI の SD は、シールドの `seeed_xiao_expansion_board` と同じ設定 (CS は D2)。SD の取り外しと、書き込み中の電源断の対策 (定期的に同期する) も、考える。
 - [ ] **MCUboot と、WiFi + HTTPS による OTA** (ノードとゲートウェイ。2026-10-19): 新しいファームウェアを、WiFi で、HTTPS でダウンロードして、MCUboot で入れ替える。
   - **今のフラッシュの配置のまま、入る**: `xiao_esp32c3` の既定の配置 (`partitions_0x0_default_4M.dtsi`) は、`mcuboot` 64 KB (0x0)、`image-0` 1792 KB (0x20000)、`image-1` 1792 KB (0x1E0000)、`storage` 192 KB (0x3B0000)。今のイメージは、node が約 940 KB、gateway が約 850 KB で、1 つのスロットの約半分。設定 (NVS) は、`storage_partition` のままなので、残るはず (実機で確認する)。
@@ -47,7 +47,7 @@
 ## 対応済み
 
 - [x] **SwitchBot 屋外用温湿度計**: 屋外用温湿度計 (Outdoor Meter) の、温度・湿度・電池残量を受け取る。他の SwitchBot の機種 (Meter、Meter Plus など) は、機種コードごとに並びが違うので、未対応。
-- [x] **Thermo ノード**: DHT11 の読取 (配線は [SETUP.md](SETUP.md)。D7)、BLE の配信、ゲートウェイの GATT 接続と通知の受信、ノードの温度の AWS IoT Core への送信 ([AWS_SETUP.md](AWS_SETUP.md) の 1.1)、WiFi と BLE の同時動作で温度が欠けないか。
+- [x] **Thermo ノード**: DHT11 の読取 (配線は [SETUP.md](setup.md)。D7)、BLE の配信、ゲートウェイの GATT 接続と通知の受信、ノードの温度の AWS IoT Core への送信 ([AWS_SETUP.md](aws_setup.md) の 1.1)、WiFi と BLE の同時動作で温度が欠けないか。
 - [x] **温湿度センサ (DHT11)**: ノードは、Zephyr のセンサ API で、DHT11 を読む (`app/thermo-node/boards/xiao_esp32c3.overlay`。D7 (GPIO20))。BLE の通知は、温度 (int16、0.1 ℃) と湿度 (uint16、0.1 %) の 4 バイトで、AWS には `temperature_c` と `humidity` を送る。単体テストは、偽のセンサで確認している。(実機での確認は、上の項目)
 - [x] **起動画面と起動音** (拡張ボードの OLED とパッシブブザー): 実装した (`oled_show_boot()`、`buzzer.c`、素材は `boot_assets.c`。`THERMO_BOOT_SCREEN` と `THERMO_BUZZER` で外せる。単体テストは `tests/buzzer`、`tests/oled`、`tests/main`)。ブザーは D3 (GPIO5) につなぐ。素材のサブモジュール (`app/thermo-node/private/`) は、使い方を `SETUP.md` に書いてある。ボタン (D1) を押したときの音も、同じ仕組みで鳴らす (`button_assets.c`。`THERMO_BUTTON_SOUND` で外せる)。
 - [x] ペイロードの UNIX 時刻 (`timestamp` [s]): 受信したときの時刻を、publish するときに、(今の UNIX 時刻) - (受信してからの経過) で求める。`uptime_ms` も、残す。

@@ -2,7 +2,7 @@
 
 thermo-node の、SD カードへの保存 (送信済みフラグつき)、あとからの送信、グラフの復元を、実機で確認する試験項目です。単体テスト (`docker compose run --rm test-node`) では確認できない、SD カード、BLE、WiFi、AWS IoT Core との結合を対象にします。
 
-記録の形式と読み方は、[SD_LOG.md](SD_LOG.md) を参照してください。
+記録の形式と読み方は、[SD_LOG.md](sd_log.md) を参照してください。
 
 ## 1. 試験の対象と前提
 
@@ -23,13 +23,13 @@ thermo-node の、SD カードへの保存 (送信済みフラグつき)、あ�
 | ゲートウェイ | thermo-gateway を書き込んだ XIAO ESP32C3 (WiFi で AWS IoT Core につなぐ) |
 | SD カード | FAT32 でフォーマットした SD カード (例: 2 GB) |
 | WiFi | 2.4 GHz のアクセスポイント (電源を切って、つながらない状態にできること) |
-| AWS | AWS IoT Core のテストクライアントで、トピックの受信を見られること ([AWS_SETUP.md](AWS_SETUP.md)) |
-| PC | シリアル (`picocom -b 115200 /dev/ttyACM0`)、SD カードリーダー、Python 3 ([SD_LOG.md](SD_LOG.md) の読み取りスクリプト) |
+| AWS | AWS IoT Core のテストクライアントで、トピックの受信を見られること ([AWS_SETUP.md](aws_setup.md)) |
+| PC | シリアル (`picocom -b 115200 /dev/ttyACM0`)、SD カードリーダー、Python 3 ([SD_LOG.md](sd_log.md) の読み取りスクリプト) |
 
 ### 事前の準備
 
 1. ノードを、この版のファームウェアで書き込む (`docker compose run --rm build-node`、`scripts/flash.sh node`)。
-2. 設定 (SSID、パスワード、エンドポイント、クライアント ID、証明書) を、シェルの `thermo set` で入れる ([SETUP.md](SETUP.md)。確認は `thermo show`)。
+2. 設定 (SSID、パスワード、エンドポイント、クライアント ID、証明書) を、シェルの `thermo set` で入れる ([SETUP.md](setup.md)。確認は `thermo show`)。
 3. 上限の試験 (IT-401〜IT-405) は、上限を小さくしたビルドで行う (例: `-DCONFIG_THERMO_BACKLOG_MAX_RECORDS=100`)。ほかの試験は、既定のビルドで行う。
 4. 試験のたびに、SD カードを、PC で空にするか、`fs rm /SD:/backlog.bin` で消す (指定のない限り)。
 
@@ -58,7 +58,7 @@ thermo-node の、SD カードへの保存 (送信済みフラグつき)、あ�
 | ID | 項目 | 手順 | 期待結果 | 結果 |
 |:---|:---|:---|:---|:---|
 | IT-201 | ファイルの作成 | IT-101 のあと、10 秒待って `fs ls /SD:` を実行する | `BACKLOG.BIN` ができている。大きさは 16 の倍数で、5 秒ごとに 16 バイトずつ増える | 済 |
-| IT-202 | 形式 | `fs read /SD:/backlog.bin 48` を実行する ([SD_LOG.md](SD_LOG.md) で読む) | 1 件 16 バイト。時刻が UNIX 時刻 (RTC の時刻と近い)、温度と湿度と気圧がログの値 (10 倍) と同じ。気圧のあとの予約が `00` (気圧を足す前の形式で `済`。気圧を足したので、やり直す) | - |
+| IT-202 | 形式 | `fs read /SD:/backlog.bin 48` を実行する ([SD_LOG.md](sd_log.md) で読む) | 1 件 16 バイト。時刻が UNIX 時刻 (RTC の時刻と近い)、温度と湿度と気圧がログの値 (10 倍) と同じ。気圧のあとの予約が `00` (気圧を足す前の形式で `済`。気圧を足したので、やり直す) | - |
 | IT-203 | 間隔 | 連続する記録の時刻を見る | 5 秒ずつ増える (測定の失敗があれば、飛ぶ) | 済 |
 | IT-204 | CRC | PC のスクリプトで、全ての記録を読む | `BROKEN` が 0 件 | - |
 | IT-205 | ゲートウェイにつながっている | ゲートウェイを動かして、BLE でつなぐ。保存された記録のフラグを見る | 8 バイト目が `01` (送信済み) | 済 |
@@ -102,7 +102,7 @@ thermo-node の、SD カードへの保存 (送信済みフラグつき)、あ�
 
 ## 6. あとからの送信
 
-準備: AWS IoT Core のテストクライアントで、ノードのトピックを購読しておく ([AWS_SETUP.md](AWS_SETUP.md))。
+準備: AWS IoT Core のテストクライアントで、ノードのトピックを購読しておく ([AWS_SETUP.md](aws_setup.md))。
 
 | ID | 項目 | 手順 | 期待結果 | 結果 |
 |:---|:---|:---|:---|:---|

@@ -2,7 +2,7 @@
 
 本ドキュメントは、BLE サーモメータシステム (`thermo-node` / `thermo-gateway`) における MISRA-C (MISRA C:2012) ガイドラインの適用方針と、プロジェクトの目的・アーキテクチャ上の理由から**あえて対応せず例外 (Deviation) としているルール**を定義・記録したものです。
 
-コーディング規約の詳細は [CODING_STYLE.md](CODING_STYLE.md) を参照してください。
+コーディング規約の詳細は [CODING_STYLE.md](coding_style.md) を参照してください。
 
 ---
 

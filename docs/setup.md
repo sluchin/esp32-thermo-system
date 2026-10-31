@@ -505,7 +505,7 @@ thermo show                       (ready to connect: yes になれば、揃っ�
 
 **スマートフォンのテザリングに切り替える** (元の設定を残して、戻せる): `thermo tether <SSID> [パスワード]` は、今の SSID とパスワードを、フラッシュに保存してから (1 項目。`tether_bak`)、テザリングの SSID とパスワードを設定します。続けて、`thermo apply` で反映します。すでに切り替えているときに、もう一度実行しても、最初の元の設定は、上書きしません。`thermo restore` は、元の SSID とパスワードに戻して、保存した元の設定を消します (続けて、`thermo apply`)。`thermo show` の `tether backup:` に、元の SSID が出ます (なければ `(none)`)。パスワードは、基板の外に、出しません。Android アプリ [thermo-term](https://github.com/sluchin/thermo-term) が、USB ケーブル (Type-C) で、この 2 つのコマンドを送ります。
 
-文字が欠けないように、`scripts/send-cred.sh` と `scripts/send-wifi.sh` で、少しずつ送ります。**証明書、秘密鍵、ポリシー、クライアント ID は、ノードごとに、別のものを作ります** (ゲートウェイと共有しません。1 台が漏れても、その 1 台だけ、無効にできます。クライアント ID を重ねると、AWS IoT Core が、先の接続を切るので、奪い合いになります)。共有してよいのは、ルート CA とエンドポイントだけです。作り方は、[AWS_SETUP.md](AWS_SETUP.md) の 7 章です。
+文字が欠けないように、`scripts/send-cred.sh` と `scripts/send-wifi.sh` で、少しずつ送ります。**証明書、秘密鍵、ポリシー、クライアント ID は、ノードごとに、別のものを作ります** (ゲートウェイと共有しません。1 台が漏れても、その 1 台だけ、無効にできます。クライアント ID を重ねると、AWS IoT Core が、先の接続を切るので、奪い合いになります)。共有してよいのは、ルート CA とエンドポイントだけです。作り方は、[AWS_SETUP.md](aws_setup.md) の 7 章です。
 
 **SD カード** (拡張ボードの SD カードスロット。SPI。CS は D2)
 
@@ -522,7 +522,7 @@ thermo show                       (ready to connect: yes になれば、揃っ�
 - **RAM の余裕が小さい**: SD カードと TLS を加えて、静的な RAM (`dram0`) の空きは、約 1.5 KB です。`prj.conf` で、ネットワークのバッファ (`CONFIG_NET_BUF_*_COUNT` と `CONFIG_NET_PKT_*_COUNT`) と、FatFS の同時に開くファイル (`CONFIG_FS_FATFS_NUM_FILES`) を、減らしています。機能を足すと、`region dram0_0_seg overflowed` で、ビルドが失敗します (そのときは、`CONFIG_MBEDTLS_HEAP_SIZE` など、ほかの設定を見直します)。
 - **BLE は、1 台にしか、つながりません** (`CONFIG_BT_MAX_CONN=1`)。2 にすると、BLE が使うヒープが増えて、WiFi と TLS のぶんが足りなくなり、直接の送信が届かなくなります (実機で確認)。スマートフォンのアプリ [thermo-term](https://github.com/sluchin/thermo-term) の BLE のタブで、温度と湿度を見るときは、ゲートウェイを止めます。スマートフォンがつないでいる間は、ノードは、ゲートウェイにつながっているとみなして、直接の送信をしません。
 - 「送り終えた」は、publish の成功で、判断します (PUBACK は、待ちません)。接続が切れる直前の値は、AWS に届かずに、失われることがあります。
-- BLE だけで、WiFi の設定がない場合の、ゲートウェイ経由での、SD カードの記録の送信は、まだありません ([TODO.md](TODO.md))。
+- BLE だけで、WiFi の設定がない場合の、ゲートウェイ経由での、SD カードの記録の送信は、まだありません ([TODO.md](todo.md))。
 
 ### DHT11 の読み取りの失敗と、割り込みを止める設定
 
@@ -577,7 +577,7 @@ Thermo ノードのシェルには、ファイルシステムのコマンド `fs
 - **`fs rm` と `fs write` も使えます。** USB のシリアルにつなげた人は、ファイルを消したり、書き換えたりできます。ログを書いている最中には、実行しないでください (FAT が壊れるおそれがあります)。
 - 大きなファイルに `fs cat` を実行すると、画面に大量に流れます。
 - ノードのログも、SD カードに、テキストで保存します (`/SD:/boot.log` は、起動から 60 秒の全てのログ、`/SD:/error.log` は、エラーのログ。`fs cat /SD:/error.log` で読めます)。
-- 記録の形式と読み方 (16 進のダンプの読み方、PC で読む Python) は、[SD_LOG.md](SD_LOG.md) に書いてあります。実機の試験項目は、[TEST_INTEGRATION.md](TEST_INTEGRATION.md) です。
+- 記録の形式と読み方 (16 進のダンプの読み方、PC で読む Python) は、[SD_LOG.md](sd_log.md) に書いてあります。実機の試験項目は、[TEST_INTEGRATION.md](test_integration.md) です。
 
 ## CI/CD（GitHub Actions）
 
@@ -624,7 +624,7 @@ docker compose run --rm lint
 docker compose run --rm whitespace
 ```
 
-コーディングスタイルは Zephyr の規約に合わせています。違う点は、[CODING_STYLE.md](CODING_STYLE.md) を参照してください。
+コーディングスタイルは Zephyr の規約に合わせています。違う点は、[CODING_STYLE.md](coding_style.md) を参照してください。
 
 ### ビルドアーティファクト
 

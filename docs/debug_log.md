@@ -197,7 +197,7 @@ ASCII の部分を、つなげると、次の JSON です。
 | `uptime_ms` | ゲートウェイが、受信したときの、起動からの時間 [ミリ秒] (`[00:03:43...]` の約 223.9 秒と合う) |
 | `timestamp` | 受信したときの UNIX 時刻 [秒]。SNTP で時計が合っているときだけ入る |
 
-このペイロードは、AWS コンソールの MQTT テストクライアントに表示されるものと、同じです ([AWS_SETUP.md](AWS_SETUP.md) の 4)。
+このペイロードは、AWS コンソールの MQTT テストクライアントに表示されるものと、同じです ([AWS_SETUP.md](aws_setup.md) の 4)。
 
 ## 6. ログの確認のしかた
 
@@ -223,7 +223,7 @@ grep -E "<wrn>|<err>" debug.log
 | 接続が切れていないか | `<wrn>` の `Connection failed`、`MQTT connection lost`、`Send queue is full` が出ていないか |
 
 - `Send queue is full, the value was dropped` が出ているのは、AWS に接続できていないときです。
-- `Publish acknowledged` が、`MQTT publish` に対して、出ないときは、メッセージが届いていません。AWS 側のポリシー (`iot:Publish` の対象のトピック) を、確認してください ([AWS_SETUP.md](AWS_SETUP.md) の 5)。
+- `Publish acknowledged` が、`MQTT publish` に対して、出ないときは、メッセージが届いていません。AWS 側のポリシー (`iot:Publish` の対象のトピック) を、確認してください ([AWS_SETUP.md](aws_setup.md) の 5)。
 
 ### DHT11 の読み取りの失敗
 
@@ -237,7 +237,7 @@ grep -E "<wrn>|<err>" debug.log
 | `<dbg> DHT: dht_sample_fetch: Invalid checksum in fetched sample` が、`Could not fetch` の前に出る | センサは応答したが、データが乱れた。BLE の割り込みなどが、読み取りを乱している可能性が高い |
 | `Could not fetch` だけで、`Invalid checksum` が出ない | 時間切れ。配線 (`out` が D7、`+` が 3V3、`-` が GND)、ジャンパーの接触、センサの電源、`dio-gpios` の極性 (`GPIO_ACTIVE_LOW`) の問題か、割り込みによる遅れ |
 
-割り込みの影響は、読み取りの間、割り込みを止める設定 (`CONFIG_DHT_LOCK_IRQS=y`) で、防げます。**この設定は、既定で有効です**。無効にして試す方法は、[SETUP.md](SETUP.md) の「DHT11 の読み取りの失敗と、割り込みを止める設定」にあります。
+割り込みの影響は、読み取りの間、割り込みを止める設定 (`CONFIG_DHT_LOCK_IRQS=y`) で、防げます。**この設定は、既定で有効です**。無効にして試す方法は、[SETUP.md](setup.md) の「DHT11 の読み取りの失敗と、割り込みを止める設定」にあります。
 
 ## 7. ノードのログ
 
