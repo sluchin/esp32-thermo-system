@@ -253,6 +253,9 @@ jobs:
           set -o pipefail
           env UID="$(id -u)" GID="$(id -g)" docker compose run --rm ${{ matrix.service }} 2>&1 | tee "$RUNNER_TEMP/lint.log"
 
+      - name: Check markdown formatting
+        if: matrix.service == 'format'
+        run: npx --yes markdownlint-cli2
       - name: Upload the lint log
         uses: actions/upload-artifact@v7
         if: always()

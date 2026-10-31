@@ -63,7 +63,7 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 
 ### 実行例
 
-```
+```text
 *** Booting Zephyr OS build v3.x.x ***
 [00:00:00.000,000] <inf> thermo_node: Thermo Node started (SIMULATOR MODE)
 [00:00:00.000,500] <inf> thermo_node: Version 0.1.0 (git 584daa5c1f2e)
@@ -117,6 +117,7 @@ native_sim/native/64 ボード用の device tree overlay (Zephyr は `boards/<�
 ## 開発ワークフロー
 
 1. **ローカル開発**
+
    ```bash
    # シミュレーション用にビルド
    docker compose run --rm build-node-sim
@@ -134,6 +135,7 @@ native_sim/native/64 ボード用の device tree overlay (Zephyr は `boards/<�
    - ハードウェアなしで問題を検出
 
 3. **本番環境への展開**
+
    ```bash
    # ESP32C3 用にビルド
    docker compose run --rm build-node

@@ -235,17 +235,20 @@ pipx install esptool
 1. ESP32C3 を USB で接続
 
 2. デバイスポート確認
+
    ```bash
    ls /dev/ttyACM*  # Linux (XIAO ESP32C3 は、USB 内蔵なので ttyACM)
    ls /dev/tty.usbmodem*  # macOS
    ```
 
    シリアルポートを使うには、`dialout` グループに入る (入れたあとは、ログインし直す)。
+
    ```bash
    sudo usermod -aG dialout $USER
    ```
 
 3. ファームウェアをフラッシング
+
    ```bash
    # Thermo Node
    esptool -p /dev/ttyACM0 write-flash 0x0 build/thermo-node/zephyr/zephyr.bin
@@ -346,7 +349,7 @@ west build -b xiao_esp32c3 app/thermo-node -- -DEXTRA_DTC_OVERLAY_FILE=sensors/d
 
 拡張ボードの OLED (SSD1306、128 x 64 ドット) に、温度、湿度、日付、時刻と、温度と湿度のグラフを表示します。ノードの、XIAO ESP32C3 を、拡張ボードに差せば、配線は、要りません (OLED と RTC は、ボードの I2C。D4 が SDA、D5 が SCL。OLED のアドレスは `0x3C`、RTC のアドレスは `0x51`)。気圧は、OLED には表示しません (ログと AWS に送ります)。
 
-```
+```text
 2026-10-08
 14:05:09
 Temp 23.5 C
@@ -626,6 +629,7 @@ docker compose run --rm whitespace
 ### ビルドアーティファクト
 
 `build` ジョブの成功・失敗にかかわらず、以下のファイルがアップロードされます：
+
 - `zephyr.elf` - デバッグ情報付き実行ファイル
 - `zephyr.bin` - バイナリ (実機用)
 - `zephyr.exe` - シミュレーション用の実行ファイル (`native_sim`)

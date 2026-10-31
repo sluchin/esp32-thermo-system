@@ -21,7 +21,7 @@ picocom -b 115200 --logfile debug.log /dev/ttyACM0
 
 ## 2. 1 行の形式
 
-```
+```text
 [00:03:43.972,000] <dbg> thermo_cloud: publish_sample: MQTT publish (id 18, QoS 1) to thermo/...
  ^^^^^^^^^^^^^^^^^  ^^^^^ ^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  起動からの時間      レベル モジュール    関数名         メッセージ
@@ -47,7 +47,7 @@ picocom -b 115200 --logfile debug.log /dev/ttyACM0
 
 `LOG_HEXDUMP_DBG` は、データを、16 バイトずつ、次の形で出します。
 
-```
+```text
                                        34 3a 34 36 3a 33 42 3a  31 31 22 2c 22 74 79 70 |4:46:3B: 11","typ
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^
                                        16 進数 (8 バイトごとに、空白が 1 つ増える)         ASCII (表示できない文字は、ピリオド)
@@ -62,7 +62,7 @@ picocom -b 115200 --logfile debug.log /dev/ttyACM0
 
 BLE で、SwitchBot のアドバタイズを受信すると、解析できた要素ごとに、次の 2 行が出ます (`ble.c` の `parse_ad`)。
 
-```
+```text
 [00:03:43.958,000] <dbg> ble_thermo_gateway: parse_ad: SwitchBot advertising data (AD type 0xFF)
 [00:03:43.961,000] <dbg> ble_thermo_gateway: parse_ad: SwitchBot advertising data
                                              69 09 ed 2e c4 46 3b 11  11 02 08 95 36 00       |i....F;. ....6.
@@ -81,7 +81,7 @@ BLE で、SwitchBot のアドバタイズを受信すると、解析できた要
 
 ### 4.2 サービスデータ (AD type 0x16) の読み方
 
-```
+```text
 3d fd 77 00 64
 ^^^^^ ^^ ^^ ^^
 UUID  機種 状態 電池残量
@@ -96,7 +96,7 @@ UUID  機種 状態 電池残量
 
 ログには、別の機種のものも出ます。
 
-```
+```text
 3d fd 6f 80 64
 ```
 
@@ -104,7 +104,7 @@ UUID  機種 状態 電池残量
 
 ### 4.3 製造者データ (AD type 0xFF) の読み方
 
-```
+```text
 69 09 | ed 2e c4 46 3b 11 | 11 02 | 08 95 36 | 00
 会社ID  MAC アドレス        不明     温湿度     不明
 ```
@@ -122,7 +122,7 @@ UUID  機種 状態 電池残量
 
 もう 1 台の SwitchBot の製造者データも、出ています。
 
-```
+```text
 69 09 c9 4a 74 cf 77 45  3c 58 00 00 00 00
 ```
 
@@ -144,7 +144,7 @@ MAC アドレスは `C9:4A:74:CF:77:45` で、温湿度計 (`ED:2E:...`) とは�
 
 1 回の送信の流れです。
 
-```
+```text
 [00:03:43.958,000] <dbg> ble_thermo_gateway: parse_ad: SwitchBot advertising data (AD type 0xFF)
 [00:03:43.961,000] <dbg> ble_thermo_gateway: parse_ad: SwitchBot advertising data
                                              69 09 ed 2e c4 46 3b 11  11 02 08 95 36 00
@@ -172,7 +172,7 @@ MAC アドレスは `C9:4A:74:CF:77:45` で、温湿度計 (`ED:2E:...`) とは�
 
 ### 5.1 ペイロードの 16 進ダンプ
 
-```
+```text
 7b 22 6e 6f 64 65 22 3a  22 45 44 3a 32 45 3a 43 |{"node": "ED:2E:C
 34 3a 34 36 3a 33 42 3a  31 31 22 2c 22 74 79 70 |4:46:3B: 11","typ
 65 22 3a 22 73 77 69 74  63 68 62 6f 74 22 2c 22 |e":"swit chbot","
@@ -243,7 +243,7 @@ grep -E "<wrn>|<err>" debug.log
 
 Thermo Node のデバッグログ (`THERMO_DEBUG_LOG=ON`) です。取り方は、「1. ログの取り方」と同じです (`build-node` でビルドして、`scripts/flash.sh node /dev/ttyACM0` で書き込みます)。例は、実機で、ゲートウェイをつないだときのログです。
 
-```
+```text
 [00:01:32.966,000] <inf> thermo_node: Temperature: 24.0 C, humidity: 49.0 %
 [00:01:32.969,000] <dbg> ble_thermo_node: ble_notify_temperature: Notify
                                           f0 00 ea 01                                      |....

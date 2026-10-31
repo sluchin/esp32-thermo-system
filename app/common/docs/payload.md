@@ -22,7 +22,7 @@ AWS IoT Core に送る MQTT のトピックと、JSON のペイロードを作�
 | Thermo ノード | `thermo/<クライアント ID>/<ノードのアドレス>/temperature` | `thermo/gateway-01/00:AA:01:00:00:42/temperature` |
 | SwitchBot | `thermo/<クライアント ID>/switchbot/<機器のアドレス>` | `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56` |
 
-アドレスは、`format_addr()` で「大文字の 16 進を、コロンで区切った 6 バイト」にします。`bt_addr_le_to_str()` は、末尾に ` (public)` などが付くので、使いません。上位のバイトから順に出します (`val[5]` から `val[0]`)。
+アドレスは、`format_addr()` で「大文字の 16 進を、コロンで区切った 6 バイト」にします。`bt_addr_le_to_str()` は、末尾に `(public)` などが付くので、使いません。上位のバイトから順に出します (`val[5]` から `val[0]`)。
 
 ## ペイロード
 

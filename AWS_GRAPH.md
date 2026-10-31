@@ -8,7 +8,7 @@ AWS IoT Core に届いた SwitchBot の温度・湿度・電池残量を、Cloud
 
 ## 1. 構成
 
-```
+```text
 ゲートウェイ ──MQTT──> AWS IoT Core ──ルール──> CloudWatch メトリクス ──> ダッシュボード (グラフ)
                           thermo/+/switchbot/+      名前空間 Thermo
 ```
@@ -314,7 +314,7 @@ CloudWatch の「アラーム」は、メトリクスの値が、しきい値を
 
 構成は、次のとおりです。
 
-```
+```text
 メトリクス (温度) ──> アラーム (30 ℃ を超えたら ALARM) ──> SNS トピック ──> メール
 ```
 

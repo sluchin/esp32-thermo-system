@@ -88,7 +88,7 @@ aws iot describe-endpoint --endpoint-type iot:Data-ATS
 
 ### 3.1 WiFi と AWS IoT Core
 
-```
+```text
 thermo set ssid <SSID>
 thermo set psk <パスワード>
 thermo set endpoint xxxxxxxxxxxxxx-ats.iot.<リージョン>.amazonaws.com
@@ -110,7 +110,7 @@ Zephyr の `cred` コマンドで、セキュリティタグ `1` に、3 つの 
 
 1 つの PEM ごとに、次の 3 つの操作をします。最後の行の `CA` は、種類に合わせて `CLIENT` か `PK` に変えます。
 
-```
+```text
 cred buf load
 (PEM を、`-----BEGIN` から `-----END` の行まで貼り付ける。最後に Ctrl-C)
 cred add 1 CA default strt
@@ -139,14 +139,14 @@ scripts/send-cred.sh PK     private.pem.key   /dev/ttyACM0
 
 登録できたか確認します。
 
-```
+```text
 cred list
 thermo show
 ```
 
 登録できたら、反映します (`thermo save-certs` は、スクリプトが実行済みです。手で `cred add` したときは、自分で実行します)。
 
-```
+```text
 thermo apply
 ```
 
@@ -165,7 +165,7 @@ thermo apply
 
 ゲートウェイのログの例:
 
-```
+```text
 <inf> thermo_wifi: WiFi connected (IPv4 address acquired)
 <inf> thermo_cloud: Connected to AWS IoT Core
 <inf> thermo_gateway: Node 00:AA:01:00:00:42 (public): 23.5 C, humidity: 45.0 %

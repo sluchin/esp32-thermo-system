@@ -8,7 +8,7 @@ AWS IoT Core に届いた温度・湿度・電池残量を、DynamoDB に 1 件�
 
 ## 1. 構成
 
-```
+```text
 ゲートウェイ ──MQTT──> AWS IoT Core ──ルール──> DynamoDB (テーブル thermo-readings)
                           thermo/#                       ▲
                                                          │ Query (読み取りだけ)

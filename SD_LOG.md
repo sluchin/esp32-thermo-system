@@ -47,7 +47,7 @@ thermo-node が SD カードに保存する測定値の記録 (`backlog.bin`) �
 
 ノードのシェルで、次のコマンドを使います (`picocom -b 115200 /dev/ttyACM0`)。
 
-```
+```text
 thermo sd                           SD カードが使えるか確かめる (使えなければ、マウントし直す)
 fs statvfs /SD:                     容量と空き
 fs ls /SD:                          ファイルの一覧 (BACKLOG.BIN の大きさ)
@@ -62,7 +62,7 @@ fs read /SD:/backlog.bin 64 1600    1600 バイト目 (101 件目) から 64 バ
 
 ### 読み方の例
 
-```
+```text
 00000000  DF 2B CC 6A F0 00 EA 01 01 00 00 00 CB 5A FD 97
 ```
 

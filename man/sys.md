@@ -125,7 +125,6 @@ IEEE 準拠の CRC32 を計算する。
 
 使用箇所: [`app/thermo-node/src/backlog.c:470`](../app/thermo-node/src/backlog.c#L470)
 
-
 ### crc32_ieee_update
 
 ```c
@@ -143,6 +142,7 @@ IEEE 準拠の CRC32 を、前の結果に続けて計算する。離れた場�
 戻り値: `crc` のデータに `data` を続けたものの CRC32 の値。
 
 使用箇所: [`app/thermo-node/src/backlog.c:473`](../app/thermo-node/src/backlog.c#L473)
+
 ## リングバッファ
 
 ### RING_BUF_INIT

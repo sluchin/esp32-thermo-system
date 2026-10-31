@@ -73,10 +73,12 @@ CONFIG_MAIN_STACK_SIZE=8192
 **ファイル**: `docker-compose.yml`
 
 新サービス追加：
+
 - `build-node-sim` - Node シミュレーション用ビルド
 - `build-gateway-sim` - Gateway シミュレーション用ビルド
 
 使用例：
+
 ```bash
 docker compose run --rm build-node-sim
 docker compose run --rm build-gateway-sim
@@ -87,6 +89,7 @@ docker compose run --rm build-gateway-sim
 #### SIMULATION.md（新規作成）
 
 包括的なシミュレーション手引き：
+
 - ビルド方法（3つの方法を解説）
 - 実行方法
 - シミュレーション機能説明
@@ -103,7 +106,7 @@ docker compose run --rm build-gateway-sim
 
 ### ビルドプロセス
 
-```
+```text
 docker compose run --rm build-node-sim
   ↓
 west build -b native_sim/native/64 app/thermo-node -d build/thermo-node-sim -- -DCONF_FILE=prj-native_sim.conf
@@ -118,7 +121,7 @@ build/thermo-node-sim/zephyr/zephyr.exe 生成
 
 ### 実行時
 
-```
+```text
 ./build/thermo-node-sim/zephyr/zephyr.exe
   ↓
 "SIMULATOR MODE" ログ出力
