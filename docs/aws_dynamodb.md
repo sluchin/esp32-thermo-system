@@ -268,7 +268,7 @@ aws cognito-identity set-identity-pool-roles \
   ```
 
   `thermon.nodes` には、テーブルの `node` と同じ MAC アドレスを書きます。
-- ビルド、端末への転送、表示の確認は、thermon の [SETUP.md](https://github.com/sluchin/thermon/blob/main/SETUP.md) の「アプリを動かして確認する」を見てください。thermon の [AWS_DYNAMODB.md](https://github.com/sluchin/thermon/blob/main/AWS_DYNAMODB.md) にも、この文書の 6 章までと同じ AWS の手順が書いてあります (`cat` で JSON を作り、`aws` コマンドで設定する形です)。AWS CLI の準備は、[AWS_CLI.md](https://github.com/sluchin/thermon/blob/main/AWS_CLI.md) を見てください。
+- ビルド、端末への転送、表示の確認は、thermon の [SETUP.md](https://github.com/sluchin/thermon/blob/main/docs/setup.md) の「アプリを動かして確認する」を見てください。thermon の [AWS_DYNAMODB.md](https://github.com/sluchin/thermon/blob/main/docs/aws_dynamodb.md) にも、この文書の 6 章までと同じ AWS の手順が書いてあります (`cat` で JSON を作り、`aws` コマンドで設定する形です)。AWS CLI の準備は、[AWS_CLI.md](https://github.com/sluchin/thermon/blob/main/docs/aws_cli.md) を見てください。
 - 機器ごとの最新の測定値と、温度と湿度のグラフ (1 時間、6 時間、24 時間) を表示します。
 
 ## 8. これから
