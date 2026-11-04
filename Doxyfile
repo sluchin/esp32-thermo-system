@@ -1,7 +1,7 @@
 # Doxyfile
 #
 # Doxygen 1.9 以降の設定. 標準と異なる項目だけを書く.
-# 生成: docker compose run --rm docs   (出力: docs/index.html. アプリごとに, docs/<アプリ>/html)
+# 生成: docker compose run --rm docs   (出力: build/docs/index.html. アプリごとに, build/docs/<アプリ>/html)
 #   Markdown の注意: 日本語の直後に, "." か "(" で始まるコード (`.c` など) を続けると, Doxygen が誤る. 空白を 1 つ入れる.
 #   アプリごとに実行する (C には名前空間がなく, 両方に ble_init() があるので, 1 回では混ざる).
 #   DOCS_NAME (プロジェクト名) と DOCS_APP (thermo-node か thermo-gateway) は scripts/docs.sh が設定する.
@@ -10,24 +10,25 @@
 
 PROJECT_NAME           = "$(DOCS_NAME)"
 PROJECT_BRIEF          = "XIAO ESP32C3 の BLE 温度計と、AWS IoT Core へ送るゲートウェイ"
-OUTPUT_DIRECTORY       = ./docs/$(DOCS_APP)
+OUTPUT_DIRECTORY       = ./build/docs/$(DOCS_APP)
 OUTPUT_LANGUAGE        = Japanese
 INPUT_ENCODING         = UTF-8
 TAB_SIZE               = 4
 OPTIMIZE_OUTPUT_FOR_C  = YES
 INPUT                  = README.md \
-                         SETUP.md \
-                         SIMULATION.md \
-                         NATIVE_SIM_IMPLEMENTATION.md \
-                         AWS_SETUP.md \
-                         DEBUG_LOG.md \
-                         AWS_GRAPH.md \
-                         AWS_DYNAMODB.md \
-                         CODING_STYLE.md \
-                         MISRA.md \
+                         docs/setup.md \
+                         docs/simulation.md \
+                         docs/native_sim_implementation.md \
+                         docs/aws_setup.md \
+                         docs/debug_log.md \
+                         docs/aws_graph.md \
+                         docs/aws_dynamodb.md \
+                         docs/coding_style.md \
+                         docs/misra.md \
                          TODO.md \
-                         SD_LOG.md \
-                         TEST_INTEGRATION.md \
+                         docs/sd_log.md \
+                         docs/test_integration.md \
+                         docs/man \
                          .claude/CLAUDE.md \
                          app/common \
                          app/$(DOCS_APP)
@@ -81,7 +82,7 @@ WARN_NO_PARAMDOC       = YES
 # 警告の判定は scripts/docs.sh が行う (日本語の出力に対する, Doxygen 本体の警告 "output language
 # has not been updated" を除くため)
 WARN_AS_ERROR          = NO
-WARN_LOGFILE           = ./docs/$(DOCS_APP)/doxygen-warnings.log
+WARN_LOGFILE           = ./build/docs/$(DOCS_APP)/doxygen-warnings.log
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO
 GENERATE_TREEVIEW      = YES

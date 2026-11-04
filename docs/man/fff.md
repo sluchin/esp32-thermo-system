@@ -181,7 +181,7 @@ extern fff_globals_t fff;   /* fff.call_history[], fff.call_history_idx */
 
 どの関数が、どの順に呼ばれたかの記録。全てのフェイクで共通で、呼ばれるたびに、関数のアドレスが 1 つ加わる。長さは 50 (`FFF_CALL_HISTORY_LEN`)。`fff.call_history_idx` が、記録した数。
 
-要素は関数ポインタなので、比べるときは、`(void *)(uintptr_t)(f)` に直す (関数ポインタをオブジェクトポインタに直接キャストすることは、ISO C で許されないため)。このプロジェクトでは、`FUNCTION_ADDRESS()` で包んでいる。
+要素は関数ポインタなので、比べるときは、`uintptr_t` を経由して `void *` に直す (関数ポインタをオブジェクトポインタに直接キャストすることは、ISO C で許されないため)。このプロジェクトでは、`FUNCTION_ADDRESS()` で包んでいる。
 
 使用箇所: [`app/thermo-gateway/tests/main/src/test_main.c:222`](../../app/thermo-gateway/tests/main/src/test_main.c#L222) (`ble_init` と `cloud_init` の呼ばれた順の確認)
 
