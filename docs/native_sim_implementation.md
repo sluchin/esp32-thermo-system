@@ -86,7 +86,7 @@ docker compose run --rm build-gateway-sim
 
 ### 7. ドキュメント
 
-#### SIMULATION.md（新規作成）
+#### docs/simulation.md（新規作成）
 
 包括的なシミュレーション手引き：
 

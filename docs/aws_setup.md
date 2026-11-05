@@ -156,7 +156,7 @@ thermo apply
 
 ## 4. 動作の確認
 
-(届いたデータをグラフにするには、[AWS_GRAPH.md](aws_graph.md) を参照してください。)
+(届いたデータをグラフにするには、[aws_graph.md](aws_graph.md) を参照してください。)
 
 1. AWS コンソールの「IoT Core → MQTT テストクライアント」で、`thermo/#` を購読します。
 2. ゲートウェイとノードを起動します。
@@ -206,7 +206,7 @@ AWS IoT Core の相互認証のために、`prj.conf` に、次の設定を入�
 
 ## 7. Thermo ノードから、直接送る (ゲートウェイがないとき)
 
-ノードが、ゲートウェイにつながらないときに、WiFi で AWS IoT Core に直接送る機能 ([SETUP.md](setup.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」) のための、AWS 側の準備です。**ノードごとに、別のモノ、証明書、ポリシー、クライアント ID** を作ります (ゲートウェイとは共有しません)。
+ノードが、ゲートウェイにつながらないときに、WiFi で AWS IoT Core に直接送る機能 ([setup.md](setup.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」) のための、AWS 側の準備です。**ノードごとに、別のモノ、証明書、ポリシー、クライアント ID** を作ります (ゲートウェイとは共有しません)。
 
 **ゲートウェイの証明書を、ノードに流用しないでください。** ゲートウェイと共有してよいものと、してはいけないものは、次のとおりです。
 
@@ -256,29 +256,29 @@ aws iot attach-policy --policy-name "thermo-${NODE_ID}" --target "$CERT_ARN"
 aws iot attach-thing-principal --thing-name "$NODE_ID" --principal "$CERT_ARN"
 ```
 
-- 作った `${NODE_ID}.pem.crt` と `${NODE_ID}.private.key`、およびルート CA (`AmazonRootCA1.pem`。2 章) を、ノードのシェルに登録します ([SETUP.md](setup.md)。`scripts/send-cred.sh`)。クライアント ID は、`thermo set client_id ${NODE_ID}` で設定します (ポリシーの `client/` と、トピックの `thermo/${NODE_ID}/` と、同じにします)。
+- 作った `${NODE_ID}.pem.crt` と `${NODE_ID}.private.key`、およびルート CA (`AmazonRootCA1.pem`。2 章) を、ノードのシェルに登録します ([setup.md](setup.md)。`scripts/send-cred.sh`)。クライアント ID は、`thermo set client_id ${NODE_ID}` で設定します (ポリシーの `client/` と、トピックの `thermo/${NODE_ID}/` と、同じにします)。
 - エンドポイントは、ゲートウェイと同じです (`aws iot describe-endpoint --endpoint-type iot:Data-ATS`)。
-- トピックは、`thermo/${NODE_ID}/<ノードの BLE アドレス>/temperature` で、ゲートウェイが送る形と同じです。そのため、DynamoDB のルール ([AWS_DYNAMODB.md](aws_dynamodb.md)。`FROM 'thermo/#'`) と、thermon の機器の指定 (ノードの BLE アドレス) は、そのまま使えます。
+- トピックは、`thermo/${NODE_ID}/<ノードの BLE アドレス>/temperature` で、ゲートウェイが送る形と同じです。そのため、DynamoDB のルール ([aws_dynamodb.md](aws_dynamodb.md)。`FROM 'thermo/#'`) と、thermon の機器の指定 (ノードの BLE アドレス) は、そのまま使えます。
 - 作ったファイル (`*.pem.crt`、`*.private.key`、`policy-node.json`) は、**コミットしません**。秘密鍵は、ノードのフラッシュにだけ置きます。
 - 1 台の証明書を無効にするとき: `aws iot update-certificate --certificate-id "$CERT_ID" --new-status INACTIVE` (`CERT_ID` は、証明書の ID。`aws iot list-certificates` で調べる)。
 
 ## 8. 気圧を送るときの AWS の設定
 
-ノードに気圧センサ (AHT20 + BMP280 のモジュール。[SETUP.md](setup.md) の「Thermo ノードのセンサ」) を付けると、メッセージに `pressure_hpa` (気圧 [hPa]) が増えます (1.1)。トピックは変わりません。AWS 側で要るもの、要らないものは、次のとおりです。
+ノードに気圧センサ (AHT20 + BMP280 のモジュール。[setup.md](setup.md) の「Thermo ノードのセンサ」) を付けると、メッセージに `pressure_hpa` (気圧 [hPa]) が増えます (1.1)。トピックは変わりません。AWS 側で要るもの、要らないものは、次のとおりです。
 
 | 設定 | 変更 | 理由 |
 |:---|:---|:---|
 | モノ、証明書、ポリシー (2 章、7 章) | **不要** | トピック (`thermo/CLIENT_ID/NODE_ADDRESS/temperature`) が同じなので、ポリシーの `iot:Publish` の範囲に入る |
-| DynamoDB のルール ([AWS_DYNAMODB.md](aws_dynamodb.md) の 4 章) | **不要** | `SELECT *` で、全ての項目を渡すので、`pressure_hpa` も、属性として保存される |
+| DynamoDB のルール ([aws_dynamodb.md](aws_dynamodb.md) の 4 章) | **不要** | `SELECT *` で、全ての項目を渡すので、`pressure_hpa` も、属性として保存される |
 | DynamoDB のテーブル、Cognito の未認証ロール | **不要** | DynamoDB は、キー (`node`、`ts`) のほかの属性を、決めずに保存する。ロールの権限 (`dynamodb:Query`) も、属性によらない |
-| CloudWatch のノードのルール ([AWS_GRAPH.md](aws_graph.md) の 7.2) | **要る** (グラフにするとき) | ルールの SQL が、項目の名前 (`temperature_c, humidity`) を選んでいるため。気圧のアクションを足す |
+| CloudWatch のノードのルール ([aws_graph.md](aws_graph.md) の 7.2) | **要る** (グラフにするとき) | ルールの SQL が、項目の名前 (`temperature_c, humidity`) を選んでいるため。気圧のアクションを足す |
 | Android アプリ (thermon) | アプリの更新 | 気圧のグラフと、最新の値の表示 (DynamoDB の `pressure_hpa` を読む) |
 
 ### 8.1 気圧が届いているか確認する
 
 1. 「IoT Core → MQTT テストクライアント」で、`thermo/#` を購読します。
-2. ノードのメッセージに、`"pressure_hpa":1013.2` のような項目があれば、届いています。ない場合は、ゲートウェイのログに `pressure:` の行があるかを確認します (ない場合は、ノードの起動のログの `Pressure sensor is not ready` を見ます。[SETUP.md](setup.md))。
-3. DynamoDB に保存されたかは、ノードを指定して、最新の 1 件を取り出して確かめます (`$TABLE` は [AWS_DYNAMODB.md](aws_dynamodb.md) の 2.2)。
+2. ノードのメッセージに、`"pressure_hpa":1013.2` のような項目があれば、届いています。ない場合は、ゲートウェイのログに `pressure:` の行があるかを確認します (ない場合は、ノードの起動のログの `Pressure sensor is not ready` を見ます。[setup.md](setup.md))。
+3. DynamoDB に保存されたかは、ノードを指定して、最新の 1 件を取り出して確かめます (`$TABLE` は [aws_dynamodb.md](aws_dynamodb.md) の 2.2)。
 
 ```bash
 aws dynamodb query --table-name "$TABLE" \
@@ -293,7 +293,7 @@ aws dynamodb query --table-name "$TABLE" \
 
 ### 8.2 CloudWatch のグラフに、気圧を足す
 
-すでにノードのルール (`thermo_node_to_cloudwatch`) を作ってあるときは、[AWS_GRAPH.md](aws_graph.md) の 7.2 の `rule-node.json` (気圧のアクションを足したもの) で、ルールを置き換えます。
+すでにノードのルール (`thermo_node_to_cloudwatch`) を作ってあるときは、[aws_graph.md](aws_graph.md) の 7.2 の `rule-node.json` (気圧のアクションを足したもの) で、ルールを置き換えます。
 
 ```bash
 aws iot replace-topic-rule --rule-name thermo_node_to_cloudwatch \

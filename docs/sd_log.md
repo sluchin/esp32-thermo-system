@@ -147,5 +147,5 @@ for i in range(len(data) // RECORD_SIZE):
 
 ## 関連する文書
 
-- [SETUP.md](setup.md): SD カードの配線と、シェルの使い方
-- [TEST_INTEGRATION.md](test_integration.md): 結合試験項目書 (SD カードの試験を含む)
+- [setup.md](setup.md): SD カードの配線と、シェルの使い方
+- [test_integration.md](test_integration.md): 結合試験項目書 (SD カードの試験を含む)

@@ -34,7 +34,7 @@ Thermo サービスの UUID (128 ビット) は、`9F3C1A00-7B6E-4C3A-9D5E-2A6F0
 #endif
 ```
 
-各ソースの `LOG_MODULE_REGISTER(名前, THERMO_LOG_LEVEL)` が使います。通常は、Zephyr の既定のレベルです。CMake の `THERMO_DEBUG_LOG` を ON にすると、`THERMO_LOG_LEVEL=4` (デバッグ) を定義して、このアプリのモジュールだけのレベルを、まとめて上げます (`DEBUG_LOG.md` を参照)。
+各ソースの `LOG_MODULE_REGISTER(名前, THERMO_LOG_LEVEL)` が使います。通常は、Zephyr の既定のレベルです。CMake の `THERMO_DEBUG_LOG` を ON にすると、`THERMO_LOG_LEVEL=4` (デバッグ) を定義して、このアプリのモジュールだけのレベルを、まとめて上げます (`docs/debug_log.md` を参照)。
 
 ## thermo_version.h: バージョンと git のハッシュ
 

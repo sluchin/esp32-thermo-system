@@ -2,7 +2,7 @@
 
 本ドキュメントは、BLE サーモメータシステム (`thermo-node` / `thermo-gateway`) における MISRA-C (MISRA C:2012) ガイドラインの適用方針と、プロジェクトの目的・アーキテクチャ上の理由から**あえて対応せず例外 (Deviation) としているルール**を定義・記録したものです。
 
-コーディング規約の詳細は [CODING_STYLE.md](coding_style.md) を参照してください。
+コーディング規約の詳細は [coding_style.md](coding_style.md) を参照してください。
 
 ---
 
@@ -52,9 +52,9 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 | 4 | Rule 11.3 | Required | オブジェクトポインタの型のキャスト | `BT_DATA` が文字列を `uint8_t *` として扱う (`app/thermo-node/src/ble.c`)。API の引数の型に合わせる文字列と配列のキャスト (`cloud.c`、`wifi_link.c`、`ble.c`) |
 | 5 | Rule 15.5 | Advisory | 早期リターン (単一終了点規則の例外) | エラー時の `return err;` (`ble.c`、`sensor.c`、`main.c`) |
 | 6 | Rule 14.3 | Required | 不変な制御式 (`while (true)`) | ファームウェアの無限ループ (`main.c`) |
-| 7 | Rule 15.6 | Required | 制御構文の本体を `{}` で囲まない (本体が 1 文のとき) | 1 文の `if` / `else` / `for` / `while` (`CODING_STYLE.md` の例外 5) |
+| 7 | Rule 15.6 | Required | 制御構文の本体を `{}` で囲まない (本体が 1 文のとき) | 1 文の `if` / `else` / `for` / `while` (`docs/coding_style.md` の例外 5) |
 | 8 | Rule 18.4 | Advisory | ポインタへの整数の加算 | 通知データの 2 つ目の値の位置 (`app/thermo-gateway/src/ble.c`) |
-| 9 | Rule 22.8 - 22.10 | Required | `errno` の参照 | ソケットの `poll()` の失敗の原因 (`app/thermo-gateway/src/cloud.c`) |
+| 9 | Rule 22.8 - 22.10 | Required | `errno` の参照 | ソケットの `poll()` の失敗の原因 (`app/common/cloud.c`) |
 
 ---
 
@@ -126,7 +126,7 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 - **該当ルール**: MISRA C:2012 Rule 15.6 (Required)
   - 「`if` / `else` / `for` / `while` / `do` の本体は、複合文でなければならない」
 - **理由 (Rationale)**:
-  - 本体が 1 文のとき、`{}` を付けない書き方を許す (`CODING_STYLE.md` の例外 5)。短い条件の処理が、読みやすくなる。
+  - 本体が 1 文のとき、`{}` を付けない書き方を許す (`docs/coding_style.md` の例外 5)。短い条件の処理が、読みやすくなる。
 - **安全対策 (Mitigation)**:
   - 本体が 2 文以上のときは、必ず `{}` を付ける。
   - 本体は、次の行に、インデントして書く (1 行に続けない。`AllowShortIfStatementsOnASingleLine: false` と `AllowShortLoopsOnASingleLine: false` で、整形が確認する)。
@@ -147,7 +147,7 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 - **該当ルール**: MISRA C:2012 Rule 22.8, 22.9, 22.10 (Required)
   - 「`errno` を使う関数の呼び出しの前に、`errno` を 0 にし、呼び出しの後に、`errno` を検査しなければならない」
 - **理由 (Rationale)**:
-  - ソケットの `poll()` は、失敗したことを `-1` で返し、原因を `errno` に入れます。呼び出し元へ、原因 (負の `errno` 値) を伝えるために、参照します (`poll_input()`。`app/thermo-gateway/src/cloud.c`)。
+  - ソケットの `poll()` は、失敗したことを `-1` で返し、原因を `errno` に入れます。呼び出し元へ、原因 (負の `errno` 値) を伝えるために、参照します (`poll_input()`。`app/common/cloud.c`)。
 - **安全対策 (Mitigation)**:
   - 戻り値が負のとき (失敗が確定したとき) だけ、`errno` を参照します。直後に、`-errno` を返し、保持しません。
   - ほかの場所では、`errno` を参照しません (`errno.h` は、`EINVAL` などの定数のために含めます)。
@@ -161,8 +161,8 @@ Zephyr のヘッダは、GNU 拡張と、多くのマクロを使います。マ
 | 機能 | MISRA C:2012 | 備考 |
 |:---|:---|:---|
 | `goto` | Rule 15.1 | エラー処理は、早期リターンで行う (リソースを確保しないため) |
-| 日付の計算 (`node_time.c`) の小さな数 | (マジックナンバーを使わない規約。`CODING_STYLE.md`) | `days_from_civil()` と `civil_from_days()` は、グレゴリオ暦の日付と日数の変換 (H. Hinnant のアルゴリズム) で、式の中の小さな数 (2, 3, 5, 9, 12 など) は、月の並びの規則そのもの。名前を付けると、かえって読めなくなるので、付けない。大きな定数 (日数、年数) には、名前を付けている。単体テストで、日付の繰り上がりとうるう日を確認している |
-| 動的メモリ (`malloc` / `free`) | Rule 21.3 | 静的確保のみ。使う場合は、確保結果を検査し、解放後に `NULL` を代入する (`CODING_STYLE.md`)。ただし、OLED の CFB (Zephyr のライブラリ) は、初期化のときに 1 回だけ、`k_malloc` でフレームバッファ (1 KB) を確保する (アプリのコードは、`malloc` を使わない。確保できなければ、`cfb_framebuffer_init()` が失敗して、表示だけを諦める) |
+| 日付の計算 (`node_time.c`) の小さな数 | (マジックナンバーを使わない規約。`docs/coding_style.md`) | `days_from_civil()` と `civil_from_days()` は、グレゴリオ暦の日付と日数の変換 (H. Hinnant のアルゴリズム) で、式の中の小さな数 (2, 3, 5, 9, 12 など) は、月の並びの規則そのもの。名前を付けると、かえって読めなくなるので、付けない。大きな定数 (日数、年数) には、名前を付けている。単体テストで、日付の繰り上がりとうるう日を確認している |
+| 動的メモリ (`malloc` / `free`) | Rule 21.3 | 静的確保のみ。使う場合は、確保結果を検査し、解放後に `NULL` を代入する (`docs/coding_style.md`)。ただし、OLED の CFB (Zephyr のライブラリ) は、初期化のときに 1 回だけ、`k_malloc` でフレームバッファ (1 KB) を確保する (アプリのコードは、`malloc` を使わない。確保できなければ、`cfb_framebuffer_init()` が失敗して、表示だけを諦める) |
 | デバイスの定義 (`rtc_pcf8563.c` の `DEVICE_DT_INST_DEFINE()`) | (`-Wpedantic`: 柔軟配列メンバーの初期化) | Zephyr のマクロの展開に含まれる (アプリのコードではない)。`DT_INST_FOREACH_STATUS_OKAY()` の行だけを、`#pragma GCC diagnostic` で囲んで、警告を止める |
 | 再帰呼び出し | Rule 17.2 | |
 | 標準入出力 (`<stdio.h>`) | Rule 21.6 | ログは Zephyr Logging API |

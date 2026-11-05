@@ -82,7 +82,7 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 ### 温度センサー
 
 - **シミュレーション時**: 温度 (10.0〜49.9 ℃) と湿度 (30.0〜89.9 %) と気圧 (990.0〜1029.9 hPa) のランダムな値を返す
-- **実機時**: Devicetree で選んだセンサから読み取る (DHT11 などのセンサ API、または ADC。[SETUP.md](setup.md) の「Thermo ノードのセンサ」)
+- **実機時**: Devicetree で選んだセンサから読み取る (DHT11 などのセンサ API、または ADC。[setup.md](setup.md) の「Thermo ノードのセンサ」)
 
 ### BLE（Bluetooth Low Energy）
 

@@ -106,7 +106,7 @@ ZTEST(suite, fn)
 - `zassert_equal` は、`a` と `b` を変換せずに比べるので、符号付きと符号なしを混ぜると、警告になることがある。型をそろえて書く (`zassert_equal(x, 5U)`)。
 - `zassert_mem_equal` の引数は、マクロを 2 回展開してから、評価する。
 - `zassert_str_equal` は、`strcmp()` なので、`NULL` を渡すと落ちる。先に `zassert_not_null` で確かめる。
-- コーディング規約の「条件式は bool だけ」などは、単体テストには、適用しない (`CODING_STYLE.md`)。
+- コーディング規約の「条件式は bool だけ」などは、単体テストには、適用しない (`docs/coding_style.md`)。
 
 ## 使っていない機能
 

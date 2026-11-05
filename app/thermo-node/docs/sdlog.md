@@ -114,5 +114,5 @@ fs_close()
 - [backlog.md](backlog.md): `backlog_init()` が `sdlog_start()` を呼ぶ
 - [main.md](main.md): `sdlog_flush()` の呼び出し
 - [wifi_shell.md](wifi_shell.md): シェルの `thermo sd`
-- [../../../DEBUG_LOG.md](../../../docs/debug_log.md): デバッグのログの取り方
+- [../../../debug_log.md](../../../docs/debug_log.md): デバッグのログの取り方
 - [index.md](index.md): このディレクトリの文書の一覧

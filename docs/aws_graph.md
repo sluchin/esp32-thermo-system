@@ -47,7 +47,7 @@ AWS IoT Core に届いた SwitchBot の温度・湿度・電池残量を、Cloud
 ### 2.2 準備すること
 
 - AWS CLI が使えること (`aws sts get-caller-identity` で、アカウントを確認できます)。コンソールだけで設定することもできます (各手順に、コンソールでの操作を書きます)。
-- ゲートウェイを [AWS_SETUP.md](aws_setup.md) のとおりに設定して、SwitchBot の値が `thermo/gateway-01/switchbot/<MAC アドレス>` に届いていること。
+- ゲートウェイを [aws_setup.md](aws_setup.md) のとおりに設定して、SwitchBot の値が `thermo/gateway-01/switchbot/<MAC アドレス>` に届いていること。
 - リージョンは、ゲートウェイと同じにします (例: `ap-northeast-1`)。以降のコマンドは、同じシェルで続けて実行します (シェルを閉じたら、次の変数を設定し直します)。アカウント ID (12 桁の数字) は、コマンドで取り出して変数に入れるので、ファイルや文書に書き写しません。
 
 ```bash
@@ -116,7 +116,7 @@ CLI を使わずに、AWS コンソールで作るときの要点です (画面�
 
 ### 4.1 受け取る値
 
-SwitchBot のメッセージ ([AWS_SETUP.md](aws_setup.md) の 1.2) は、次の形です。
+SwitchBot のメッセージ ([aws_setup.md](aws_setup.md) の 1.2) は、次の形です。
 
 ```json
 {"node":"ED:2E:C4:46:3B:11","type":"switchbot","temperature_c":21.8,"humidity":54,"battery":100,"uptime_ms":223966,"timestamp":1791338131}
@@ -412,7 +412,7 @@ aws cloudwatch set-alarm-state \
 
 ### 7.2 Thermo ノードの温度と湿度と気圧
 
-ノードの値は、`temperature_c` と `humidity` (AHT20 と DHT11 のとき) と `pressure_hpa` (BMP280 のとき) です ([AWS_SETUP.md](aws_setup.md) の 1.1)。トピックは、`thermo/CLIENT_ID/NODE_ADDRESS/temperature` で、**ノードのアドレスは 3 番目**です (SwitchBot は 4 番目)。そのため、メトリクス名には `${topic(3)}` を使います。SwitchBot のルール (4 章) とは別に、ノード用のルールを作ります。
+ノードの値は、`temperature_c` と `humidity` (AHT20 と DHT11 のとき) と `pressure_hpa` (BMP280 のとき) です ([aws_setup.md](aws_setup.md) の 1.1)。トピックは、`thermo/CLIENT_ID/NODE_ADDRESS/temperature` で、**ノードのアドレスは 3 番目**です (SwitchBot は 4 番目)。そのため、メトリクス名には `${topic(3)}` を使います。SwitchBot のルール (4 章) とは別に、ノード用のルールを作ります。
 
 ```bash
 cat > rule-node.json <<JSON
@@ -476,7 +476,7 @@ aws iot replace-topic-rule --rule-name thermo_node_to_cloudwatch \
 | 方法 | 向いていること |
 |:---|:---|
 | IoT ルール → S3 (JSON) → Athena | 10 秒ごとの、すべてのデータを、安く残して、SQL で分析する |
-| IoT ルール → DynamoDB ([AWS_DYNAMODB.md](aws_dynamodb.md)) | 最新の値をすぐ読み出す。ほかのアプリから使う |
+| IoT ルール → DynamoDB ([aws_dynamodb.md](aws_dynamodb.md)) | 最新の値をすぐ読み出す。ほかのアプリから使う |
 | Amazon Managed Grafana (+ CloudWatch) | 見た目や、複数のデータの組み合わせを、自由に作る |
 
 ### 7.4 ダッシュボードを、ほかの人に見せる (共有)

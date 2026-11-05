@@ -31,7 +31,7 @@ esp32-thermo-system/
 │   │   ├── prj.conf
 │   │   ├── src/
 │   │   └── tests/
-│   ├── common/                 # 両方のアプリが使う、BLE の UUID とログのレベル
+│   ├── common/                 # 両方のアプリが使うもの (設定 cfg、AWS IoT Core への送信 cloud、NTP、送る内容 payload、WiFi の接続 wifi_link、BLE の UUID、ログのレベル)
 │   ├── version.cmake           # VERSION と git のハッシュを、ファームウェアに渡す (起動のログに出る)
 │   └── warnings.txt            # コンパイラの警告オプション (warnings.cmake が読み込む)
 ├── VERSION                     # ファームウェアのバージョン (起動のログに出る)

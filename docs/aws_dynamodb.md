@@ -4,7 +4,7 @@ AWS IoT Core に届いた温度・湿度・電池残量を、DynamoDB に 1 件�
 
 > **注意**: この手順は、AWS のドキュメントに基づいています。AWS の画面、料金、サービスの提供状況は変わることがあるので、最新の情報を確認してください。
 >
-> Thermo ノードの温度 ([AWS_SETUP.md](aws_setup.md) の 1.1) も、SwitchBot と同じ形のメッセージなので、同じルールで保存されます。
+> Thermo ノードの温度 ([aws_setup.md](aws_setup.md) の 1.1) も、SwitchBot と同じ形のメッセージなので、同じルールで保存されます。
 
 ## 1. 構成
 
@@ -52,7 +52,7 @@ thermon ──> Cognito ID プール (未認証) ──一時的な認証情報�
 | `expires_at` | 数値 | この時刻 (UNIX 時刻 [s]) を過ぎると、項目が自動で削除されます (TTL。受信から 30 日後) |
 
 - 表の属性のほかに、メッセージの `uptime_ms` と `timestamp` も、そのまま属性として保存されます (4.1 の `SELECT *`)。
-- ソートキーの `ts` には、メッセージの `timestamp` (ゲートウェイの時計) ではなく、ルールの `timestamp()` (IoT Core の時計) を使います。ゲートウェイの時計が合っていないと、`timestamp` が入らないことがあるためです ([AWS_SETUP.md](aws_setup.md))。
+- ソートキーの `ts` には、メッセージの `timestamp` (ゲートウェイの時計) ではなく、ルールの `timestamp()` (IoT Core の時計) を使います。ゲートウェイの時計が合っていないと、`timestamp` が入らないことがあるためです ([aws_setup.md](aws_setup.md))。
 - `ts` は、秒単位です。同じ機器から同じ秒に 2 件届くと、上書きされます。ゲートウェイは、機器 1 台につき 10 秒に 1 回しか送らないので、通常は起きません。
 
 ### 2.2 作成する
@@ -138,7 +138,7 @@ WHERE isUndefined(temperature_c) = false
 - `FROM 'thermo/#'` は、`thermo/` で始まる全てのトピックです (SwitchBot と Thermo ノードの両方)。
 - `WHERE` で、`temperature_c` のないメッセージを除きます。
 - `timestamp()` は、IoT Core が受信した時刻 [ミリ秒] です。`floor(... / 1000)` で秒にします。`2592000` は、30 日の秒数です。
-- `SELECT *` は、メッセージの全ての項目 (`node`、`type`、`temperature_c`、`humidity`、`pressure_hpa`、`battery`、`uptime_ms`、`timestamp`) を、そのまま渡します。項目が増えても (気圧の `pressure_hpa` など)、ルールとテーブルを変えずに保存されます ([AWS_SETUP.md](aws_setup.md) の 8 章)。
+- `SELECT *` は、メッセージの全ての項目 (`node`、`type`、`temperature_c`、`humidity`、`pressure_hpa`、`battery`、`uptime_ms`、`timestamp`) を、そのまま渡します。項目が増えても (気圧の `pressure_hpa` など)、ルールとテーブルを変えずに保存されます ([aws_setup.md](aws_setup.md) の 8 章)。
 
 ### 4.2 ルールを作る
 
@@ -163,7 +163,7 @@ aws iot create-topic-rule \
   --rule-name thermo_to_dynamodb --topic-rule-payload file://rule-dynamodb.json
 ```
 
-ルール名に使えるのは、英数字とアンダースコアだけです。[AWS_GRAPH.md](aws_graph.md) の CloudWatch のルール (`thermo_switchbot_to_cloudwatch`) とは別のルールなので、同時に動かせます。
+ルール名に使えるのは、英数字とアンダースコアだけです。[aws_graph.md](aws_graph.md) の CloudWatch のルール (`thermo_switchbot_to_cloudwatch`) とは別のルールなので、同時に動かせます。
 
 コンソールで作る場合は、「IoT Core → メッセージのルーティング → ルール → ルールを作成」で、SQL に 4.1 を貼ります。アクションは「DynamoDBv2」を選びます (「DynamoDB」は、メッセージ全体を 1 つの属性に入れるので、使いません。「DynamoDBv2」は、メッセージの各項目を別々の属性にします)。テーブルは `thermo-readings`、IAM ロールは `thermo-iot-dynamodb` です。
 
@@ -268,11 +268,11 @@ aws cognito-identity set-identity-pool-roles \
   ```
 
   `thermon.nodes` には、テーブルの `node` と同じ MAC アドレスを書きます。
-- ビルド、端末への転送、表示の確認は、thermon の [SETUP.md](https://github.com/sluchin/thermon/blob/main/docs/setup.md) の「アプリを動かして確認する」を見てください。thermon の [AWS_DYNAMODB.md](https://github.com/sluchin/thermon/blob/main/docs/aws_dynamodb.md) にも、この文書の 6 章までと同じ AWS の手順が書いてあります (`cat` で JSON を作り、`aws` コマンドで設定する形です)。AWS CLI の準備は、[AWS_CLI.md](https://github.com/sluchin/thermon/blob/main/docs/aws_cli.md) を見てください。
+- ビルド、端末への転送、表示の確認は、thermon の [setup.md](https://github.com/sluchin/thermon/blob/main/docs/setup.md) の「アプリを動かして確認する」を見てください。thermon の [aws_dynamodb.md](https://github.com/sluchin/thermon/blob/main/docs/aws_dynamodb.md) にも、この文書の 6 章までと同じ AWS の手順が書いてあります (`cat` で JSON を作り、`aws` コマンドで設定する形です)。AWS CLI の準備は、[AWS_CLI.md](https://github.com/sluchin/thermon/blob/main/docs/aws_cli.md) を見てください。
 - 機器ごとの最新の測定値と、温度と湿度のグラフ (1 時間、6 時間、24 時間) を表示します。
 
 ## 8. これから
 
 - 古いデータは、`expires_at` により、受信から 30 日後に削除されます。長く残したいときは、TTL の期間 (4.1 の `2592000`) を長くするか、S3 にエクスポートします。
-- グラフが粗くてよいなら、[AWS_GRAPH.md](aws_graph.md) の CloudWatch も併用できます。
+- グラフが粗くてよいなら、[aws_graph.md](aws_graph.md) の CloudWatch も併用できます。
 - 複数人で使うときは、Cognito のユーザープールによるログインに替えます。

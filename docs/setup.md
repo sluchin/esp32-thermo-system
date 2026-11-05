@@ -498,14 +498,14 @@ thermo set ssid <SSID>            (スマートフォンのテザリングなら
 thermo set psk <パスワード>
 thermo set endpoint <AWS IoT のエンドポイント>
 thermo set client_id <クライアント ID>    (ノードごとに、別の ID にする。ゲートウェイとも、重ねない。例: node-01)
-cred add ...                      (CA 証明書、デバイス証明書、秘密鍵。送り方は、ゲートウェイと同じ。ただし、CA 以外は、ノード専用のものを使う。AWS_SETUP.md の 7 章)
+cred add ...                      (CA 証明書、デバイス証明書、秘密鍵。送り方は、ゲートウェイと同じ。ただし、CA 以外は、ノード専用のものを使う。docs/aws_setup.md の 7 章)
 thermo save-certs                 (scripts/send-cred.sh が自動で実行する。手で cred add したときだけ必要)
 thermo show                       (ready to connect: yes になれば、揃っている)
 ```
 
 **スマートフォンのテザリングに切り替える** (元の設定を残して、戻せる): `thermo tether <SSID> [パスワード]` は、今の SSID とパスワードを、フラッシュに保存してから (1 項目。`tether_bak`)、テザリングの SSID とパスワードを設定します。続けて、`thermo apply` で反映します。すでに切り替えているときに、もう一度実行しても、最初の元の設定は、上書きしません。`thermo restore` は、元の SSID とパスワードに戻して、保存した元の設定を消します (続けて、`thermo apply`)。`thermo show` の `tether backup:` に、元の SSID が出ます (なければ `(none)`)。パスワードは、基板の外に、出しません。Android アプリ [thermo-term](https://github.com/sluchin/thermo-term) が、USB ケーブル (Type-C) で、この 2 つのコマンドを送ります。
 
-文字が欠けないように、`scripts/send-cred.sh` と `scripts/send-wifi.sh` で、少しずつ送ります。**証明書、秘密鍵、ポリシー、クライアント ID は、ノードごとに、別のものを作ります** (ゲートウェイと共有しません。1 台が漏れても、その 1 台だけ、無効にできます。クライアント ID を重ねると、AWS IoT Core が、先の接続を切るので、奪い合いになります)。共有してよいのは、ルート CA とエンドポイントだけです。作り方は、[AWS_SETUP.md](aws_setup.md) の 7 章です。
+文字が欠けないように、`scripts/send-cred.sh` と `scripts/send-wifi.sh` で、少しずつ送ります。**証明書、秘密鍵、ポリシー、クライアント ID は、ノードごとに、別のものを作ります** (ゲートウェイと共有しません。1 台が漏れても、その 1 台だけ、無効にできます。クライアント ID を重ねると、AWS IoT Core が、先の接続を切るので、奪い合いになります)。共有してよいのは、ルート CA とエンドポイントだけです。作り方は、[aws_setup.md](aws_setup.md) の 7 章です。
 
 **SD カード** (拡張ボードの SD カードスロット。SPI。CS は D2)
 
@@ -577,7 +577,7 @@ Thermo ノードのシェルには、ファイルシステムのコマンド `fs
 - **`fs rm` と `fs write` も使えます。** USB のシリアルにつなげた人は、ファイルを消したり、書き換えたりできます。ログを書いている最中には、実行しないでください (FAT が壊れるおそれがあります)。
 - 大きなファイルに `fs cat` を実行すると、画面に大量に流れます。
 - ノードのログも、SD カードに、テキストで保存します (`/SD:/boot.log` は、起動から 60 秒の全てのログ、`/SD:/error.log` は、エラーのログ。`fs cat /SD:/error.log` で読めます)。
-- 記録の形式と読み方 (16 進のダンプの読み方、PC で読む Python) は、[SD_LOG.md](sd_log.md) に書いてあります。実機の試験項目は、[TEST_INTEGRATION.md](test_integration.md) です。
+- 記録の形式と読み方 (16 進のダンプの読み方、PC で読む Python) は、[sd_log.md](sd_log.md) に書いてあります。実機の試験項目は、[test_integration.md](test_integration.md) です。
 
 ## CI/CD（GitHub Actions）
 
@@ -624,7 +624,7 @@ docker compose run --rm lint
 docker compose run --rm whitespace
 ```
 
-コーディングスタイルは Zephyr の規約に合わせています。違う点は、[CODING_STYLE.md](coding_style.md) を参照してください。
+コーディングスタイルは Zephyr の規約に合わせています。違う点は、[coding_style.md](coding_style.md) を参照してください。
 
 ### ビルドアーティファクト
 
