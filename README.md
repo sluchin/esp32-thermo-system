@@ -8,7 +8,7 @@ Zephyr RTOS-based BLE thermometer system featuring a sensor node and a gateway f
 
 - **Thermo Node**: 温湿度センサと気圧センサを備えたエッジノード。温度、湿度、気圧のデータを BLE 経由で配信
 - **Thermo Gateway**: 複数のノードから温度データを収集・集約するゲートウェイ
-- **thermon** (別のリポジトリ): ゲートウェイが AWS IoT Core 経由で DynamoDB に保存したデータを、Cognito の未認証ロールで読み取って表示する Android アプリ ([sluchin/thermon](https://github.com/sluchin/thermon)。手順は [AWS_DYNAMODB.md](docs/aws_dynamodb.md))
+- **thermon** (別のリポジトリ): ゲートウェイが AWS IoT Core 経由で DynamoDB に保存したデータを、Cognito の未認証ロールで読み取って表示する Android アプリ ([sluchin/thermon](https://github.com/sluchin/thermon)。手順は [docs/aws_dynamodb.md](docs/aws_dynamodb.md))
 
 ## プロジェクト構成
 
@@ -35,27 +35,33 @@ esp32-thermo-system/
 │   ├── version.cmake           # VERSION と git のハッシュを、ファームウェアに渡す (起動のログに出る)
 │   └── warnings.txt            # コンパイラの警告オプション (warnings.cmake が読み込む)
 ├── VERSION                     # ファームウェアのバージョン (起動のログに出る)
-├── man/                        # 使っている Zephyr の API の日本語訳 (index.md から読む)
+├── docs/                       # ドキュメント (Markdown。Doxygen の入力にもなる)
+│   ├── setup.md                # セットアップガイド
+│   ├── aws_setup.md, aws_graph.md, aws_dynamodb.md  # AWS IoT Core、グラフ、DynamoDB
+│   ├── simulation.md, native_sim_implementation.md  # native_sim でのシミュレーション
+│   ├── debug_log.md            # ログの読み方
+│   ├── sd_log.md               # SD カードの記録の形式と読み方
+│   ├── test_integration.md     # 結合試験項目書 (実機)
+│   ├── coding_style.md, misra.md  # コーディングスタイルと MISRA C
+│   └── man/                    # 使っている Zephyr の API の日本語訳 (index.md から読む)
 ├── scripts/                    # ビルド、テスト、整形、書き込み、WiFi の設定などの補助スクリプト
-├── .github/                    # GitHub Actions (workflows/build.yml と、Docker イメージのアクション)
+├── .github/                    # GitHub Actions (workflows/build.yml、release.yml と、Docker イメージのアクション)
 ├── Dockerfile                  # 開発環境 (Docker)
 ├── docker-compose.yml          # ビルド、テスト、解析などのサービス
-├── Doxyfile                    # ドキュメントの生成 (Doxygen)
+├── Doxyfile                    # ドキュメントの生成 (Doxygen。出力は build/docs/)
 ├── west.yml                    # West マニフェスト
-├── SETUP.md                    # セットアップガイド
-├── SD_LOG.md                   # SD カードの記録の形式と読み方
-├── TEST_INTEGRATION.md         # 結合試験項目書 (実機)
+├── TODO.md                     # 未対応の課題と今後の予定
 └── README.md                   # このファイル
 ```
 
-## Zephyr API のマニュアル (man/)
+## Zephyr API のマニュアル (docs/man/)
 
-`man/` に、このプロジェクトが使っている Zephyr (v4.3.0) の API を、日本語に訳して置いています。`app/` のソース (単体テストを除く) が呼んでいる API だけを、サブシステムごとの Markdown にまとめました。
+`docs/man/` に、このプロジェクトが使っている Zephyr (v4.3.0) の API を、日本語に訳して置いています。`app/` のソース (単体テストを除く) が呼んでいる API だけを、サブシステムごとの Markdown にまとめました。
 
-- 入口は [man/index.md](docs/man/index.md) です。Bluetooth LE、カーネル、デバイスとドライバ、表示装置、ファイルシステム、ネットワーク、設定、シェル、ログ、システムのユーティリティの 10 ファイルです。
+- 入口は [docs/man/index.md](docs/man/index.md) です。Bluetooth LE、カーネル、デバイスとドライバ、表示装置、ファイルシステム、ネットワーク、設定、シェル、ログ、システムのユーティリティの 10 ファイルです。そのほかに、テストの道具 ([ztest.md](docs/man/ztest.md)、[fff.md](docs/man/fff.md)) があります。
 - 各 API に、関数のシグネチャ、説明、引数 (1 つ 1 行の表。`in` / `out` / `in,out` の区別つき)、戻り値、注意、このリポジトリの呼び出し箇所 (GitHub のソースの行へのリンク) を載せました。
 - 訳の元は、Zephyr のヘッダの Doxygen コメントです。**英語の原文が正**なので、細かい挙動は、ヘッダか公式の文書で確かめてください。
-- `docs/` は、Doxygen の生成物で、ビルドのたびに消えるため、`man/` は、リポジトリ直下に置きました。
+- Doxygen の生成物は `build/docs/` に出るため、`docs/` の Markdown とは混ざりません (`docs/man/` も Doxygen の入力に入っています)。
 - ソースを解析した文書は、`app/*/docs/` にあります。
 
 ## クイックスタート
@@ -74,7 +80,7 @@ docker compose run --rm build-gateway-sim
 ./build/thermo-gateway-sim/zephyr/zephyr.exe
 ```
 
-詳細は [SIMULATION.md](docs/simulation.md) を参照してください。
+詳細は [docs/simulation.md](docs/simulation.md) を参照してください。
 
 ### Docker を使用したビルド
 
@@ -89,7 +95,7 @@ docker compose run --rm build
 # インタラクティブ開発シェル
 docker compose run --rm dev
 
-# 生成物 (build/ と docs/) を全て消す (次のビルドは、最初からやり直す)
+# 生成物 (build/) を全て消す (次のビルドは、最初からやり直す)
 docker compose run --rm clean
 ```
 
@@ -121,13 +127,13 @@ docker compose run --rm test
 docker compose run --rm coverage
 # 静的解析 (gcc -fanalyzer。指摘があれば失敗する)
 docker compose run --rm analyze
-# ドキュメント (Doxygen。docs/index.html を開く。警告があれば失敗する)
+# ドキュメント (Doxygen。build/docs/index.html を開く。警告があれば失敗する)
 docker compose run --rm docs
 ```
 
 ### 整形と lint
 
-コーディングスタイルは Zephyr の規約に合わせています (違う点は [CODING_STYLE.md](docs/coding_style.md))。
+コーディングスタイルは Zephyr の規約に合わせています (違う点は [docs/coding_style.md](docs/coding_style.md))。
 
 ```bash
 # 「対象」が node、gateway の場合
@@ -143,7 +149,7 @@ docker compose run --rm whitespace
 
 ### ローカル開発環境構築
 
-Docker を使用しない場合は、[SETUP.md](docs/setup.md) を参照してください。
+Docker を使用しない場合は、[docs/setup.md](docs/setup.md) を参照してください。
 
 ```bash
 # West ワークスペース初期化
@@ -161,7 +167,7 @@ west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-si
 ### デバッグログ
 
 `LOG_DBG` と `LOG_HEXDUMP_DBG` (BLE で送受信したデータの 16 進ダンプ) は、通常のビルドでは、コードごと消えます。有効にするときは、cmake のオプション `THERMO_DEBUG_LOG` を `ON` にして、ビルドします。
-アプリのソース (`app/thermo-*/src/`) だけに、`THERMO_LOG_LEVEL=4` (DBG) が付きます (`app/common/thermo_log.h`)。Zephyr のモジュール (Bluetooth、ネットワーク、mbedTLS など) は、`CONFIG_LOG_DEFAULT_LEVEL` (3) のままです。全体を DBG にすると、ログの量が多すぎて、スタックが足りなくなり、動かなくなるためです。Zephyr のモジュールのログが必要なときは、`-DCONFIG_NET_LOG=y -DCONFIG_NET_SOCKETS_LOG_LEVEL_ERR=y` などを、個別に足してください ([AWS_SETUP.md](docs/aws_setup.md) の 5.1 を参照)。
+アプリのソース (`app/thermo-*/src/`) だけに、`THERMO_LOG_LEVEL=4` (DBG) が付きます (`app/common/thermo_log.h`)。Zephyr のモジュール (Bluetooth、ネットワーク、mbedTLS など) は、`CONFIG_LOG_DEFAULT_LEVEL` (3) のままです。全体を DBG にすると、ログの量が多すぎて、スタックが足りなくなり、動かなくなるためです。Zephyr のモジュールのログが必要なときは、`-DCONFIG_NET_LOG=y -DCONFIG_NET_SOCKETS_LOG_LEVEL_ERR=y` などを、個別に足してください ([docs/aws_setup.md](docs/aws_setup.md) の 5.1 を参照)。
 
 ```bash
 # Docker: 環境変数 THERMO_DEBUG_LOG を ON にして、build-* のサービスを実行する (既定は OFF)
@@ -174,7 +180,7 @@ west build -p always -b xiao_esp32c3 app/thermo-node -- -DTHERMO_DEBUG_LOG=ON
 
 gateway がスキャンで受け取る広告データの 16 進ダンプは、大量に届くので、50 要素に 1 回だけ出します (`app/thermo-gateway/src/ble.c` の `ADV_HEXDUMP_EVERY`。`THERMO_DEBUG_LOG=ON` のときだけ有効)。
 
-ログの読み方 (16 進ダンプの見方、SwitchBot の受信から AWS への送信までの流れ) は、[DEBUG_LOG.md](docs/debug_log.md) を参照してください。
+ログの読み方 (16 進ダンプの見方、SwitchBot の受信から AWS への送信までの流れ) は、[docs/debug_log.md](docs/debug_log.md) を参照してください。
 
 設定を切り替えるときは、前のビルドが残っていると、反映されないことがあるので、ビルドのディレクトリ (`build/thermo-node` など) を削除してから、ビルドし直します (west は `-p always`)。
 
@@ -193,21 +199,21 @@ scripts/flash.sh gateway /dev/ttyACM0
 
 ### Thermo Node
 
-- 温湿度センサと気圧センサ (AHT20 + BMP280 のモジュール。I2C) の読取 (Zephyr のセンサ API。配線は [SETUP.md](docs/setup.md) の「Thermo ノードのセンサ」)。DHT11 (気圧なし) にも、ビルドのオプション (`THERMO_SENSOR=dht11`) で替えられます。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
+- 温湿度センサと気圧センサ (AHT20 + BMP280 のモジュール。I2C) の読取 (Zephyr のセンサ API。配線は [docs/setup.md](docs/setup.md) の「Thermo ノードのセンサ」)。DHT11 (気圧なし) にも、ビルドのオプション (`THERMO_SENSOR=dht11`) で替えられます。ADC のアナログセンサ (LM35 など) にも、Devicetree の書き換えで、替えられます
 - BLE GATT サービスで、温度、湿度、気圧のデータを配信
-- 拡張ボードの OLED に、温度、湿度、日付、時刻と、温度と湿度のグラフ (直近の約 6 時間。SD カードの記録から、再起動のあとも戻す) を表示 (ユーザボタンでページを切り替え。OLED は、起動のときとボタンを押したときに点灯して、10 秒たつと消える。消えている間にボタンを押すと、点灯する)。時刻は、拡張ボードの RTC (PCF8563) から読みます (RTC は、ゲートウェイから BLE で受け取った時刻に合わせます) (設定は [SETUP.md](docs/setup.md) の「OLED の表示と時刻」。`THERMO_DISPLAY=n` と `THERMO_RTC=n` で、別々に外せます)
-- ゲートウェイにつながらない測定が 5 回続いたら、ノードが、WiFi で、AWS IoT Core に、直接 MQTT で送る (ゲートウェイにつながったら止める。5 回失敗したらあきらめる)。全ての測定値 (5 秒ごと) は、送信済みフラグつきで、拡張ボードの SD カードに保存する (最大 100000 件。超えたら、古い記録から上書きする)。BLE も WiFi も使えない間は、未送信で保存し続けて、つながったときに、測った時刻のまま、古い順に送る ([SETUP.md](docs/setup.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」。ノードごとの証明書は、[AWS_SETUP.md](docs/aws_setup.md) の 7 章)。
-- ノードのログも、SD カードに、テキストで保存する (`boot.log`: 起動から 60 秒の全てのログ、`error.log`: エラーのログ。形式は [SD_LOG.md](docs/sd_log.md))。
-- 起動のときに、OLED に、約 3 秒の起動画面 (丸い絵が、ドットを食べながら走る) を出して、ブザーで、短いメロディを鳴らす (オリジナルの絵と曲。差し替えは、[SETUP.md](docs/setup.md) の「起動画面と起動音」)。ボタン (D1) を押すと、ページを切り替えて、ブザーで、短い音を鳴らす (差し替えは、同じ「ボタンを押したときの音」)
+- 拡張ボードの OLED に、温度、湿度、日付、時刻と、温度と湿度のグラフ (直近の約 6 時間。SD カードの記録から、再起動のあとも戻す) を表示 (ユーザボタンでページを切り替え。OLED は、起動のときとボタンを押したときに点灯して、10 秒たつと消える。消えている間にボタンを押すと、点灯する)。時刻は、拡張ボードの RTC (PCF8563) から読みます (RTC は、ゲートウェイから BLE で受け取った時刻に合わせます) (設定は [docs/setup.md](docs/setup.md) の「OLED の表示と時刻」。`THERMO_DISPLAY=n` と `THERMO_RTC=n` で、別々に外せます)
+- ゲートウェイにつながらない測定が 5 回続いたら、ノードが、WiFi で、AWS IoT Core に、直接 MQTT で送る (ゲートウェイにつながったら止める。5 回失敗したらあきらめる)。全ての測定値 (5 秒ごと) は、送信済みフラグつきで、拡張ボードの SD カードに保存する (最大 100000 件。超えたら、古い記録から上書きする)。BLE も WiFi も使えない間は、未送信で保存し続けて、つながったときに、測った時刻のまま、古い順に送る ([docs/setup.md](docs/setup.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」。ノードごとの証明書は、[docs/aws_setup.md](docs/aws_setup.md) の 7 章)。
+- ノードのログも、SD カードに、テキストで保存する (`boot.log`: 起動から 60 秒の全てのログ、`error.log`: エラーのログ。形式は [docs/sd_log.md](docs/sd_log.md))。
+- 起動のときに、OLED に、約 3 秒の起動画面 (丸い絵が、ドットを食べながら走る) を出して、ブザーで、短いメロディを鳴らす (オリジナルの絵と曲。差し替えは、[docs/setup.md](docs/setup.md) の「起動画面と起動音」)。ボタン (D1) を押すと、ページを切り替えて、ブザーで、短い音を鳴らす (差し替えは、同じ「ボタンを押したときの音」)
 - ログ出力（UART シリアルコンソール）
 
 ### Thermo Gateway
 
 - BLE スキャンで周辺ノードを検出して、GATT で接続し、温度、湿度、気圧の通知を受信 (最大 3 台。気圧を送らない以前のノードも受信できる)
 - SwitchBot 屋外用温湿度計 (Outdoor Meter) のアドバタイズ (接続しない) を受信して、温度 (℃)・湿度・電池残量を、10 秒に 1 回、AWS IoT Core に送信
-- WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度、湿度、気圧を送信 (設定手順は [AWS_SETUP.md](docs/aws_setup.md)。届いたデータをグラフにする手順は [AWS_GRAPH.md](docs/aws_graph.md)。DynamoDB に保存して、アプリから読む手順は [AWS_DYNAMODB.md](docs/aws_dynamodb.md))
-- SNTP で同期した時刻を、接続したノードに BLE (GATT の書き込み) で渡して、ノードの RTC を合わせる (1 時間ごと。[SETUP.md](docs/setup.md) の「ゲートウェイからの時刻の同期」)
-- 起動の 1 分後から 1 分ごとに、ノードの RTC に時刻がなければ、ノードが自分で WiFi と SNTP で時刻を取って、WiFi を切る (最大 5 回) (BLE の予備。[SETUP.md](docs/setup.md) の「WiFi での時刻の取得」)
+- WiFi + MQTT (TLS、クライアント証明書による相互認証) で、AWS IoT Core に温度、湿度、気圧を送信 (設定手順は [docs/aws_setup.md](docs/aws_setup.md)。届いたデータをグラフにする手順は [docs/aws_graph.md](docs/aws_graph.md)。DynamoDB に保存して、アプリから読む手順は [docs/aws_dynamodb.md](docs/aws_dynamodb.md))
+- SNTP で同期した時刻を、接続したノードに BLE (GATT の書き込み) で渡して、ノードの RTC を合わせる (1 時間ごと。[docs/setup.md](docs/setup.md) の「ゲートウェイからの時刻の同期」)
+- 起動の 1 分後から 1 分ごとに、ノードの RTC に時刻がなければ、ノードが自分で WiFi と SNTP で時刻を取って、WiFi を切る (最大 5 回) (BLE の予備。[docs/setup.md](docs/setup.md) の「WiFi での時刻の取得」)
 - WiFi・エンドポイント・証明書は、シェルの `thermo` コマンドで設定して、フラッシュに保存
 - デバッグシェル対応
 
@@ -291,7 +297,7 @@ CONFIG_LOG_DEFAULT_LEVEL=4  # DEBUG レベル
 
 ## トラブルシューティング
 
-問題が発生した場合は、[SETUP.md](docs/setup.md) のトラブルシューティングセクションを参照してください。未対応の課題や今後の予定については [TODO.md](TODO.md) を参照してください。
+問題が発生した場合は、[docs/setup.md](docs/setup.md) のトラブルシューティングセクションを参照してください。未対応の課題や今後の予定については [TODO.md](TODO.md) を参照してください。
 
 ## リリース
 

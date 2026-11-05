@@ -154,7 +154,7 @@ services:
       - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
       - HOME=/tmp
 
-  # ドキュメント (Doxygen. HTML) を docs/ に生成する. 警告が 1 つでもあれば失敗する.
+  # ドキュメント (Doxygen. HTML) を build/docs/ に生成する. 警告が 1 つでもあれば失敗する.
   docs:
     image: esp32-thermo-system:latest
     volumes:
@@ -335,8 +335,8 @@ services:
       - HOME=/tmp
     command: /bin/bash
 
-  # 生成物 (build/ と docs/) を全て消す. 次のビルドは最初からやり直す.
-  # どちらも .gitignore に入っていて, ビルドとドキュメントの生成で作り直せる.
+  # 生成物 (build/. ドキュメントの HTML も build/docs/ に入る) を全て消す. 次のビルドは最初からやり直す.
+  # .gitignore に入っていて, ビルドとドキュメントの生成で作り直せる.
   # (root で作ったものは消せない. UID と GID をエクスポートしていないときは sudo で消す)
   clean:
     image: esp32-thermo-system:latest
