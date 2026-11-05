@@ -213,7 +213,7 @@ disconnected() → release_node() → ble_scan()
 
 `nodes[]` と `pending_*` には、ミューテックスなどの排他制御はありません。`pending_node` が非 NULL の間は、`scan_cb()` が新しい依頼を作らない、という約束で、依頼の重なりを防いでいます。`time_work_handler()` は `conn` と `time_handle` を読み、`write_time()` がノードの `write` と `time_buf` を書きます。切断 (`release_node()` がノードを 0 にする) と重なる可能性は、理屈の上ではあります。
 
-## 気づいた点
+## 注意点
 
 - ノードの時刻の特性は、認証なしで書き込めます (`thermo-node/src/ble.c` に注記あり)。近くの BLE 機器なら、誰でも、ノードの表示時刻を変えられます。
 - `scan_cb()` は、スキャン応答のたびに呼ばれます。Thermo サービスの UUID がない機器は、`bt_data_parse()` の直後に返るので、まわりに機器が多くても、`bt_conn_lookup_addr_le()` などは呼ばれません。接続済みのノードの Thermo のスキャン応答だけが、そこまで進みます。

@@ -7,11 +7,11 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 ### ビルド (Docker 推奨)
 - `docker compose run` には、必ず `--rm` を付ける (終わったコンテナを、残さないため)。
-- Thermo Node ビルド: `docker compose run --rm build-node` (OLED と RTC を外すときは、`THERMO_DISPLAY=n` と `THERMO_RTC=n` を付ける。`SETUP.md` の「OLED の表示と時刻」)
+- Thermo Node ビルド: `docker compose run --rm build-node` (OLED と RTC を外すときは、`THERMO_DISPLAY=n` と `THERMO_RTC=n` を付ける。`docs/setup.md` の「OLED の表示と時刻」)
 - Thermo Gateway ビルド: `docker compose run --rm build-gateway`
 - 両方まとめて: `docker compose run --rm build` / `test` / `coverage` / `analyze` (node と gateway の両方を、順に実行する。`test` と `coverage` は、共有のコード `app/common` も実行する。個別のサービスは、`build-node` `build-gateway` `test-node` `coverage-gateway` のように、`-node` か `-gateway` を付ける。`test-common` と `coverage-common` は、`app/common` だけを実行する。`format` `format-fix` `lint` `whitespace` `docs` は、両方のアプリを対象にする (名前に、アプリは付かない)。CI は、個別のサービスを使う。`scripts/build.sh` と `scripts/analyze.sh` が本体)
 - 開発シェル: `docker compose run --rm dev`
-- クリーン: `docker compose run --rm clean` (`build/` と `docs/` を消す。ビルドの不具合を疑うときに、最初からやり直す)
+- クリーン: `docker compose run --rm clean` (`build/` を消す。Doxygen の出力の `build/docs/` も含む。ビルドの不具合を疑うときに、最初からやり直す)
 
 ### ビルド (ローカル West)
 - ワークスペース初期化: `west init -l . && west update`
@@ -24,8 +24,8 @@ ESP32C3 上で動作する Zephyr RTOS ベースの BLE サーモメータシス
 
 ### シリアルモニター
 - `picocom -b 115200 /dev/ttyACM0`
-- 起動のログ (リセットのたびに USB が切れる) を見るとき: `while true; do [ -c /dev/ttyACM0 ] && stty -F /dev/ttyACM0 115200 raw -echo && cat /dev/ttyACM0; sleep 0.3; done` (読み取りだけ。`picocom` のループは、端末の応答がシェルに返り続けて、出力が乱れることがある。`SETUP.md` の「起動のログを見る」)
-- Thermo ノードのシェルには、ファイルシステムのコマンド `fs` がある (`CONFIG_FILE_SYSTEM_SHELL=y`。`SETUP.md` の「ファイルシステムのシェル」)。`fs rm` と `fs write` も使えるので、ログの書き込み中には、実行しない。
+- 起動のログ (リセットのたびに USB が切れる) を見るとき: `while true; do [ -c /dev/ttyACM0 ] && stty -F /dev/ttyACM0 115200 raw -echo && cat /dev/ttyACM0; sleep 0.3; done` (読み取りだけ。`picocom` のループは、端末の応答がシェルに返り続けて、出力が乱れることがある。`docs/setup.md` の「起動のログを見る」)
+- Thermo ノードのシェルには、ファイルシステムのコマンド `fs` がある (`CONFIG_FILE_SYSTEM_SHELL=y`。`docs/setup.md` の「ファイルシステムのシェル」)。`fs rm` と `fs write` も使えるので、ログの書き込み中には、実行しない。
 
 ### クラウドのセッション (claude.ai/code) で Docker を使うとき
 
@@ -54,14 +54,14 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
   - `thermo-node/`: センサノード。AHT20 + BMP280 (I2C。`THERMO_SENSOR=dht11` で DHT11、または ADC) で温度と湿度と気圧を読み取り BLE で配信し、拡張ボードの OLED に、温度、湿度、日時を表示する (日時は、拡張ボードの RTC。PCF8563 のドライバは、`drivers/rtc_pcf8563.c`)。
   - `thermo-gateway/`: ゲートウェイ。周辺ノードをスキャンしデータを集約。
   - `common/`: 2 つのアプリで共有するコード。BLE の UUID (`thermo_ble_uuid.h`)、ログのレベル (`thermo_log.h`)、設定とシェル (`cfg.c` `cfg_shell.c`。SSID、パスワード、エンドポイント、クライアント ID、証明書)、WiFi (`wifi_link.c`)、SNTP (`ntp.c`)、AWS IoT Core への MQTT (`cloud.c`)、ペイロードの作成 (`payload.c`)、SwitchBot の値 (`switchbot_sample.h`)。ゲートウェイは、起動のときから、動かし続ける。ノードは、ゲートウェイにつながらないときだけ、`cloud_set_enabled()` で動かす (`thermo-node/src/direct.c`)。ノードは、`app/thermo-node/src/shell_extra.h` で、`thermo` コマンドに `sync` を足す。
-- `man/`: このプロジェクトが使っている Zephyr の API の日本語訳 (サブシステムごとの Markdown。`man/index.md` から読む)。新しい Zephyr の API を使い始めたら、該当のファイルに足す。`docs/` は生成物で、ビルドのたびに消えるので、ここには置かない。
+- `docs/man/`: このプロジェクトが使っている Zephyr の API の日本語訳 (サブシステムごとの Markdown。`docs/man/index.md` から読む)。新しい Zephyr の API を使い始めたら、該当のファイルに足す。Doxygen の生成物は `build/docs/` に出るので、`docs/` の Markdown とは混ざらない。
 - `west.yml`: West マニフェストファイル。
 - `docker-compose.yml` / `Dockerfile`: 開発環境定義。
 - `.github/workflows/`: GitHub Actions による CI 設定。
 
 ## 起動画面と起動音の素材
 
-素材 (絵、題名、メロディ) は `app/thermo-node/src/boot_assets.c` (オリジナル)。ボタンを押したときの音は `app/thermo-node/src/button_assets.c` (オリジナル)。`app/thermo-node/private/src/boot_assets.c` と `app/thermo-node/private/src/button_assets.c` があれば、それぞれ、それを使う (別のプライベートリポジトリを、サブモジュールとして置く。`SETUP.md` の「起動画面と起動音」)。
+素材 (絵、題名、メロディ) は `app/thermo-node/src/boot_assets.c` (オリジナル)。ボタンを押したときの音は `app/thermo-node/src/button_assets.c` (オリジナル)。`app/thermo-node/private/src/boot_assets.c` と `app/thermo-node/private/src/button_assets.c` があれば、それぞれ、それを使う (別のプライベートリポジトリを、サブモジュールとして置く。`docs/setup.md` の「起動画面と起動音」)。
 
 - **既存のゲームなどの、著作権や商標のある素材 (絵、曲) を、このリポジトリ (公開) に、コミットしない。** 履歴にも残さない。素材のデータは、ユーザーが、プライベートリポジトリに、用意する (こちらで、そのままの音階や絵を、書き写さない)。
 - 素材を入れてビルドした実行ファイル (`zephyr.elf`、`zephyr.bin`) を、公開しない (CI の成果物、リリース)。CI は、サブモジュールを取り込まない。
@@ -69,7 +69,7 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
 
 ## コーディング規約
 
-@../CODING_STYLE.md
+@../docs/coding_style.md
 
 ## 開発フロー
 
@@ -87,16 +87,16 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
 ### コード修正時のルール
 
 - コードを修正したら、必ず Thermo Node と Thermo Gateway の両方をビルドする (`docker compose run --rm build-node` / `docker compose run --rm build-gateway`)。`native_sim` に関わる変更は、`build-node-sim` / `build-gateway-sim` も実行する。
-  - Devicetree (`*.overlay`) と Kconfig のインデントは、空白 4 つ (Zephyr のタブ 8 ではない。`CODING_STYLE.md` の例外 1。Kconfig の `help` の本文は、`help` より、空白 2 つ深くする)。新しい overlay と Kconfig も、タブを使わない。
+  - Devicetree (`*.overlay`) と Kconfig のインデントは、空白 4 つ (Zephyr のタブ 8 ではない。`docs/coding_style.md` の例外 1。Kconfig の `help` の本文は、`help` より、空白 2 つ深くする)。新しい overlay と Kconfig も、タブを使わない。
   - ビルド出力に警告を出さない。警告やエラーが出たら修正し、出なくなるまで繰り返す。
   - 使用しているライブラリのヘッダが警告を出すときは、そのヘッダの `#include` を `#pragma GCC diagnostic push` / `ignored "-W..."` / `pop` で囲む。ただし、Zephyr のヘッダは、マクロがアプリ側のコードに展開されるため、この方法では抑えきれない (試したところ、970 件が残った)。そのため、`app/warnings.cmake` で、Zephyr の include ディレクトリをシステムヘッダとして扱う。
-  - 整形と lint: コードを修正したら、`docker compose run --rm format-fix` で整形して、`docker compose run --rm lint` (Zephyr の checkpatch.pl) と、`docker compose run --rm whitespace` (全てのテキストファイルの行末の空白の確認) を実行する。`docker compose run --rm format` は、整形が必要なら失敗する (確認だけ)。詳細は、`CODING_STYLE.md`。
+  - 整形と lint: コードを修正したら、`docker compose run --rm format-fix` で整形して、`docker compose run --rm lint` (Zephyr の checkpatch.pl) と、`docker compose run --rm whitespace` (全てのテキストファイルの行末の空白の確認) を実行する。`docker compose run --rm format` は、整形が必要なら失敗する (確認だけ)。詳細は、`docs/coding_style.md`。
   - 単体テスト: `docker compose run --rm test-node` / `docker compose run --rm test-gateway` / `docker compose run --rm test-common` (「テスト」を参照)。コードを修正したら、実行して、全て通ることを確認する。
   - 静的解析: `docker compose run --rm analyze-node` / `docker compose run --rm analyze-gateway` (gcc の `-fanalyzer` を、app のソースだけに `-O0` で掛ける。通常のビルドとは分けてあり、指摘があれば失敗する)。コードを修正したら、実行して、指摘が出ないことを確認する。
   - 警告オプションの一覧は `app/warnings.txt` にある (`-Wall` `-Wextra` `-Wpedantic` `-Wconversion` `-Wsign-conversion` `-Wshadow` `-Wformat=2` など約 55 個)。`app/warnings.cmake` が読み込み、アプリのソース (`app/` 配下) だけに付ける。Zephyr のヘッダは、システムヘッダとして扱うので、警告を出さない。オプションを足し引きするときは、`warnings.txt` だけを直す。
   - ビルドを実行できなかったときは、そのことを報告する (成功したとは書かない)。
   - **例外**: 変更が `.claude/CLAUDE.md` や `README.md` などの文書のみの場合は、ビルドしない。
-- ビルドやコマンドの手順を変更したら、`README.md` / `SETUP.md` / `SIMULATION.md` も更新する。
+- ビルドやコマンドの手順を変更したら、`README.md` / `docs/setup.md` / `docs/simulation.md` も更新する。
 - **Markdown の見出し (`#` で始まる行) の中に、バッククォート (インラインコード) を使わない**: Doxygen が、HTML の見出しに、`<tt>` と `</tt>` を、文字のまま表示するため (GitHub Pages に公開する文書が、崩れる)。見出しは、プレーンテキストで書く。本文の中では、使ってよい。
 - ソースファイルを追加したら、該当アプリの `CMakeLists.txt` も更新する。
 
@@ -158,4 +158,5 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
 
 ## 開発ルール
 
-- Markdown (`*.md`) の日本語の文章は、句読点に「、」「。」を使う (「,」「.」は使わない)。インラインコード・コードブロック・URL・ファイル名・数値 (`1.2.0`、`1,000`) は対象外。見出しや番号付きリストの「1.」の形は変えない。`docs/` の生成物と、この `CLAUDE.md` は対象外。
+- Markdown (`*.md`) の日本語の文章は、句読点に「、」「。」を使う (「,」「.」は使わない)。インラインコード・コードブロック・URL・ファイル名・数値 (`1.2.0`、`1,000`) は対象外。見出しや番号付きリストの「1.」の形は変えない。`build/docs/` の生成物と、この `CLAUDE.md` は対象外。
+- Markdown (`*.md`。この `CLAUDE.md` を除く) には、AI の目線の記述を書かない。読み手 (人) に向けて、事実、仕様、手順だけを書く。「承認されたら実装します」「教えてください」「提案します」のような、AI からの依頼や約束、作業の報告、「Claude が」のような書き手の記述は、会話で伝えて、ファイルには残さない。

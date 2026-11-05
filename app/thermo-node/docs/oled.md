@@ -125,7 +125,7 @@ y = 63 - ((value - 下端) * (63 - 20)) / 幅
 | `format_lines()`、`format_x10()` | 文字列を作る |
 | `draw_boot_frame()`、`draw_dots()`、`draw_sprite()`、`is_in_range()` | 起動画面 |
 
-## 気づいた点
+## 注意点
 
 - `oled_show()` は、描く前に `cfb_framebuffer_clear(false)` で、フレームバッファだけを消し、描き終えてから、`cfb_framebuffer_finalize()` で、1 回だけ画面に送ります。そのため、描いている途中の状態が、画面にちらつくことは、ありません。
 - 消灯中 (`blanking`) も、フレームバッファの内容は残ります。`main.c` は、消灯中の `oled_show()` を止めています。

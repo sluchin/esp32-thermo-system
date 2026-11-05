@@ -69,7 +69,7 @@ I2C のバスが使えるか (`i2c_is_ready_dt()`) だけを確かめます。RT
 
 `DEVICE_DT_INST_DEFINE()` は、Zephyr のマクロで、柔軟配列メンバー (`nodelabels`) を初期化します。このアプリのコードではなく、マクロの展開なので、`-Wpedantic` の警告を、そこだけ `#pragma GCC diagnostic` で止めています (理由は、コメントにあります)。
 
-## 気づいた点
+## 注意点
 
 - 未使用のドライバ API (アラームなど) は、`DEVICE_API(rtc, ...)` に入れていません。`rtc_alarm_*()` を呼ぶと、`-ENOSYS` になります。
 - `is_in_range()` は、`node_time.c` と `oled.c` にも、同じ形のものがあります。各ファイルが `static` で持っています。

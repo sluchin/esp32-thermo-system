@@ -462,7 +462,7 @@ thermo reset                   (設定と証明書を消す)
 
 - `thermo sync` で、1 分待たずに、WiFi での取得を確かめられます。2.4 GHz の WiFi だけに対応します (ESP32-C3)。
 - 無効にするとき: `-DCONFIG_THERMO_WIFI_TIME=n` (このアプリの WiFi のコードだけが外れます。FLASH は 745 KB で、約 68 KB 減るだけです。`prj.conf` が WiFi とネットワークを有効にしているためで、完全に外すには、`prj.conf` のその部分も外します)。
-- **未確認**: BLE の広告と DHT11 の読み取りが、WiFi と同時に動き続けること、スタックとヒープの余裕 (長時間の動作)。FLASH は 813 KB (従来は 445 KB)。メインスレッドのスタックを 6144 バイトにしました (WiFi と SNTP をメインスレッドで呼ぶため)。足りないときは、`prj.conf` で増やします。
+- **未確認**: BLE の広告と DHT11 の読み取りが、WiFi と同時に動き続けること、スタックとヒープの余裕 (長時間の動作)。FLASH は 813 KB (従来は 445 KB)。メインスレッドのスタックは 6144 バイトです (WiFi と SNTP をメインスレッドで呼ぶため)。足りないときは、`prj.conf` で増やします。
 
 OLED と RTC は、ビルドのオプションで、別々に外せます。Devicetree の alias (`thermo-display`、`thermo-rtc`) があるとき (`xiao_esp32c3`) の既定は、どちらも `y` です。
 
@@ -563,7 +563,7 @@ while true; do [ -c /dev/ttyACM0 ] && stty -F /dev/ttyACM0 115200 raw -echo && c
 ```
 
 - 読み取りだけなので、シェルのコマンドは、打てません。コマンドを打つときは、`picocom -b 115200 /dev/ttyACM0` を使います。
-- `picocom` のループ (`--noinit --noreset`) は、使いません。Zephyr のシェルが出す、カーソル位置の問い合わせ (`ESC[6n`) に、端末が応答して、その応答がデバイスに送られ続け、`RX ring buffer full` と `^[` の連続になることがあるためです (原因は、推測です)。
+- `picocom` のループ (`--noinit --noreset`) は、使いません。Zephyr のシェルが出す、カーソル位置の問い合わせ (`ESC[6n`) に、端末が応答して、その応答がデバイスに送られ続け、`RX ring buffer full` と `^[` の連続になることがあるためです (原因は未確認です)。
 - `/dev/ttyACM0` を読めないときは、ユーザーを `dialout` のグループに入れます (`sudo usermod -aG dialout $USER`。再ログインが要ります)。
 - 終了するときは、Ctrl-C です。
 - 2 台 (ノードとゲートウェイ) を、同時につなぐときは、`/dev/ttyACM0` と `/dev/ttyACM1` を、別の端末で開きます。

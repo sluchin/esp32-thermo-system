@@ -57,7 +57,7 @@ connect_status != 0                           → -ECONNREFUSED
 
 `ip_ready = false` にして、すぐに接続していない状態にします (再接続を、すぐ始められるようにするため)。そのあと、`NET_REQUEST_WIFI_DISCONNECT` を要求します。結果は待ちません。
 
-## 気づいた点
+## 注意点
 
 - 切断を要求した直後に、すぐ接続し直すと、前の接続の切断のイベント (`NET_EVENT_WIFI_DISCONNECT_RESULT`) が、あとから届くことがあります。そのイベントは `ip_ready = false` にするので、新しい接続の IPv4 アドレスの取得の前なら問題ありませんが、あとに届くと、つながっているのに `wifi_link_is_up()` が false になります。ドライバのイベントの順序に依存します。
 - `ip_ready` と `connect_status` は `volatile` ですが、排他制御はありません。`cloud` スレッド、メインスレッド、シェルのスレッドから使います。

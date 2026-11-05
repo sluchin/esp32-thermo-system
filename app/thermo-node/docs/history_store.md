@@ -82,7 +82,7 @@ flush()
 | `temp_n`、`humidity_n` | 今の区切りの数 |
 | `points` | 戻した点の数 |
 
-## 気づいた点
+## 注意点
 
 - `step_ms` は、秒単位でなければなりません (`step_ms / 1000` が割り切れること)。`CONFIG_THERMO_GRAPH_STEP_SEC` から作るので、満たされます。
 - 呼び出しは、毎回の測定のあとです。`active` になったあとは、`node_time_unix()` も呼ばずに、すぐ返ります。

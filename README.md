@@ -56,10 +56,10 @@ esp32-thermo-system/
 
 ## Zephyr API のマニュアル (docs/man/)
 
-`docs/man/` に、このプロジェクトが使っている Zephyr (v4.3.0) の API を、日本語に訳して置いています。`app/` のソース (単体テストを除く) が呼んでいる API だけを、サブシステムごとの Markdown にまとめました。
+`docs/man/` に、このプロジェクトが使っている Zephyr (v4.3.0) の API を、日本語に訳して置いています。`app/` のソース (単体テストを除く) が呼んでいる API だけを、サブシステムごとの Markdown にまとめています。
 
 - 入口は [docs/man/index.md](docs/man/index.md) です。Bluetooth LE、カーネル、デバイスとドライバ、表示装置、ファイルシステム、ネットワーク、設定、シェル、ログ、システムのユーティリティの 10 ファイルです。そのほかに、テストの道具 ([ztest.md](docs/man/ztest.md)、[fff.md](docs/man/fff.md)) があります。
-- 各 API に、関数のシグネチャ、説明、引数 (1 つ 1 行の表。`in` / `out` / `in,out` の区別つき)、戻り値、注意、このリポジトリの呼び出し箇所 (GitHub のソースの行へのリンク) を載せました。
+- 各 API に、関数のシグネチャ、説明、引数 (1 つ 1 行の表。`in` / `out` / `in,out` の区別つき)、戻り値、注意、このリポジトリの呼び出し箇所 (GitHub のソースの行へのリンク) を載せています。
 - 訳の元は、Zephyr のヘッダの Doxygen コメントです。**英語の原文が正**なので、細かい挙動は、ヘッダか公式の文書で確かめてください。
 - Doxygen の生成物は `build/docs/` に出るため、`docs/` の Markdown とは混ざりません (`docs/man/` も Doxygen の入力に入っています)。
 - ソースを解析した文書は、`app/*/docs/` にあります。
@@ -273,7 +273,6 @@ git push --force-with-lease --force-if-includes origin <ブランチ名>
 ```
 
 - `--force` は使わない。リモートに、手元に取り込んでいないコミット (他の人や別の環境の push) があれば、push は失敗する。失敗したら、`git fetch` で取り込んでから、やり直す。
-- push は、ユーザーに依頼されたときだけ行う (AI エージェントも同じ)。
 
 ## デバッグ
 

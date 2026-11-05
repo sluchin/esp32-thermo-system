@@ -1,6 +1,6 @@
 # native_sim による Zephyr シミュレーション
 
-このプロジェクトは、Zephyr の `native_sim` ボードを使用して、Linux PC上で ESP32C3 アプリケーションをシミュレーションできるようになりました。
+このプロジェクトは、Zephyr の `native_sim` ボードを使用して、Linux PC 上で ESP32C3 アプリケーションをシミュレーションできます。
 
 ## 概要
 

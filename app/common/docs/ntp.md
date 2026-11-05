@@ -30,7 +30,7 @@ last_sync_ms = 今の稼働時間、synced = true
 
 `synced` でなければ `-EAGAIN`。そうでなければ `sys_clock_gettime()` の秒を返します。ゲートウェイは、`ble_set_time_source(ntp_unix_time)` で、この関数を、ノードに書く時刻の元にします。
 
-## 気づいた点
+## 注意点
 
 - `synced` は、一度 true になると、もう戻りません。時計がどれだけずれても (同期から何日たっても)、true のままです。再同期に失敗し続けても、古い時計で続けます。
 - ノードの `wifi_time.c` にも、同じ形の `resolve_server()` と SNTP の問い合わせがあります (`wifi_time.c` は、システム時計を合わせずに、秒を返す)。共通の関数にまとめることもできますが、今は重複しています。

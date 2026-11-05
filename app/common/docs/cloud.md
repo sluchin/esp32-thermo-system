@@ -157,7 +157,7 @@ while (reconnect_requested でない):
 
 設定を変えたあとに呼びます (`thermo apply`)。`reconnect_requested = true` にして、`wifi_link_disconnect()` で WiFi を切ります。実行中のセッションは、WiFi が切れて終わります。次の `cloud_step()` が、新しい設定でつなぎ直します。
 
-## 気づいた点
+## 注意点
 
 - 送信の確認は、PUBACK を待たない。QoS 1 でも、`sent_count` は publish の送信時点で増えます。直後に接続が切れると、ブローカーに届いていない値が、送信済みとして数えられ、ノードの SD カードで「送信済み」にされます。
 - 1 件の publish が失敗すると、その値は、すでにキューから取り出されているので、失われます。セッションは終わり、再接続します。

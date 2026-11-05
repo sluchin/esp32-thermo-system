@@ -177,7 +177,7 @@ true
 
 SD カードを挿し直したあと、再起動せずに、使えるようにできます。ただし、`direct_init()` が失敗していて `addr_ready` が false のときは、マウントできても、保存は始まりません。`thermo sd` は、その場合に警告します。
 
-## 気づいた点
+## 注意点
 
 - 状態を持つ変数が多く、`direct_sample()` に分岐が集まっています。状態は全て `static` 変数で、`direct_init()` が (`backlog_ready` 以外を) 初期値に戻します。
 - `backlog_ready` は、`direct_init()` で初期化 (リセット) しません。`backlog_init()` の結果で上書きするだけです。
