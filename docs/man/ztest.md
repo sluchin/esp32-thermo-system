@@ -1,6 +1,6 @@
 # Ztest (単体テスト)
 
-単体テストの書き方に使っている Ztest (Zephyr のテストフレームワーク) の、使っているマクロ。ヘッダは `zephyr/ztest.h` (Zephyr v4.3.0 の `subsys/testsuite/ztest/include/zephyr/ztest_test.h` と `ztest_assert.h`)。`app/*/tests/` の 31 のテストスイートが、全て使っている。
+単体テストの書き方に使っている Ztest (Zephyr のテストフレームワーク) の、使っているマクロ。ヘッダは `zephyr/ztest.h` (Zephyr v4.3.0 の `subsys/testsuite/ztest/include/zephyr/ztest_test.h` と `ztest_assert.h`)。`app/*/tests/` の 32 のテストスイートが、全て使っている。
 
 出典: Zephyr v4.3.0 のヘッダの Doxygen コメントを訳して、このプロジェクトでの使い方に絞った。**英語の原文が正**なので、細かい挙動で迷ったら、ヘッダを見る。
 
@@ -50,7 +50,7 @@ ZTEST_SUITE(SUITE_NAME, PREDICATE, setup_fn, before_fn, after_fn, teardown_fn);
 - 各テストの初期化 (FFF のフェイクのリセットなど) は、`before_fn` に書く。`setup_fn` は、スイートの間で状態を引き継ぐテスト (`sdlog` の RAM ディスクのマウントなど) だけが使う。
 - `main()` は、書かない。Ztest が提供する。
 
-使用箇所: [`app/thermo-gateway/tests/main/src/test_main.c:318`](../../app/thermo-gateway/tests/main/src/test_main.c#L318) (`app/*/tests/` の全体で、31 か所。`setup_fn` を使うのは [`app/thermo-node/tests/sdlog/src/test_sdlog.c:295`](../../app/thermo-node/tests/sdlog/src/test_sdlog.c#L295) など 3 か所)
+使用箇所: [`app/thermo-gateway/tests/main/src/test_main.c:318`](../../app/thermo-gateway/tests/main/src/test_main.c#L318) (`app/*/tests/` の全体で、32 か所。`setup_fn` を使うのは [`app/thermo-node/tests/sdlog/src/test_sdlog.c:295`](../../app/thermo-node/tests/sdlog/src/test_sdlog.c#L295) など 4 か所。ほかは [`app/common/tests/shell/src/test_shell.c:435`](../../app/common/tests/shell/src/test_shell.c#L435) [`app/common/tests/cloud/src/test_cloud.c:1118`](../../app/common/tests/cloud/src/test_cloud.c#L1118) [`app/thermo-node/tests/wifi_shell/src/test_wifi_shell.c:203`](../../app/thermo-node/tests/wifi_shell/src/test_wifi_shell.c#L203))
 
 ### ZTEST
 
@@ -68,7 +68,7 @@ ZTEST(suite, fn)
 | `suite` | in | 足す先のスイートの名前 (`ZTEST_SUITE` の `SUITE_NAME`) |
 | `fn` | in | テストの名前。このプロジェクトでは、`test_<対象の関数名>_<条件>` |
 
-使用箇所: [`app/thermo-gateway/tests/ble/src/test_ble.c:433`](../../app/thermo-gateway/tests/ble/src/test_ble.c#L433) (`app/*/tests/` の全体で、518 か所)
+使用箇所: [`app/thermo-gateway/tests/ble/src/test_ble.c:433`](../../app/thermo-gateway/tests/ble/src/test_ble.c#L433) (`app/*/tests/` の全体で、532 か所)
 
 ## アサーション
 
