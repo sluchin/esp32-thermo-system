@@ -21,7 +21,7 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/wifi_mgmt.h>
-#include <errno.h>  /* ENODEV EIO ECONNREFUSED ETIMEDOUT */
+#include <errno.h>  /* EINVAL ENODEV EIO ECONNREFUSED ETIMEDOUT */
 #include <stdlib.h> /* EXIT_SUCCESS */
 #include <string.h> /* memcpy memset strlen */
 
@@ -45,6 +45,10 @@ enum scenario {
 };
 
 /** ネットワークインターフェースの代わり (ポインタの値だけを使う. 中身は参照しない) */
+/** 接続に渡す, SSID とパスワードの最大長 [バイト] */
+#define SSID_MAX 32U
+#define PSK_MAX  64U
+
 #define FAKE_IFACE ((struct net_if *)(uintptr_t)0x1000U)
 /** 接続の要求の間に再現するイベント */
 static enum scenario scenario;
@@ -165,7 +169,8 @@ ZTEST(wifi, test_init_registers_callbacks)
 ZTEST(wifi, test_connect_success)
 {
     /* 期待: 要求を 1 回出して, IPv4 アドレスの取得で成功する (接続した状態になる) */
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  EXIT_SUCCESS);
 
     zassert_true(wifi_link_is_up());
     zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 1U);
@@ -178,7 +183,8 @@ ZTEST(wifi, test_connect_waits_for_ip)
     scenario = SCENARIO_CONNECTED_THEN_IP;
 
     /* 期待: 接続の成功のイベントだけでは完了せず, アドレスの取得まで待つ */
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  EXIT_SUCCESS);
     zassert_true(wifi_link_is_up());
 }
 
@@ -186,7 +192,8 @@ ZTEST(wifi, test_connect_waits_for_ip)
 ZTEST(wifi, test_connect_parameters)
 {
     /* パスワードあり: PSK で SSID とパスワードをそのまま渡す */
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  EXIT_SUCCESS);
     zassert_str_equal(captured_ssid, "home-ap");
     zassert_equal(captured.ssid_length, strlen("home-ap"));
     zassert_str_equal(captured_psk, "secret-pass");
@@ -197,7 +204,7 @@ ZTEST(wifi, test_connect_parameters)
 
     /* パスワードなし: 暗号化なしで要求する (先に切断した状態にする) */
     send_event(NET_EVENT_WIFI_DISCONNECT_RESULT, NULL);
-    zassert_equal(wifi_link_connect("open-ap", "", K_MSEC(100)), EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect("open-ap", SSID_MAX, "", PSK_MAX, K_MSEC(100)), EXIT_SUCCESS);
     zassert_str_equal(captured_ssid, "open-ap");
     zassert_equal(captured.psk_length, 0U);
     zassert_equal(captured.security, WIFI_SECURITY_TYPE_NONE);
@@ -207,8 +214,10 @@ ZTEST(wifi, test_connect_parameters)
 ZTEST(wifi, test_connect_already_up)
 {
     /* 期待: 接続済みなら, 新しい要求は出さない */
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  EXIT_SUCCESS);
 
     zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 1U);
 }
@@ -219,7 +228,20 @@ ZTEST(wifi, test_connect_no_interface)
     net_if_get_default_fake.return_val = NULL;
 
     /* 期待: インターフェースがなければ -ENODEV で, 要求しない */
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), -ENODEV);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  -ENODEV);
+    zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 0U);
+}
+
+/** SSID かパスワードが最大長より長ければ, 切り詰めずに -EINVAL で断る */
+ZTEST(wifi, test_connect_too_long)
+{
+    /* 期待: 最大長ちょうどは受け付け, 1 文字でも超えれば -EINVAL で, 要求しない */
+    zassert_equal(wifi_link_connect("home-ap", 7U, "secret-pass", 11U, K_MSEC(100)), EXIT_SUCCESS);
+    wifi_link_disconnect();
+    RESET_FAKE(net_mgmt_NET_REQUEST_WIFI_CONNECT);
+    zassert_equal(wifi_link_connect("home-ap", 6U, "secret-pass", 11U, K_MSEC(100)), -EINVAL);
+    zassert_equal(wifi_link_connect("home-ap", 7U, "secret-pass", 10U, K_MSEC(100)), -EINVAL);
     zassert_equal(net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.call_count, 0U);
 }
 
@@ -230,7 +252,8 @@ ZTEST(wifi, test_connect_request_failure)
     net_mgmt_NET_REQUEST_WIFI_CONNECT_fake.return_val = -EIO;
 
     /* 期待: 要求の失敗を返して, 接続した状態にならない */
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), -EIO);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  -EIO);
     zassert_false(wifi_link_is_up());
 }
 
@@ -240,7 +263,8 @@ ZTEST(wifi, test_connect_refused)
     scenario = SCENARIO_CONNECT_FAILED;
 
     /* 期待: 接続の失敗のイベントは -ECONNREFUSED */
-    zassert_equal(wifi_link_connect("home-ap", "wrong", K_MSEC(100)), -ECONNREFUSED);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "wrong", PSK_MAX, K_MSEC(100)),
+                  -ECONNREFUSED);
     zassert_false(wifi_link_is_up());
 }
 
@@ -250,7 +274,8 @@ ZTEST(wifi, test_connect_timeout)
     scenario = SCENARIO_NONE;
 
     /* 期待: イベントが来なければ, 時間切れで -ETIMEDOUT */
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(50)), -ETIMEDOUT);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(50)),
+                  -ETIMEDOUT);
     zassert_false(wifi_link_is_up());
 }
 
@@ -259,17 +284,20 @@ ZTEST(wifi, test_connect_after_failure)
 {
     scenario = SCENARIO_CONNECT_FAILED;
     /* 期待: 失敗のあとの再接続は前の結果の影響を受けずに成功する */
-    zassert_equal(wifi_link_connect("home-ap", "wrong", K_MSEC(100)), -ECONNREFUSED);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "wrong", PSK_MAX, K_MSEC(100)),
+                  -ECONNREFUSED);
 
     scenario = SCENARIO_IP;
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  EXIT_SUCCESS);
 }
 
 /** 切断のイベントで接続していない状態になる. 知らないイベントは無視する */
 ZTEST(wifi, test_disconnect_event_and_unknown_event)
 {
     /* 期待: 知らないイベントは無視して, 切断のイベントで接続していない状態になる */
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  EXIT_SUCCESS);
 
     send_event(NET_EVENT_IPV4_ADDR_DEL, NULL);
     zassert_true(wifi_link_is_up());
@@ -282,7 +310,8 @@ ZTEST(wifi, test_disconnect_event_and_unknown_event)
 ZTEST(wifi, test_disconnect)
 {
     /* 期待: 切断を要求して, 接続していない状態になる */
-    zassert_equal(wifi_link_connect("home-ap", "secret-pass", K_MSEC(100)), EXIT_SUCCESS);
+    zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
+                  EXIT_SUCCESS);
 
     wifi_link_disconnect();
 

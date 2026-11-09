@@ -38,7 +38,7 @@ FAKE_VALUE_FUNC(int, cfg_init)
 FAKE_VALUE_FUNC(const char *, cfg_get, enum cfg_key)
 FAKE_VALUE_FUNC(bool, cfg_is_complete)
 FAKE_VALUE_FUNC(int, wifi_link_init)
-FAKE_VALUE_FUNC(int, wifi_link_connect, const char *, const char *, k_timeout_t)
+FAKE_VALUE_FUNC(int, wifi_link_connect, const char *, size_t, const char *, size_t, k_timeout_t)
 FAKE_VOID_FUNC(wifi_link_disconnect)
 FAKE_VALUE_FUNC(bool, wifi_link_is_up)
 FAKE_VALUE_FUNC(int, ntp_sync, const char *, k_timeout_t)
@@ -445,7 +445,9 @@ ZTEST(cloud, test_step_connects)
     /* 1. WiFi に設定の SSID とパスワードで接続する */
     zassert_equal(wifi_link_connect_fake.call_count, 1U);
     zassert_str_equal(wifi_link_connect_fake.arg0_val, "home-ap");
-    zassert_str_equal(wifi_link_connect_fake.arg1_val, "secret-pass");
+    zassert_equal(wifi_link_connect_fake.arg1_val, CFG_SSID_MAX);
+    zassert_str_equal(wifi_link_connect_fake.arg2_val, "secret-pass");
+    zassert_equal(wifi_link_connect_fake.arg3_val, CFG_PSK_MAX);
     /* 2. エンドポイントの名前を IPv4 で, ポート 8883 として解決する */
     zassert_equal(zsock_getaddrinfo_fake.call_count, 1U);
     zassert_str_equal(zsock_getaddrinfo_fake.arg0_val, ENDPOINT);

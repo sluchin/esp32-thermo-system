@@ -19,7 +19,7 @@
 #include <stddef.h>  /* size_t */
 #include <stdio.h>   /* snprintf */
 #include <stdlib.h>  /* EXIT_SUCCESS */
-#include <string.h>  /* strlen */
+#include <string.h>  /* strnlen */
 
 #ifdef CONFIG_THERMO_BOOT_SCREEN
 #include "boot_assets.h"
@@ -509,10 +509,11 @@ static void format_x10(char *out, size_t size, int16_t value_x10)
 static int draw_boot_frame(unsigned int frame)
 {
     /* 口の開き方: 閉じる (0), 半分 (1), 開く (2), 半分 (1) の順に繰り返す */
-    const unsigned int phase = frame % BOOT_MOUTH_PERIOD;                   /* 口の位相 */
-    const unsigned int mouth = (phase <= 2U) ? phase : 1U;                  /* 口の種類 */
-    const int chomper_x = BOOT_START_X + ((int)frame * BOOT_STEP_PX);       /* 走る絵の x */
-    const unsigned int title_chars = (unsigned int)strlen(boot_title.text); /* 題名の文字数 */
+    const unsigned int phase = frame % BOOT_MOUTH_PERIOD;             /* 口の位相 */
+    const unsigned int mouth = (phase <= 2U) ? phase : 1U;            /* 口の種類 */
+    const int chomper_x = BOOT_START_X + ((int)frame * BOOT_STEP_PX); /* 走る絵の x */
+    const unsigned int title_chars =
+            (unsigned int)strnlen(boot_title.text, BOOT_TITLE_SIZE); /* 題名の文字数 */
     const unsigned int title_x = (OLED_WIDTH - (title_chars * BOOT_FONT_WIDTH)) / 2U; /* 題名の x */
     int err = EXIT_SUCCESS; /* エラーコード */
 

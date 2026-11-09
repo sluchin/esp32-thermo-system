@@ -18,7 +18,7 @@
 #include <stdbool.h> /* bool true false */
 #include <stdint.h>  /* uint32_t uint16_t uint8_t int64_t UINT16_MAX */
 #include <stdlib.h>  /* EXIT_SUCCESS */
-#include <string.h>  /* memcpy strlen */
+#include <string.h>  /* memcpy strnlen */
 
 #include "cfg.h"
 #include "cloud.h"
@@ -174,7 +174,8 @@ int cloud_step(void)
 
     /* 接続をやり直す依頼はこれから始める接続で, 反映される */
     reconnect_requested = false;
-    err = wifi_link_connect(cfg_get(CFG_KEY_SSID), cfg_get(CFG_KEY_PSK), K_SECONDS(WIFI_TIMEOUT_S));
+    err = wifi_link_connect(cfg_get(CFG_KEY_SSID), CFG_SSID_MAX, cfg_get(CFG_KEY_PSK), CFG_PSK_MAX,
+                            K_SECONDS(WIFI_TIMEOUT_S));
     if (err == 0) {
         /*
          * サーバ証明書の有効期限を確認する (mbedTLS がシステム時計を使う) ので, 時計が合って
@@ -535,7 +536,7 @@ static int connect_broker(void)
     client.broker = &broker;
     client.evt_cb = mqtt_evt_handler;
     client.client_id.utf8 = (const uint8_t *)client_id;
-    client.client_id.size = (uint32_t)strlen(client_id);
+    client.client_id.size = (uint32_t)strnlen(client_id, CFG_CLIENT_ID_MAX);
     client.protocol_version = MQTT_VERSION_3_1_1;
     client.rx_buf = rx_buf;
     client.rx_buf_size = sizeof(rx_buf);

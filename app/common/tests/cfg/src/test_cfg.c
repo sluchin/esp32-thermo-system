@@ -291,12 +291,14 @@ static void before(void *fixture)
 ZTEST(cfg, test_key_names)
 {
     /* 名前から項目 */
-    zassert_equal(cfg_key_from_name("ssid"), CFG_KEY_SSID);
-    zassert_equal(cfg_key_from_name("psk"), CFG_KEY_PSK);
-    zassert_equal(cfg_key_from_name("endpoint"), CFG_KEY_ENDPOINT);
-    zassert_equal(cfg_key_from_name("client_id"), CFG_KEY_CLIENT_ID);
-    zassert_equal(cfg_key_from_name("unknown"), -ENOENT);
-    zassert_equal(cfg_key_from_name(""), -ENOENT);
+    zassert_equal(cfg_key_from_name("ssid", CFG_NAME_MAX), CFG_KEY_SSID);
+    zassert_equal(cfg_key_from_name("psk", CFG_NAME_MAX), CFG_KEY_PSK);
+    zassert_equal(cfg_key_from_name("endpoint", CFG_NAME_MAX), CFG_KEY_ENDPOINT);
+    zassert_equal(cfg_key_from_name("client_id", CFG_NAME_MAX), CFG_KEY_CLIENT_ID);
+    zassert_equal(cfg_key_from_name("unknown", CFG_NAME_MAX), -ENOENT);
+    zassert_equal(cfg_key_from_name("", CFG_NAME_MAX), -ENOENT);
+    /* 長い名前は, 先頭が項目と同じでも一致しない */
+    zassert_equal(cfg_key_from_name("ssid-and-more-and-more", CFG_NAME_MAX), -ENOENT);
 
     /* 項目から名前 */
     zassert_str_equal(cfg_key_name(CFG_KEY_SSID), "ssid");
@@ -307,10 +309,10 @@ ZTEST(cfg, test_key_names)
 ZTEST(cfg, test_cred_names)
 {
     /* 期待: 名前から種類, 種類から名前を引ける. 項目の名前 (ssid) は種類ではない */
-    zassert_equal(cfg_cred_from_name("ca"), CFG_CRED_CA);
-    zassert_equal(cfg_cred_from_name("cert"), CFG_CRED_CERT);
-    zassert_equal(cfg_cred_from_name("key"), CFG_CRED_KEY);
-    zassert_equal(cfg_cred_from_name("ssid"), -ENOENT);
+    zassert_equal(cfg_cred_from_name("ca", CFG_NAME_MAX), CFG_CRED_CA);
+    zassert_equal(cfg_cred_from_name("cert", CFG_NAME_MAX), CFG_CRED_CERT);
+    zassert_equal(cfg_cred_from_name("key", CFG_NAME_MAX), CFG_CRED_KEY);
+    zassert_equal(cfg_cred_from_name("ssid", CFG_NAME_MAX), -ENOENT);
 
     zassert_str_equal(cfg_cred_name(CFG_CRED_CA), "ca");
     zassert_str_equal(cfg_cred_name(CFG_CRED_KEY), "key");

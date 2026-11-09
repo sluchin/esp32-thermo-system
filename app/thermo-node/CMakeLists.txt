@@ -16,6 +16,8 @@ endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(thermo-node)
+# strnlen は POSIX の関数. native_sim (glibc, -std=c99) では, この定義がないと宣言が見えない
+target_compile_definitions(app PRIVATE _POSIX_C_SOURCE=200809L)
 
 target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/ble.c)

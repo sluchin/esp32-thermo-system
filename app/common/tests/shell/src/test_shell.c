@@ -25,7 +25,7 @@
 DEFINE_FFF_GLOBALS
 
 /* FAKE_*: FFF のモック (実物の代わりの関数. 呼ばれた回数と引数を記録する) */
-FAKE_VALUE_FUNC(int, cfg_key_from_name, const char *)
+FAKE_VALUE_FUNC(int, cfg_key_from_name, const char *, size_t)
 FAKE_VALUE_FUNC(const char *, cfg_key_name, enum cfg_key)
 FAKE_VALUE_FUNC(const char *, cfg_get, enum cfg_key)
 FAKE_VALUE_FUNC(int, cfg_set, enum cfg_key, const char *)
@@ -52,15 +52,16 @@ static bool has_cred[CFG_CRED_COUNT];
 /**
  * cfg_key_from_name() のモック動作
  *
- * @param[in] name 項目の名前
+ * @param[in] name     項目の名前
+ * @param[in] name_max name の最大長 [バイト]
  * @return 項目. ない名前なら -ENOENT
  */
-static int fake_key_from_name(const char *name)
+static int fake_key_from_name(const char *name, size_t name_max)
 {
     size_t i = 0U; /* ループ用の添字 */
 
     for (i = 0U; i < ARRAY_SIZE(key_names); i++) {
-        if (strcmp(name, key_names[i]) == 0) {
+        if (strncmp(name, key_names[i], name_max + 1U) == 0) {
             return (int)i;
         }
     }

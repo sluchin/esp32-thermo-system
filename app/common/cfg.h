@@ -38,6 +38,9 @@
 /** テザリングに切り替える前の, SSID とパスワードの保存先の最大サイズ [byte] (2 つの文字列と NUL) */
 #define CFG_BACKUP_MAX (CFG_SSID_MAX + CFG_PSK_MAX + 2U)
 
+/** 項目の名前 ("ssid" など) の最大長 [byte] (NUL を除く) */
+#define CFG_NAME_MAX 31U
+
 /** 設定の項目 */
 enum cfg_key {
     CFG_KEY_SSID,      /**< WiFi の SSID */
@@ -57,7 +60,7 @@ enum cfg_cred {
 
 int cfg_init(void);
 
-int cfg_key_from_name(const char *name);
+int cfg_key_from_name(const char *name, size_t name_max);
 
 const char *cfg_key_name(enum cfg_key key);
 
@@ -65,7 +68,7 @@ const char *cfg_get(enum cfg_key key);
 
 int cfg_set(enum cfg_key key, const char *value);
 
-int cfg_cred_from_name(const char *name);
+int cfg_cred_from_name(const char *name, size_t name_max);
 
 const char *cfg_cred_name(enum cfg_cred cred);
 

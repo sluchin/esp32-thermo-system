@@ -69,7 +69,7 @@ int wifi_time_fetch(int64_t *unix_s)
         return -ENOENT;
     }
 
-    err = wifi_link_connect(cfg_get(CFG_KEY_SSID), cfg_get(CFG_KEY_PSK),
+    err = wifi_link_connect(cfg_get(CFG_KEY_SSID), CFG_SSID_MAX, cfg_get(CFG_KEY_PSK), CFG_PSK_MAX,
                             K_SECONDS(WIFI_TIME_CONNECT_S));
     if (err == 0) {
         err = query_sntp(CONFIG_THERMO_NTP_SERVER, K_SECONDS(WIFI_TIME_SNTP_S), unix_s);

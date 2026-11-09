@@ -32,7 +32,7 @@ DEFINE_FFF_GLOBALS
 FAKE_VALUE_FUNC(int, cfg_init)
 FAKE_VALUE_FUNC(const char *, cfg_get, enum cfg_key)
 FAKE_VALUE_FUNC(int, wifi_link_init)
-FAKE_VALUE_FUNC(int, wifi_link_connect, const char *, const char *, k_timeout_t)
+FAKE_VALUE_FUNC(int, wifi_link_connect, const char *, size_t, const char *, size_t, k_timeout_t)
 FAKE_VOID_FUNC(wifi_link_disconnect)
 FAKE_VALUE_FUNC(int, zsock_getaddrinfo, const char *, const char *, const struct zsock_addrinfo *,
                 struct zsock_addrinfo **)
@@ -167,8 +167,10 @@ ZTEST(wifi_time, test_fetch_success)
     zassert_equal(unix_s, (int64_t)TEST_SEC);
     zassert_equal(wifi_link_connect_fake.call_count, 1U);
     zassert_str_equal(wifi_link_connect_fake.arg0_val, "home-ap");
-    zassert_str_equal(wifi_link_connect_fake.arg1_val, "secret-pass");
-    zassert_equal(wifi_link_connect_fake.arg2_val.ticks, K_SECONDS(WIFI_TIME_CONNECT_S).ticks);
+    zassert_equal(wifi_link_connect_fake.arg1_val, CFG_SSID_MAX);
+    zassert_str_equal(wifi_link_connect_fake.arg2_val, "secret-pass");
+    zassert_equal(wifi_link_connect_fake.arg3_val, CFG_PSK_MAX);
+    zassert_equal(wifi_link_connect_fake.arg4_val.ticks, K_SECONDS(WIFI_TIME_CONNECT_S).ticks);
     zassert_str_equal(zsock_getaddrinfo_fake.arg0_val, "ntp.test");
     zassert_equal(sntp_query_fake.arg1_val, (uint32_t)WIFI_TIME_SNTP_S * 1000U);
     zassert_equal(sntp_close_fake.call_count, 1U);

@@ -15,7 +15,7 @@
 #include <stdint.h> /* uint8_t */
 #include <stdio.h>  /* snprintf */
 #include <stdlib.h> /* EXIT_SUCCESS */
-#include <string.h> /* strcmp strlen memchr memcpy */
+#include <string.h> /* strncmp strnlen memchr memcpy */
 
 #include "cfg.h"
 #include "thermo_log.h"
@@ -25,7 +25,7 @@ LOG_MODULE_REGISTER(thermo_cfg, THERMO_LOG_LEVEL);
 /** settings のこのアプリの項目のルート ("thermo/ssid" のように使う) */
 #define SETTINGS_ROOT      "thermo"
 /** settings の項目の名前 ("thermo/client_id" など) の最大長 (NUL を含む) */
-#define SETTINGS_NAME_SIZE 32U
+#define SETTINGS_NAME_SIZE (CFG_NAME_MAX + 1U)
 /**
  * テザリングに切り替える前の SSID とパスワードの項目の名前
  *
@@ -93,15 +93,16 @@ static int settings_set_cb(const char *name, size_t len, settings_read_cb read_c
 /**
  * @brief 項目の名前 ("ssid" など) から, 項目を探す
  *
- * @param[in] name 項目の名前
+ * @param[in] name     項目の名前
+ * @param[in] name_max name の最大長 [バイト] (NUL を除く). 先頭の name_max + 1 バイトまでを比べる
  * @return 項目 (enum cfg_key). ない場合は -ENOENT
  */
-int cfg_key_from_name(const char *name)
+int cfg_key_from_name(const char *name, size_t name_max)
 {
     size_t i = 0U; /* ループ用の添字 */
 
     for (i = 0U; i < ARRAY_SIZE(key_infos); i++) {
-        if (strcmp(name, key_infos[i].name) == 0) {
+        if (strncmp(name, key_infos[i].name, name_max + 1U) == 0) {
             return (int)i;
         }
     }
@@ -142,9 +143,9 @@ const char *cfg_get(enum cfg_key key)
  */
 int cfg_set(enum cfg_key key, const char *value)
 {
-    char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
-    size_t len = strlen(value);          /* 値の長さ [バイト] */
-    int err = EXIT_SUCCESS;              /* エラーコード */
+    char name[SETTINGS_NAME_SIZE] = {0};                  /* settings の名前 */
+    size_t len = strnlen(value, key_infos[key].max + 1U); /* 値の長さ [バイト] (最大長 + 1 まで) */
+    int err = EXIT_SUCCESS;                               /* エラーコード */
 
     if (len > key_infos[key].max) {
         return -EINVAL;
@@ -165,15 +166,16 @@ int cfg_set(enum cfg_key key, const char *value)
 /**
  * @brief 証明書の種類の名前 ("ca" など) から, 種類を探す
  *
- * @param[in] name 名前
+ * @param[in] name     名前
+ * @param[in] name_max name の最大長 [バイト] (NUL を除く). 先頭の name_max + 1 バイトまでを比べる
  * @return 種類 (enum cfg_cred). ない場合は -ENOENT
  */
-int cfg_cred_from_name(const char *name)
+int cfg_cred_from_name(const char *name, size_t name_max)
 {
     size_t i = 0U; /* ループ用の添字 */
 
     for (i = 0U; i < ARRAY_SIZE(cred_infos); i++) {
-        if (strcmp(name, cred_infos[i].name) == 0) {
+        if (strncmp(name, cred_infos[i].name, name_max + 1U) == 0) {
             return (int)i;
         }
     }
@@ -327,20 +329,21 @@ int cfg_reset(void)
  */
 int cfg_tether(const char *ssid, const char *psk)
 {
-    char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
-    uint8_t blob[CFG_BACKUP_MAX] = {0U}; /* 元の SSID とパスワードを並べた値 */
-    size_t ssid_len = strlen(ssid);      /* 新しい SSID の長さ [バイト] */
-    size_t old_len = 0U;                 /* 今の SSID の長さ [バイト] */
-    size_t psk_len = 0U;                 /* 今のパスワードの長さ [バイト] */
-    int err = EXIT_SUCCESS;              /* エラーコード */
+    char name[SETTINGS_NAME_SIZE] = {0};                /* settings の名前 */
+    uint8_t blob[CFG_BACKUP_MAX] = {0U};                /* 元の SSID とパスワードを並べた値 */
+    size_t ssid_len = strnlen(ssid, CFG_SSID_MAX + 1U); /* 新しい SSID の長さ [バイト] */
+    size_t old_len = 0U;                                /* 今の SSID の長さ [バイト] */
+    size_t psk_len = 0U;                                /* 今のパスワードの長さ [バイト] */
+    int err = EXIT_SUCCESS;                             /* エラーコード */
 
-    if ((ssid_len == 0U) || (CFG_SSID_MAX < ssid_len) || (CFG_PSK_MAX < strlen(psk))) {
+    if ((ssid_len == 0U) || (CFG_SSID_MAX < ssid_len) ||
+        (CFG_PSK_MAX < strnlen(psk, CFG_PSK_MAX + 1U))) {
         return -EINVAL;
     }
 
     if (!backup_present) {
-        old_len = strlen(values[CFG_KEY_SSID]);
-        psk_len = strlen(values[CFG_KEY_PSK]);
+        old_len = strnlen(values[CFG_KEY_SSID], CFG_SSID_MAX);
+        psk_len = strnlen(values[CFG_KEY_PSK], CFG_PSK_MAX);
         (void)memcpy(blob, values[CFG_KEY_SSID], old_len + 1U);
         (void)memcpy(&blob[old_len + 1U], values[CFG_KEY_PSK], psk_len + 1U);
 
@@ -495,8 +498,8 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
 }
 
 /**
- * 文字列の長さを最大 max までで数える (strnlen と同じ. native_sim の C の規格の設定では
- * strnlen の宣言が見えないので, 使わない)
+ * 文字列の長さを最大 max までで数える (strnlen と同じ. 保存した値は, 文字列でない
+ * (uint8_t の並びで, 途中に NUL を含む) ので, memchr で数える)
  *
  * @param[in] data 文字列の先頭
  * @param[in] max  数える最大の長さ [バイト]
@@ -607,14 +610,14 @@ static void load_credential(enum cfg_cred cred, size_t len, settings_read_cb rea
  */
 static int settings_set_cb(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg)
 {
-    int key = cfg_key_from_name(name);   /* 設定項目の番号 */
-    int cred = cfg_cred_from_name(name); /* 証明書の番号 */
+    int key = cfg_key_from_name(name, CFG_NAME_MAX);   /* 設定項目の番号 */
+    int cred = cfg_cred_from_name(name, CFG_NAME_MAX); /* 証明書の番号 */
 
     if (key >= 0) {
         load_value((enum cfg_key)key, len, read_cb, cb_arg);
     } else if (cred >= 0) {
         load_credential((enum cfg_cred)cred, len, read_cb, cb_arg);
-    } else if (strcmp(name, BACKUP_NAME) == 0) {
+    } else if (strncmp(name, BACKUP_NAME, CFG_NAME_MAX + 1U) == 0) {
         load_backup(len, read_cb, cb_arg);
     } else {
         LOG_WRN("Ignoring the unknown setting '%s'", name);

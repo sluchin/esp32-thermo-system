@@ -50,8 +50,8 @@
  */
 static int cmd_set(const struct shell *sh, size_t argc, char **argv)
 {
-    int key = cfg_key_from_name(argv[1]); /* 設定項目の番号 */
-    int err = EXIT_SUCCESS;               /* エラーコード */
+    int key = cfg_key_from_name(argv[1], CFG_NAME_MAX); /* 設定項目の番号 */
+    int err = EXIT_SUCCESS;                             /* エラーコード */
 
     ARG_UNUSED(argc);
 

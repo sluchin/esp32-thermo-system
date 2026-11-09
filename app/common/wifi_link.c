@@ -13,9 +13,9 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/wifi_mgmt.h>
-#include <errno.h>  /* ENODEV ETIMEDOUT ECONNREFUSED */
+#include <errno.h>  /* EINVAL ENODEV ETIMEDOUT ECONNREFUSED */
 #include <stdlib.h> /* EXIT_SUCCESS */
-#include <string.h> /* strlen */
+#include <string.h> /* strnlen */
 
 #include "wifi_link.h"
 #include "thermo_log.h"
@@ -59,20 +59,32 @@ int wifi_link_init(void)
  *
  * すでに接続していれば, すぐ戻る.
  *
- * @param[in] ssid    SSID
- * @param[in] psk     パスワード (空の文字列なら, 暗号化なしで接続する)
- * @param[in] timeout 待つ時間
+ * @param[in] ssid     SSID
+ * @param[in] ssid_max SSID の最大長 [バイト] (NUL を除く. ssid は, ssid_max + 1 バイト以上の領域)
+ * @param[in] psk      パスワード (空の文字列なら, 暗号化なしで接続する)
+ * @param[in] psk_max  パスワードの最大長 [バイト] (NUL を除く. psk は, psk_max + 1
+ * バイト以上の領域)
+ * @param[in] timeout  待つ時間
  * @retval EXIT_SUCCESS    接続して, IPv4 アドレスを取得した
+ * @retval -EINVAL         SSID かパスワードが, 最大長より長い
  * @retval -ENODEV         ネットワークインターフェースがない
  * @retval -ETIMEDOUT      時間内に完了しなかった
  * @retval -ECONNREFUSED   接続に失敗した (SSID やパスワードの誤りなど)
  * @retval negative        接続の要求に失敗した (負の errno)
  */
-int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
+int wifi_link_connect(const char *ssid, size_t ssid_max, const char *psk, size_t psk_max,
+                      k_timeout_t timeout)
 {
-    struct net_if *iface = net_if_get_default(); /* ネットワークインターフェース */
-    struct wifi_connect_req_params params = {0}; /* 接続のパラメータ */
-    int err = EXIT_SUCCESS;                      /* エラーコード */
+    struct net_if *iface = net_if_get_default();    /* ネットワークインターフェース */
+    struct wifi_connect_req_params params = {0};    /* 接続のパラメータ */
+    size_t ssid_len = strnlen(ssid, ssid_max + 1U); /* SSID の長さ [バイト] */
+    size_t psk_len = strnlen(psk, psk_max + 1U);    /* パスワードの長さ [バイト] */
+    int err = EXIT_SUCCESS;                         /* エラーコード */
+
+    /* 最大長を超えていれば (NUL が見つからなければ), 切り詰めずに断る */
+    if ((ssid_len > ssid_max) || (psk_len > psk_max)) {
+        return -EINVAL;
+    }
 
     if (iface == NULL) {
         return -ENODEV;
@@ -85,9 +97,9 @@ int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout)
 
     /* パスワードがあれば WPA/WPA2 の PSK, なければ暗号化なしで接続する (チャンネルは自動) */
     params.ssid = (const uint8_t *)ssid;
-    params.ssid_length = (uint8_t)strlen(ssid);
+    params.ssid_length = (uint8_t)ssid_len;
     params.psk = (const uint8_t *)psk;
-    params.psk_length = (uint8_t)strlen(psk);
+    params.psk_length = (uint8_t)psk_len;
     params.security = ((params.psk_length > 0U) ? WIFI_SECURITY_TYPE_PSK : WIFI_SECURITY_TYPE_NONE);
     params.band = WIFI_FREQ_BAND_UNKNOWN;
     params.channel = WIFI_CHANNEL_ANY;

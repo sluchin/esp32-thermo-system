@@ -16,10 +16,12 @@
 
 #include <zephyr/kernel.h>
 #include <stdbool.h> /* bool */
+#include <stddef.h>  /* size_t */
 
 int wifi_link_init(void);
 
-int wifi_link_connect(const char *ssid, const char *psk, k_timeout_t timeout);
+int wifi_link_connect(const char *ssid, size_t ssid_max, const char *psk, size_t psk_max,
+                      k_timeout_t timeout);
 
 bool wifi_link_is_up(void);
 
