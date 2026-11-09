@@ -44,11 +44,12 @@ enum scenario {
     SCENARIO_CONNECTED_THEN_IP /**< 接続に成功して (status == 0), IPv4 アドレスを取得する */
 };
 
-/** ネットワークインターフェースの代わり (ポインタの値だけを使う. 中身は参照しない) */
-/** 接続に渡す, SSID とパスワードの最大長 [バイト] */
+/** 接続に渡す, SSID の最大長 [バイト] (NUL を除く) */
 #define SSID_MAX 32U
+/** 接続に渡す, パスワードの最大長 [バイト] (NUL を除く) */
 #define PSK_MAX  64U
 
+/** ネットワークインターフェースの代わり (ポインタの値だけを使う. 中身は参照しない) */
 #define FAKE_IFACE ((struct net_if *)(uintptr_t)0x1000U)
 /** 接続の要求の間に再現するイベント */
 static enum scenario scenario;
