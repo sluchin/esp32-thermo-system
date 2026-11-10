@@ -69,7 +69,9 @@ static inline void fs_file_t_init(struct fs_file_t *zfp);
 |:---|:---:|:---|
 | `zfp` | out | 初期化するファイルオブジェクト |
 
-使用箇所: [`app/thermo-node/src/backlog.c:512`](../../app/thermo-node/src/backlog.c#L512), [`app/thermo-node/src/sdlog.c:251`](../../app/thermo-node/src/sdlog.c#L251)
+戻り値: なし (エラーは返さない)。
+
+使用箇所: [`app/thermo-node/src/backlog.c:527`](../../app/thermo-node/src/backlog.c#L527), [`app/thermo-node/src/sdlog.c:251`](../../app/thermo-node/src/sdlog.c#L251)
 
 ### fs_open
 
@@ -100,7 +102,7 @@ int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags);
 
 - `flags` を 0 にすると、あれば開くが、読み書きはできない。
 
-使用箇所: [`app/thermo-node/src/backlog.c:513`](../../app/thermo-node/src/backlog.c#L513), [`app/thermo-node/src/sdlog.c:252`](../../app/thermo-node/src/sdlog.c#L252)
+使用箇所: [`app/thermo-node/src/backlog.c:528`](../../app/thermo-node/src/backlog.c#L528), [`app/thermo-node/src/sdlog.c:252`](../../app/thermo-node/src/sdlog.c#L252)
 
 ### fs_close
 
@@ -120,7 +122,7 @@ int fs_close(struct fs_file_t *zfp);
 - `-ENOTSUP`: ドライバが対応していない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/backlog.c:191`](../../app/thermo-node/src/backlog.c#L191) (ほか 5 行), [`app/thermo-node/src/sdlog.c:264`](../../app/thermo-node/src/sdlog.c#L264)
+使用箇所: [`app/thermo-node/src/backlog.c:193`](../../app/thermo-node/src/backlog.c#L193) (ほか 5 行), [`app/thermo-node/src/sdlog.c:264`](../../app/thermo-node/src/sdlog.c#L264)
 
 ### fs_read
 
@@ -143,7 +145,7 @@ ssize_t fs_read(struct fs_file_t *zfp, void *ptr, size_t size);
 - `-ENOTSUP`: ドライバが対応していない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/backlog.c:425`](../../app/thermo-node/src/backlog.c#L425) (ほか 1 行)
+使用箇所: [`app/thermo-node/src/backlog.c:435`](../../app/thermo-node/src/backlog.c#L435) (ほか 1 行)
 
 ### fs_write
 
@@ -170,7 +172,7 @@ ssize_t fs_write(struct fs_file_t *zfp, const void *ptr, size_t size);
 
 - 書いたバイト数が `size` より少ないときは、空き容量がないことがあるので、グローバルの `errno` を調べる。
 
-使用箇所: [`app/thermo-node/src/backlog.c:592`](../../app/thermo-node/src/backlog.c#L592) (ほか 1 行), [`app/thermo-node/src/sdlog.c:259`](../../app/thermo-node/src/sdlog.c#L259)
+使用箇所: [`app/thermo-node/src/backlog.c:608`](../../app/thermo-node/src/backlog.c#L608) (ほか 1 行), [`app/thermo-node/src/sdlog.c:259`](../../app/thermo-node/src/sdlog.c#L259)
 
 ### fs_seek
 
@@ -193,7 +195,7 @@ int fs_seek(struct fs_file_t *zfp, off_t offset, int whence);
 - `-ENOTSUP`: ドライバが対応していない。
 - ほかの失敗は負の errno。
 
-使用箇所: [`app/thermo-node/src/backlog.c:421`](../../app/thermo-node/src/backlog.c#L421) (ほか 2 行)
+使用箇所: [`app/thermo-node/src/backlog.c:430`](../../app/thermo-node/src/backlog.c#L430) (ほか 2 行)
 
 ## パス
 

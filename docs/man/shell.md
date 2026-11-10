@@ -22,6 +22,8 @@
 | `_ft` | in | 書式文字列 |
 | `...` | in | 書式の引数 |
 
+戻り値: なし (エラーは返さない)。
+
 使用箇所: [`app/common/cfg_shell.c:68`](../../app/common/cfg_shell.c#L68) (ほか 10 行), [`app/thermo-node/src/wifi_shell.c:62`](../../app/thermo-node/src/wifi_shell.c#L62) (ほか 1 行)
 
 ### shell_warn
@@ -38,6 +40,8 @@
 | `_ft` | in | 書式文字列 |
 | `...` | in | 書式の引数 |
 
+戻り値: なし (エラーは返さない)。
+
 使用箇所: [`app/thermo-node/src/wifi_shell.c:95`](../../app/thermo-node/src/wifi_shell.c#L95)
 
 ### shell_error
@@ -53,6 +57,8 @@
 | `_sh` | in | シェルのインスタンス |
 | `_ft` | in | 書式文字列 |
 | `...` | in | 書式の引数 |
+
+戻り値: なし (エラーは返さない)。
 
 使用箇所: [`app/common/cfg_shell.c:59`](../../app/common/cfg_shell.c#L59) (ほか 5 行), [`app/thermo-node/src/wifi_shell.c:53`](../../app/thermo-node/src/wifi_shell.c#L53) (ほか 2 行)
 

@@ -16,7 +16,7 @@ struct net_if *net_if_get_default(void);
 
 既定のネットワークインターフェースを返す。
 
-戻り値: 既定のインターフェース。インターフェースが 1 つもなければ `NULL`。
+戻り値: 既定のインターフェース。インターフェースが 1 つもなければ `NULL`。エラー番号は返さない。
 
 使用箇所: [`app/common/wifi_link.c:73`](../../app/common/wifi_link.c#L73) (ほか 1 行)
 
@@ -35,9 +35,14 @@ struct net_if *net_if_get_default(void);
 | `_data` | in,out | 追加のデータ (接続は `struct wifi_connect_req_params`。切断は `NULL`) |
 | `_len` | in | `_data` の長さ (切断は 0) |
 
-戻り値: 成功は 0、失敗は負の errno。
+戻り値:
 
-使用箇所: [`app/common/wifi_link.c:101`](../../app/common/wifi_link.c#L101) (ほか 1 行)
+- 成功は 0。
+- `-ENOTSUP`: その要求を処理する関数が、インターフェース (ドライバ) にない。
+- `-EINVAL`: 要求の引数 (`data`、`len` の中身) が不正 (Wi-Fi の接続の要求なら、SSID の長さ、セキュリティの種類、チャンネルなど)。
+- ほかの失敗は、要求を処理したドライバが返す、負の errno。
+
+使用箇所: [`app/common/wifi_link.c:103`](../../app/common/wifi_link.c#L103) (ほか 1 行)
 
 ### net_mgmt_init_event_callback
 
@@ -53,6 +58,8 @@ void net_mgmt_init_event_callback(struct net_mgmt_event_callback *cb, net_mgmt_e
 | `handler` | in | ハンドラ関数 |
 | `mgmt_event_mask` | in | ハンドラが受けるイベントのマスク (`NET_EVENT_WIFI_CONNECT_RESULT` `NET_EVENT_WIFI_DISCONNECT_RESULT` など) |
 
+戻り値: なし (エラーは返さない)。
+
 使用箇所: [`app/common/wifi_link.c:47`](../../app/common/wifi_link.c#L47) (ほか 1 行)
 
 ### net_mgmt_add_event_callback
@@ -66,6 +73,8 @@ void net_mgmt_add_event_callback(struct net_mgmt_event_callback *cb);
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
 | `cb` | in,out | 加えるコールバック。有効なままにしておく |
+
+戻り値: なし (エラーは返さない)。
 
 使用箇所: [`app/common/wifi_link.c:49`](../../app/common/wifi_link.c#L49) (ほか 1 行)
 
@@ -104,12 +113,12 @@ WIFI_MFP_OPTIONAL             /* enum wifi_mfp_options */
 
 | 定数 | 入れるメンバー | 説明 | 使用箇所 |
 |:---|:---|:---|:---|
-| `WIFI_SECURITY_TYPE_NONE` | `security` | 暗号化なし (パスワードが空のとき) | [`app/common/wifi_link.c:91`](../../app/common/wifi_link.c#L91) |
-| `WIFI_SECURITY_TYPE_PSK` | `security` | WPA2-PSK (パスワードがあるとき) | [`app/common/wifi_link.c:91`](../../app/common/wifi_link.c#L91) |
-| `WIFI_FREQ_BAND_UNKNOWN` | `band` | 周波数帯を決めない (どの帯でもよい) | [`app/common/wifi_link.c:92`](../../app/common/wifi_link.c#L92) |
-| `WIFI_CHANNEL_ANY` | `channel` | チャンネルを決めない (どのチャンネルでもよい) | [`app/common/wifi_link.c:93`](../../app/common/wifi_link.c#L93) |
-| `WIFI_MFP_OPTIONAL` | `mfp` | 管理フレームの保護 (IEEE 802.11w) を、アクセスポイントが対応していれば使う | [`app/common/wifi_link.c:94`](../../app/common/wifi_link.c#L94) |
-| `SYS_FOREVER_MS` | `timeout` | 接続を待つ時間を、無期限にする (`zephyr/sys/time_units.h`) | [`app/common/wifi_link.c:95`](../../app/common/wifi_link.c#L95) |
+| `WIFI_SECURITY_TYPE_NONE` | `security` | 暗号化なし (パスワードが空のとき) | [`app/common/wifi_link.c:93`](../../app/common/wifi_link.c#L93) |
+| `WIFI_SECURITY_TYPE_PSK` | `security` | WPA2-PSK (パスワードがあるとき) | [`app/common/wifi_link.c:93`](../../app/common/wifi_link.c#L93) |
+| `WIFI_FREQ_BAND_UNKNOWN` | `band` | 周波数帯を決めない (どの帯でもよい) | [`app/common/wifi_link.c:94`](../../app/common/wifi_link.c#L94) |
+| `WIFI_CHANNEL_ANY` | `channel` | チャンネルを決めない (どのチャンネルでもよい) | [`app/common/wifi_link.c:95`](../../app/common/wifi_link.c#L95) |
+| `WIFI_MFP_OPTIONAL` | `mfp` | 管理フレームの保護 (IEEE 802.11w) を、アクセスポイントが対応していれば使う | [`app/common/wifi_link.c:96`](../../app/common/wifi_link.c#L96) |
+| `SYS_FOREVER_MS` | `timeout` | 接続を待つ時間を、無期限にする (`zephyr/sys/time_units.h`) | [`app/common/wifi_link.c:97`](../../app/common/wifi_link.c#L97) |
 
 注意:
 
@@ -123,7 +132,7 @@ NET_REQUEST_WIFI_CONNECT
 
 WiFi の接続の要求。`net_mgmt()` に渡す。結果は、`NET_EVENT_WIFI_CONNECT_RESULT` で届く。
 
-使用箇所: [`app/common/wifi_link.c:101`](../../app/common/wifi_link.c#L101)
+使用箇所: [`app/common/wifi_link.c:103`](../../app/common/wifi_link.c#L103)
 
 ### NET_REQUEST_WIFI_DISCONNECT
 
@@ -133,7 +142,7 @@ NET_REQUEST_WIFI_DISCONNECT
 
 WiFi の切断の要求。`net_mgmt()` に渡す。結果は、`NET_EVENT_WIFI_DISCONNECT_RESULT` で届く。
 
-使用箇所: [`app/common/wifi_link.c:144`](../../app/common/wifi_link.c#L144)
+使用箇所: [`app/common/wifi_link.c:146`](../../app/common/wifi_link.c#L146)
 
 ## ソケット
 
@@ -155,7 +164,14 @@ int zsock_getaddrinfo(const char *host, const char *service, const struct zsock_
 戻り値:
 
 - 成功は 0。
-- 失敗は 0 以外 (`EAI_*`)。
+- 失敗は 0 以外の `EAI_*` (POSIX の `getaddrinfo()` と同じ。`errno` ではない)。
+  - `EAI_NONAME`: 名前が見つからない。
+  - `EAI_AGAIN`: 一時的な失敗 (DNS サーバから答えがない、時間切れ)。再試行できる。
+  - `EAI_FAIL`: 回復できない失敗。
+  - `EAI_BADFLAGS`: `hints->ai_flags` が不正。
+  - `EAI_FAMILY`、`EAI_SOCKTYPE`、`EAI_SERVICE`: アドレスファミリ、ソケットの種類、サービス名に対応していない。
+  - `EAI_MEMORY`: メモリが足りない。
+  - `EAI_SYSTEM`: システムのエラー (`errno` を見る)。
 
 注意:
 
@@ -174,6 +190,8 @@ void zsock_freeaddrinfo(struct zsock_addrinfo *ai);
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
 | `ai` | in,out | 解放する結果の一覧の先頭 |
+
+戻り値: なし (エラーは返さない)。
 
 使用箇所: [`app/common/cloud.c:481`](../../app/common/cloud.c#L481), [`app/common/ntp.c:148`](../../app/common/ntp.c#L148), [`app/thermo-node/src/wifi_time.c:151`](../../app/thermo-node/src/wifi_time.c#L151)
 
@@ -209,11 +227,16 @@ static inline int zsock_poll(struct zsock_pollfd *fds, int nfds, int timeout);
 
 戻り値:
 
-- イベントが起きたソケットの数。
+- イベントが起きたソケットの数 (1 以上)。
 - 時間切れは 0。
-- 失敗は -1 (`errno`)。
+- 失敗は -1 (`errno` が設定される。Zephyr の実装は、-1 を返す全ての経路で `errno` を設定する)。
+  - `EFAULT`: `fds` のメモリにアクセスできない (ユーザー空間のとき)。
+  - `ENOMEM`: 作業の領域が足りない (ユーザー空間のとき)、または `k_poll()` が `-ENOMEM` を返した。
+  - `EINVAL`: `nfds` が不正 (POSIX の `poll()` と同じ)。
+  - ほか、ソケットの実装の準備 (`POLL_PREPARE`) と `k_poll()` が返した負の値の、符号を変えたもの。
+  - POSIX の `poll()` の `EINTR` は、Zephyr では失敗にならない (割り込まれたときは、再び待つ)。
 
-使用箇所: [`app/common/cloud.c:498`](../../app/common/cloud.c#L498)
+使用箇所: [`app/common/cloud.c:499`](../../app/common/cloud.c#L499)
 
 ### ZSOCK_POLL*
 
@@ -228,10 +251,10 @@ static inline int zsock_poll(struct zsock_pollfd *fds, int nfds, int timeout);
 
 | 定数 | 値 | 説明 | 使用箇所 |
 |:---|:---:|:---|:---|
-| `ZSOCK_POLLIN` | 1 | 読めるデータがある | [`app/common/cloud.c:497`](../../app/common/cloud.c#L497) |
-| `ZSOCK_POLLERR` | 8 | エラー (`revents` だけ) | [`app/common/cloud.c:508`](../../app/common/cloud.c#L508) |
-| `ZSOCK_POLLHUP` | 0x10 | 接続が切れた (`revents` だけ) | [`app/common/cloud.c:508`](../../app/common/cloud.c#L508) |
-| `ZSOCK_POLLNVAL` | 0x20 | ソケットが無効 (`revents` だけ) | [`app/common/cloud.c:508`](../../app/common/cloud.c#L508) |
+| `ZSOCK_POLLIN` | 1 | 読めるデータがある | [`app/common/cloud.c:498`](../../app/common/cloud.c#L498) |
+| `ZSOCK_POLLERR` | 8 | エラー (`revents` だけ) | [`app/common/cloud.c:517`](../../app/common/cloud.c#L517) |
+| `ZSOCK_POLLHUP` | 0x10 | 接続が切れた (`revents` だけ) | [`app/common/cloud.c:517`](../../app/common/cloud.c#L517) |
+| `ZSOCK_POLLNVAL` | 0x20 | ソケットが無効 (`revents` だけ) | [`app/common/cloud.c:517`](../../app/common/cloud.c#L517) |
 
 注意:
 
@@ -253,7 +276,11 @@ SNTP のコンテキストを初期化する。
 | `addr` | in | NTP / SNTP サーバの IP アドレス |
 | `addr_len` | in | `addr` の長さ |
 
-戻り値: 成功は 0、失敗は負の値。
+戻り値:
+
+- 成功は 0。
+- `-EFAULT`: `ctx` か `addr` が `NULL`、または `addr_len` が不正。
+- ほかの失敗は、ソケットを作る、または接続するときの負の errno (`-EMFILE`、`-ENOMEM`、`-EAFNOSUPPORT` など)。
 
 使用箇所: [`app/common/ntp.c:68`](../../app/common/ntp.c#L68), [`app/thermo-node/src/wifi_time.c:109`](../../app/thermo-node/src/wifi_time.c#L109)
 
@@ -271,7 +298,15 @@ SNTP の問い合わせをして、時刻を得る。
 | `timeout` | in | 応答を待つ時間 [ms] |
 | `ts` | out | 1970-01-01 からの秒 (整数部と小数部) |
 
-戻り値: 成功は 0、失敗は負の値 (時間切れは `-ETIMEDOUT`)。
+戻り値:
+
+- 成功は 0。
+- `-ETIMEDOUT`: `timeout` の間に、サーバから応答がない。
+- `-EFAULT`: `ctx` か `ts` が `NULL`。
+- `-EINVAL`: 応答が不正 (サーバのモードが違う、送信時刻が 0、時刻が矛盾している)。
+- `-ERANGE`: 応答の、送ったときの時刻の控えが、要求と合わない。
+- `-EBUSY`: サーバが、kiss-o'-death (取り締まりの応答) を返した。
+- ほかの失敗は、送受信の負の errno。
 
 使用箇所: [`app/common/ntp.c:74`](../../app/common/ntp.c#L74), [`app/thermo-node/src/wifi_time.c:115`](../../app/thermo-node/src/wifi_time.c#L115)
 
@@ -286,6 +321,8 @@ SNTP のコンテキストを解放する (ソケットを閉じる)。
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
 | `ctx` | in,out | SNTP のコンテキスト |
+
+戻り値: なし (エラーは返さない)。
 
 使用箇所: [`app/common/ntp.c:75`](../../app/common/ntp.c#L75), [`app/thermo-node/src/wifi_time.c:116`](../../app/thermo-node/src/wifi_time.c#L116)
 
@@ -312,8 +349,9 @@ TLS / DTLS の認証に使う、認証情報を加える。
 - `-EACCES`: アクセスが拒否された。
 - `-ENOMEM`: メモリが足りない。
 - `-EEXIST`: そのタグと種類の認証情報が、すでにある。
+- `-EINVAL`: 引数が不正 (種類が未対応、`cred` が `NULL` など)。
 
-使用箇所: [`app/common/cfg.c:591`](../../app/common/cfg.c#L591)
+使用箇所: [`app/common/cfg.c:605`](../../app/common/cfg.c#L605)
 
 ### tls_credential_get
 
@@ -337,7 +375,7 @@ int tls_credential_get(sec_tag_t tag, enum tls_credential_type type, void *cred,
 - `-ENOENT`: 見つからない。
 - `-EFBIG`: バッファに入らない (必要な大きさは `*credlen` に入る)。
 
-使用箇所: [`app/common/cfg.c:207`](../../app/common/cfg.c#L207) (ほか 1 行)
+使用箇所: [`app/common/cfg.c:209`](../../app/common/cfg.c#L209) (ほか 1 行)
 
 ### tls_credential_delete
 
@@ -358,7 +396,7 @@ int tls_credential_delete(sec_tag_t tag, enum tls_credential_type type);
 - `-EACCES`: アクセスが拒否された。
 - `-ENOENT`: 見つからない。
 
-使用箇所: [`app/common/cfg.c:302`](../../app/common/cfg.c#L302) (ほか 1 行)
+使用箇所: [`app/common/cfg.c:310`](../../app/common/cfg.c#L310) (ほか 1 行)
 
 ### TLS_PEER_VERIFY_REQUIRED
 
@@ -368,7 +406,7 @@ TLS_PEER_VERIFY_REQUIRED  /* TLS_PEER_VERIFY ソケットオプションの値 *
 
 相手の証明書の検証を、必ずする。検証に失敗したら、接続を拒否する。
 
-使用箇所: [`app/common/cloud.c:549`](../../app/common/cloud.c#L549)
+使用箇所: [`app/common/cloud.c:559`](../../app/common/cloud.c#L559)
 
 ## MQTT (AWS IoT Core への送信)
 
@@ -384,7 +422,9 @@ MQTT のクライアントを初期化する。パラメータの設定と、ブ
 |:---|:---:|:---|
 | `client` | out | 初期化する MQTT のクライアント。`NULL` にしない |
 
-使用箇所: [`app/common/cloud.c:534`](../../app/common/cloud.c#L534)
+戻り値: なし (エラーは返さない)。
+
+使用箇所: [`app/common/cloud.c:544`](../../app/common/cloud.c#L544)
 
 ### MQTT_VERSION_3_1_1
 
@@ -394,7 +434,7 @@ MQTT_VERSION_3_1_1 = 4  /* enum mqtt_version */
 
 MQTT 3.1.1 の、プロトコルのレベル。`struct mqtt_client` の `protocol_version` に入れる (AWS IoT Core は、3.1.1 に対応する)。
 
-使用箇所: [`app/common/cloud.c:539`](../../app/common/cloud.c#L539)
+使用箇所: [`app/common/cloud.c:549`](../../app/common/cloud.c#L549)
 
 ### mqtt_connect
 
@@ -408,7 +448,12 @@ MQTT の接続を要求する。
 |:---|:---:|:---|
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 
-戻り値: 成功は 0、失敗は負の errno。
+戻り値:
+
+- 成功は 0。
+- `-EINVAL`: `client` か `client->client_id.utf8` が `NULL`。
+- `-ENOMEM`: `client->tx_buf` か `client->rx_buf` が `NULL`。
+- ほかの失敗は、ソケットの作成、TLS の設定、接続、CONNECT の送信の、負の errno (`-ECONNREFUSED`、`-ETIMEDOUT`、`-EHOSTUNREACH`、`-ENETUNREACH` など)。失敗したときは、クライアントの状態が初期化される。
 
 注意:
 
@@ -417,7 +462,7 @@ MQTT の接続を要求する。
 - 既定のプロトコルは 3.1.1。3.1.0 を使うには、`client.protocol_version = MQTT_VERSION_3_1_0` にする。
 - キープアライブの既定は 1 分。変えるには `CONFIG_MQTT_KEEPALIVE` を変える。
 
-使用箇所: [`app/common/cloud.c:557`](../../app/common/cloud.c#L557)
+使用箇所: [`app/common/cloud.c:567`](../../app/common/cloud.c#L567)
 
 ### mqtt_publish
 
@@ -432,9 +477,16 @@ int mqtt_publish(struct mqtt_client *client, const struct mqtt_publish_param *pa
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 | `param` | in | 発行のパラメータ。`NULL` にしない |
 
-戻り値: 成功は 0、失敗は負の errno。
+戻り値:
 
-使用箇所: [`app/common/cloud.c:646`](../../app/common/cloud.c#L646)
+- 成功は 0。
+- `-EINVAL`: `client` か `param` が `NULL`。
+- `-ENOTCONN`: 接続していない。
+- `-ENOMEM`: パケットが `tx_buf` に入らない。
+- `-EMSGSIZE`: メッセージが MQTT の上限を超える。
+- ほかの失敗は、送信 (`sendmsg()`) の負の errno。
+
+使用箇所: [`app/common/cloud.c:658`](../../app/common/cloud.c#L658)
 
 ### MQTT_QOS_1_AT_LEAST_ONCE
 
@@ -444,7 +496,7 @@ MQTT_QOS_1_AT_LEAST_ONCE = 0x01  /* enum mqtt_qos */
 
 メッセージの QoS 1 (少なくとも 1 回届ける)。送ったメッセージに、受け取りの確認 (PUBACK) が返る。重なって届くことがある。`mqtt_publish()` に渡す `param.message.topic.qos` に入れる。
 
-使用箇所: [`app/common/cloud.c:634`](../../app/common/cloud.c#L634)
+使用箇所: [`app/common/cloud.c:646`](../../app/common/cloud.c#L646)
 
 ### mqtt_input
 
@@ -458,13 +510,18 @@ int mqtt_input(struct mqtt_client *client);
 |:---|:---:|:---|
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 
-戻り値: 成功は 0、失敗は負の errno。
+戻り値:
+
+- 成功は 0。
+- `-EINVAL`: `client` が `NULL`。
+- `-ENOTCONN`: TCP の接続がない。
+- ほかの失敗は、受信と、パケットの解析の、負の errno。サーバが接続を閉じたときも、負の値になる。
 
 注意:
 
 - PUBLISH メッセージの本文は、`mqtt_read_publish_payload()` で、別に読む。
 
-使用箇所: [`app/common/cloud.c:512`](../../app/common/cloud.c#L512)
+使用箇所: [`app/common/cloud.c:522`](../../app/common/cloud.c#L522)
 
 ### mqtt_live
 
@@ -478,13 +535,18 @@ int mqtt_live(struct mqtt_client *client);
 |:---|:---:|:---|
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 
-戻り値: 成功は 0、失敗は負の errno。
+戻り値:
+
+- 成功は 0 (PING を送った)。
+- `-EAGAIN`: keep alive の時間が来ていないので、何もしなかった (エラーではない)。
+- `-EINVAL`: `client` が `NULL`。
+- ほかの失敗は、PING の送信の、負の errno。
 
 注意:
 
 - 呼ぶ間隔は、接続のときにブローカと決めたキープアライブの時間を守れるようにする。
 
-使用箇所: [`app/common/cloud.c:685`](../../app/common/cloud.c#L685)
+使用箇所: [`app/common/cloud.c:697`](../../app/common/cloud.c#L697)
 
 ### mqtt_disconnect
 
@@ -499,9 +561,15 @@ MQTT の接続を切る。
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 | `param` | in | 切断のパラメータ。`NULL` でよい (MQTT 3.1.1 では無視される) |
 
-戻り値: 成功は 0、失敗は負の errno。
+戻り値:
 
-使用箇所: [`app/common/cloud.c:697`](../../app/common/cloud.c#L697)
+- 成功は 0 (DISCONNECT を送り、接続の状態を閉じた)。
+- `-EINVAL`: `client` が `NULL`。
+- `-ENOTCONN`: 接続していない。
+- `-ENOMEM`: パケットが `tx_buf` に入らない。
+- ほかの失敗は、送信の負の errno。
+
+使用箇所: [`app/common/cloud.c:709`](../../app/common/cloud.c#L709)
 
 ### mqtt_abort
 
@@ -515,9 +583,12 @@ MQTT の接続を中止する。MQTT の切断メッセージは送らずに、�
 |:---|:---:|:---|
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 
-戻り値: 成功は 0、失敗は負の errno。
+戻り値:
 
-使用箇所: [`app/common/cloud.c:568`](../../app/common/cloud.c#L568) (ほか 1 行)
+- 常に 0 (`client` が `NULL` のときだけ `-EINVAL`)。
+- 接続の状態が `MQTT_STATE_IDLE` でなければ、接続を閉じて、`MQTT_EVT_DISCONNECT` のコールバックを、`result` が `-ECONNABORTED` で呼ぶ。
+
+使用箇所: [`app/common/cloud.c:578`](../../app/common/cloud.c#L578) (ほか 1 行)
 
 ### MQTT_TRANSPORT_SECURE
 
@@ -527,4 +598,4 @@ MQTT_TRANSPORT_SECURE  /* enum mqtt_transport_type */
 
 `client->transport.type` に指定して、TLS で接続する。TLS の設定は、`client->transport.tls.config` に書く。
 
-使用箇所: [`app/common/cloud.c:548`](../../app/common/cloud.c#L548)
+使用箇所: [`app/common/cloud.c:558`](../../app/common/cloud.c#L558)

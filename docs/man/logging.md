@@ -39,7 +39,7 @@
 |:---|:---:|:---|
 | `...` | in | `printf()` と同じ書式文字列と引数 |
 
-使用箇所: [`app/common/cfg.c:231`](../../app/common/cfg.c#L231) (ほか 5 行), [`app/common/cloud.c:198`](../../app/common/cloud.c#L198) (ほか 7 行), [`app/common/ntp.c:70`](../../app/common/ntp.c#L70) (ほか 2 行), [`app/common/wifi_link.c:103`](../../app/common/wifi_link.c#L103) (ほか 2 行) ほか 14 ファイル
+使用箇所: [`app/common/cfg.c:233`](../../app/common/cfg.c#L233) (ほか 5 行), [`app/common/cloud.c:198`](../../app/common/cloud.c#L198) (ほか 7 行), [`app/common/ntp.c:70`](../../app/common/ntp.c#L70) (ほか 2 行), [`app/common/wifi_link.c:105`](../../app/common/wifi_link.c#L105) (ほか 2 行) ほか 14 ファイル
 
 ### LOG_WRN
 
@@ -53,7 +53,7 @@
 |:---|:---:|:---|
 | `...` | in | 書式文字列と引数 |
 
-使用箇所: [`app/common/cfg.c:484`](../../app/common/cfg.c#L484) (ほか 9 行), [`app/common/cloud.c:185`](../../app/common/cloud.c#L185) (ほか 3 行), [`app/common/wifi_link.c:146`](../../app/common/wifi_link.c#L146) (ほか 1 行), [`app/thermo-gateway/src/ble.c:366`](../../app/thermo-gateway/src/ble.c#L366) (ほか 4 行) ほか 9 ファイル
+使用箇所: [`app/common/cfg.c:498`](../../app/common/cfg.c#L498) (ほか 9 行), [`app/common/cloud.c:185`](../../app/common/cloud.c#L185) (ほか 3 行), [`app/common/wifi_link.c:148`](../../app/common/wifi_link.c#L148) (ほか 1 行), [`app/thermo-gateway/src/ble.c:366`](../../app/thermo-gateway/src/ble.c#L366) (ほか 4 行) ほか 9 ファイル
 
 ### LOG_INF
 
@@ -67,7 +67,7 @@
 |:---|:---:|:---|
 | `...` | in | 書式文字列と引数 |
 
-使用箇所: [`app/common/cloud.c:212`](../../app/common/cloud.c#L212), [`app/common/ntp.c:89`](../../app/common/ntp.c#L89), [`app/common/wifi_link.c:174`](../../app/common/wifi_link.c#L174), [`app/thermo-gateway/src/ble.c:178`](../../app/thermo-gateway/src/ble.c#L178) (ほか 8 行) ほか 12 ファイル
+使用箇所: [`app/common/cloud.c:212`](../../app/common/cloud.c#L212), [`app/common/ntp.c:89`](../../app/common/ntp.c#L89), [`app/common/wifi_link.c:176`](../../app/common/wifi_link.c#L176), [`app/thermo-gateway/src/ble.c:178`](../../app/thermo-gateway/src/ble.c#L178) (ほか 8 行) ほか 12 ファイル
 
 ### LOG_DBG
 
@@ -81,7 +81,7 @@
 |:---|:---:|:---|
 | `...` | in | 書式文字列と引数 |
 
-使用箇所: [`app/common/cloud.c:455`](../../app/common/cloud.c#L455) (ほか 2 行), [`app/common/wifi_link.c:179`](../../app/common/wifi_link.c#L179), [`app/thermo-gateway/src/ble.c:330`](../../app/thermo-gateway/src/ble.c#L330), [`app/thermo-node/src/ble.c:220`](../../app/thermo-node/src/ble.c#L220)
+使用箇所: [`app/common/cloud.c:455`](../../app/common/cloud.c#L455) (ほか 2 行), [`app/common/wifi_link.c:181`](../../app/common/wifi_link.c#L181), [`app/thermo-gateway/src/ble.c:330`](../../app/thermo-gateway/src/ble.c#L330), [`app/thermo-node/src/ble.c:221`](../../app/thermo-node/src/ble.c#L221)
 
 ### LOG_HEXDUMP_DBG
 
@@ -97,7 +97,7 @@
 | `_length` | in | データの長さ [バイト] |
 | `_str` | in | 見出しの文字列 (永続する文字列) |
 
-使用箇所: [`app/common/cloud.c:644`](../../app/common/cloud.c#L644), [`app/thermo-gateway/src/ble.c:139`](../../app/thermo-gateway/src/ble.c#L139) (ほか 2 行), [`app/thermo-node/src/ble.c:216`](../../app/thermo-node/src/ble.c#L216) (ほか 1 行)
+使用箇所: [`app/common/cloud.c:656`](../../app/common/cloud.c#L656), [`app/thermo-gateway/src/ble.c:139`](../../app/thermo-gateway/src/ble.c#L139) (ほか 2 行), [`app/thermo-node/src/ble.c:217`](../../app/thermo-node/src/ble.c#L217) (ほか 1 行)
 
 ## ログのバックエンド (SD カードへの保存)
 
@@ -167,7 +167,7 @@ log_format_func_t log_format_func_t_get(uint32_t log_type);
 |:---|:---:|:---|
 | `log_type` | in | 出力の形式 |
 
-戻り値: メッセージを整形する関数。
+戻り値: メッセージを整形する関数。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:169`](../../app/thermo-node/src/sdlog.c#L169)
 
@@ -183,7 +183,7 @@ static inline uint8_t log_msg_get_level(struct log_msg *msg);
 |:---|:---:|:---|
 | `msg` | in | ログのメッセージ |
 
-戻り値: ログのレベル (`LOG_LEVEL_ERR` など)。
+戻り値: ログのレベル (`LOG_LEVEL_ERR` など)。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:176`](../../app/thermo-node/src/sdlog.c#L176)
 

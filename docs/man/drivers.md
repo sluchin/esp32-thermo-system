@@ -20,7 +20,7 @@ bool device_is_ready(const struct device *dev);
 |:---|:---:|:---|
 | `dev` | in | 確かめるデバイス |
 
-戻り値: 使えれば `true`。使えない、または `NULL` を渡したら `false`。
+戻り値: 使えれば `true`。使えない、または `NULL` を渡したら `false`。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/node_time.c:84`](../../app/thermo-node/src/node_time.c#L84), [`app/thermo-node/src/oled.c:137`](../../app/thermo-node/src/oled.c#L137), [`app/thermo-node/src/sensor.c:94`](../../app/thermo-node/src/sensor.c#L94) (ほか 1 行)
 
@@ -38,7 +38,7 @@ Devicetree から得た ADC のデバイスが使えるかを調べる。
 |:---|:---:|:---|
 | `spec` | in | Devicetree から得た ADC の仕様 |
 
-戻り値: 使えれば `true`、使えなければ `false`。
+戻り値: 使えれば `true`、使えなければ `false`。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/sensor.c:110`](../../app/thermo-node/src/sensor.c#L110)
 
@@ -54,7 +54,12 @@ static inline int adc_channel_setup_dt(const struct adc_dt_spec *spec);
 |:---|:---:|:---|
 | `spec` | in | Devicetree から得た ADC の仕様 |
 
-戻り値: `adc_channel_setup()` の値。Devicetree の情報が正しくなければ `-ENOTSUP`。
+戻り値:
+
+- 成功は 0。
+- `-EINVAL`: 値が不正な引数を渡した (`adc_channel_setup()` の値)。
+- `-ENOTSUP`: Devicetree の情報が正しくない。
+- ほかの失敗は、ドライバが返す負の errno。
 
 使用箇所: [`app/thermo-node/src/sensor.c:116`](../../app/thermo-node/src/sensor.c#L116)
 
@@ -71,7 +76,14 @@ static inline int adc_read_dt(const struct adc_dt_spec *spec, const struct adc_s
 | `spec` | in | Devicetree から得た ADC の仕様 |
 | `sequence` | in | 要求するサンプリングの手順 (結果を入れるバッファの指定を含む) |
 
-戻り値: `adc_read()` の値。
+戻り値 (`adc_read()` の値):
+
+- 成功は 0。
+- `-EINVAL`: 値が不正な引数を渡した。
+- `-ENOMEM`: バッファが、要求した全ての標本を入れるには小さい。
+- `-ENOTSUP`: 要求した動作のモードに対応していない。
+- `-EBUSY`: 前の標本の取得が終わらないうちに、次を始めた (間隔を空けて測るときだけ。間隔が短すぎる。全ての標本はバッファに入るが、一部は、予定より遅れて取ったもの)。
+- ほかの失敗は、ドライバが返す負の errno。
 
 使用箇所: [`app/thermo-node/src/sensor.c:194`](../../app/thermo-node/src/sensor.c#L194)
 
@@ -88,7 +100,10 @@ ADC の生の値を、`struct adc_dt_spec` の情報を使って、ミリボル�
 | `spec` | in | Devicetree から得た ADC の仕様 |
 | `valp` | in,out | 入力は生の値。成功すると、ミリボルトの値になる。失敗したら、値は変わらない |
 
-戻り値: `adc_raw_to_millivolts()` の値。Devicetree の情報が正しくなければ `-ENOTSUP`。
+戻り値:
+
+- 成功は 0。
+- `-ENOTSUP`: Devicetree の情報が正しくない、または、利得や基準電圧の設定で、換算できない。
 
 使用箇所: [`app/thermo-node/src/sensor.c:202`](../../app/thermo-node/src/sensor.c#L202)
 
@@ -106,7 +121,7 @@ GPIO のポートが使えるかを調べる。
 |:---|:---:|:---|
 | `spec` | in | Devicetree から得た GPIO の仕様 |
 
-戻り値: 使えれば `true`、使えなければ `false`。
+戻り値: 使えれば `true`、使えなければ `false`。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/button.c:41`](../../app/thermo-node/src/button.c#L41)
 
@@ -123,7 +138,13 @@ static inline int gpio_pin_configure_dt(const struct gpio_dt_spec *spec, gpio_fl
 | `spec` | in | Devicetree から得た GPIO の仕様 |
 | `extra_flags` | in | 追加のフラグ (入力は `GPIO_INPUT`) |
 
-戻り値: `gpio_pin_configure()` の値。
+戻り値 (`gpio_pin_configure()` の値):
+
+- 成功は 0。
+- `-ENOTSUP`: 設定のオプションのどれかに、対応していない (フラグの説明に、別の指示があるときを除く)。
+- `-EINVAL`: 引数が不正。
+- `-EIO`: 外付けの GPIO チップへのアクセスの I/O エラー。
+- `-EWOULDBLOCK`: 操作がブロックする。
 
 使用箇所: [`app/thermo-node/src/button.c:46`](../../app/thermo-node/src/button.c#L46)
 
@@ -139,7 +160,12 @@ static inline int gpio_pin_get_dt(const struct gpio_dt_spec *spec);
 |:---|:---:|:---|
 | `spec` | in | Devicetree から得た GPIO の仕様 |
 
-戻り値: `gpio_pin_get()` の値 (論理レベルが 1 なら正、0 なら 0、失敗なら負)。
+戻り値 (`gpio_pin_get()` の値):
+
+- ピンの論理レベルが 1 (アクティブ) なら 1。
+- 論理レベルが 0 (非アクティブ) なら 0。
+- `-EIO`: 外付けの GPIO チップへのアクセスの I/O エラー。
+- `-EWOULDBLOCK`: 操作がブロックする。
 
 使用箇所: [`app/thermo-node/src/button.c:53`](../../app/thermo-node/src/button.c#L53) (ほか 1 行)
 
@@ -157,7 +183,7 @@ I2C のバスが使えるかを調べる。
 |:---|:---:|:---|
 | `spec` | in | Devicetree から得た I2C の仕様 |
 
-戻り値: 使えれば `true`、使えなければ `false`。
+戻り値: 使えれば `true`、使えなければ `false`。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:230`](../../app/thermo-node/drivers/rtc_pcf8563.c#L230)
 
@@ -176,7 +202,11 @@ I2C デバイスの内部アドレスから、複数バイトを読む。`i2c_bu
 | `buf` | out | 読んだデータを入れる領域 |
 | `num_bytes` | in | 読むバイト数 |
 
-戻り値: `i2c_burst_read()` の値。
+戻り値 (`i2c_burst_read()` の値):
+
+- 成功は 0。
+- `-EIO`: 通信の I/O エラー (相手が ACK を返さない、バスの失敗など)。
+- ほか、ドライバごとの負の errno (`-ETIMEDOUT`、`-EBUSY` など)。
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:178`](../../app/thermo-node/drivers/rtc_pcf8563.c#L178)
 
@@ -195,7 +225,11 @@ I2C デバイスの内部アドレスへ、複数バイトを書く。`i2c_burst
 | `buf` | in | 書くデータ |
 | `num_bytes` | in | 書くバイト数 |
 
-戻り値: `i2c_burst_write()` の値。
+戻り値 (`i2c_burst_write()` の値):
+
+- 成功は 0。
+- `-EIO`: 通信の I/O エラー (相手が ACK を返さない、バスの失敗など)。
+- ほか、ドライバごとの負の errno (`-ETIMEDOUT`、`-EBUSY` など)。
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:151`](../../app/thermo-node/drivers/rtc_pcf8563.c#L151)
 
@@ -213,7 +247,11 @@ I2C デバイスの内部レジスタに、1 バイトを書く。`i2c_reg_write
 | `reg_addr` | in | 書き込むレジスタの内部アドレス |
 | `value` | in | 書き込む値 |
 
-戻り値: `i2c_reg_write_byte()` の値。
+戻り値 (`i2c_reg_write_byte()` の値):
+
+- 成功は 0。
+- `-EIO`: 通信の I/O エラー (相手が ACK を返さない、バスの失敗など)。
+- ほか、ドライバごとの負の errno (`-ETIMEDOUT`、`-EBUSY` など)。
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:145`](../../app/thermo-node/drivers/rtc_pcf8563.c#L145)
 
@@ -231,7 +269,7 @@ PWM のデバイスが使えるかを調べる。
 |:---|:---:|:---|
 | `spec` | in | Devicetree から得た PWM の仕様 |
 
-戻り値: 使えれば `true`、使えなければ `false`。
+戻り値: 使えれば `true`、使えなければ `false`。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/buzzer.c:49`](../../app/thermo-node/src/buzzer.c#L49)
 
@@ -249,7 +287,11 @@ static inline int pwm_set_dt(const struct pwm_dt_spec *spec, uint32_t period, ui
 | `period` | in | 周期 [ns] |
 | `pulse` | in | パルス幅 [ns]。0 にすると、出力が止まる |
 
-戻り値: `pwm_set()` の値。
+戻り値 (`pwm_set()` の値):
+
+- 成功は 0。
+- `-ENOTSUP`: 要求した周期かパルスのサイクルに、対応していない。
+- ほかの失敗は、負の errno。
 
 使用箇所: [`app/thermo-node/src/buzzer.c:134`](../../app/thermo-node/src/buzzer.c#L134)
 
@@ -266,7 +308,11 @@ static inline int pwm_set_pulse_dt(const struct pwm_dt_spec *spec, uint32_t puls
 | `spec` | in | Devicetree から得た PWM の仕様 |
 | `pulse` | in | パルス幅 [ns] |
 
-戻り値: `pwm_set()` の値。
+戻り値 (`pwm_set()` の値):
+
+- 成功は 0。
+- `-ENOTSUP`: 要求した周期かパルスのサイクルに、対応していない。
+- ほかの失敗は、負の errno。
 
 使用箇所: [`app/thermo-node/src/buzzer.c:129`](../../app/thermo-node/src/buzzer.c#L129)
 
@@ -328,7 +374,12 @@ int sensor_sample_fetch(const struct device *dev);
 |:---|:---:|:---|
 | `dev` | in | センサのデバイス |
 
-戻り値: 成功は 0、失敗は負の errno。
+戻り値:
+
+- 成功は 0。
+- `-EIO`: センサとの通信 (I2C、SPI など) の失敗。
+- `-ENOTSUP`: センサが、その操作に対応していない。
+- ほかの失敗は、ドライバが返す負の errno。
 
 注意:
 
@@ -350,7 +401,12 @@ int sensor_channel_get(const struct device *dev, enum sensor_channel chan, struc
 | `chan` | in | チャンネル (`SENSOR_CHAN_AMBIENT_TEMP` `SENSOR_CHAN_HUMIDITY` `SENSOR_CHAN_PRESS`) |
 | `val` | out | 値を入れる領域 (`val1` が整数部、`val2` が小数部 [百万分の 1]) |
 
-戻り値: 成功は 0、失敗は負の errno。センサにないチャンネルは、`-ENOTSUP` (ドライバによる)。
+戻り値:
+
+- 成功は 0。
+- `-ENOTSUP`: センサにないチャンネル (ドライバによる)。
+- `-EINVAL`: 引数が不正。
+- ほかの失敗は、ドライバが返す負の errno。
 
 チャンネルの単位 (このプロジェクトで使うもの):
 
@@ -374,7 +430,7 @@ static inline int64_t sensor_value_to_milli(const struct sensor_value *val);
 |:---|:---:|:---|
 | `val` | in | 変換する値 |
 
-戻り値: 変換した値。
+戻り値: 変換した値。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/sensor.c:164`](../../app/thermo-node/src/sensor.c#L164) (ほか 2 行)
 

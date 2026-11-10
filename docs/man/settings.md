@@ -16,13 +16,16 @@ int settings_subsys_init(void);
 
 設定の仕組みと、バックエンドを初期化する。アプリの起動のときに呼べる。
 
-戻り値: 成功は 0、失敗は 0 以外。
+戻り値:
+
+- 成功は 0。
+- 失敗は、保存先 (バックエンド。NVS、FCB、ファイル) の初期化の、負の errno (`-EIO`、`-ENOMEM`、`-ENODEV` など)。
 
 注意:
 
 - バックエンドがファイルシステムのときは、ファイルシステムをマウントしたあとに呼ぶ。FCB (NVS など) のバックエンドには、この制限はない。
 
-使用箇所: [`app/common/cfg.c:437`](../../app/common/cfg.c#L437)
+使用箇所: [`app/common/cfg.c:451`](../../app/common/cfg.c#L451)
 
 ### settings_register
 
@@ -36,9 +39,12 @@ RAM にある設定項目のハンドラを、既定のコミット優先度で�
 |:---|:---:|:---|
 | `cf` | in,out | 登録の情報を持つ構造体 |
 
-戻り値: 成功は 0、失敗は 0 以外。
+戻り値:
 
-使用箇所: [`app/common/cfg.c:445`](../../app/common/cfg.c#L445)
+- 成功は 0。
+- `-EEXIST`: 同じハンドラを、すでに登録している。
+
+使用箇所: [`app/common/cfg.c:459`](../../app/common/cfg.c#L459)
 
 ## 読み書き
 
@@ -56,9 +62,15 @@ int settings_save_one(const char *name, const void *value, size_t val_len);
 | `value` | in | 設定項目の値。`settings_handler::h_export` のハンドラに渡される |
 | `val_len` | in | `value` の長さ |
 
-戻り値: 成功は 0、失敗は 0 以外。
+戻り値:
 
-使用箇所: [`app/common/cfg.c:155`](../../app/common/cfg.c#L155) (ほか 2 行)
+- 成功は 0。
+- `-ENOENT`: 保存先が設定されていない。
+- `-EINVAL`: `name` が不正 (長すぎる、など)。
+- `-ENOSPC`: 保存先に空きがない。
+- ほかの失敗は、保存先の負の errno (`-EIO` など)。
+
+使用箇所: [`app/common/cfg.c:156`](../../app/common/cfg.c#L156) (ほか 2 行)
 
 ### settings_delete
 
@@ -72,9 +84,13 @@ int settings_delete(const char *name);
 |:---|:---:|:---|
 | `name` | in | 設定項目の名前 (キー) |
 
-戻り値: 成功は 0、失敗は 0 以外。
+戻り値:
 
-使用箇所: [`app/common/cfg.c:288`](../../app/common/cfg.c#L288) (ほか 3 行)
+- 成功は 0 (項目がなくても、成功)。
+- `-ENOENT`: 保存先が設定されていない。
+- ほかの失敗は、`settings_save_one(name, NULL, 0)` と同じ。
+
+使用箇所: [`app/common/cfg.c:290`](../../app/common/cfg.c#L290) (ほか 3 行)
 
 ### settings_load_subtree
 
@@ -88,6 +104,9 @@ int settings_load_subtree(const char *subtree);
 |:---|:---:|:---|
 | `subtree` | in | 読み込むサブツリーの名前 |
 
-戻り値: 成功は 0、失敗は 0 以外。
+戻り値:
 
-使用箇所: [`app/common/cfg.c:451`](../../app/common/cfg.c#L451)
+- 成功は 0。
+- 失敗は、保存先の読み出しの負の errno (`-EIO` など)。ハンドラの `set` が返した負の値も、そのまま返る。
+
+使用箇所: [`app/common/cfg.c:465`](../../app/common/cfg.c#L465)

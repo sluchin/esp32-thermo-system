@@ -21,7 +21,12 @@ static inline int display_set_pixel_format(const struct device *dev, const enum 
 | `dev` | in | 表示装置のデバイス |
 | `pixel_format` | in | 使うピクセルの形式 |
 
-戻り値: 成功は 0、失敗は負の errno。ドライバが実装していなければ `-ENOSYS`。
+戻り値:
+
+- 成功は 0。
+- `-ENOSYS`: ドライバが実装していない。
+- `-ENOTSUP`: そのピクセル形式に対応していない。
+- ほかの失敗は負の errno。
 
 使用箇所: [`app/thermo-node/src/oled.c:142`](../../app/thermo-node/src/oled.c#L142)
 
@@ -47,7 +52,11 @@ static inline int display_blanking_on(const struct device *dev);
 |:---|:---:|:---|
 | `dev` | in | 表示装置のデバイス |
 
-戻り値: 成功は 0、失敗は負の errno。ドライバが実装していなければ `-ENOSYS`。
+戻り値:
+
+- 成功は 0。
+- `-ENOSYS`: ドライバが実装していない。
+- ほかの失敗は負の errno (I2C などの通信の失敗は `-EIO`)。
 
 注意:
 
@@ -68,7 +77,11 @@ static inline int display_blanking_off(const struct device *dev);
 |:---|:---:|:---|
 | `dev` | in | 表示装置のデバイス |
 
-戻り値: 成功は 0、失敗は負の errno。ドライバが実装していなければ `-ENOSYS`。
+戻り値:
+
+- 成功は 0。
+- `-ENOSYS`: ドライバが実装していない。
+- ほかの失敗は負の errno (I2C などの通信の失敗は `-EIO`)。
 
 注意:
 
@@ -90,7 +103,10 @@ int cfb_framebuffer_init(const struct device *dev);
 |:---|:---:|:---|
 | `dev` | in | ドライバのインスタンスのデバイス |
 
-戻り値: 成功は 0、失敗は負の値。
+戻り値:
+
+- 成功は 0。
+- `-ENOMEM`: フレームバッファの領域 (`k_malloc()`) が取れない。
 
 使用箇所: [`app/thermo-node/src/oled.c:151`](../../app/thermo-node/src/oled.c#L151)
 
@@ -105,6 +121,8 @@ void cfb_framebuffer_deinit(const struct device *dev);
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
 | `dev` | in | ドライバのインスタンスのデバイス |
+
+戻り値: なし (エラーは返さない)。
 
 使用箇所: [`app/thermo-node/src/oled.c:149`](../../app/thermo-node/src/oled.c#L149)
 
@@ -121,7 +139,10 @@ int cfb_framebuffer_set_font(const struct device *dev, uint8_t idx);
 | `dev` | in | ドライバのインスタンスのデバイス |
 | `idx` | in | フォントの番号 |
 
-戻り値: 成功は 0、失敗は負の値。
+戻り値:
+
+- 成功は 0。
+- `-EINVAL`: `idx` が、フォントの数の範囲の外。
 
 使用箇所: [`app/thermo-node/src/oled.c:157`](../../app/thermo-node/src/oled.c#L157)
 
@@ -138,7 +159,11 @@ int cfb_framebuffer_clear(const struct device *dev, bool clear_display);
 | `dev` | in | ドライバのインスタンスのデバイス |
 | `clear_display` | in | `true` なら、表示装置の画面も消す |
 
-戻り値: 成功は 0、失敗は負の値。
+戻り値:
+
+- 成功は 0。
+- `-ENODEV`: `cfb_framebuffer_init()` を呼んでいない。
+- `clear_display` が真のときは、表示装置への書き込みの失敗の負の値。
 
 使用箇所: [`app/thermo-node/src/oled.c:163`](../../app/thermo-node/src/oled.c#L163) (ほか 2 行)
 
@@ -157,7 +182,11 @@ int cfb_print(const struct device *dev, const char *const str, uint16_t x, uint1
 | `x` | in | 文字列の先頭の X 方向の位置 [ピクセル] |
 | `y` | in | 文字列の先頭の Y 方向の位置 [ピクセル] |
 
-戻り値: 成功は 0、失敗は負の値。
+戻り値:
+
+- 成功は 0。
+- `-ENODEV`: `cfb_framebuffer_init()` を呼んでいない。
+- `-EINVAL`: 選んだフォントの高さが 8 の倍数でない。
 
 使用箇所: [`app/thermo-node/src/oled.c:427`](../../app/thermo-node/src/oled.c#L427) (ほか 1 行)
 
@@ -174,7 +203,7 @@ int cfb_draw_point(const struct device *dev, const struct cfb_position *pos);
 | `dev` | in | ドライバのインスタンスのデバイス |
 | `pos` | in | 点の位置 |
 
-戻り値: 成功は 0、失敗は負の値。
+戻り値: 常に 0 (範囲の外の点は、描かずに捨てる)。
 
 使用箇所: [`app/thermo-node/src/oled.c:402`](../../app/thermo-node/src/oled.c#L402) (ほか 2 行)
 
@@ -192,7 +221,7 @@ int cfb_draw_line(const struct device *dev, const struct cfb_position *start, co
 | `start` | in | 線の始点 |
 | `end` | in | 線の終点 |
 
-戻り値: 成功は 0、失敗は負の値。
+戻り値: 常に 0 (範囲の外の点は、描かずに捨てる)。
 
 使用箇所: [`app/thermo-node/src/oled.c:400`](../../app/thermo-node/src/oled.c#L400)
 
@@ -208,7 +237,11 @@ int cfb_framebuffer_finalize(const struct device *dev);
 |:---|:---:|:---|
 | `dev` | in | ドライバのインスタンスのデバイス |
 
-戻り値: 成功は 0、失敗は負の値。
+戻り値:
+
+- 成功は 0。
+- `-ENODEV`: `cfb_framebuffer_init()` を呼んでいない。
+- 表示装置への書き込みの失敗の負の値。
 
 注意:
 
