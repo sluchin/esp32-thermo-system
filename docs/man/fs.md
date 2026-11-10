@@ -23,10 +23,14 @@ int fs_mount(struct fs_mount_t *mp);
 戻り値:
 
 - 成功は 0。
-- `-ENOENT`: その種類のファイルシステムが登録されていない。
-- `-ENOTSUP`: ドライバが対応していない (`FS_MOUNT_FLAG_USE_DISK_ACCESS` を指定したが、ドライバが対応していない場合を含む)。
-- `-EROFS`: フォーマットが必要だが `FS_MOUNT_FLAG_READ_ONLY` が指定されている。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `ENOENT`: その種類のファイルシステムが登録されていない。
+- `ENOTSUP`: ドライバが対応していない (`FS_MOUNT_FLAG_USE_DISK_ACCESS` を指定したが、ドライバが対応していない場合を含む)。
+- `EROFS`: フォーマットが必要だが `FS_MOUNT_FLAG_READ_ONLY` が指定されている。
 
 注意:
 
@@ -49,9 +53,13 @@ int fs_unmount(struct fs_mount_t *mp);
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: そのマウントポイントに、何もマウントされていない。
-- `-ENOTSUP`: ドライバが対応していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `EINVAL`: そのマウントポイントに、何もマウントされていない。
+- `ENOTSUP`: ドライバが対応していない。
 
 使用箇所: [`app/thermo-node/src/backlog.c:125`](../../app/thermo-node/src/backlog.c#L125)
 
@@ -90,13 +98,17 @@ int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags);
 戻り値:
 
 - 成功は 0。
-- `-EBUSY`: `zfp` が使用中。
-- `-EINVAL`: ファイル名が不正。
-- `-EROFS`: 読み込み専用のファイルを書き込みで開いた、または、`FS_MOUNT_FLAG_READ_ONLY` でマウントしたところに作ろうとした。
-- `-ENOENT`: ファイルがない。
-- `-ENOTSUP`: ドライバが対応していない。
-- `-EACCES`: 書き込みで開かずに、`FS_O_TRUNC` を指定した。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `EBUSY`: `zfp` が使用中。
+- `EINVAL`: ファイル名が不正。
+- `EROFS`: 読み込み専用のファイルを書き込みで開いた、または、`FS_MOUNT_FLAG_READ_ONLY` でマウントしたところに作ろうとした。
+- `ENOENT`: ファイルがない。
+- `ENOTSUP`: ドライバが対応していない。
+- `EACCES`: 書き込みで開かずに、`FS_O_TRUNC` を指定した。
 
 注意:
 
@@ -119,8 +131,12 @@ int fs_close(struct fs_file_t *zfp);
 戻り値:
 
 - 成功は 0。
-- `-ENOTSUP`: ドライバが対応していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `ENOTSUP`: ドライバが対応していない。
 
 使用箇所: [`app/thermo-node/src/backlog.c:193`](../../app/thermo-node/src/backlog.c#L193) (ほか 5 行), [`app/thermo-node/src/sdlog.c:264`](../../app/thermo-node/src/sdlog.c#L264)
 
@@ -141,9 +157,13 @@ ssize_t fs_read(struct fs_file_t *zfp, void *ptr, size_t size);
 戻り値:
 
 - 成功は読んだバイト数 (0 以上)。
-- `-EBADF`: 開いていない (閉じた) ファイル。
-- `-ENOTSUP`: ドライバが対応していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `EBADF`: 開いていない (閉じた) ファイル。
+- `ENOTSUP`: ドライバが対応していない。
 
 使用箇所: [`app/thermo-node/src/backlog.c:435`](../../app/thermo-node/src/backlog.c#L435) (ほか 1 行)
 
@@ -164,9 +184,13 @@ ssize_t fs_write(struct fs_file_t *zfp, const void *ptr, size_t size);
 戻り値:
 
 - 成功は書いたバイト数 (0 以上)。
-- `-EBADF`: 開いていない (閉じた) ファイル。
-- `-ENOTSUP`: ドライバが対応していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `EBADF`: 開いていない (閉じた) ファイル。
+- `ENOTSUP`: ドライバが対応していない。
 
 注意:
 
@@ -191,9 +215,13 @@ int fs_seek(struct fs_file_t *zfp, off_t offset, int whence);
 戻り値:
 
 - 成功は 0。
-- `-EBADF`: 開いていないファイル。
-- `-ENOTSUP`: ドライバが対応していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `EBADF`: 開いていないファイル。
+- `ENOTSUP`: ドライバが対応していない。
 
 使用箇所: [`app/thermo-node/src/backlog.c:430`](../../app/thermo-node/src/backlog.c#L430) (ほか 2 行)
 
@@ -215,10 +243,14 @@ int fs_stat(const char *path, struct fs_dirent *entry);
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: パスが不正。
-- `-ENOENT`: ない。
-- `-ENOTSUP`: ドライバが対応していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `EINVAL`: パスが不正。
+- `ENOENT`: ない。
+- `ENOTSUP`: ドライバが対応していない。
 
 注意:
 
@@ -242,10 +274,14 @@ int fs_rename(const char *from, const char *to);
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: 名前が不正、またはマウントポイントをまたぐ。
-- `-EROFS`: 読み込み専用のファイル、または読み込み専用でマウントしている。
-- `-ENOTSUP`: ドライバが対応していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `EINVAL`: 名前が不正、またはマウントポイントをまたぐ。
+- `EROFS`: 読み込み専用のファイル、または読み込み専用でマウントしている。
+- `ENOTSUP`: ドライバが対応していない。
 
 注意:
 
@@ -270,10 +306,14 @@ int fs_unlink(const char *path);
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: 名前が不正。
-- `-EROFS`: 読み込み専用のファイル、または読み込み専用でマウントしている。
-- `-ENOTSUP`: ドライバが対応していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `EINVAL`: 名前が不正。
+- `EROFS`: 読み込み専用のファイル、または読み込み専用でマウントしている。
+- `ENOTSUP`: ドライバが対応していない。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:317`](../../app/thermo-node/src/sdlog.c#L317)
 

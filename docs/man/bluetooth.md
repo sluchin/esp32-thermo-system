@@ -23,10 +23,14 @@ Bluetooth を有効にする。ローカルの Bluetooth ハードウェアと�
 戻り値:
 
 - 成功は 0。
-- `-EALREADY`: すでに有効にしてある。
-- `-ENODEV`: HCI のデバイス (コントローラ) が使えない。
-- `-EIO`: コントローラの初期化の HCI コマンドが失敗した。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負のエラーコード。
+
+エラー:
+
+- `EALREADY`: すでに有効にしてある。
+- `ENODEV`: HCI のデバイス (コントローラ) が使えない。
+- `EIO`: コントローラの初期化の HCI コマンドが失敗した。
 
 注意:
 
@@ -78,12 +82,16 @@ int bt_le_adv_start(const struct bt_le_adv_param *param,
 戻り値:
 
 - 成功は 0。
-- `-EALREADY`: すでにアドバタイズを始めている。
-- `-EINVAL`: パラメータやデータが不正。
-- `-EAGAIN`: Bluetooth の初期化が済んでいない。
-- `-ENOMEM`: 接続可能なアドバタイズに使える接続オブジェクトがない。
-- `-ECONNREFUSED`: 接続可能なアドバタイズを求めたが、コントローラの接続数が上限に達している (Zephyr のコントローラのときだけ確実。ほかでは `-EIO` になることがある)。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負のエラーコード。
+
+エラー:
+
+- `EALREADY`: すでにアドバタイズを始めている。
+- `EINVAL`: パラメータやデータが不正。
+- `EAGAIN`: Bluetooth の初期化が済んでいない。
+- `ENOMEM`: 接続可能なアドバタイズに使える接続オブジェクトがない。
+- `ECONNREFUSED`: 接続可能なアドバタイズを求めたが、コントローラの接続数が上限に達している (Zephyr のコントローラのときだけ確実。ほかでは `-EIO` になることがある)。
 
 注意:
 
@@ -109,11 +117,15 @@ LE スキャンを、指定のパラメータで始めて、結果をコール�
 戻り値:
 
 - 成功は 0。
-- `-EALREADY`: すでにスキャンを始めている。
-- `-EINVAL`: パラメータが不正。
-- `-EAGAIN`: Bluetooth の初期化が済んでいない。
-- `-EBUSY`: 別のスレッドからスキャンを始めている最中。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、プロトコルのエラーなら正の値、スタック内部のエラーなら負の値 (POSIX)。
+
+エラー:
+
+- `EALREADY`: すでにスキャンを始めている。
+- `EINVAL`: パラメータが不正。
+- `EAGAIN`: Bluetooth の初期化が済んでいない。
+- `EBUSY`: 別のスレッドからスキャンを始めている最中。
 
 注意:
 
@@ -134,9 +146,13 @@ int bt_le_scan_stop(void);
 戻り値:
 
 - 成功は 0。
-- `-EALREADY`: スキャンしていない。
-- `-EAGAIN`: Bluetooth の初期化が済んでいない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、プロトコルのエラーなら正の値、スタック内部のエラーなら負の値 (POSIX)。
+
+エラー:
+
+- `EALREADY`: スキャンしていない。
+- `EAGAIN`: Bluetooth の初期化が済んでいない。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:698`](../../app/thermo-gateway/src/ble.c#L698)
 
@@ -181,7 +197,11 @@ int bt_conn_cb_register(struct bt_conn_cb *cb);
 戻り値:
 
 - 成功は 0。
-- `-EEXIST`: 同じ `cb` を登録済み。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EEXIST`: 同じ `cb` を登録済み。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:173`](../../app/thermo-gateway/src/ble.c#L173), [`app/thermo-node/src/ble.c:126`](../../app/thermo-node/src/ble.c#L126)
 
@@ -206,11 +226,15 @@ int bt_conn_le_create(const bt_addr_le_t *peer,
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: パラメータが不正。
-- `-EAGAIN`: Bluetooth の初期化が済んでいない。
-- `-EALREADY`: すでにその相手に接続している、または接続を始めている。
-- `-ENOMEM`: 接続オブジェクトがない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負のエラーコード。
+
+エラー:
+
+- `EINVAL`: パラメータが不正。
+- `EAGAIN`: Bluetooth の初期化が済んでいない。
+- `EALREADY`: すでにその相手に接続している、または接続を始めている。
+- `ENOMEM`: 接続オブジェクトがない。
 
 注意:
 
@@ -235,9 +259,13 @@ int bt_conn_disconnect(struct bt_conn *conn, uint8_t reason);
 戻り値:
 
 - 成功は 0。
-- `-ENOTCONN`: 接続していない (すでに切れている)。
-- `-EINVAL`: `reason` が不正。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負のエラーコード。
+
+エラー:
+
+- `ENOTCONN`: 接続していない (すでに切れている)。
+- `EINVAL`: `reason` が不正。
 
 注意:
 
@@ -389,10 +417,14 @@ GATT サービスを登録する。サービスは、`BT_GATT_PRIMARY_SERVICE`�
 戻り値:
 
 - 成功は 0。
-- `-EAGAIN`: `bt_init()` は済んだが `settings_load()` がまだ。
-- `-EALREADY`: そのサービスを、すでに登録している。
-- `-EINVAL`: サービスの定義 (属性の並び) が不正。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の値。
+
+エラー:
+
+- `EAGAIN`: `bt_init()` は済んだが `settings_load()` がまだ。
+- `EALREADY`: そのサービスを、すでに登録している。
+- `EINVAL`: サービスの定義 (属性の並び) が不正。
 
 注意:
 
@@ -464,11 +496,15 @@ static inline int bt_gatt_notify(struct bt_conn *conn, const struct bt_gatt_attr
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: 属性が不正 (キャラクタリスティックの値でない、など)。
-- `-ENOTCONN`: 接続していない。
-- `-ENOENT`: 相手が、通知を有効にしていない。
-- `-ENOMEM`: 送信のバッファがない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の値。
+
+エラー:
+
+- `EINVAL`: 属性が不正 (キャラクタリスティックの値でない、など)。
+- `ENOTCONN`: 接続していない。
+- `ENOENT`: 相手が、通知を有効にしていない。
+- `ENOMEM`: 送信のバッファがない。
 
 使用箇所: [`app/thermo-node/src/ble.c:218`](../../app/thermo-node/src/ble.c#L218)
 
@@ -490,9 +526,13 @@ int bt_gatt_discover(struct bt_conn *conn, struct bt_gatt_discover_params *param
 戻り値:
 
 - 要求を積めたら 0 (結果は `params->func` に届く)。
-- `-EINVAL`: `params` が不正 (ハンドルの範囲、UUID、種類)。
-- `-ENOTCONN`: 接続していない。
-- `-ENOMEM`: ATT 要求のキューが満杯。要求が終わるのを待ってやり直すか、別のスレッドから呼ぶ。キューの大きさは `CONFIG_BT_ATT_TX_COUNT`。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EINVAL`: `params` が不正 (ハンドルの範囲、UUID、種類)。
+- `ENOTCONN`: 接続していない。
+- `ENOMEM`: ATT 要求のキューが満杯。要求が終わるのを待ってやり直すか、別のスレッドから呼ぶ。キューの大きさは `CONFIG_BT_ATT_TX_COUNT`。
 
 注意:
 
@@ -516,11 +556,15 @@ CCC のハンドルを使って、値の通知を購読する。通知が届く�
 戻り値:
 
 - 要求を積めたら 0。
-- `-EINVAL`: `params` が不正。
-- `-ENOTCONN`: 接続していない。
-- `-ENOMEM`: ATT 要求のキューが満杯。
-- `-EALREADY`: その `params` で、すでに購読している。
-- `-EBUSY`: `params.ccc_handle` が 0 で、`CONFIG_BT_GATT_AUTO_DISCOVER_CCC` が有効なとき、その `params` の探索が進行中。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EINVAL`: `params` が不正。
+- `ENOTCONN`: 接続していない。
+- `ENOMEM`: ATT 要求のキューが満杯。
+- `EALREADY`: その `params` で、すでに購読している。
+- `EBUSY`: `params.ccc_handle` が 0 で、`CONFIG_BT_GATT_AUTO_DISCOVER_CCC` が有効なとき、その `params` の探索が進行中。
 
 注意:
 
@@ -544,9 +588,13 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 戻り値:
 
 - 要求を積めたら 0。
-- `-EINVAL`: `params` が不正。
-- `-ENOTCONN`: 接続していない。
-- `-ENOMEM`: ATT 要求のキューが満杯 (待ってやり直すか、別のスレッドから呼ぶ)。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EINVAL`: `params` が不正。
+- `ENOTCONN`: 接続していない。
+- `ENOMEM`: ATT 要求のキューが満杯 (待ってやり直すか、別のスレッドから呼ぶ)。
 
 注意:
 

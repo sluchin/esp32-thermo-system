@@ -52,9 +52,13 @@ int k_thread_name_set(k_tid_t thread, const char *str);
 戻り値:
 
 - 成功は 0。
-- `-EFAULT`: 文字列のメモリにアクセスできない。
-- `-ENOSYS`: スレッド名の設定が無効。
-- `-EINVAL`: 名前が長すぎる。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EFAULT`: 文字列のメモリにアクセスできない。
+- `ENOSYS`: スレッド名の設定が無効。
+- `EINVAL`: 名前が長すぎる。
 
 使用箇所: [`app/common/cloud.c:258`](../../app/common/cloud.c#L258)
 
@@ -185,8 +189,12 @@ int k_sem_take(struct k_sem *sem, k_timeout_t timeout);
 戻り値:
 
 - 取れたら 0。
-- `-EBUSY`: 待たずに戻った (取れなかった)。
-- `-EAGAIN`: 待ち時間が切れた、または待っている間にセマフォがリセットされた。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EBUSY`: 待たずに戻った (取れなかった)。
+- `EAGAIN`: 待ち時間が切れた、または待っている間にセマフォがリセットされた。
 
 使用箇所: [`app/common/wifi_link.c:110`](../../app/common/wifi_link.c#L110)
 
@@ -312,8 +320,12 @@ int k_msgq_put(struct k_msgq *msgq, const void *data, k_timeout_t timeout);
 戻り値:
 
 - 送れたら 0。
-- `-ENOMSG`: 待たずに戻った (キューが満杯)、またはキューが空にされた。
-- `-EAGAIN`: 待ち時間が切れた。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `ENOMSG`: 待たずに戻った (キューが満杯)、またはキューが空にされた。
+- `EAGAIN`: 待ち時間が切れた。
 
 使用箇所: [`app/common/cloud.c:749`](../../app/common/cloud.c#L749)
 
@@ -334,8 +346,12 @@ int k_msgq_get(struct k_msgq *msgq, void *data, k_timeout_t timeout);
 戻り値:
 
 - 受け取れたら 0。
-- `-ENOMSG`: 待たずに戻った (キューが空)、またはキューが空にされた。
-- `-EAGAIN`: 待ち時間が切れた。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `ENOMSG`: 待たずに戻った (キューが空)、またはキューが空にされた。
+- `EAGAIN`: 待ち時間が切れた。
 
 使用箇所: [`app/common/cloud.c:677`](../../app/common/cloud.c#L677)
 
@@ -386,12 +402,16 @@ int k_work_schedule(struct k_work_delayable *dwork, k_timeout_t delay);
 | `dwork` | in,out | 遅延ワーク |
 | `delay` | in | 登録するまでの時間。`K_NO_WAIT` なら、すぐ登録する |
 
-戻り値 (`k_work_schedule_for_queue()` と同じ):
+戻り値:
 
 - 0: すでに、予定されている、または登録されている。
 - 1: 予定した。
 - 2: `delay` が `K_NO_WAIT` で、仕事が実行中だったので、その仕事を実行していたキューに入れた。
-- `-EBUSY`、`-EINVAL`、`-ENODEV`: `delay` が `K_NO_WAIT` で、`k_work_submit_to_queue()` が、その値で失敗した。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EBUSY`、`EINVAL`、`ENODEV`: `delay` が `K_NO_WAIT` で、`k_work_submit_to_queue()` が、その値で失敗した。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:796`](../../app/thermo-gateway/src/ble.c#L796), [`app/thermo-node/src/buzzer.c:77`](../../app/thermo-node/src/buzzer.c#L77) (ほか 1 行)
 
@@ -408,12 +428,16 @@ int k_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay);
 | `dwork` | in,out | 遅延ワーク |
 | `delay` | in | 登録するまでの時間 |
 
-戻り値 (`k_work_reschedule_for_queue()` と同じ):
+戻り値:
 
 - 0: `delay` が `K_NO_WAIT` で、仕事は、すでにキューにあった。
 - 1: `delay` が `K_NO_WAIT` で、仕事を、キューに入れた。または、`delay` が `K_NO_WAIT` ではなく、仕事を予定した。
 - 2: `delay` が `K_NO_WAIT` で、仕事が実行中だったので、その仕事を実行していたキューに入れた。
-- `-EBUSY`、`-EINVAL`、`-ENODEV`: `delay` が `K_NO_WAIT` で、`k_work_submit_to_queue()` が、その値で失敗した。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EBUSY`、`EINVAL`、`ENODEV`: `delay` が `K_NO_WAIT` で、`k_work_submit_to_queue()` が、その値で失敗した。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:477`](../../app/thermo-gateway/src/ble.c#L477) (ほか 2 行)
 

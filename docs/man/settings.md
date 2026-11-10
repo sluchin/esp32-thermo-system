@@ -42,7 +42,11 @@ RAM にある設定項目のハンドラを、既定のコミット優先度で�
 戻り値:
 
 - 成功は 0。
-- `-EEXIST`: 同じハンドラを、すでに登録している。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EEXIST`: 同じハンドラを、すでに登録している。
 
 使用箇所: [`app/common/cfg.c:459`](../../app/common/cfg.c#L459)
 
@@ -65,10 +69,14 @@ int settings_save_one(const char *name, const void *value, size_t val_len);
 戻り値:
 
 - 成功は 0。
-- `-ENOENT`: 保存先が設定されていない。
-- `-EINVAL`: `name` が不正 (長すぎる、など)。
-- `-ENOSPC`: 保存先に空きがない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、保存先の負の errno (`-EIO` など)。
+
+エラー:
+
+- `ENOENT`: 保存先が設定されていない。
+- `EINVAL`: `name` が不正 (長すぎる、など)。
+- `ENOSPC`: 保存先に空きがない。
 
 使用箇所: [`app/common/cfg.c:156`](../../app/common/cfg.c#L156) (ほか 2 行)
 
@@ -87,8 +95,12 @@ int settings_delete(const char *name);
 戻り値:
 
 - 成功は 0 (項目がなくても、成功)。
-- `-ENOENT`: 保存先が設定されていない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、`settings_save_one(name, NULL, 0)` と同じ。
+
+エラー:
+
+- `ENOENT`: 保存先が設定されていない。
 
 使用箇所: [`app/common/cfg.c:290`](../../app/common/cfg.c#L290) (ほか 3 行)
 

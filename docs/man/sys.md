@@ -247,7 +247,11 @@ int sys_clock_gettime(int clock_id, struct timespec *tp);
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: `clock_id` が不正。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EINVAL`: `clock_id` が不正。
 
 使用箇所: [`app/common/ntp.c:119`](../../app/common/ntp.c#L119)
 
@@ -267,7 +271,11 @@ int sys_clock_settime(int clock_id, const struct timespec *tp);
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: `clock_id` が不正、または `tp` のナノ秒が `[0, 999999999]` の外。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EINVAL`: `clock_id` が不正、または `tp` のナノ秒が `[0, 999999999]` の外。
 
 使用箇所: [`app/common/ntp.c:85`](../../app/common/ntp.c#L85)
 

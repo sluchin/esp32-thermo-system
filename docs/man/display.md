@@ -24,9 +24,13 @@ static inline int display_set_pixel_format(const struct device *dev, const enum 
 戻り値:
 
 - 成功は 0。
-- `-ENOSYS`: ドライバが実装していない。
-- `-ENOTSUP`: そのピクセル形式に対応していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno。
+
+エラー:
+
+- `ENOSYS`: ドライバが実装していない。
+- `ENOTSUP`: そのピクセル形式に対応していない。
 
 使用箇所: [`app/thermo-node/src/oled.c:142`](../../app/thermo-node/src/oled.c#L142)
 
@@ -55,8 +59,12 @@ static inline int display_blanking_on(const struct device *dev);
 戻り値:
 
 - 成功は 0。
-- `-ENOSYS`: ドライバが実装していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno (I2C などの通信の失敗は `-EIO`)。
+
+エラー:
+
+- `ENOSYS`: ドライバが実装していない。
 
 注意:
 
@@ -80,8 +88,12 @@ static inline int display_blanking_off(const struct device *dev);
 戻り値:
 
 - 成功は 0。
-- `-ENOSYS`: ドライバが実装していない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は負の errno (I2C などの通信の失敗は `-EIO`)。
+
+エラー:
+
+- `ENOSYS`: ドライバが実装していない。
 
 注意:
 
@@ -106,7 +118,11 @@ int cfb_framebuffer_init(const struct device *dev);
 戻り値:
 
 - 成功は 0。
-- `-ENOMEM`: フレームバッファの領域 (`k_malloc()`) が取れない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `ENOMEM`: フレームバッファの領域 (`k_malloc()`) が取れない。
 
 使用箇所: [`app/thermo-node/src/oled.c:151`](../../app/thermo-node/src/oled.c#L151)
 
@@ -142,7 +158,11 @@ int cfb_framebuffer_set_font(const struct device *dev, uint8_t idx);
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: `idx` が、フォントの数の範囲の外。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EINVAL`: `idx` が、フォントの数の範囲の外。
 
 使用箇所: [`app/thermo-node/src/oled.c:157`](../../app/thermo-node/src/oled.c#L157)
 
@@ -162,8 +182,12 @@ int cfb_framebuffer_clear(const struct device *dev, bool clear_display);
 戻り値:
 
 - 成功は 0。
-- `-ENODEV`: `cfb_framebuffer_init()` を呼んでいない。
 - `clear_display` が真のときは、表示装置への書き込みの失敗の負の値。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `ENODEV`: `cfb_framebuffer_init()` を呼んでいない。
 
 使用箇所: [`app/thermo-node/src/oled.c:163`](../../app/thermo-node/src/oled.c#L163) (ほか 2 行)
 
@@ -185,8 +209,12 @@ int cfb_print(const struct device *dev, const char *const str, uint16_t x, uint1
 戻り値:
 
 - 成功は 0。
-- `-ENODEV`: `cfb_framebuffer_init()` を呼んでいない。
-- `-EINVAL`: 選んだフォントの高さが 8 の倍数でない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `ENODEV`: `cfb_framebuffer_init()` を呼んでいない。
+- `EINVAL`: 選んだフォントの高さが 8 の倍数でない。
 
 使用箇所: [`app/thermo-node/src/oled.c:427`](../../app/thermo-node/src/oled.c#L427) (ほか 1 行)
 
@@ -240,8 +268,12 @@ int cfb_framebuffer_finalize(const struct device *dev);
 戻り値:
 
 - 成功は 0。
-- `-ENODEV`: `cfb_framebuffer_init()` を呼んでいない。
 - 表示装置への書き込みの失敗の負の値。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `ENODEV`: `cfb_framebuffer_init()` を呼んでいない。
 
 注意:
 

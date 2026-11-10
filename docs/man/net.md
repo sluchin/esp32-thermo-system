@@ -38,9 +38,13 @@ struct net_if *net_if_get_default(void);
 戻り値:
 
 - 成功は 0。
-- `-ENOTSUP`: その要求を処理する関数が、インターフェース (ドライバ) にない。
-- `-EINVAL`: 要求の引数 (`data`、`len` の中身) が不正 (Wi-Fi の接続の要求なら、SSID の長さ、セキュリティの種類、チャンネルなど)。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、要求を処理したドライバが返す、負の errno。
+
+エラー:
+
+- `ENOTSUP`: その要求を処理する関数が、インターフェース (ドライバ) にない。
+- `EINVAL`: 要求の引数 (`data`、`len` の中身) が不正 (Wi-Fi の接続の要求なら、SSID の長さ、セキュリティの種類、チャンネルなど)。
 
 使用箇所: [`app/common/wifi_link.c:103`](../../app/common/wifi_link.c#L103) (ほか 1 行)
 
@@ -165,13 +169,16 @@ int zsock_getaddrinfo(const char *host, const char *service, const struct zsock_
 
 - 成功は 0。
 - 失敗は 0 以外の `EAI_*` (POSIX の `getaddrinfo()` と同じ。`errno` ではない)。
-  - `EAI_NONAME`: 名前が見つからない。
-  - `EAI_AGAIN`: 一時的な失敗 (DNS サーバから答えがない、時間切れ)。再試行できる。
-  - `EAI_FAIL`: 回復できない失敗。
-  - `EAI_BADFLAGS`: `hints->ai_flags` が不正。
-  - `EAI_FAMILY`、`EAI_SOCKTYPE`、`EAI_SERVICE`: アドレスファミリ、ソケットの種類、サービス名に対応していない。
-  - `EAI_MEMORY`: メモリが足りない。
-  - `EAI_SYSTEM`: システムのエラー (`errno` を見る)。
+
+エラー:
+
+- `EAI_NONAME`: 名前が見つからない。
+- `EAI_AGAIN`: 一時的な失敗 (DNS サーバから答えがない、時間切れ)。再試行できる。
+- `EAI_FAIL`: 回復できない失敗。
+- `EAI_BADFLAGS`: `hints->ai_flags` が不正。
+- `EAI_FAMILY`、`EAI_SOCKTYPE`、`EAI_SERVICE`: アドレスファミリ、ソケットの種類、サービス名に対応していない。
+- `EAI_MEMORY`: メモリが足りない。
+- `EAI_SYSTEM`: システムのエラー (`errno` を見る)。
 
 注意:
 
@@ -230,11 +237,14 @@ static inline int zsock_poll(struct zsock_pollfd *fds, int nfds, int timeout);
 - イベントが起きたソケットの数 (1 以上)。
 - 時間切れは 0。
 - 失敗は -1 (`errno` が設定される。Zephyr の実装は、-1 を返す全ての経路で `errno` を設定する)。
-  - `EFAULT`: `fds` のメモリにアクセスできない (ユーザー空間のとき)。
-  - `ENOMEM`: 作業の領域が足りない (ユーザー空間のとき)、または `k_poll()` が `-ENOMEM` を返した。
-  - `EINVAL`: `nfds` が不正 (POSIX の `poll()` と同じ)。
-  - ほか、ソケットの実装の準備 (`POLL_PREPARE`) と `k_poll()` が返した負の値の、符号を変えたもの。
-  - POSIX の `poll()` の `EINTR` は、Zephyr では失敗にならない (割り込まれたときは、再び待つ)。
+
+エラー:
+
+- `EFAULT`: `fds` のメモリにアクセスできない (ユーザー空間のとき)。
+- `ENOMEM`: 作業の領域が足りない (ユーザー空間のとき)、または `k_poll()` が `-ENOMEM` を返した。
+- `EINVAL`: `nfds` が不正 (POSIX の `poll()` と同じ)。
+- ほか: ソケットの実装の準備 (`POLL_PREPARE`) と `k_poll()` が返した負の値の、符号を変えたもの。
+- POSIX の `poll()` の `EINTR` は、Zephyr では失敗にならない (割り込まれたときは、再び待つ)。
 
 使用箇所: [`app/common/cloud.c:499`](../../app/common/cloud.c#L499)
 
@@ -279,8 +289,12 @@ SNTP のコンテキストを初期化する。
 戻り値:
 
 - 成功は 0。
-- `-EFAULT`: `ctx` か `addr` が `NULL`、または `addr_len` が不正。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、ソケットを作る、または接続するときの負の errno (`-EMFILE`、`-ENOMEM`、`-EAFNOSUPPORT` など)。
+
+エラー:
+
+- `EFAULT`: `ctx` か `addr` が `NULL`、または `addr_len` が不正。
 
 使用箇所: [`app/common/ntp.c:68`](../../app/common/ntp.c#L68), [`app/thermo-node/src/wifi_time.c:109`](../../app/thermo-node/src/wifi_time.c#L109)
 
@@ -301,12 +315,16 @@ SNTP の問い合わせをして、時刻を得る。
 戻り値:
 
 - 成功は 0。
-- `-ETIMEDOUT`: `timeout` の間に、サーバから応答がない。
-- `-EFAULT`: `ctx` か `ts` が `NULL`。
-- `-EINVAL`: 応答が不正 (サーバのモードが違う、送信時刻が 0、時刻が矛盾している)。
-- `-ERANGE`: 応答の、送ったときの時刻の控えが、要求と合わない。
-- `-EBUSY`: サーバが、kiss-o'-death (取り締まりの応答) を返した。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、送受信の負の errno。
+
+エラー:
+
+- `ETIMEDOUT`: `timeout` の間に、サーバから応答がない。
+- `EFAULT`: `ctx` か `ts` が `NULL`。
+- `EINVAL`: 応答が不正 (サーバのモードが違う、送信時刻が 0、時刻が矛盾している)。
+- `ERANGE`: 応答の、送ったときの時刻の控えが、要求と合わない。
+- `EBUSY`: サーバが、kiss-o'-death (取り締まりの応答) を返した。
 
 使用箇所: [`app/common/ntp.c:74`](../../app/common/ntp.c#L74), [`app/thermo-node/src/wifi_time.c:115`](../../app/thermo-node/src/wifi_time.c#L115)
 
@@ -346,10 +364,14 @@ TLS / DTLS の認証に使う、認証情報を加える。
 戻り値:
 
 - 成功は 0。
-- `-EACCES`: アクセスが拒否された。
-- `-ENOMEM`: メモリが足りない。
-- `-EEXIST`: そのタグと種類の認証情報が、すでにある。
-- `-EINVAL`: 引数が不正 (種類が未対応、`cred` が `NULL` など)。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EACCES`: アクセスが拒否された。
+- `ENOMEM`: メモリが足りない。
+- `EEXIST`: そのタグと種類の認証情報が、すでにある。
+- `EINVAL`: 引数が不正 (種類が未対応、`cred` が `NULL` など)。
 
 使用箇所: [`app/common/cfg.c:605`](../../app/common/cfg.c#L605)
 
@@ -371,9 +393,13 @@ int tls_credential_get(sec_tag_t tag, enum tls_credential_type type, void *cred,
 戻り値:
 
 - 成功は 0。
-- `-EACCES`: アクセスが拒否された。
-- `-ENOENT`: 見つからない。
-- `-EFBIG`: バッファに入らない (必要な大きさは `*credlen` に入る)。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EACCES`: アクセスが拒否された。
+- `ENOENT`: 見つからない。
+- `EFBIG`: バッファに入らない (必要な大きさは `*credlen` に入る)。
 
 使用箇所: [`app/common/cfg.c:209`](../../app/common/cfg.c#L209) (ほか 1 行)
 
@@ -393,8 +419,12 @@ int tls_credential_delete(sec_tag_t tag, enum tls_credential_type type);
 戻り値:
 
 - 成功は 0。
-- `-EACCES`: アクセスが拒否された。
-- `-ENOENT`: 見つからない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
+
+エラー:
+
+- `EACCES`: アクセスが拒否された。
+- `ENOENT`: 見つからない。
 
 使用箇所: [`app/common/cfg.c:310`](../../app/common/cfg.c#L310) (ほか 1 行)
 
@@ -451,9 +481,13 @@ MQTT の接続を要求する。
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: `client` か `client->client_id.utf8` が `NULL`。
-- `-ENOMEM`: `client->tx_buf` か `client->rx_buf` が `NULL`。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、ソケットの作成、TLS の設定、接続、CONNECT の送信の、負の errno (`-ECONNREFUSED`、`-ETIMEDOUT`、`-EHOSTUNREACH`、`-ENETUNREACH` など)。失敗したときは、クライアントの状態が初期化される。
+
+エラー:
+
+- `EINVAL`: `client` か `client->client_id.utf8` が `NULL`。
+- `ENOMEM`: `client->tx_buf` か `client->rx_buf` が `NULL`。
 
 注意:
 
@@ -480,11 +514,15 @@ int mqtt_publish(struct mqtt_client *client, const struct mqtt_publish_param *pa
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: `client` か `param` が `NULL`。
-- `-ENOTCONN`: 接続していない。
-- `-ENOMEM`: パケットが `tx_buf` に入らない。
-- `-EMSGSIZE`: メッセージが MQTT の上限を超える。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、送信 (`sendmsg()`) の負の errno。
+
+エラー:
+
+- `EINVAL`: `client` か `param` が `NULL`。
+- `ENOTCONN`: 接続していない。
+- `ENOMEM`: パケットが `tx_buf` に入らない。
+- `EMSGSIZE`: メッセージが MQTT の上限を超える。
 
 使用箇所: [`app/common/cloud.c:658`](../../app/common/cloud.c#L658)
 
@@ -513,9 +551,13 @@ int mqtt_input(struct mqtt_client *client);
 戻り値:
 
 - 成功は 0。
-- `-EINVAL`: `client` が `NULL`。
-- `-ENOTCONN`: TCP の接続がない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、受信と、パケットの解析の、負の errno。サーバが接続を閉じたときも、負の値になる。
+
+エラー:
+
+- `EINVAL`: `client` が `NULL`。
+- `ENOTCONN`: TCP の接続がない。
 
 注意:
 
@@ -538,9 +580,13 @@ int mqtt_live(struct mqtt_client *client);
 戻り値:
 
 - 成功は 0 (PING を送った)。
-- `-EAGAIN`: keep alive の時間が来ていないので、何もしなかった (エラーではない)。
-- `-EINVAL`: `client` が `NULL`。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、PING の送信の、負の errno。
+
+エラー:
+
+- `EAGAIN`: keep alive の時間が来ていないので、何もしなかった (エラーではない)。
+- `EINVAL`: `client` が `NULL`。
 
 注意:
 
@@ -564,10 +610,14 @@ MQTT の接続を切る。
 戻り値:
 
 - 成功は 0 (DISCONNECT を送り、接続の状態を閉じた)。
-- `-EINVAL`: `client` が `NULL`。
-- `-ENOTCONN`: 接続していない。
-- `-ENOMEM`: パケットが `tx_buf` に入らない。
+- 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、送信の負の errno。
+
+エラー:
+
+- `EINVAL`: `client` が `NULL`。
+- `ENOTCONN`: 接続していない。
+- `ENOMEM`: パケットが `tx_buf` に入らない。
 
 使用箇所: [`app/common/cloud.c:709`](../../app/common/cloud.c#L709)
 
