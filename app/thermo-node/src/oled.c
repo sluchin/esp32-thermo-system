@@ -236,6 +236,7 @@ int oled_show(const struct oled_view *view)
         err = draw_graph(view);
     }
     if (err != 0) {
+        LOG_ERR("Drawing the page failed (err %d)", err);
         return err;
     }
 
@@ -273,6 +274,7 @@ int oled_show_boot(unsigned int frame)
 
     err = draw_boot_frame((frame < OLED_BOOT_FRAMES) ? frame : (OLED_BOOT_FRAMES - 1U));
     if (err != 0) {
+        LOG_ERR("Drawing the boot frame failed (err %d)", err);
         return err;
     }
 
@@ -304,6 +306,7 @@ static int draw_now(const struct oled_view *view)
     for (row = 0U; row < rows; row++) {
         err = draw_line(lines[row], (uint16_t)row);
         if (err != 0) {
+            LOG_ERR("Drawing a line failed (err %d)", err);
             return err;
         }
     }
@@ -361,6 +364,7 @@ static int draw_graph(const struct oled_view *view)
     (void)snprintf(line, sizeof(line), "%s~%s %s", low_text, high_text, (is_temp ? "C" : "%"));
     err = draw_line(line, 0U);
     if (err != 0) {
+        LOG_ERR("Drawing the graph header failed (err %d)", err);
         return err;
     }
 
@@ -525,11 +529,13 @@ static int draw_boot_frame(unsigned int frame)
 
     err = draw_dots(chomper_x + ((int)BOOT_SPRITE_SIZE / 2));
     if (err != 0) {
+        LOG_ERR("Drawing the dots failed (err %d)", err);
         return err;
     }
 
     err = draw_sprite(&boot_chomper[mouth], chomper_x, BOOT_LANE_Y);
     if (err != 0) {
+        LOG_ERR("Drawing the sprite failed (err %d)", err);
         return err;
     }
 

@@ -41,6 +41,7 @@ int wifi_time_init(void)
     int err = cfg_init(); /* エラーコード */
 
     if (err != 0) {
+        LOG_ERR("Initializing the settings failed (err %d)", err);
         return err;
     }
 
@@ -103,6 +104,7 @@ static int query_sntp(const char *server, k_timeout_t timeout, int64_t *unix_s)
 
     err = resolve_server(server, &addr, &addr_len);
     if (err != 0) {
+        LOG_ERR("Could not resolve the SNTP server (err %d)", err);
         return err;
     }
 

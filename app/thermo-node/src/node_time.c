@@ -92,6 +92,7 @@ int node_time_init(void)
         err = EXIT_SUCCESS;
     }
     if (err != EXIT_SUCCESS) {
+        LOG_ERR("Reading the time of the RTC failed (err %d)", err);
         return err;
     }
 
@@ -124,6 +125,7 @@ int node_time_get(struct node_datetime *local)
 
     err = read_utc(&unix_s);
     if (err != EXIT_SUCCESS) {
+        LOG_ERR("Reading the local time failed (err %d)", err);
         return err;
     }
 

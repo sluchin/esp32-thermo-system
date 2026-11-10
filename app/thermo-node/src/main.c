@@ -579,6 +579,7 @@ static int measure(int16_t *temp_x10, uint16_t *humidity_x10, uint16_t *pressure
 
     ret = sensor_read(temp_x10, humidity_x10, pressure_x10);
     if (ret != EXIT_SUCCESS) {
+        LOG_ERR("Reading the sensor failed (err %d)", ret);
         return ret;
     }
 

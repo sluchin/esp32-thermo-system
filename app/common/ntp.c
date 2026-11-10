@@ -62,6 +62,7 @@ int ntp_sync(const char *server, k_timeout_t timeout)
 
     err = resolve_server(server, &addr, &addr_len);
     if (err != 0) {
+        LOG_ERR("Could not resolve the NTP server (err %d)", err);
         return err;
     }
 

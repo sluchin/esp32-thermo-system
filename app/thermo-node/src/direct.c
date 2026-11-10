@@ -342,6 +342,7 @@ int direct_sd_check(unsigned int *pending)
     if (!backlog_ready) {
         err = backlog_init();
         if (err != EXIT_SUCCESS) {
+            LOG_ERR("Initializing the backlog failed (err %d)", err);
             return err;
         }
         backlog_ready = true;

@@ -182,6 +182,7 @@ int backlog_append(const struct backlog_record *rec, bool sent)
 
     err = open_file(&file, FS_O_CREATE | FS_O_RDWR);
     if (err != 0) {
+        LOG_ERR("Could not open the file to append (err %d)", err);
         return err;
     }
     if (full && (read_slot(&file, head, buf) == 0)) {
@@ -192,6 +193,7 @@ int backlog_append(const struct backlog_record *rec, bool sent)
     err = write_record(&file, head, buf);
     close_err = fs_close(&file);
     if (err != 0) {
+        LOG_ERR("Could not append the record (err %d)", err);
         return err;
     }
     if (close_err != 0) {
@@ -256,6 +258,7 @@ int backlog_read(struct backlog_record *rec, unsigned int index)
 
     err = open_file(&file, FS_O_READ);
     if (err != 0) {
+        LOG_ERR("Could not open the file to read (err %d)", err);
         return err;
     }
     for (; pos < count; pos++) {
@@ -308,6 +311,7 @@ int backlog_commit(unsigned int n)
 
     err = open_file(&file, FS_O_RDWR);
     if (err != 0) {
+        LOG_ERR("Could not open the file to mark (err %d)", err);
         return err;
     }
     while ((marked < n) && (first_pos < count)) {
@@ -373,6 +377,7 @@ int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx
 
     err = open_file(&file, FS_O_READ);
     if (err != 0) {
+        LOG_ERR("Could not open the file to visit (err %d)", err);
         return err;
     }
     while (lo < hi) {

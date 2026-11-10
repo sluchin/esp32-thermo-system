@@ -372,6 +372,7 @@ int cfg_tether(const char *ssid, const char *psk)
 
     err = cfg_set(CFG_KEY_SSID, ssid);
     if (err != 0) {
+        LOG_ERR("Setting the SSID failed (err %d)", err);
         return err;
     }
 
@@ -399,10 +400,12 @@ int cfg_restore(void)
 
     err = cfg_set(CFG_KEY_SSID, backup_ssid);
     if (err != 0) {
+        LOG_ERR("Restoring the SSID failed (err %d)", err);
         return err;
     }
     err = cfg_set(CFG_KEY_PSK, backup_psk);
     if (err != 0) {
+        LOG_ERR("Restoring the password failed (err %d)", err);
         return err;
     }
 

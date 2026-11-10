@@ -48,7 +48,7 @@ LOG_MODULE_REGISTER(thermo_cloud, THERMO_LOG_LEVEL);
 /** 接続の再試行の間隔の最大値 [s] */
 #define RETRY_MAX_S        60U
 /** 送信を待つ温度の最大数 */
-#define QUEUE_LEN          16
+#define QUEUE_LEN          16U
 /** トピックのバッファのサイズ */
 #define TOPIC_SIZE         128U
 /** ペイロードのバッファのサイズ */
@@ -61,7 +61,7 @@ BUILD_ASSERT(PAYLOAD_SIZE >= 164U, "The payload buffer is too small");
 /** MQTT の送受信バッファのサイズ */
 #define MQTT_BUF_SIZE     512U
 /** スレッドのスタックサイズ (TLS のハンドシェイクを含む) */
-#define THREAD_STACK_SIZE 6144
+#define THREAD_STACK_SIZE 6144U
 /** スレッドの優先度 */
 #define THREAD_PRIORITY   7
 
@@ -188,6 +188,7 @@ int cloud_step(void)
         if (ntp_is_synced()) {
             err = connect_broker();
         } else {
+            LOG_ERR("The time has never been synchronized");
             err = -ETIME;
         }
     }
@@ -242,6 +243,7 @@ int cloud_init(bool start_enabled)
 
     err = cfg_init();
     if (err != 0) {
+        LOG_ERR("Initializing the settings failed (err %d)", err);
         return err;
     }
 
@@ -251,6 +253,7 @@ int cloud_init(bool start_enabled)
 
     err = wifi_link_init();
     if (err != 0) {
+        LOG_ERR("Initializing WiFi failed (err %d)", err);
         return err;
     }
 
@@ -520,7 +523,12 @@ static int poll_input(int timeout_ms)
         return -ECONNRESET;
     }
 
-    return mqtt_input(&client);
+    ret = mqtt_input(&client);
+    if (ret != 0) {
+        LOG_ERR("mqtt_input failed (err %d)", ret);
+    }
+
+    return ret;
 }
 
 /**
@@ -538,6 +546,7 @@ static int connect_broker(void)
     int err = resolve_broker(endpoint);                         /* エラーコード */
 
     if (err != 0) {
+        LOG_ERR("Could not resolve the broker (err %d)", err);
         return err;
     }
 
