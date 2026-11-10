@@ -160,6 +160,7 @@ int ble_get_address(bt_addr_le_t *addr)
 
     bt_id_get(addrs, &count);
     if (count == 0U) {
+        LOG_ERR("No BLE identity address");
         return -ENOENT;
     }
     *addr = addrs[0];

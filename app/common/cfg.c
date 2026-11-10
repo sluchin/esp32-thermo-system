@@ -148,6 +148,7 @@ int cfg_set(enum cfg_key key, const char *value)
     int err = EXIT_SUCCESS;                               /* エラーコード */
 
     if (len > key_infos[key].max) {
+        LOG_ERR("The value of '%s' is too long", key_infos[key].name);
         return -EINVAL;
     }
 
@@ -155,6 +156,7 @@ int cfg_set(enum cfg_key key, const char *value)
     settings_name(name, key_infos[key].name);
     err = settings_save_one(name, value, len + 1U);
     if (err != 0) {
+        LOG_ERR("Saving '%s' failed (err %d)", key_infos[key].name, err);
         return err;
     }
 
@@ -288,8 +290,11 @@ int cfg_reset(void)
     for (i = 0U; i < ARRAY_SIZE(key_infos); i++) {
         settings_name(name, key_infos[i].name);
         err = settings_delete(name);
-        if ((err != 0) && (first_err == EXIT_SUCCESS)) {
-            first_err = err;
+        if (err != 0) {
+            LOG_ERR("Deleting '%s' failed (err %d)", name, err);
+            if (first_err == EXIT_SUCCESS) {
+                first_err = err;
+            }
         }
         values[i][0] = '\0';
     }
@@ -297,8 +302,11 @@ int cfg_reset(void)
     for (i = 0U; i < ARRAY_SIZE(cred_infos); i++) {
         settings_name(name, cred_infos[i].name);
         err = settings_delete(name);
-        if ((err != 0) && (first_err == EXIT_SUCCESS)) {
-            first_err = err;
+        if (err != 0) {
+            LOG_ERR("Deleting '%s' failed (err %d)", name, err);
+            if (first_err == EXIT_SUCCESS) {
+                first_err = err;
+            }
         }
         /* 登録されていなくても (-ENOENT), かまわない */
         (void)tls_credential_delete(CFG_TLS_SEC_TAG, cred_infos[i].type);
@@ -306,8 +314,11 @@ int cfg_reset(void)
 
     settings_name(name, BACKUP_NAME);
     err = settings_delete(name);
-    if ((err != 0) && (first_err == EXIT_SUCCESS)) {
-        first_err = err;
+    if (err != 0) {
+        LOG_ERR("Deleting '%s' failed (err %d)", name, err);
+        if (first_err == EXIT_SUCCESS) {
+            first_err = err;
+        }
     }
     clear_backup();
 
@@ -338,6 +349,7 @@ int cfg_tether(const char *ssid, const char *psk)
 
     if ((ssid_len == 0U) || (CFG_SSID_MAX < ssid_len) ||
         (CFG_PSK_MAX < strnlen(psk, CFG_PSK_MAX + 1U))) {
+        LOG_ERR("The SSID or the password has a bad length");
         return -EINVAL;
     }
 
@@ -381,6 +393,7 @@ int cfg_restore(void)
     int err = EXIT_SUCCESS;              /* エラーコード */
 
     if (!backup_present) {
+        LOG_ERR("No backup of the WiFi settings");
         return -ENOENT;
     }
 
@@ -397,6 +410,7 @@ int cfg_restore(void)
     settings_name(name, BACKUP_NAME);
     err = settings_delete(name);
     if (err != 0) {
+        LOG_ERR("Deleting '%s' failed (err %d)", name, err);
         return err;
     }
     clear_backup();

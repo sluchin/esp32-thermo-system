@@ -83,10 +83,12 @@ int wifi_link_connect(const char *ssid, size_t ssid_max, const char *psk, size_t
 
     /* 最大長を超えていれば (NUL が見つからなければ), 切り詰めずに断る */
     if ((ssid_len > ssid_max) || (psk_len > psk_max)) {
+        LOG_ERR("The SSID or the password is too long");
         return -EINVAL;
     }
 
     if (iface == NULL) {
+        LOG_ERR("No network interface");
         return -ENODEV;
     }
 

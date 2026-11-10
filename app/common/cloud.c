@@ -90,11 +90,11 @@ struct sample {
     struct switchbot_sample switchbot; /**< SwitchBot の値 (SAMPLE_SWITCHBOT のとき) */
     int64_t unix_s; /**< 測った UNIX 時刻 [s] (UNIX_FROM_UPTIME のときは稼働時間から求める) */
 };
-/* キューのバッファ (RAM) を増やさないこと (ノードの RAM は, ほとんど余りがない) */
-BUILD_ASSERT(sizeof(struct sample) <= 32U, "struct sample is too large");
 
 /** 送信を待つ温度のキューのバッファ (struct sample が QUEUE_LEN 個入る) */
-static char __aligned(4) cloud_sample_buf[QUEUE_LEN * sizeof(struct sample)];
+static struct sample cloud_sample_buf[QUEUE_LEN];
+/* キューのバッファ (RAM) を増やさないこと (ノードの RAM は, ほとんど余りがない) */
+BUILD_ASSERT(sizeof(cloud_sample_buf[0]) <= 32U, "struct sample is too large");
 /** 送信を待つ温度のキュー (cloud_init() で初期化する) */
 static struct k_msgq cloud_sample_q;
 
@@ -238,7 +238,7 @@ int cloud_init(bool start_enabled)
     int err = EXIT_SUCCESS; /* エラーコード */
 
     /* 送信のキューは, ほかの処理より先に初期化する (失敗して戻っても, キューは使える) */
-    k_msgq_init(&cloud_sample_q, cloud_sample_buf, sizeof(struct sample), QUEUE_LEN);
+    k_msgq_init(&cloud_sample_q, (char *)cloud_sample_buf, sizeof(cloud_sample_buf[0]), QUEUE_LEN);
 
     err = cfg_init();
     if (err != 0) {
@@ -490,16 +490,25 @@ static int resolve_broker(const char *host)
  * @param[in] timeout_ms 待つ時間 [ms] (0 なら, 待たない)
  * @retval EXIT_SUCCESS データがなかった, または処理した
  * @retval -ECONNRESET  ソケットにエラーがある
+ * @retval -EIO         poll() が失敗したが, errno が設定されなかった
  * @retval negative     poll() または mqtt_input() の失敗 (負の errno)
  */
 static int poll_input(int timeout_ms)
 {
     /* ポーリングの対象 */
     struct zsock_pollfd fds = {.fd = client.transport.tls.sock, .events = ZSOCK_POLLIN};
-    int ret = zsock_poll(&fds, 1, timeout_ms); /* 戻り値 */
+    int ret = 0;        /* 戻り値 */
+    int poll_errno = 0; /* poll() の errno (ログで変わらないように控える) */
 
+    /* 失敗のときだけ errno を見るが, 設定されなかったときに古い値を拾わないよう, 先に消す */
+    errno = 0;
+    ret = zsock_poll(&fds, 1, timeout_ms);
+    poll_errno = errno;
     if (ret < 0) {
-        return -errno;
+        /* errno が設定されなかったときは, -EIO にする (0 を返すと, 成功と区別できない) */
+        poll_errno = ((poll_errno != 0) ? poll_errno : EIO);
+        LOG_ERR("poll failed (errno %d)", poll_errno);
+        return -poll_errno;
     }
     /* 時間内に受信したデータがなかった */
     if (ret == 0) {
@@ -507,6 +516,7 @@ static int poll_input(int timeout_ms)
     }
     /* 切断, エラー: mqtt_input() を呼ぶ前に検出する */
     if ((fds.revents & (ZSOCK_POLLERR | ZSOCK_POLLHUP | ZSOCK_POLLNVAL)) != 0) {
+        LOG_ERR("Socket error (revents 0x%x)", (unsigned int)fds.revents);
         return -ECONNRESET;
     }
 
@@ -589,6 +599,7 @@ static int64_t received_unix_time(uint32_t uptime_ms)
     uint32_t elapsed_ms = k_uptime_get_32() - uptime_ms; /* 受信してからの経過時間 [ms] */
 
     if (ntp_unix_time(&now) != EXIT_SUCCESS) {
+        LOG_ERR("The UNIX time is not available");
         return -1;
     }
 
@@ -627,6 +638,7 @@ static int publish_sample(const struct sample *s)
 
     /* ペイロードは必ずバッファに入る. トピックは長いクライアント ID で, 入らないことがある */
     if (topic_len < 0) {
+        LOG_ERR("The topic does not fit in the buffer (len %d)", topic_len);
         return -ENOSPC;
     }
 

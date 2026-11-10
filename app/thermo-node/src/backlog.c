@@ -172,9 +172,11 @@ int backlog_append(const struct backlog_record *rec, bool sent)
     int close_err = EXIT_SUCCESS; /* 閉じたときのエラーコード */
 
     if (!mounted) {
+        LOG_ERR("The SD card is not mounted");
         return -ENODEV;
     }
     if ((rec->unix_s < 0) || ((int64_t)UINT32_MAX < rec->unix_s)) {
+        LOG_ERR("The time is out of range (%lld)", (long long)rec->unix_s);
         return -EINVAL;
     }
 
@@ -248,6 +250,7 @@ int backlog_read(struct backlog_record *rec, unsigned int index)
     int err = EXIT_SUCCESS;          /* エラーコード */
 
     if (index >= pending) {
+        LOG_ERR("The index is out of range (%u, pending %u)", index, pending);
         return -EINVAL;
     }
 
@@ -269,8 +272,12 @@ int backlog_read(struct backlog_record *rec, unsigned int index)
         }
     }
     (void)fs_close(&file);
+    if (err == 0) {
+        LOG_ERR("No unsent record at index %u", index);
+        err = -ENOENT;
+    }
 
-    return ((err != 0) ? err : -ENOENT);
+    return err;
 }
 
 /**
@@ -292,6 +299,7 @@ int backlog_commit(unsigned int n)
     int err = EXIT_SUCCESS;          /* エラーコード */
 
     if (n > pending) {
+        LOG_ERR("Too many records (%u, pending %u)", n, pending);
         return -EINVAL;
     }
     if (n == 0U) {
@@ -356,6 +364,7 @@ int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx
     int err = EXIT_SUCCESS;          /* エラーコード */
 
     if (!mounted) {
+        LOG_ERR("The SD card is not mounted");
         return -ENODEV;
     }
     if (count == 0U) {
@@ -420,14 +429,20 @@ static int read_slot(struct fs_file_t *file, unsigned int phys, uint8_t *buf)
 
     err = fs_seek(file, (off_t)(phys * RECORD_SIZE), FS_SEEK_SET);
     if (err != 0) {
+        LOG_ERR("Could not seek to the record (%d)", err);
         return err;
     }
     got = fs_read(file, buf, RECORD_SIZE);
     if (got < 0) {
+        LOG_ERR("Could not read the record (%d)", (int)got);
         return (int)got;
     }
+    if (got != (ssize_t)RECORD_SIZE) {
+        LOG_ERR("The record is short (%d bytes)", (int)got);
+        return -EIO;
+    }
 
-    return ((got == (ssize_t)RECORD_SIZE) ? EXIT_SUCCESS : -EIO);
+    return EXIT_SUCCESS;
 }
 
 /**
@@ -587,6 +602,7 @@ static int write_record(struct fs_file_t *file, unsigned int phys, const uint8_t
 
     err = fs_seek(file, (off_t)(phys * RECORD_SIZE), FS_SEEK_SET);
     if (err != 0) {
+        LOG_ERR("Could not seek to the record (%d)", err);
         return err;
     }
     written = fs_write(file, buf, RECORD_SIZE);
@@ -594,8 +610,12 @@ static int write_record(struct fs_file_t *file, unsigned int phys, const uint8_t
         LOG_ERR("Could not write the record (%d)", (int)written);
         return (int)written;
     }
+    if (written != (ssize_t)RECORD_SIZE) {
+        LOG_ERR("The record was written short (%d bytes)", (int)written);
+        return -EIO;
+    }
 
-    return ((written == (ssize_t)RECORD_SIZE) ? EXIT_SUCCESS : -EIO);
+    return EXIT_SUCCESS;
 }
 
 /**
@@ -615,12 +635,18 @@ static int mark_sent(struct fs_file_t *file, unsigned int phys)
 
     err = fs_seek(file, (off_t)((phys * RECORD_SIZE) + OFF_FLAG), FS_SEEK_SET);
     if (err != 0) {
+        LOG_ERR("Could not seek to the flag (%d)", err);
         return err;
     }
     written = fs_write(file, &flag, sizeof(flag));
     if (written < 0) {
+        LOG_ERR("Could not write the flag (%d)", (int)written);
         return (int)written;
     }
+    if (written != (ssize_t)sizeof(flag)) {
+        LOG_ERR("The flag was written short (%d bytes)", (int)written);
+        return -EIO;
+    }
 
-    return ((written == (ssize_t)sizeof(flag)) ? EXIT_SUCCESS : -EIO);
+    return EXIT_SUCCESS;
 }

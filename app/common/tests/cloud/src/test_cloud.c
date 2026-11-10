@@ -637,6 +637,17 @@ ZTEST(cloud, test_session_poll_failure)
     zassert_equal(mqtt_abort_fake.call_count, 1U);
 }
 
+/** poll が失敗して errno が設定されなかったときは, 0 (成功) にせず, -EIO を返す */
+ZTEST(cloud, test_session_poll_failure_without_errno)
+{
+    poll_tick.ret = -1;
+    poll_tick.err = 0;
+
+    /* 期待: -EIO を返して, 接続を閉じる */
+    zassert_equal(cloud_step(), -EIO);
+    zassert_equal(mqtt_abort_fake.call_count, 1U);
+}
+
 /** 接続中のソケットにエラーがあれば (POLLERR など), -ECONNRESET */
 ZTEST(cloud, test_session_socket_error)
 {

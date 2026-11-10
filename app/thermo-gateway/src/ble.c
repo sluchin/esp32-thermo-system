@@ -372,9 +372,10 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
      * 並んでいる (気圧は, ないことがある)
      */
     temp_x10 = (int16_t)sys_get_le16((const uint8_t *)data);
-    humidity_x10 = sys_get_le16((const uint8_t *)data + sizeof(uint16_t));
+    humidity_x10 = sys_get_le16((const uint8_t *)data + sizeof(temp_x10));
     if (length == THERMO_TEMPERATURE_SIZE) {
-        pressure_x10 = sys_get_le16((const uint8_t *)data + (2U * sizeof(uint16_t)));
+        pressure_x10 =
+                sys_get_le16((const uint8_t *)data + (sizeof(temp_x10) + sizeof(humidity_x10)));
     }
     if (temperature_cb != NULL) {
         temperature_cb(bt_conn_get_dst(conn), temp_x10, humidity_x10, pressure_x10);
