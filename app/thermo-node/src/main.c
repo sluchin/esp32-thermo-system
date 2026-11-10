@@ -171,6 +171,17 @@ int main(void)
     bool had_display = false;              /* やり直しの前に, OLED を使えたか */
 #endif
 
+#ifdef CONFIG_THERMO_DIRECT_MQTT
+    /* SD カードをマウントして, ログを保存できるようにする (約 0.5 秒. 記録の読み込みは, あとの
+     * direct_init() で行う). 起動のログが, RAM のバッファ (768 バイト) にあふれないよう,
+     * 最初に行う (センサと BLE の初期化のログだけで, バッファが埋まる)
+     */
+    ret = backlog_mount();
+    if (ret != EXIT_SUCCESS) {
+        LOG_WRN("No SD card, the log is not saved (err %d)", ret);
+    }
+#endif
+
 /* ビルド構成に応じて起動ログを切り替える */
 #ifdef CONFIG_SIMULATOR
     LOG_INF("Thermo Node started (SIMULATOR MODE)");
@@ -185,6 +196,8 @@ int main(void)
         LOG_ERR("Failed to initialize sensor");
         return EXIT_FAILURE;
     }
+    /* 起動のログは, バッファ (768 バイト) があふれないよう, 初期化の区切りごとに SD カードに書く */
+    sdlog_flush();
 
     /* BLE を初期化する */
     ret = ble_init();
@@ -192,6 +205,7 @@ int main(void)
         LOG_ERR("Failed to initialize BLE");
         return EXIT_FAILURE;
     }
+    sdlog_flush();
 
 #ifdef CONFIG_THERMO_RTC
     /* ゲートウェイが SNTP で得た時刻を書き込んできたら, RTC に設定する */
@@ -204,18 +218,10 @@ int main(void)
         LOG_ERR("Failed to start BLE advertising");
         return EXIT_FAILURE;
     }
+    sdlog_flush();
 
     /* RTC と OLED とボタンを初期化する (失敗しても, 測定と通知は続ける) */
     init_optional(&devs);
-#ifdef CONFIG_THERMO_DIRECT_MQTT
-    /* SD カードをマウントして, ログを保存できるようにする (約 0.5 秒. 記録の読み込みは, あとの
-     * direct_init() で行う). 起動画面の間に, ログが RAM のバッファにあふれないようにする
-     */
-    ret = backlog_mount();
-    if (ret != EXIT_SUCCESS) {
-        LOG_WRN("No SD card, the log is not saved (err %d)", ret);
-    }
-#endif
     /* ここまでのログを SD カードに書く (起動画面の約 3 秒の間に, 溜まりすぎないように) */
     sdlog_flush();
     LOG_INF("Boot screen starts (uptime %lld ms)", (long long)k_uptime_get());

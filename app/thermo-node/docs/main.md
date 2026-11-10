@@ -8,13 +8,13 @@
 
 ```text
 main()
-  0. 起動のログ                「started」と「Version <バージョン> (git <ハッシュ>)」を出す (thermo_version.h)
-  1. sensor_init()            失敗 → EXIT_FAILURE
-  2. ble_init()               失敗 → EXIT_FAILURE
-  3. ble_set_time_callback(node_time_set)      (CONFIG_THERMO_RTC) ゲートウェイが書いた時刻を RTC へ
-  4. ble_advertise()          失敗 → EXIT_FAILURE
-  5. init_optional(&devs)     RTC, WiFi, ブザー, OLED, ボタン (失敗しても続ける)
-  6. backlog_mount()          (CONFIG_THERMO_DIRECT_MQTT) SD カードをマウントする (約 0.5 秒)。失敗しても続ける
+  0. backlog_mount()          (CONFIG_THERMO_DIRECT_MQTT) SD カードをマウントする (約 0.5 秒)。失敗しても続ける
+  1. 起動のログ               「started」と「Version <バージョン> (git <ハッシュ>)」を出す (thermo_version.h)
+  2. sensor_init()            失敗 → EXIT_FAILURE
+  3. ble_init()               失敗 → EXIT_FAILURE
+  4. ble_set_time_callback(node_time_set)      (CONFIG_THERMO_RTC) ゲートウェイが書いた時刻を RTC へ
+  5. ble_advertise()          失敗 → EXIT_FAILURE
+  6. init_optional(&devs)     RTC, WiFi, ブザー, OLED, ボタン (失敗しても続ける)
   7. sdlog_flush()            ここまでのログを SD カードに書く
   8. boot_sequence(&devs)     起動音と起動画面 (約 3 秒、戻らない。描画が遅いときは、間のフレームを飛ばす)
   9. 時刻の表示               RTC と OLED が使えるとき、時刻だけを 1 回表示する (測定値はまだない)
@@ -25,7 +25,7 @@ main()
 
 - センサ、BLE、アドバタイズは必須です。失敗したら、ログを出して `main()` が `EXIT_FAILURE` を返します。
 - RTC、OLED、ボタン、ブザー、WiFi は任意の機器です。失敗しても、測定と BLE の通知は止めません。
-- SD カードのマウント (`backlog_mount()`) を起動画面の前に行うのは、起動画面の約 3 秒の間、ログが RAM のバッファ (既定 768 バイト) に溜まりすぎないようにするためです。マウントできていれば、`sdlog_flush()` で、起動のログが `boot.log` に書かれます。
+- SD カードのマウント (`backlog_mount()`) を `main()` の最初に行うのは、起動のログが RAM のバッファ (既定 768 バイト) にあふれないようにするためです。センサと BLE の初期化のログだけで、バッファが埋まるので、`sdlog_flush()` を、センサ、BLE、アドバタイズ、任意の機器の初期化のあとに、それぞれ呼びます。マウントできるまでのログは、バッファに溜まります。マウントできていれば、`sdlog_flush()` で、起動のログが `boot.log` に書かれます。
 - `direct_init()` (中の `backlog_init()` が SD カードの全記録を読む) を、起動画面のあとの、時刻の表示より後に呼ぶのは、記録が多いと数秒かかり、その間、時刻の表示が遅れるためです。
 - 起動画面の約 3 秒を、ループの時間に数えないよう、画面のあとで `start_ms = k_uptime_get()` を取り直し、周期の基準を作り直します。
 
