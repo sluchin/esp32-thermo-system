@@ -8,7 +8,8 @@ project(thermo_node_backlog_test)
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../src
                            ${CMAKE_CURRENT_LIST_DIR}/../../../common)
 target_compile_definitions(app PRIVATE CONFIG_THERMO_BACKLOG=1 CONFIG_THERMO_BACKLOG_MOUNT="/RAM:"
-                           CONFIG_THERMO_BACKLOG_MAX_RECORDS=5)
+                           CONFIG_THERMO_BACKLOG_MAX_RECORDS=5
+                           SCAN_CHUNK=2U)
 target_sources(app PRIVATE
   src/test_backlog.c
   ${CMAKE_CURRENT_LIST_DIR}/../../src/backlog.c

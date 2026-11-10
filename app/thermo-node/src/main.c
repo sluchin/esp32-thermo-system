@@ -15,6 +15,7 @@
 #include <stdint.h>  /* int16_t uint16_t */
 #include <stdlib.h>  /* EXIT_SUCCESS EXIT_FAILURE abs */
 
+#include "backlog.h"
 #include "ble.h"
 #if defined(CONFIG_THERMO_BOOT_SCREEN) || defined(CONFIG_THERMO_BUZZER)
 #include "boot_assets.h"
@@ -207,16 +208,43 @@ int main(void)
     /* RTC と OLED とボタンを初期化する (失敗しても, 測定と通知は続ける) */
     init_optional(&devs);
 #ifdef CONFIG_THERMO_DIRECT_MQTT
-    /* ゲートウェイにつながらないときの, WiFi での直接の送信を準備する (失敗しても, 続ける) */
+    /* SD カードをマウントして, ログを保存できるようにする (約 0.5 秒. 記録の読み込みは, あとの
+     * direct_init() で行う). 起動画面の間に, ログが RAM のバッファにあふれないようにする
+     */
+    ret = backlog_mount();
+    if (ret != EXIT_SUCCESS) {
+        LOG_WRN("No SD card, the log is not saved (err %d)", ret);
+    }
+#endif
+    /* ここまでのログを SD カードに書く (起動画面の約 3 秒の間に, 溜まりすぎないように) */
+    sdlog_flush();
+    LOG_INF("Boot screen starts (uptime %lld ms)", (long long)k_uptime_get());
+    boot_sequence(&devs);
+    LOG_INF("Boot screen ended (uptime %lld ms)", (long long)k_uptime_get());
+#if defined(CONFIG_THERMO_DISPLAY) && defined(CONFIG_THERMO_RTC)
+    /* 時刻をすぐ見られるよう, 時間のかかる処理の前に, 1 回表示する (測定値はまだない) */
+    if (devs.display_ready && devs.rtc_ready) {
+        (void)node_time_get(&datetime);
+        view.time = &datetime;
+        ret = oled_show(&view);
+        if (ret != EXIT_SUCCESS) {
+            LOG_ERR("Failed to show on the OLED (err %d)", ret);
+        }
+    }
+#endif
+#ifdef CONFIG_THERMO_DIRECT_MQTT
+    /* ゲートウェイにつながらないときの, WiFi での直接の送信を準備する (失敗しても, 続ける).
+     * SD カードの全記録の読み込みに時間がかかるので, 時刻の表示のあとに行う
+     */
     ret = direct_init();
     if (ret != EXIT_SUCCESS) {
         LOG_ERR("Direct publish is not available (err %d)", ret);
     }
 #endif
-    /* ここまでのログを SD カードに書く (起動画面の約 3 秒の間に, 溜まりすぎないように) */
+    LOG_INF("Initialization done (uptime %lld ms)", (long long)k_uptime_get());
+    /* SD カードをマウントできていれば, ここまでの起動のログを書く */
     sdlog_flush();
-    boot_sequence(&devs);
-    /* 起動画面の間 (約 3 秒) を除いて, ループの時間を数える */
+    /* 起動画面と direct_init() の間を除いて, ループの時間を数える */
     start_ms = k_uptime_get();
     next_retry_ms = start_ms + RETRY_INTERVAL_MS;
 #ifdef CONFIG_THERMO_WIFI_TIME
@@ -447,7 +475,8 @@ static void init_optional(struct optional_devices *devs)
  *
  * ブザーのメロディはワークキューで鳴るので, すぐに戻る. 起動画面は OLED_BOOT_FRAME_MS ごとに, 1
  * フレームずつ, OLED_BOOT_FRAMES フレーム (約 3 秒) 表示して, その間, この関数は戻らない (BLE
- * のアドバタイズはすでに始まっている). 失敗したときはログを出して, 続ける
+ * のアドバタイズはすでに始まっている). 1 フレームの描画 (I2C) に時間がかかっても, 全体を約 3 秒に
+ * するため, 時間が遅れたら, 間のフレームを飛ばす. 失敗したときはログを出して, 続ける
  * (画面や音を諦めるだけ).
  *
  * @param[in] devs 任意の機器を使えるか (使えない機器の画面や音は出さない)
@@ -460,6 +489,9 @@ static void boot_sequence(const struct optional_devices *devs)
 #ifdef CONFIG_THERMO_BOOT_SCREEN
     unsigned int frame = 0U;       /* 起動画面のフレームの番号 */
     int screen_ret = EXIT_SUCCESS; /* 起動画面の戻り値 */
+    int64_t start_ms = 0;          /* 起動画面を始めた稼働時間 [ms] */
+    int64_t next_ms = 0;           /* 次のフレームの稼働時間 [ms] */
+    int64_t now_ms = 0;            /* 今の稼働時間 [ms] */
 #endif
 
     ARG_UNUSED(devs);
@@ -475,13 +507,21 @@ static void boot_sequence(const struct optional_devices *devs)
 
 #ifdef CONFIG_THERMO_BOOT_SCREEN
     if (devs->display_ready) {
-        for (frame = 0U; frame < OLED_BOOT_FRAMES; frame++) {
+        start_ms = k_uptime_get();
+        while (frame < OLED_BOOT_FRAMES) {
             screen_ret = oled_show_boot(frame);
             if (screen_ret != EXIT_SUCCESS) {
                 LOG_ERR("Failed to show the boot screen (err %d)", screen_ret);
                 break;
             }
-            (void)k_msleep(OLED_BOOT_FRAME_MS);
+            /* 次のフレームの時刻まで待つ (描画に時間がかかって遅れていれば, 待たない) */
+            next_ms = start_ms + ((int64_t)(frame + 1U) * OLED_BOOT_FRAME_MS);
+            now_ms = k_uptime_get();
+            if (now_ms < next_ms) {
+                (void)k_msleep((int32_t)(next_ms - now_ms));
+            }
+            /* 今の時刻のフレーム (遅れていれば, 間のフレームを飛ばす. 次のフレーム以降になる) */
+            frame = (unsigned int)((k_uptime_get() - start_ms) / OLED_BOOT_FRAME_MS);
         }
     }
 #endif

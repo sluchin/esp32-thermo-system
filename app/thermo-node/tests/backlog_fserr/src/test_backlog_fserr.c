@@ -50,6 +50,8 @@ FAKE_VALUE_FUNC(int, fs_seek, struct fs_file_t *, off_t, int)
 static size_t file_size;
 /** この回数目以降の fs_read() は -EIO を返す (0 は失敗させない) */
 static unsigned int read_fails_from;
+/** fs_read() が一度に返す記録の数の上限 (0 は上限なし. 読み出しが短い場合を作る) */
+static unsigned int read_max_records;
 /** この回数目の fs_seek() は -EIO を返す (0 は失敗させない) */
 static unsigned int seek_fails_at;
 
@@ -70,30 +72,52 @@ static int fake_stat(const char *path, struct fs_dirent *entry)
 }
 
 /**
- * fs_read() のモック動作 (読むたびに, 時刻が 1 ずつ進む, 未送信の有効な記録を返す)
+ * 要求された大きさで, 記録を何件返すかを求める (read_max_records の上限がある)
+ *
+ * @param[in] size 要求された大きさ [バイト]
+ * @return 返す記録の数
+ */
+static unsigned int read_records(size_t size)
+{
+    unsigned int n = (unsigned int)(size / RECORD_SIZE); /* 返す記録の数 */
+
+    if ((read_max_records > 0U) && (n > read_max_records)) {
+        n = read_max_records;
+    }
+
+    return n;
+}
+
+/**
+ * fs_read() のモック動作 (要求された件数の, 未送信の有効な記録を返す. 時刻は 1 件ごとに 1 ずつ進む)
  *
  * @param[in]  file 使用しない
  * @param[out] dst  読み出した記録
- * @param[in]  size 使用しない
- * @return RECORD_SIZE (read_fails_from 回目以降は -EIO)
+ * @param[in]  size 要求された大きさ [バイト]
+ * @return 返した記録のバイト数 (read_fails_from 回目以降は -EIO)
  */
 static ssize_t fake_read(struct fs_file_t *file, void *dst, size_t size)
 {
-    uint8_t *buf = (uint8_t *)dst; /* 読み出し先 */
+    uint8_t *buf = (uint8_t *)dst;             /* 読み出し先 */
+    const unsigned int n = read_records(size); /* 返す記録の数 */
+    unsigned int i = 0U;                       /* 記録の番号 */
 
     ARG_UNUSED(file);
-    ARG_UNUSED(size);
 
     if ((read_fails_from > 0U) && (fs_read_fake.call_count >= read_fails_from)) {
         return -EIO;
     }
-    (void)memset(buf, 0, RECORD_SIZE);
-    sys_put_le32(1000U + fs_read_fake.call_count, &buf[0]);
-    sys_put_le16(235U, &buf[4]);
-    sys_put_le16(450U, &buf[6]);
-    sys_put_le32(crc32_ieee(buf, 8U), &buf[12]);
+    for (i = 0U; i < n; i++) {
+        uint8_t *p = &buf[i * RECORD_SIZE]; /* 記録 1 件 */
 
-    return (ssize_t)RECORD_SIZE;
+        (void)memset(p, 0, RECORD_SIZE);
+        sys_put_le32(1000U + fs_read_fake.call_count + i, &p[0]);
+        sys_put_le16(235U, &p[4]);
+        sys_put_le16(450U, &p[6]);
+        sys_put_le32(crc32_ieee(p, 8U), &p[12]);
+    }
+
+    return (ssize_t)(n * RECORD_SIZE);
 }
 
 /**
@@ -101,16 +125,17 @@ static ssize_t fake_read(struct fs_file_t *file, void *dst, size_t size)
  *
  * @param[in]  file 使用しない
  * @param[out] dst  読み出した記録
- * @param[in]  size 使用しない
- * @return RECORD_SIZE
+ * @param[in]  size 要求された大きさ [バイト]
+ * @return 返した記録のバイト数
  */
 static ssize_t fake_read_zero(struct fs_file_t *file, void *dst, size_t size)
 {
-    ARG_UNUSED(file);
-    ARG_UNUSED(size);
-    (void)memset(dst, 0, RECORD_SIZE);
+    const unsigned int n = read_records(size); /* 返す記録の数 */
 
-    return (ssize_t)RECORD_SIZE;
+    ARG_UNUSED(file);
+    (void)memset(dst, 0, (size_t)n * RECORD_SIZE);
+
+    return (ssize_t)(n * RECORD_SIZE);
 }
 
 /**
@@ -177,6 +202,7 @@ static void reinit(unsigned int records)
 
     file_size = (size_t)records * RECORD_SIZE;
     read_fails_from = 0U;
+    read_max_records = 0U;
     seek_fails_at = 0U;
     fs_stat_fake.custom_fake = fake_stat;
     fs_read_fake.custom_fake = fake_read;
@@ -209,13 +235,22 @@ ZTEST(backlog_fserr, test_init_open_failure)
     zassert_equal(backlog_pending(), 0U);
 }
 
-/** 起動: 読み出しが短いと, そこまでの記録だけを数える */
+/** 起動: 読み出しが短いと (2 件のうち 1 件だけ読めた), そこまでの記録だけを数える */
 ZTEST(backlog_fserr, test_init_short_read)
 {
-    read_fails_from = fs_read_fake.call_count + 2U; /* 1 件目は読める. 2 件目から -EIO */
+    read_max_records = 1U;
 
     zassert_equal(backlog_init(), EXIT_SUCCESS);
     zassert_equal(backlog_pending(), 1U);
+}
+
+/** 起動: 読み出しが失敗すると (-EIO), 記録は 0 件 (成功する) */
+ZTEST(backlog_fserr, test_init_read_failure)
+{
+    read_fails_from = fs_read_fake.call_count + 1U;
+
+    zassert_equal(backlog_init(), EXIT_SUCCESS);
+    zassert_equal(backlog_pending(), 0U);
 }
 
 /** 起動: 輪が満杯で, 全ての記録が壊れていても, 先頭から上書きを始める (未送信は 0 件) */

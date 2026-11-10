@@ -25,6 +25,7 @@
  * 上限に達したあとは次に上書きする位置 (head) が最も古い記録.
  */
 
+#include <zephyr/kernel.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
@@ -94,6 +95,13 @@ static unsigned int pending;
  */
 static unsigned int first_pos;
 
+/** 起動のときの走査で, 一度に読む記録の数 (32 件 = 512 バイト. SD カードの 1 セクタ. 単体テストは
+ * 小さい値にして, 何回かに分けて読む場合を確かめる)
+ */
+#ifndef SCAN_CHUNK
+#define SCAN_CHUNK 32U
+#endif
+
 static unsigned int physical(unsigned int pos);
 static int read_slot(struct fs_file_t *file, unsigned int phys, uint8_t *buf);
 static uint32_t record_crc(const uint8_t *buf);
@@ -105,11 +113,40 @@ static int write_record(struct fs_file_t *file, unsigned int phys, const uint8_t
 static int mark_sent(struct fs_file_t *file, unsigned int phys);
 
 /**
- * @brief SD カードをマウントして, 保存してある記録の数と, 未送信の数を調べる
+ * @brief SD カードをマウントする (マウントしてあれば, 何もしない)
+ *
+ * マウントできると, ログ (boot.log と error.log) も保存できる. 記録の走査 (backlog_init())
+ * より速い (約 0.5 秒) ので, 起動のログが RAM のバッファにあふれないよう, 起動の早い時点で呼ぶ.
+ *
+ * @retval EXIT_SUCCESS 成功
+ * @retval -ENODEV      SD カードがない (またはマウントできない)
+ */
+int backlog_mount(void)
+{
+    int err = EXIT_SUCCESS; /* エラーコード */
+
+    if (mounted) {
+        return EXIT_SUCCESS;
+    }
+
+    err = fs_mount(&mount);
+    if (err != 0) {
+        LOG_ERR("Could not mount the SD card (err %d)", err);
+        return -ENODEV;
+    }
+    mounted = true;
+    /* マウントできたので, ログ (boot.log と error.log) も保存できる */
+    sdlog_start();
+
+    return EXIT_SUCCESS;
+}
+
+/**
+ * @brief SD カードをマウントして (まだなら), 保存してある記録の数と, 未送信の数を調べる
  *
  * ファイルの全ての記録を読んで, 最も新しい記録 (次に書く位置), 未送信の数, 最も古い未送信の記録を
- * 調べる. CRC の合わない記録は無視する (未送信にも数えない). 書きかけの記録 (16 バイトに満たない
- * 端) は切り捨てる.
+ * 調べる (記録が多いと, 数秒かかる). CRC の合わない記録は無視する (未送信にも数えない).
+ * 書きかけの記録 (16 バイトに満たない端) は切り捨てる. 呼び直すと, 調べ直す.
  *
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODEV      SD カードがない (またはマウントできない)
@@ -118,32 +155,28 @@ int backlog_init(void)
 {
     struct fs_dirent entry = {.size = 0U}; /* ファイルの情報 */
     unsigned int slots = 0U;               /* ファイルにある記録の数 */
+    int64_t start_ms = k_uptime_get();     /* 始めた稼働時間 [ms] */
+    int64_t mounted_ms = 0;                /* マウントを終えた稼働時間 [ms] */
     int err = EXIT_SUCCESS;                /* エラーコード */
 
-    /* やり直し (再初期化) のときは前のマウントを外してから, マウントし直す */
-    if (mounted) {
-        (void)fs_unmount(&mount);
-    }
-    mounted = false;
     count = 0U;
     head = 0U;
     pending = 0U;
     first_pos = 0U;
 
-    err = fs_mount(&mount);
-    if (err != 0) {
-        LOG_ERR("Could not mount the SD card (err %d)", err);
-        return -ENODEV;
+    err = backlog_mount();
+    if (err != EXIT_SUCCESS) {
+        return err;
     }
-    mounted = true;
+    mounted_ms = k_uptime_get();
 
     if (fs_stat(DATA_PATH, &entry) == 0) {
         slots = (unsigned int)MIN(entry.size / RECORD_SIZE, (size_t)BACKLOG_MAX_RECORDS);
     }
     scan(slots);
-    LOG_INF("SD card ready: %u records, %u not sent", count, pending);
-    /* マウントできたので, ログ (boot.log と error.log) も保存できる */
-    sdlog_start();
+    LOG_INF("SD card ready: %u records, %u not sent (mount %lld ms, scan %lld ms, uptime %lld ms)",
+            count, pending, (long long)(mounted_ms - start_ms),
+            (long long)(k_uptime_get() - mounted_ms), (long long)k_uptime_get());
 
     return EXIT_SUCCESS;
 }
@@ -545,37 +578,52 @@ static int open_file(struct fs_file_t *file, fs_mode_t flags)
  */
 static void scan(unsigned int slots)
 {
-    struct fs_file_t file = {0};     /* 記録のファイル */
-    struct backlog_record rec = {0}; /* 読み出した記録 */
-    uint8_t buf[RECORD_SIZE] = {0U}; /* 読み出した記録 */
-    int64_t newest = -1;             /* 最も新しい記録の時刻 */
-    int64_t oldest_unsent = -1;      /* 最も古い未送信の記録の時刻 */
-    unsigned int newest_phys = 0U;   /* 最も新しい記録の物理の位置 */
-    unsigned int unsent_phys = 0U;   /* 最も古い未送信の記録の物理の位置 */
-    unsigned int phys = 0U;          /* 物理の位置 */
-    bool sent = false;               /* 送信済みか */
+    struct fs_file_t file = {0};                  /* 記録のファイル */
+    struct backlog_record rec = {0};              /* 読み出した記録 */
+    uint8_t buf[SCAN_CHUNK * RECORD_SIZE] = {0U}; /* 読み出した記録 (SCAN_CHUNK 件) */
+    int64_t newest = -1;                          /* 最も新しい記録の時刻 */
+    int64_t oldest_unsent = -1;                   /* 最も古い未送信の記録の時刻 */
+    unsigned int newest_phys = 0U;                /* 最も新しい記録の物理の位置 */
+    unsigned int unsent_phys = 0U;                /* 最も古い未送信の記録の物理の位置 */
+    unsigned int phys = 0U;                       /* 物理の位置 */
+    unsigned int want = 0U;                       /* 一度に読む記録の数 */
+    unsigned int got = 0U;                        /* 読めた記録の数 */
+    unsigned int i = 0U;                          /* 読めた記録の中の位置 */
+    ssize_t n = 0;                                /* 読めたバイト数 */
+    bool sent = false;                            /* 送信済みか */
 
     if ((slots == 0U) || (open_file(&file, FS_O_READ) != 0)) {
         return;
     }
-    for (phys = 0U; phys < slots; phys++) {
-        if (fs_read(&file, buf, RECORD_SIZE) != (ssize_t)RECORD_SIZE) {
+    /* 1 件ずつ読むと, 呼び出しが記録の数だけになり遅いので, まとめて読む (端の 16 バイトに満たない
+     * 部分は, 数えない)
+     */
+    while (phys < slots) {
+        want = MIN(SCAN_CHUNK, slots - phys);
+        n = fs_read(&file, buf, (size_t)want * RECORD_SIZE);
+        if (n < 0) {
             break;
         }
-        count++;
-        if (!decode(buf, &rec, &sent)) {
-            continue;
+        got = (unsigned int)n / RECORD_SIZE;
+        for (i = 0U; i < got; i++, phys++) {
+            count++;
+            if (!decode(&buf[i * RECORD_SIZE], &rec, &sent)) {
+                continue;
+            }
+            if (newest <= rec.unix_s) {
+                newest = rec.unix_s;
+                newest_phys = phys;
+            }
+            if ((!sent) && ((oldest_unsent < 0) || (rec.unix_s < oldest_unsent))) {
+                oldest_unsent = rec.unix_s;
+                unsent_phys = phys;
+            }
+            if (!sent) {
+                pending++;
+            }
         }
-        if (newest <= rec.unix_s) {
-            newest = rec.unix_s;
-            newest_phys = phys;
-        }
-        if ((!sent) && ((oldest_unsent < 0) || (rec.unix_s < oldest_unsent))) {
-            oldest_unsent = rec.unix_s;
-            unsent_phys = phys;
-        }
-        if (!sent) {
-            pending++;
+        if (got < want) {
+            break;
         }
     }
     (void)fs_close(&file);

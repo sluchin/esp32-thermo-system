@@ -52,6 +52,8 @@ typedef void (*backlog_visit_t)(const struct backlog_record *rec, void *ctx);
 /** 保存できる測定値の数 (CONFIG_THERMO_BACKLOG_MAX_RECORDS. 超えたら, 古い記録から上書きする) */
 #define BACKLOG_MAX_RECORDS ((unsigned int)CONFIG_THERMO_BACKLOG_MAX_RECORDS)
 
+int backlog_mount(void);
+
 int backlog_init(void);
 
 int backlog_append(const struct backlog_record *rec, bool sent);
@@ -70,6 +72,16 @@ int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx
  * CONFIG_THERMO_BACKLOG=n のとき (SD カードを使わないビルド): 何も保存しない. 呼び出し側
  * (direct.c) は SD カードがないときと同じに扱う.
  */
+
+/**
+ * 何もしない (SD カードを使わない)
+ *
+ * @return -ENODEV
+ */
+static inline int backlog_mount(void)
+{
+    return -ENODEV;
+}
 
 /**
  * 何もしない (SD カードを使わない)

@@ -79,6 +79,7 @@ FAKE_VALUE_FUNC(int, node_time_get, struct node_datetime *)
 FAKE_VALUE_FUNC(int, wifi_time_init)
 FAKE_VALUE_FUNC(int, wifi_time_fetch, int64_t *)
 FAKE_VALUE_FUNC(int, direct_init)
+FAKE_VALUE_FUNC(int, backlog_mount)
 FAKE_VOID_FUNC(direct_sample, int16_t, uint16_t, uint16_t)
 FAKE_VALUE_FUNC(bool, direct_active)
 
@@ -136,9 +137,12 @@ static bool rtc_valid;
 static unsigned int press_at[PRESS_COUNT];
 
 static bool fake_pressed(void);
+static unsigned int shown_count(void);
 
 /** oled_show() に渡された表示内容 (呼ばれた順) */
 static struct oled_view shown[SHOWN_MAX];
+/** 起動画面のあとの, 時刻だけの表示 (temp_history が NULL) の回数 (shown には記録しない) */
+static unsigned int early_shows;
 /** oled_show() に渡された日時 (呼ばれた順. 表示内容の time が NULL のときは使わない) */
 static struct node_datetime shown_time[SHOWN_MAX];
 
@@ -181,7 +185,12 @@ static int fake_read(int16_t *temp_x10, uint16_t *humidity_x10, uint16_t *pressu
  */
 static int fake_show(const struct oled_view *view)
 {
-    unsigned int idx = oled_show_fake.call_count - 1U; /* 今回の呼び出しの番号 (0 始まり) */
+    unsigned int idx = oled_show_fake.call_count - 1U - early_shows; /* 記録の番号 (0 始まり) */
+
+    if (view->temp_history == NULL) {
+        early_shows++;
+        return 0;
+    }
 
     if (idx < SHOWN_MAX) {
         shown[idx] = *view;
@@ -191,6 +200,16 @@ static int fake_show(const struct oled_view *view)
     }
 
     return 0;
+}
+
+/**
+ * ループの表示の回数を求める (起動画面のあとの, 時刻だけの表示は数えない)
+ *
+ * @return oled_show() の呼び出しの回数から, 時刻だけの表示を除いた数
+ */
+static unsigned int shown_count(void)
+{
+    return oled_show_fake.call_count - early_shows;
 }
 
 /**
@@ -304,6 +323,7 @@ static void before(void *fixture)
     RESET_FAKE(wifi_time_init);
     RESET_FAKE(wifi_time_fetch);
     RESET_FAKE(direct_init);
+    RESET_FAKE(backlog_mount);
     RESET_FAKE(direct_sample);
     RESET_FAKE(direct_active);
     FFF_RESET_HISTORY();
@@ -313,6 +333,7 @@ static void before(void *fixture)
     rtc_valid = true;
     (void)memset(press_at, 0, sizeof(press_at));
     button_pressed_fake.custom_fake = fake_pressed;
+    early_shows = 0U;
     (void)memset(shown, 0, sizeof(shown));
     (void)memset(shown_time, 0, sizeof(shown_time));
 }
@@ -376,7 +397,7 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(oled_init_fake.call_count, 1U);
 
     /* 読み取った温度と湿度と RTC の日時を OLED に表示する */
-    zassert_equal(oled_show_fake.call_count, 1U);
+    zassert_equal(shown_count(), 1U);
     zassert_true(shown[0].has_sample);
     zassert_equal(shown[0].temp_x10, FAKE_TEMP_1_X10);
     zassert_equal(shown[0].humidity_x10, FAKE_HUMIDITY_1);
@@ -410,8 +431,8 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(ble_notify_temperature_fake.arg1_history[1], THERMO_HUMIDITY_NONE);
     zassert_equal(ble_notify_temperature_fake.arg2_history[1], THERMO_PRESSURE_NONE);
     /* OLED は 1 秒ごとに更新する (100 ms + 5 s の間に 0 s から 5 s の 6 回) */
-    zassert_equal(oled_show_fake.call_count, 6U);
-    zassert_equal(node_time_get_fake.call_count, 6U);
+    zassert_equal(shown_count(), 6U);
+    zassert_equal(node_time_get_fake.call_count, 7U); /* 起動画面のあとの 1 回と, ループの 6 回 */
     zassert_equal(shown[5].temp_x10, FAKE_TEMP_2_X10);
     zassert_equal(shown[5].humidity_x10, THERMO_HUMIDITY_NONE);
     /* 2 回目は湿度がないので, 温度だけを履歴に加える */
@@ -515,7 +536,7 @@ ZTEST(main_node, test_display_updates_every_second)
     /* 0 s, 1 s, 2 s, 3 s の 4 回表示する */
     k_msleep(STARTUP_WAIT_MS);
     k_sleep(K_SECONDS(3));
-    zassert_equal(oled_show_fake.call_count, 4U);
+    zassert_equal(shown_count(), 4U);
     zassert_equal(sensor_read_fake.call_count, 1U);
     /* 測定していない間は前回の値を表示し続ける */
     zassert_true(shown[3].has_sample);
@@ -536,7 +557,7 @@ ZTEST(main_node, test_display_is_not_turned_off_without_timeout)
     k_msleep(STARTUP_WAIT_MS);
     k_sleep(K_SECONDS(30));
     zassert_equal(oled_set_power_fake.call_count, 0U);
-    zassert_true(oled_show_fake.call_count >= 30U);
+    zassert_true(shown_count() >= 30U);
 
     k_thread_abort(&main_thread);
 }
@@ -549,7 +570,7 @@ ZTEST(main_node, test_display_without_sample)
     start_main();
 
     k_msleep(STARTUP_WAIT_MS);
-    zassert_equal(oled_show_fake.call_count, 1U);
+    zassert_equal(shown_count(), 1U);
     zassert_false(shown[0].has_sample);
 
     k_thread_abort(&main_thread);
@@ -571,7 +592,7 @@ ZTEST(main_node, test_oled_init_failure_continues)
     zassert_equal(ble_notify_temperature_fake.call_count, 2U);
 
     /* 初期化に失敗した OLED には表示しない */
-    zassert_equal(oled_show_fake.call_count, 0U);
+    zassert_equal(shown_count(), 0U);
 
     k_thread_abort(&main_thread);
 }
@@ -586,11 +607,11 @@ ZTEST(main_node, test_oled_show_failure_retries)
     start_main();
 
     k_msleep(STARTUP_WAIT_MS);
-    zassert_equal(oled_show_fake.call_count, 1U);
+    zassert_equal(oled_show_fake.call_count, 2U); /* 時刻だけの 1 回と, ループの 1 回 */
     /* 表示に失敗しても, 通知する */
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
     k_sleep(K_SECONDS(SAMPLE_INTERVAL_S));
-    zassert_equal(oled_show_fake.call_count, 6U);
+    zassert_equal(oled_show_fake.call_count, 7U);
     zassert_equal(ble_notify_temperature_fake.call_count, 2U);
 
     k_thread_abort(&main_thread);
@@ -607,7 +628,7 @@ ZTEST(main_node, test_rtc_init_failure_continues)
     k_msleep(STARTUP_WAIT_MS);
     zassert_equal(node_time_init_fake.call_count, 1U);
     zassert_equal(node_time_get_fake.call_count, 0U);
-    zassert_equal(oled_show_fake.call_count, 1U);
+    zassert_equal(shown_count(), 1U);
     zassert_is_null(shown[0].time);
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
 
@@ -623,8 +644,8 @@ ZTEST(main_node, test_time_unset)
     start_main();
 
     k_msleep(STARTUP_WAIT_MS);
-    zassert_equal(node_time_get_fake.call_count, 1U);
-    zassert_equal(oled_show_fake.call_count, 1U);
+    zassert_equal(node_time_get_fake.call_count, 2U); /* 起動画面のあとの 1 回と, ループの 1 回 */
+    zassert_equal(shown_count(), 1U);
     zassert_not_null(shown[0].time);
     zassert_false(shown_time[0].valid);
 
@@ -644,7 +665,7 @@ ZTEST(main_node, test_button_plays_sound)
     zassert_equal(buzzer_play_fake.call_count, 2U);
     zassert_equal(buzzer_play_fake.arg0_history[1], button_melody);
     zassert_equal(buzzer_play_fake.arg1_history[1], button_melody_count);
-    zassert_equal(oled_show_fake.call_count, 2U);
+    zassert_equal(shown_count(), 2U);
     zassert_equal(shown[1].page, OLED_PAGE_TEMP_GRAPH);
 
     k_thread_abort(&main_thread);
@@ -664,7 +685,7 @@ ZTEST(main_node, test_button_sound_failure_continues)
 
     k_msleep(STARTUP_WAIT_MS + 60);
     zassert_equal(buzzer_play_fake.call_count, 2U);
-    zassert_equal(oled_show_fake.call_count, 2U);
+    zassert_equal(shown_count(), 2U);
     zassert_equal(shown[1].page, OLED_PAGE_TEMP_GRAPH);
 
     k_thread_abort(&main_thread);
@@ -681,7 +702,7 @@ ZTEST(main_node, test_button_no_sound_without_buzzer)
 
     k_msleep(STARTUP_WAIT_MS + 60);
     zassert_equal(buzzer_play_fake.call_count, 0U);
-    zassert_equal(oled_show_fake.call_count, 2U);
+    zassert_equal(shown_count(), 2U);
     zassert_equal(shown[1].page, OLED_PAGE_TEMP_GRAPH);
 
     k_thread_abort(&main_thread);
@@ -707,7 +728,7 @@ ZTEST(main_node, test_button_switches_page)
     start_main();
 
     k_msleep(STARTUP_WAIT_MS + 60);
-    zassert_equal(oled_show_fake.call_count, 2U);
+    zassert_equal(shown_count(), 2U);
     zassert_equal(shown[0].page, OLED_PAGE_NOW);
     zassert_equal(shown[1].page, OLED_PAGE_TEMP_GRAPH);
 
@@ -743,7 +764,7 @@ ZTEST(main_node, test_button_init_failure_continues)
     k_msleep(STARTUP_WAIT_MS + 300);
     zassert_equal(button_init_fake.call_count, 1U);
     zassert_equal(button_pressed_fake.call_count, 0U);
-    zassert_equal(oled_show_fake.call_count, 1U);
+    zassert_equal(shown_count(), 1U);
     zassert_equal(shown[0].page, OLED_PAGE_NOW);
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
 
@@ -776,7 +797,7 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
     zassert_equal(oled_show_boot_fake.call_count, 0U);
     zassert_equal(buzzer_play_fake.call_count, 0U);
     zassert_equal(node_time_get_fake.call_count, 0U);
-    zassert_equal(oled_show_fake.call_count, 0U);
+    zassert_equal(shown_count(), 0U);
     zassert_equal(button_pressed_fake.call_count, 0U);
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
 
@@ -789,7 +810,7 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
     zassert_equal(oled_show_boot_fake.call_count, 0U);
     zassert_equal(buzzer_play_fake.call_count, 0U);
     zassert_true(node_time_get_fake.call_count > 0U);
-    zassert_true(oled_show_fake.call_count > 0U);
+    zassert_true(shown_count() > 0U);
     zassert_true(button_pressed_fake.call_count > 0U);
     zassert_not_null(shown[0].time);
 
@@ -820,7 +841,7 @@ ZTEST(main_node, test_optional_devices_keep_retrying)
     zassert_equal(oled_init_fake.call_count, 3U);
     zassert_equal(button_init_fake.call_count, 3U);
     zassert_equal(buzzer_init_fake.call_count, 3U);
-    zassert_equal(oled_show_fake.call_count, 0U);
+    zassert_equal(shown_count(), 0U);
 
     k_thread_abort(&main_thread);
 }
@@ -847,9 +868,47 @@ ZTEST(main_node, test_boot_sequence)
         zassert_equal(oled_show_boot_fake.arg0_history[frame], frame);
     }
 
-    /* そのあとで, 測定が始まる (起動画面の間は測定も, 通常の表示も, しない) */
+    /* そのあとで, 測定が始まる (起動画面の間は測定も, 通常の表示も, しない).
+     * 表示は, 時刻だけを見せる 1 回 (direct_init() の前) と, ループの 1 回
+     */
     zassert_equal(sensor_read_fake.call_count, 1U);
-    zassert_equal(oled_show_fake.call_count, 1U);
+    zassert_equal(early_shows, 1U);
+    zassert_equal(shown_count(), 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/**
+ * 起動画面の 1 フレームの描画が遅いときのモック動作 (OLED_BOOT_FRAME_MS の 2 倍かかる)
+ *
+ * @param[in] frame フレームの番号
+ * @return 0
+ */
+static int fake_slow_boot(unsigned int frame)
+{
+    ARG_UNUSED(frame);
+    (void)k_msleep(2 * OLED_BOOT_FRAME_MS);
+
+    return 0;
+}
+
+/** 起動画面の描画が遅くても, 全体は約 3 秒で終わる (遅れた分のフレームは飛ばす) */
+ZTEST(main_node, test_boot_screen_slow_frames_are_skipped)
+{
+    int64_t start_ms = k_uptime_get(); /* 始めた稼働時間 [ms] */
+
+    sensor_read_fake.custom_fake = fake_read;
+    oled_show_boot_fake.custom_fake = fake_slow_boot;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+    /* 1 フレームが 2 周期かかるので, 飛ばして, 半分ほどのフレームだけを描く */
+    zassert_true(oled_show_boot_fake.call_count < OLED_BOOT_FRAMES);
+    zassert_true(oled_show_boot_fake.call_count >= (OLED_BOOT_FRAMES / 3U));
+    /* 起動画面のあとの, 最初の測定が, 約 3 秒で始まる */
+    zassert_equal(sensor_read_fake.call_count, 1U);
+    zassert_true((k_uptime_get() - start_ms) < ((int64_t)STARTUP_WAIT_MS + OLED_BOOT_FRAME_MS));
 
     k_thread_abort(&main_thread);
 }
@@ -1090,6 +1149,39 @@ ZTEST(main_node, test_direct_init)
 {
     sensor_read_fake.custom_fake = fake_read;
     direct_init_fake.return_val = -EIO;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(direct_init_fake.call_count, 1U);
+    zassert_equal(ble_notify_temperature_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 起動画面の前に, SD カードをマウントする. 失敗しても (SD カードなし), 起動を続ける */
+ZTEST(main_node, test_backlog_mount)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    backlog_mount_fake.return_val = -ENODEV;
+
+    start_main();
+
+    k_msleep(STARTUP_WAIT_MS);
+    zassert_equal(backlog_mount_fake.call_count, 1U);
+    zassert_equal(oled_show_boot_fake.call_count, OLED_BOOT_FRAMES);
+    zassert_equal(direct_init_fake.call_count, 1U);
+    zassert_equal(ble_notify_temperature_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** 起動画面のあとの, 時刻の表示に失敗しても, 測定を続ける */
+ZTEST(main_node, test_first_time_display_failure)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    oled_show_fake.custom_fake = NULL;
+    oled_show_fake.return_val = -EIO;
 
     start_main();
 

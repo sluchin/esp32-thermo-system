@@ -14,15 +14,19 @@ main()
   3. ble_set_time_callback(node_time_set)      (CONFIG_THERMO_RTC) ゲートウェイが書いた時刻を RTC へ
   4. ble_advertise()          失敗 → EXIT_FAILURE
   5. init_optional(&devs)     RTC, WiFi, ブザー, OLED, ボタン (失敗しても続ける)
-  6. direct_init()            (CONFIG_THERMO_DIRECT_MQTT) 失敗しても続ける。SD カードもここでマウントする
+  6. backlog_mount()          (CONFIG_THERMO_DIRECT_MQTT) SD カードをマウントする (約 0.5 秒)。失敗しても続ける
   7. sdlog_flush()            ここまでのログを SD カードに書く
-  8. boot_sequence(&devs)     起動音と起動画面 (約 3 秒、戻らない)
-  9. 時間の基準 (start_ms) を取り直して、ループへ
+  8. boot_sequence(&devs)     起動音と起動画面 (約 3 秒、戻らない。描画が遅いときは、間のフレームを飛ばす)
+  9. 時刻の表示               RTC と OLED が使えるとき、時刻だけを 1 回表示する (測定値はまだない)
+ 10. direct_init()            (CONFIG_THERMO_DIRECT_MQTT) 失敗しても続ける。SD カードの全記録を読む (記録が多いと数秒)
+ 11. sdlog_flush()            SD カードをマウントできていれば、起動のログを書く
+ 12. 時間の基準 (start_ms) を取り直して、ループへ
 ```
 
 - センサ、BLE、アドバタイズは必須です。失敗したら、ログを出して `main()` が `EXIT_FAILURE` を返します。
 - RTC、OLED、ボタン、ブザー、WiFi は任意の機器です。失敗しても、測定と BLE の通知は止めません。
-- `sdlog_flush()` を起動画面の前に呼ぶのは、起動画面の約 3 秒の間、メインループが止まるので、その間にログが RAM のバッファ (既定 768 バイト) に溜まりすぎないようにするためです。SD カードのマウント (`direct_init()` の中の `backlog_init()`) が済んでいれば、ここで、起動のログが `boot.log` に書かれます。
+- SD カードのマウント (`backlog_mount()`) を起動画面の前に行うのは、起動画面の約 3 秒の間、ログが RAM のバッファ (既定 768 バイト) に溜まりすぎないようにするためです。マウントできていれば、`sdlog_flush()` で、起動のログが `boot.log` に書かれます。
+- `direct_init()` (中の `backlog_init()` が SD カードの全記録を読む) を、起動画面のあとの、時刻の表示より後に呼ぶのは、記録が多いと数秒かかり、その間、時刻の表示が遅れるためです。
 - 起動画面の約 3 秒を、ループの時間に数えないよう、画面のあとで `start_ms = k_uptime_get()` を取り直し、周期の基準を作り直します。
 
 ## メインループ (50 ms ごと)
