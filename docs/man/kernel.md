@@ -571,3 +571,51 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 | `work_handler` | in | ワークキューのスレッドで実行されるハンドラ |
 
 使用箇所: [`app/thermo-gateway/src/ble.c:112`](../../app/thermo-gateway/src/ble.c#L112) (ほか 1 行), [`app/thermo-node/src/buzzer.c:39`](../../app/thermo-node/src/buzzer.c#L39)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### k_work
+
+```c
+struct k_work
+```
+
+ワークキューに投入する仕事 (1 つの関数)。`k_work_init()` で初期化し、`k_work_submit()` で、システムのワークキューのスレッドから実行する。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `handler` | `k_work_handler_t` | ワークキューのスレッドが呼ぶ関数 |
+| (ほか) |  | `node`、`queue`、`flags` は、カーネルが使う。メンバーを直接、読み書きしない |
+
+使用箇所: [`app/thermo-gateway/src/ble.c:104`](../../app/thermo-gateway/src/ble.c#L104) (ほか 3 行), [`app/thermo-node/src/buzzer.c:34`](../../app/thermo-node/src/buzzer.c#L34) (ほか 1 行)
+
+### k_thread
+
+```c
+struct k_thread
+```
+
+スレッドの情報 (カーネルのオブジェクト)。`K_THREAD_DEFINE` や `k_thread_create()` に渡す、スレッドの入れ物になる。大きな構造体で、アーキテクチャと設定 (`CONFIG_*`) で、メンバーが変わる。
+
+注意:
+
+- メンバーを直接、読み書きしない。スレッドの操作は、`k_thread_name_set()`、`k_thread_join()` などの関数を使う。
+- このリポジトリでは、`cloud` のスレッドを `k_thread_create()` で作るために、変数として持つ。
+
+使用箇所: [`app/common/cloud.c:132`](../../app/common/cloud.c#L132)
+
+### k_msgq
+
+```c
+struct k_msgq
+```
+
+メッセージキュー。決まった大きさのメッセージを、先入れ先出しで渡す。`K_MSGQ_DEFINE` や `k_msgq_init()` で作る。
+
+注意:
+
+- メンバーは、カーネルが使う (`msg_size` `max_msgs` `used_msgs` などの、バッファの管理の情報)。直接、読み書きしない。数は、`k_msgq_num_used_get()` などの関数で得る。
+
+使用箇所: [`app/common/cloud.c:99`](../../app/common/cloud.c#L99)

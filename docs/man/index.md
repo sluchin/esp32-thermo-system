@@ -5,21 +5,22 @@
 - 出典は、Zephyr v4.3.0 のヘッダの Doxygen コメント。意味を変えないように訳した。**英語の原文が正**なので、細かい挙動で迷ったら、ヘッダ (`zephyr/include/zephyr/...`) か、公式の文書を見る。
 - 各 API に「使用箇所」を付けた。このリポジトリの、呼んでいる場所 (`ファイル:最初の行`。そこへのリンク) で、同じファイルで何度も呼ぶ場合は、「ほか N 行」と書く。
 - 戻り値のエラー番号は、man と同じ形式で、「戻り値」と「エラー」の節に分けて書いた。「エラー」の番号は、`EINVAL` のように、符号なしで書く。Zephyr 独自の API は、失敗のとき、その番号の符号を変えた負の値 (`-EINVAL`) を返す。`zsock_poll()` のように POSIX と同じ API は、`-1` を返して、`errno` に符号なしの番号を設定する。全ての関数に書いた。ヘッダの Doxygen コメントの `@retval` と、ソースで確認できた値に加えて、POSIX の同名の関数と同じ意味の値 (`poll()` の `EINVAL` など) も書いた。全ての値を網羅してはいない。「ほかの失敗は負の errno」は、ドライバや下の層が返す値が、ここに書いたもの以外にもあることを表す。エラーを返さない関数 (値を返すだけの関数と、戻り値のない関数) には、そのことを書いた。
+- 引数に出てくる構造体は、各ファイルの「構造体」の節に、メンバーの表と一緒に載せた (このリポジトリが直接、使うものだけ。使っていない構造体や、内部用のメンバーは載せていない)。
 - 引数は、1 つ 1 行の表にして、「入出力」の列に `in` (渡す値)、`out` (関数が書いて返す値)、`in,out` (渡して書き換えられる値) を書いた。戻り値と注意は、表の後ろに書く。
 - ソースを解析した文書は、`app/*/docs/` にある。このディレクトリは、そこから参照される API の、リファレンスにあたる。
 
 | ファイル | 内容 | API の数 |
 |:---|:---|---:|
-| [bluetooth.md](bluetooth.md) | Bluetooth LE | 42 |
-| [kernel.md](kernel.md) | カーネル | 26 |
-| [drivers.md](drivers.md) | デバイスとドライバ | 33 |
-| [display.md](display.md) | 表示装置と文字のフレームバッファ | 12 |
-| [fs.md](fs.md) | ファイルシステム | 13 |
-| [net.md](net.md) | ネットワーク | 31 |
-| [settings.md](settings.md) | 設定 | 5 |
-| [shell.md](shell.md) | シェル | 7 |
-| [logging.md](logging.md) | ログ | 12 |
-| [sys.md](sys.md) | システムのユーティリティ | 23 |
+| [bluetooth.md](bluetooth.md) | Bluetooth LE | 54 |
+| [kernel.md](kernel.md) | カーネル | 31 |
+| [drivers.md](drivers.md) | デバイスとドライバ | 41 |
+| [display.md](display.md) | 表示装置と文字のフレームバッファ | 13 |
+| [fs.md](fs.md) | ファイルシステム | 15 |
+| [net.md](net.md) | ネットワーク | 44 |
+| [settings.md](settings.md) | 設定 | 6 |
+| [shell.md](shell.md) | シェル | 8 |
+| [logging.md](logging.md) | ログ | 13 |
+| [sys.md](sys.md) | システムのユーティリティ | 25 |
 | [ztest.md](ztest.md) | 単体テスト (Ztest) | 11 |
 | [fff.md](fff.md) | 単体テストのモック (FFF) | 13 |
 

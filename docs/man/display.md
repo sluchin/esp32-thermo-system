@@ -280,3 +280,22 @@ int cfb_framebuffer_finalize(const struct device *dev);
 - 描いたあとに呼ばないと、画面に出ない。
 
 使用箇所: [`app/thermo-node/src/oled.c:242`](../../app/thermo-node/src/oled.c#L242) (ほか 1 行)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### cfb_position
+
+```c
+struct cfb_position
+```
+
+文字のフレームバッファ (CFB) の、画面の上の位置。図形を描く `cfb_draw_point()` `cfb_draw_line()` `cfb_draw_rect()` に渡す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `x` | `uint16_t` | 横の位置 (ピクセル)。左端が 0 |
+| `y` | `uint16_t` | 縦の位置 (ピクセル)。上端が 0 |
+
+使用箇所: [`app/thermo-node/src/oled.c:388`](../../app/thermo-node/src/oled.c#L388) (ほか 3 行)

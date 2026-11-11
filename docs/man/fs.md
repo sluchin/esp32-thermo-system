@@ -65,6 +65,27 @@ int fs_unmount(struct fs_mount_t *mp);
 
 ## ファイル
 
+### fs_file_t
+
+```c
+struct fs_file_t
+```
+
+開いたファイルの情報。`fs_open()` に渡し、`fs_read()` `fs_write()` `fs_seek()` `fs_close()` で使う。最初に `fs_file_t_init()` で初期化する (`= {0}` でも同じ)。メンバーを直接、読み書きしない。
+
+| メンバー | 説明 |
+|:---|:---|
+| `filep` | ファイルシステムのドライバが持つ、開いたファイルのデータへのポインタ。`fs_open()` が設定し、`fs_close()` のあとは使えない |
+| `mp` | ファイルがあるマウントポイント (`struct fs_mount_t`) へのポインタ。`fs_open()` が設定する |
+| `flags` | 開くときのフラグ (`fs_mode_t`。`FS_O_READ` `FS_O_WRITE` `FS_O_CREATE` `FS_O_APPEND` `FS_O_TRUNC` の組み合わせ) |
+
+注意:
+
+- 同じ変数で、別のファイルを開き直すときは、先に `fs_close()` を呼ぶ。
+- 開いている間は、変数をコピーしない。関数から返る前に、`fs_close()` を呼ぶ (変数が消えるため)。
+
+使用箇所: [`app/thermo-node/src/backlog.c:106`](../../app/thermo-node/src/backlog.c#L106) (ほか 13 行), [`app/thermo-node/src/sdlog.c:244`](../../app/thermo-node/src/sdlog.c#L244)
+
 ### fs_file_t_init
 
 ```c
@@ -350,3 +371,23 @@ struct fs_mount_t
 - 表の引数は、構造体のメンバー。
 
 使用箇所: [`app/thermo-node/src/backlog.c:80`](../../app/thermo-node/src/backlog.c#L80)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### fs_dirent
+
+```c
+struct fs_dirent
+```
+
+ファイルやディレクトリの情報。`fs_stat()` と、`fs_readdir()` が書いて返す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `type` | `enum fs_dir_entry_type` | 種類 (`FS_DIR_ENTRY_FILE` か `FS_DIR_ENTRY_DIR`) |
+| `name` | `char[MAX_FILE_NAME + 1]` | ファイルやディレクトリの名前 |
+| `size` | `size_t` | ファイルの大きさ (バイト)。ディレクトリなら 0 |
+
+使用箇所: [`app/thermo-node/src/sdlog.c:311`](../../app/thermo-node/src/sdlog.c#L311), [`app/thermo-node/src/backlog.c:156`](../../app/thermo-node/src/backlog.c#L156)

@@ -131,3 +131,21 @@
 | `...` | in | `SHELL_CMD_ARG()` などで作ったコマンドの並び。最後に `SHELL_SUBCMD_SET_END` を付ける |
 
 使用箇所: [`app/common/cfg_shell.c:228`](../../app/common/cfg_shell.c#L228)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### shell
+
+```c
+struct shell
+```
+
+シェルのインスタンス (内部の情報)。コマンドのハンドラの、第 1 引数として渡される。
+
+注意:
+
+- メンバーは、シェルの内部用。ハンドラは、このポインタを、`shell_print()` `shell_error()` などの出力の関数に、そのまま渡す。
+
+使用箇所: [`app/common/cfg_shell.c:51`](../../app/common/cfg_shell.c#L51) (ほか 6 行), [`app/thermo-node/src/wifi_shell.c:43`](../../app/thermo-node/src/wifi_shell.c#L43) (ほか 1 行), [`app/thermo-node/src/shell_extra.h:22`](../../app/thermo-node/src/shell_extra.h#L22) (ほか 1 行)

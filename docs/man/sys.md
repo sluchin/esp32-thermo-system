@@ -424,3 +424,36 @@ static inline uint8_t bin2bcd(uint8_t bin);
 | `MSG` | in | エラーのメッセージ (省略できる) |
 
 使用箇所: [`app/common/cloud.c:60`](../../app/common/cloud.c#L60)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### ring_buf
+
+```c
+struct ring_buf
+```
+
+リングバッファ。`RING_BUF_DECLARE()` や、`ring_buf_init()` で作る。
+
+注意:
+
+- メンバーは、内部用 (先頭と末尾の位置、バッファへのポインタなど)。直接、読み書きしない。`ring_buf_put()` `ring_buf_get()` などの関数を使う。
+
+使用箇所: [`app/thermo-node/src/sdlog.c:65`](../../app/thermo-node/src/sdlog.c#L65) (ほか 5 行)
+
+### timespec
+
+```c
+struct timespec
+```
+
+秒とナノ秒の時刻 (POSIX)。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `tv_sec` | `time_t` | 秒 |
+| `tv_nsec` | `long` | ナノ秒 |
+
+使用箇所: [`app/common/ntp.c:54`](../../app/common/ntp.c#L54) (ほか 1 行)

@@ -719,3 +719,174 @@ POST_KERNEL  /* 初期化のレベル */
 | `_name` | in | 構造体の名前 |
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:102`](../../app/thermo-node/drivers/rtc_pcf8563.c#L102)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### device
+
+```c
+struct device
+```
+
+デバイスのインスタンスを表す構造体 (ROM に置く)。ドライバのインスタンスごとに 1 つある。Devicetree のノードから、`DEVICE_DT_GET()` などでポインタを得る。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `name` | `const char *` | デバイスの名前 |
+| `config` | `const void *` | デバイスの設定 (ROM) |
+| `api` | `const void *` | デバイスが公開する API の表 (`struct sensor_driver_api` など) |
+| `state` | `struct device_state *` | デバイスの状態 (初期化の結果など。RAM) |
+| `data` | `void *` | デバイスごとの、書き換えるデータ (RAM) |
+| `ops` | `struct device_ops` | デバイスの操作 |
+| `flags` | `device_flags_t` | デバイスのフラグ |
+
+注意:
+
+- アプリは、ポインタを持ち回し、`device_is_ready()` や、各サブシステムの API に渡す。メンバーは、ドライバが使うもので、アプリは直接、読み書きしない。
+
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:95`](../../app/thermo-node/drivers/rtc_pcf8563.c#L95) (ほか 5 行), [`app/thermo-node/src/oled.c:98`](../../app/thermo-node/src/oled.c#L98), [`app/thermo-node/src/node_time.c:61`](../../app/thermo-node/src/node_time.c#L61), [`app/thermo-node/src/sensor.c:47`](../../app/thermo-node/src/sensor.c#L47) (ほか 1 行)
+
+### gpio_dt_spec
+
+```c
+struct gpio_dt_spec
+```
+
+Devicetree で指定した GPIO のピンの情報。`GPIO_DT_SPEC_GET()` で作る。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `port` | `const struct device *` | ピンを持つ GPIO のデバイス |
+| `pin` | `gpio_pin_t` | ポートの中の、ピンの番号 |
+| `dt_flags` | `gpio_dt_flags_t` | Devicetree で指定した、ピンの設定のフラグ (`GPIO_ACTIVE_LOW` など) |
+
+使用箇所: [`app/thermo-node/src/button.c:25`](../../app/thermo-node/src/button.c#L25)
+
+### i2c_dt_spec
+
+```c
+struct i2c_dt_spec
+```
+
+Devicetree で指定した I2C のデバイスの情報 (バスとアドレス)。`I2C_DT_SPEC_INST_GET()` などで作る。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `bus` | `const struct device *` | I2C のバス |
+| `addr` | `uint16_t` | 相手のアドレス |
+
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:90`](../../app/thermo-node/drivers/rtc_pcf8563.c#L90)
+
+### pwm_dt_spec
+
+```c
+struct pwm_dt_spec
+```
+
+Devicetree で指定した PWM の情報。`PWM_DT_SPEC_GET()` で作る。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `dev` | `const struct device *` | PWM のデバイス |
+| `channel` | `uint32_t` | デバイスの中のチャンネルの番号 |
+| `period` | `uint32_t` | 信号の周期 (ナノ秒) |
+| `flags` | `pwm_flags_t` | チャンネルのフラグ。対応しないドライバでは 0 |
+
+使用箇所: [`app/thermo-node/src/buzzer.c:25`](../../app/thermo-node/src/buzzer.c#L25)
+
+### adc_dt_spec
+
+```c
+struct adc_dt_spec
+```
+
+Devicetree で指定した ADC のチャンネルの情報。`ADC_DT_SPEC_GET()` で作る。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `dev` | `const struct device *` | ADC のデバイス |
+| `channel_id` | `uint8_t` | チャンネルの番号 |
+| `channel_cfg_dt_node_exists` | `bool` | チャンネルの設定が、Devicetree の子ノードにあるか |
+| `channel_cfg` | `struct adc_channel_cfg` | Devicetree で指定した、チャンネルの設定 (ゲイン、基準、取り込みの時間など)。上のフラグが true のときだけ有効 |
+| `vref_mv` | `uint16_t` | 基準電圧 (mV)。指定がなければ 0 |
+| `resolution` | `uint8_t` | 分解能 (ビット) |
+| `oversampling` | `uint8_t` | オーバーサンプリングの設定 |
+
+注意:
+
+- `channel_cfg` 以降のメンバーは、`channel_cfg_dt_node_exists` が true のときだけ有効。
+
+使用箇所: [`app/thermo-node/src/sensor.c:64`](../../app/thermo-node/src/sensor.c#L64)
+
+### adc_sequence
+
+```c
+struct adc_sequence
+```
+
+ADC の 1 回の読み取りの設定。`adc_read()` に渡す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `options` | `const struct adc_sequence_options *` | 追加のオプション。NULL なら、1 回だけ読む |
+| `channels` | `uint32_t` | 読むチャンネルのビットマスク (事前に `adc_channel_setup()` で設定しておく) |
+| `buffer` | `void *` | 値を書くバッファ |
+| `buffer_size` | `size_t` | バッファの大きさ (バイト)。小さければ、ドライバがエラーを返す |
+| `resolution` | `uint8_t` | 分解能 (ビット) |
+| `oversampling` | `uint8_t` | オーバーサンプリング。値は、2 の `oversampling` 乗回の変換の平均になる |
+| `calibrate` | `bool` | true なら、読む前にキャリブレーションする |
+
+注意:
+
+- `adc_sequence_init_dt()` が、`channels` `resolution` `oversampling` などを、`struct adc_dt_spec` から設定する。
+
+使用箇所: [`app/thermo-node/src/sensor.c:187`](../../app/thermo-node/src/sensor.c#L187)
+
+### rtc_time
+
+```c
+struct rtc_time
+```
+
+日時 (サブ秒の精度つき)。標準ライブラリの `struct tm` と、`tm_sec` から `tm_isdst` まで、同じ並びになっている。`rtc_time_to_tm()` で、`struct tm *` に安全に変えられる。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `tm_sec` | `int` | 秒 [0, 59] |
+| `tm_min` | `int` | 分 [0, 59] |
+| `tm_hour` | `int` | 時 [0, 23] |
+| `tm_mday` | `int` | 日 [1, 31] |
+| `tm_mon` | `int` | 月 [0, 11] (1 月が 0) |
+| `tm_year` | `int` | 年 − 1900 |
+| `tm_wday` | `int` | 曜日 [0, 6] (日曜が 0。不明なら −1) |
+| `tm_yday` | `int` | 年の通算日 [0, 365] (不明なら −1) |
+| `tm_isdst` | `int` | 夏時間のフラグ (不明なら −1) |
+| `tm_nsec` | `int` | ナノ秒 [0, 999999999] (不明なら 0) |
+
+注意:
+
+- `tm_mon` と `tm_year` は、人の見る値と、ずれている (月は 0 から、年は 1900 を引く)。
+
+使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:95`](../../app/thermo-node/drivers/rtc_pcf8563.c#L95) (ほか 3 行), [`app/thermo-node/src/node_time.c:172`](../../app/thermo-node/src/node_time.c#L172) (ほか 1 行)
+
+### sensor_value
+
+```c
+struct sensor_value
+```
+
+センサーの読み取り値。整数部と小数部を持つ。値は、`val1 + val2 × 10^-6` になる。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `val1` | `int32_t` | 整数部 |
+| `val2` | `int32_t` | 小数部 (100 万分の 1 の単位) |
+
+注意:
+
+- 負の値も同じ式になる。例: 0.5 は `val1 = 0, val2 = 500000`、−0.5 は `val1 = 0, val2 = −500000`、−1.5 は `val1 = −1, val2 = −500000`。
+- `sensor_value_to_double()` や `sensor_value_to_milli()` で、数に変える。
+
+使用箇所: [`app/thermo-node/src/sensor.c:149`](../../app/thermo-node/src/sensor.c#L149) (ほか 2 行)

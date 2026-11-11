@@ -908,3 +908,239 @@ GATT のコールバック (`bt_gatt_subscribe()` の通知、`bt_gatt_discover(
 クライアント特性構成記述子 (CCC。Client Characteristic Configuration) の、16 ビットの UUID の値。通知を購読するときに、CCC の記述子を探す UUID に使う。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:72`](../../app/thermo-gateway/src/ble.c#L72)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### bt_conn
+
+```c
+struct bt_conn
+```
+
+接続を表す、公開されていない構造体 (メンバーは見えない)。ポインタだけを持ち回す。`bt_conn_le_create()` や、`connected` のコールバックで受け取り、`bt_conn_ref()` で参照を増やし、`bt_conn_unref()` で減らす。
+
+注意:
+
+- メンバーを直接、読み書きしない。接続の情報は、`bt_conn_get_info()` などの関数で取る。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:51`](../../app/thermo-gateway/src/ble.c#L51) (ほか 16 行), [`app/thermo-node/src/ble.c:60`](../../app/thermo-node/src/ble.c#L60) (ほか 7 行)
+
+### bt_conn_cb
+
+```c
+struct bt_conn_cb
+```
+
+接続の状態を知るためのコールバックの表。`bt_conn_cb_register()` で登録する。複数の登録ができる。使わないコールバックは NULL にする。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `connected` | `void (*)(struct bt_conn *conn, uint8_t err)` | 接続できたとき (`err` が 0 以外なら、接続に失敗したとき) |
+| `disconnected` | `void (*)(struct bt_conn *conn, uint8_t reason)` | 切断されたとき (`reason` は `BT_HCI_ERR_*`)。この時点では、スタックが接続の参照を 1 つ持っている |
+| `recycled` | `void (*)(void)` | 接続のオブジェクトが解放され、新しい接続やアドバタイズを始められるようになったとき |
+| `le_param_req` | `bool (*)(conn, struct bt_le_conn_param *param)` | 相手が接続パラメータの変更を求めてきたとき。true なら受け入れ、false なら断る |
+| `le_param_updated` | `void (*)(conn, interval, latency, timeout)` | LE の接続パラメータが変わったとき |
+| `security_changed ほか` | (`CONFIG_BT_SMP` などで有効になる) | セキュリティレベルの変更、PHY の変更など。このプロジェクトでは使わない |
+
+注意:
+
+- このリポジトリが設定するのは、`connected` と `disconnected` だけ (ゲートウェイ)。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:151`](../../app/thermo-gateway/src/ble.c#L151), [`app/thermo-node/src/ble.c:96`](../../app/thermo-node/src/ble.c#L96)
+
+### bt_gatt_attr
+
+```c
+struct bt_gatt_attr
+```
+
+GATT の属性 (ATT のデータベースの 1 項目)。GATT のサービスは、この構造体の配列でできている。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `uuid` | `const struct bt_uuid *` | 属性の種類を表す UUID。読み書きの動作と、設定できる権限が決まる |
+| `read` | `bt_gatt_attr_read_func_t` | 値を読むときの関数。読めない属性は NULL |
+| `write` | `bt_gatt_attr_write_func_t` | 値を書くときの関数。書けない属性は NULL |
+| `user_data` | `void *` | `read()` と `write()` のための、使う側のデータ。意味は属性の種類しだい |
+| `handle` | `uint16_t` | ATT のデータベースでの、属性の番号 (ハンドル)。ローカルの属性は、`bt_gatt_attr_get_handle()` で得る |
+| `perm` | `uint16_t` (15 ビット) | `read()` `write()` を呼ぶ前に満たす必要がある権限 (`bt_gatt_perm` のビットの組み合わせ) |
+
+注意:
+
+- `BT_GATT_SERVICE_DEFINE` などのマクロが作るので、アプリが直接、初期化することは少ない。クライアントの `discover_cb` では、読み取り専用で受け取る (`handle` を見る)。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:98`](../../app/thermo-gateway/src/ble.c#L98) (ほか 3 行), [`app/thermo-node/src/ble.c:60`](../../app/thermo-node/src/ble.c#L60) (ほか 4 行)
+
+### bt_gatt_service
+
+```c
+struct bt_gatt_service
+```
+
+GATT のサービス。属性の配列とその数を持つ。実行時に、登録と解除ができる (`bt_gatt_service_register()`)。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `attrs` | `struct bt_gatt_attr *` | サービスの属性の配列 |
+| `attr_count` | `size_t` | 属性の数 |
+
+使用箇所: [`app/thermo-node/src/ble.c:93`](../../app/thermo-node/src/ble.c#L93)
+
+### bt_gatt_discover_params
+
+```c
+struct bt_gatt_discover_params
+```
+
+GATT のクライアントが、サーバの属性を探す (`bt_gatt_discover()`) ときのパラメータ。探している間は、変数を残しておく (コールバックに同じポインタが渡される)。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `uuid` | `const struct bt_uuid *` | 探す UUID。NULL ならすべて |
+| `func` | `bt_gatt_discover_func_t` | 1 つ見つかるたびに呼ばれるコールバック |
+| `start_handle` | `uint16_t` | 探し始める属性のハンドル (`BT_ATT_FIRST_ATTRIBUTE_HANDLE` など) |
+| `end_handle` | `uint16_t` | 探しを止めるハンドル。`BT_ATT_LAST_ATTRIBUTE_HANDLE` なら、最後まで探す |
+| `type` | `uint8_t` | 探すものの種類 (`BT_GATT_DISCOVER_PRIMARY` `BT_GATT_DISCOVER_CHARACTERISTIC` `BT_GATT_DISCOVER_DESCRIPTOR` など) |
+
+注意:
+
+- `start_handle` は、共用体で、含まれるサービスの探索では、`_included` の別のメンバーになる。
+- ほかに、スタックの内部用のメンバー (`sub_params` と、`CONFIG_BT_EATT` のときの `chan_opt`) がある。
+- このリポジトリは、`uuid` `func` `start_handle` `end_handle` `type` を設定する。コールバックの中で、見つかった属性に合わせて、これらを書き換え、次の探索 (特性、記述子) に進む。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:52`](../../app/thermo-gateway/src/ble.c#L52) (ほか 2 行)
+
+### bt_gatt_subscribe_params
+
+```c
+struct bt_gatt_subscribe_params
+```
+
+GATT の通知を購読する (`bt_gatt_subscribe()`) ときのパラメータ。購読している間は、変数を残しておく。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `notify` | `bt_gatt_notify_func_t` | 通知を受け取るコールバック。`BT_GATT_ITER_STOP` を返すと購読が終わる |
+| `subscribe` | `bt_gatt_subscribe_func_t` | CCC への書き込みの応答のコールバック (省略できる) |
+| `value_handle` | `uint16_t` | 購読する値のハンドル |
+| `ccc_handle` | `uint16_t` | CCC (Client Characteristic Configuration) のハンドル |
+| `value` | `uint16_t` | CCC に書く値 (`BT_GATT_CCC_NOTIFY` など) |
+| `flags` | `ATOMIC_DEFINE` | 購読の状態のフラグ (内部で使う。`bt_gatt_sub_flag`) |
+
+注意:
+
+- `CONFIG_BT_GATT_AUTO_DISCOVER_CCC` のときは、`ccc_handle` を `BT_GATT_AUTO_DISCOVER_CCC_HANDLE` にして、`end_handle` と `disc_params` で、CCC を自動で探せる。
+- このリポジトリは、`value_handle` `ccc_handle` `notify` を設定する。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:53`](../../app/thermo-gateway/src/ble.c#L53) (ほか 2 行)
+
+### bt_gatt_write_params
+
+```c
+struct bt_gatt_write_params
+```
+
+GATT の値を書く (`bt_gatt_write()`) ときのパラメータ。書き込みの応答が来るまで、変数と `data` を残しておく。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `func` | `bt_gatt_write_func_t` | 応答のコールバック |
+| `handle` | `uint16_t` | 書く属性のハンドル |
+| `offset` | `uint16_t` | 属性の値の中の、書き始める位置 |
+| `data` | `const void *` | 書くデータ |
+| `length` | `uint16_t` | データの長さ |
+
+注意:
+
+- このリポジトリは、時刻を書くために、これらをすべて設定する。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:54`](../../app/thermo-gateway/src/ble.c#L54) (ほか 2 行)
+
+### bt_data
+
+```c
+struct bt_data
+```
+
+アドバタイズや、スキャン応答のデータの 1 項目 (AD の構造)。配列にして、`bt_le_adv_start()` に渡す。`BT_DATA()` `BT_DATA_BYTES()` で作る。スキャンで受け取ったデータを、`bt_data_parse()` が 1 項目ずつ、この形で、コールバックに渡す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `type` | `uint8_t` | データの種類 (`BT_DATA_NAME_COMPLETE` `BT_DATA_UUID128_ALL` など) |
+| `data_len` | `uint8_t` | データの長さ |
+| `data` | `const uint8_t *` | データ |
+
+使用箇所: [`app/thermo-gateway/src/ble.c:95`](../../app/thermo-gateway/src/ble.c#L95) (ほか 2 行), [`app/thermo-node/src/ble.c:31`](../../app/thermo-node/src/ble.c#L31) (ほか 1 行)
+
+### bt_le_scan_param
+
+```c
+struct bt_le_scan_param
+```
+
+LE のスキャンのパラメータ。`bt_le_scan_start()` に渡す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `type` | `uint8_t` | `BT_LE_SCAN_TYPE_ACTIVE` か `BT_LE_SCAN_TYPE_PASSIVE` |
+| `options` | `uint8_t` | スキャンのオプションのビット (`BT_LE_SCAN_OPT_NONE` など) |
+| `interval` | `uint16_t` | スキャンの間隔 (単位は 0.625 ms)。`BT_GAP_MS_TO_SCAN_INTERVAL()` で、ms から変える |
+| `window` | `uint16_t` | 1 回のスキャンの長さ (単位は 0.625 ms)。`interval` 以下にする |
+| `timeout` | `uint16_t` | スキャンを止めるまでの時間 (単位は 10 ms)。0 なら止めない |
+| `interval_coded` | `uint16_t` | LE Coded PHY のスキャンの間隔。0 なら 1M PHY と同じ |
+| `window_coded` | `uint16_t` | LE Coded PHY のスキャンの長さ。0 なら 1M PHY と同じ |
+
+注意:
+
+- このリポジトリは、`type` `options` `interval` `window` を設定する。
+
+使用箇所: [`app/thermo-gateway/src/ble.c:242`](../../app/thermo-gateway/src/ble.c#L242)
+
+### bt_uuid_16
+
+```c
+struct bt_uuid_16
+```
+
+16 ビットの UUID。`BT_UUID_DECLARE_16()` や `BT_UUID_INIT_16()` で作る。ポインタ (`const struct bt_uuid *`) は、`&x.uuid` で得る。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `uuid` | `struct bt_uuid` | UUID の種類 (汎用の型) |
+| `val` | `uint16_t` | UUID の値 (CPU のバイトオーダー) |
+
+使用箇所: [`app/thermo-gateway/src/ble.c:72`](../../app/thermo-gateway/src/ble.c#L72)
+
+### bt_uuid_128
+
+```c
+struct bt_uuid_128
+```
+
+128 ビットの UUID。`BT_UUID_INIT_128()` で作る。ポインタは、`&x.uuid` で得る。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `uuid` | `struct bt_uuid` | UUID の種類 (汎用の型) |
+| `val` | `uint8_t[16]` | UUID の値 (リトルエンディアン) |
+
+使用箇所: [`app/thermo-gateway/src/ble.c:66`](../../app/thermo-gateway/src/ble.c#L66) (ほか 2 行)
+
+### net_buf_simple
+
+```c
+struct net_buf_simple
+```
+
+単純なバッファ。参照カウントもユーザーデータも持たない。Bluetooth のアドバタイズのデータを、`bt_data_parse()` に渡すときの入れ物として使う。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `data` | `uint8_t *` | バッファの中の、データの先頭 |
+| `len` | `uint16_t` | データの長さ |
+| `size` | `uint16_t` | バッファの大きさ |
+| `__buf` | `uint8_t *` | バッファの先頭 (直接は使わない。`data` を使う) |
+
+使用箇所: [`app/thermo-gateway/src/ble.c:109`](../../app/thermo-gateway/src/ble.c#L109) (ほか 1 行)

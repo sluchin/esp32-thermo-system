@@ -649,3 +649,271 @@ MQTT_TRANSPORT_SECURE  /* enum mqtt_transport_type */
 `client->transport.type` に指定して、TLS で接続する。TLS の設定は、`client->transport.tls.config` に書く。
 
 使用箇所: [`app/common/cloud.c:558`](../../app/common/cloud.c#L558)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### sockaddr
+
+```c
+struct sockaddr
+```
+
+汎用のソケットアドレス。実際には、`struct sockaddr_in` (IPv4) や `struct sockaddr_in6` (IPv6) などにキャストして使う。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `sa_family` | `sa_family_t` | アドレスの種類 (`AF_INET` `AF_INET6`) |
+
+注意:
+
+- メンバーは、種類だけ。アドレスの本体は、キャストした型のメンバーにある。
+
+使用箇所: [`app/common/ntp.c:69`](../../app/common/ntp.c#L69), [`app/thermo-node/src/wifi_time.c:111`](../../app/thermo-node/src/wifi_time.c#L111)
+
+### sockaddr_storage
+
+```c
+struct sockaddr_storage
+```
+
+どの種類のアドレスも入る大きさのソケットアドレス。受け取るアドレスの種類が分からないときに、この型で確保して、`struct sockaddr *` として渡す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `ss_family` | `sa_family_t` | アドレスの種類 |
+| `data` | `char[...]` | アドレスの本体 (種類で意味が決まる) |
+
+使用箇所: [`app/common/ntp.c:33`](../../app/common/ntp.c#L33) (ほか 2 行), [`app/common/cloud.c:104`](../../app/common/cloud.c#L104), [`app/thermo-node/src/wifi_time.c:31`](../../app/thermo-node/src/wifi_time.c#L31) (ほか 2 行)
+
+### zsock_addrinfo
+
+```c
+struct zsock_addrinfo
+```
+
+ホストの名前を引いたとき (`zsock_getaddrinfo()`) の、結果の 1 つ。連結リストになる。ヒント (引き方の条件) として、引数にも渡す。結果は、`zsock_freeaddrinfo()` で解放する。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `ai_next` | `struct zsock_addrinfo *` | 次の結果 |
+| `ai_flags` | `int` | 追加のオプション |
+| `ai_family` | `int` | アドレスの種類 (`AF_INET` など) |
+| `ai_socktype` | `int` | ソケットの種類 (`SOCK_STREAM` `SOCK_DGRAM`) |
+| `ai_protocol` | `int` | プロトコル。0 なら、どれでもよい |
+| `ai_addrlen` | `socklen_t` | アドレスの長さ |
+| `ai_addr` | `struct sockaddr *` | アドレス |
+| `ai_canonname` | `char *` | ホストの正式な名前 (省略できる) |
+
+注意:
+
+- `ai_eflags` もあるが、特別な用途のため。
+- ヒントとして渡すときは、使わないメンバーを 0 にしておく。
+
+使用箇所: [`app/common/ntp.c:138`](../../app/common/ntp.c#L138) (ほか 1 行), [`app/common/cloud.c:475`](../../app/common/cloud.c#L475) (ほか 1 行), [`app/thermo-node/src/wifi_time.c:142`](../../app/thermo-node/src/wifi_time.c#L142) (ほか 1 行)
+
+### zsock_pollfd
+
+```c
+struct zsock_pollfd
+```
+
+`zsock_poll()` で見張るソケットの情報。配列にして渡す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `fd` | `int` | ソケットのディスクリプタ |
+| `events` | `short` | 見張るイベント (`ZSOCK_POLLIN` など) |
+| `revents` | `short` | 起きたイベント (`zsock_poll()` が書く) |
+
+使用箇所: [`app/common/cloud.c:502`](../../app/common/cloud.c#L502)
+
+### net_if
+
+```c
+struct net_if
+```
+
+ネットワークのインターフェース (WiFi など)。`net_if_get_default()` などでポインタを得て、持ち回す。
+
+注意:
+
+- メンバーは、ネットワークのスタックが使う。アプリは、直接、読み書きせずに、`net_if_*` の関数と、`net_mgmt()` を使う。
+
+使用箇所: [`app/common/wifi_link.c:37`](../../app/common/wifi_link.c#L37) (ほか 3 行)
+
+### net_mgmt_event_callback
+
+```c
+struct net_mgmt_event_callback
+```
+
+ネットワークの管理のイベント (WiFi の接続、IP アドレスの取得など) を受け取る、コールバックの登録のための構造体。`net_mgmt_init_event_callback()` で初期化し、`net_mgmt_add_event_callback()` で登録する。登録している間は、変数を残しておく。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `handler` | `net_mgmt_event_handler_t` | イベントのときに呼ぶ関数 |
+| `event_mask` | `uint64_t` | 関数を呼ぶイベントのマスク (`NET_EVENT_WIFI_CONNECT_RESULT` などのビットの OR) |
+
+注意:
+
+- `node` と `sync_call` と `raised_event` は、内部用。初期化の関数が設定する。
+
+使用箇所: [`app/common/wifi_link.c:26`](../../app/common/wifi_link.c#L26) (ほか 3 行)
+
+### wifi_status
+
+```c
+struct wifi_status
+```
+
+WiFi の管理のイベントとコマンドの、結果の状態。共用体で、`status` (汎用の値)、`conn_status` (接続の結果)、`disconn_reason` (切断の理由)、`ap_status` (アクセスポイントの結果) の、どれかとして読む。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `status` | `int` | 状態の値 (0 なら成功) |
+| `conn_status` | `enum wifi_conn_status` | 接続の結果 |
+| `disconn_reason` | `enum wifi_disconn_reason` | 切断の理由 |
+| `ap_status` | `enum wifi_ap_status` | アクセスポイントの結果 |
+
+注意:
+
+- イベントのコールバックの、`cb->info` が、この構造体を指す (`NET_EVENT_WIFI_CONNECT_RESULT` など)。
+
+使用箇所: [`app/common/wifi_link.c:173`](../../app/common/wifi_link.c#L173) (ほか 1 行)
+
+### sntp_time
+
+```c
+struct sntp_time
+```
+
+SNTP で得た時刻。1970 年 1 月 1 日からの経過時間。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `seconds` | `uint64_t` | 秒 |
+| `fraction` | `uint32_t` | 秒の小数部 (2^32 分の 1 の単位) |
+
+注意:
+
+- `CONFIG_SNTP_UNCERTAINTY` が有効なときは、`uptime_us` と `uncertainty_us` も持つ。
+
+使用箇所: [`app/common/ntp.c:53`](../../app/common/ntp.c#L53), [`app/thermo-node/src/wifi_time.c:102`](../../app/thermo-node/src/wifi_time.c#L102)
+
+### sntp_ctx
+
+```c
+struct sntp_ctx
+```
+
+SNTP の問い合わせの状態。`sntp_init()` が初期化し、`sntp_query()` と `sntp_close()` に渡す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `expected_orig_ts` | `struct sntp_time` | 要求を送った時刻。返事の中の、送信時刻と一致するかを確かめるために使う |
+
+注意:
+
+- メンバーは、SNTP のライブラリが使う。アプリは、直接、読み書きしない。
+
+使用箇所: [`app/common/ntp.c:52`](../../app/common/ntp.c#L52), [`app/thermo-node/src/wifi_time.c:101`](../../app/thermo-node/src/wifi_time.c#L101)
+
+### mqtt_client
+
+```c
+struct mqtt_client
+```
+
+MQTT のクライアントの、接続の情報と状態。`mqtt_client_init()` で初期化してから、メンバーを設定し、`mqtt_connect()` に渡す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `client_id` | `struct mqtt_utf8` | 接続に使うクライアント ID |
+| `broker` | `const void *` | ブローカーのアドレス (トランスポートに合う型。`struct sockaddr *`) |
+| `user_name` | `struct mqtt_utf8 *` | ユーザー名。NULL なら使わない |
+| `password` | `struct mqtt_utf8 *` | パスワード。NULL なら使わない (ユーザー名も必要) |
+| `will_topic` | `struct mqtt_topic *` | 遺言 (Will) のトピックと QoS。NULL ならなし |
+| `will_message` | `struct mqtt_utf8 *` | 遺言のメッセージ |
+| `evt_cb` | `mqtt_evt_cb_t` | MQTT のイベントのコールバック |
+| `rx_buf` | `uint8_t *` | 受信のバッファ |
+| `rx_buf_size` | `uint32_t` | 受信のバッファの大きさ |
+| `tx_buf` | `uint8_t *` | 送信のバッファ |
+| `tx_buf_size` | `uint32_t` | 送信のバッファの大きさ |
+| `keepalive` | `uint16_t` | キープアライブの間隔 (秒) |
+| `protocol_version` | `uint8_t` | MQTT のバージョン (`MQTT_VERSION_3_1_1`) |
+| `unacked_ping` | `int8_t` | 応答のない PINGREQ の数 |
+| `will_retain` | `uint8_t` (1 ビット) | 1 なら、遺言を、ブローカーが保存する |
+| `clean_session` | `uint8_t` (1 ビット) | 1 なら、新しいセッション。0 なら、前のセッションを続ける |
+| `transport` | `struct mqtt_transport` | トランスポートの設定 (`type` と、TLS のとき `tls.config`) |
+| `user_data` | `void *` | 使う側のデータ |
+
+注意:
+
+- `internal` は、内部の状態。
+- このリポジトリは、`broker` `evt_cb` `protocol_version` `rx_buf` `rx_buf_size` `tx_buf` `tx_buf_size` `keepalive` `clean_session` と、TLS の設定を、設定する。
+- MQTT 5.0 (`CONFIG_MQTT_VERSION_5_0`) のときだけあるメンバー (`prop` `will_prop`) は、載せていない。
+
+使用箇所: [`app/common/cloud.c:102`](../../app/common/cloud.c#L102) (ほか 2 行)
+
+### mqtt_evt
+
+```c
+struct mqtt_evt
+```
+
+MQTT のイベント。`evt_cb` に渡される。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `type` | `enum mqtt_evt_type` | イベントの種類 (`MQTT_EVT_CONNACK` `MQTT_EVT_PUBACK` `MQTT_EVT_DISCONNECT` など) |
+| `param` | `union mqtt_evt_param` | イベントごとのパラメータ (`param.connack` `param.puback` など) |
+| `result` | `int` | 結果。0 か、失敗の負のエラー番号 |
+
+使用箇所: [`app/common/cloud.c:136`](../../app/common/cloud.c#L136) (ほか 1 行)
+
+### mqtt_publish_param
+
+```c
+struct mqtt_publish_param
+```
+
+PUBLISH (値の送信) のパラメータ。`mqtt_publish()` に渡す。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `message` | `struct mqtt_publish_message` | トピック、QoS、ペイロード (`message.topic.topic` `message.topic.qos` `message.payload.data` `message.payload.len`) |
+| `message_id` | `uint16_t` | メッセージの ID。QoS 0 では使わない |
+| `dup_flag` | `uint8_t` (1 ビット) | 1 なら再送。QoS 0 では意味がない |
+| `retain_flag` | `uint8_t` (1 ビット) | 1 なら、ブローカーが保存する |
+
+注意:
+
+- このリポジトリは、QoS 1 (`MQTT_QOS_1_AT_LEAST_ONCE`) で送り、`dup_flag` と `retain_flag` は 0。
+
+使用箇所: [`app/common/cloud.c:630`](../../app/common/cloud.c#L630)
+
+### mqtt_sec_config
+
+```c
+struct mqtt_sec_config
+```
+
+MQTT を TLS で使うときの設定。`struct mqtt_client` の `transport.tls.config` に設定する。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `peer_verify` | `int` | 相手の証明書を確かめるか (`TLS_PEER_VERIFY_REQUIRED` など) |
+| `cipher_count` | `uint32_t` | 暗号スイートの数 |
+| `cipher_list` | `const int *` | 使う暗号スイート。NULL なら既定 |
+| `sec_tag_count` | `uint32_t` | セキュリティタグの数 |
+| `sec_tag_list` | `const sec_tag_t *` | 使うセキュリティタグ (登録した証明書と鍵の組) |
+| `hostname` | `const char *` | 証明書の確認に使うホスト名 (SNI にも使う) |
+| `cert_nocopy` | `int` | 証明書をヒープにコピーしないか |
+
+注意:
+
+- このリポジトリは、`peer_verify` `sec_tag_list` `sec_tag_count` `hostname` を設定する。
+
+使用箇所: [`app/common/cloud.c:545`](../../app/common/cloud.c#L545)

@@ -193,6 +193,46 @@ static inline uint8_t log_msg_get_level(struct log_msg *msg);
 struct log_backend_api
 ```
 
-ログのバックエンドの API。メッセージを処理する `process`、初期化の `init`、パニックのときの `panic`、取りこぼしの通知 `dropped` などの関数を持つ。
+ログのバックエンドの関数の表。バックエンドごとに、定数 (`const`) で 1 つ作り、`LOG_BACKEND_DEFINE()` に渡す。関数のポインタのメンバーは、使わないものを NULL にできる (`process` と `panic` は、NULL の確認がないので、必須)。どの関数も、第 1 引数は、バックエンド自身 (`const struct log_backend *const backend`)。
+
+| メンバー | 形 | 説明 |
+|:---|:---|:---|
+| `process` | `void (*)(backend, union log_msg_generic *msg)` | ログを 1 件、処理する (必須)。ログのスレッドから呼ばれる。メッセージは、戻ったあとに解放される |
+| `dropped` | `void (*)(backend, uint32_t cnt)` | 取りこぼしたログの数 `cnt` を知らせる。NULL なら通知しない |
+| `panic` | `void (*)(backend)` | パニックのモードに切り替える (必須) |
+| `init` | `void (*)(backend)` | バックエンドの初期化 (ログのスレッドで呼ばれる)。NULL なら何もしない |
+| `is_ready` | `int (*)(backend)` | 使える状態かを返す (0 なら使える、`-EBUSY` ならまだ使えない)。初期化に時間がかかるときに、ログのスレッドが、使えるまで待つために呼ぶ。NULL なら、いつも使える |
+| `format_set` | `int (*)(backend, uint32_t log_type)` | 出力の形式を変える。NULL なら、形式を変えられない |
+| `notify` | `void (*)(backend, enum log_backend_evt event, union log_backend_evt_arg *arg)` | イベント (ログのスレッドが処理を終えたとき) を知らせる。NULL なら通知しない |
+
+注意:
+
+- このリポジトリの `sdlog_api` が設定するのは、`process` と `panic` だけ。ほかは NULL (使わない)。
+- 表のメンバーの形は、`zephyr/logging/log_backend.h` による。`struct log_backend` (名前、`api`、`autostart` を持つ、バックエンドそのもの) は、`LOG_BACKEND_DEFINE()` が作る。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:99`](../../app/thermo-node/src/sdlog.c#L99)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### log_backend
+
+```c
+struct log_backend
+```
+
+ログのバックエンドそのもの。`LOG_BACKEND_DEFINE()` が作る。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `api` | `const struct log_backend_api *` | バックエンドの関数の表 |
+| `cb` | `struct log_backend_control_block *` | 制御のブロック (ID、有効か、初期化したか。RAM) |
+| `name` | `const char *` | バックエンドの名前 (定義の名前) |
+| `autostart` | `bool` | true なら、ログの起動と一緒に、初期化して有効にする |
+
+注意:
+
+- アプリが直接、設定せず、`LOG_BACKEND_DEFINE(name, api, autostart)` に渡す。
+
+使用箇所: [`app/thermo-node/src/sdlog.h:35`](../../app/thermo-node/src/sdlog.h#L35), [`app/thermo-node/src/sdlog.c:82`](../../app/thermo-node/src/sdlog.c#L82) (ほか 2 行)

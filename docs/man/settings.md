@@ -122,3 +122,30 @@ int settings_load_subtree(const char *subtree);
 - 失敗は、保存先の読み出しの負の errno (`-EIO` など)。ハンドラの `set` が返した負の値も、そのまま返る。
 
 使用箇所: [`app/common/cfg.c:465`](../../app/common/cfg.c#L465)
+
+## 構造体
+
+メンバーを持つ構造体と、その説明。各 API の引数に、この構造体が出てくる。
+
+### settings_handler
+
+```c
+struct settings_handler
+```
+
+設定のサブツリーを扱う関数の表。`settings_register()` で登録する。
+
+| メンバー | 型 | 説明 |
+|:---|:---|:---|
+| `name` | `const char *` | サブツリーの名前 |
+| `h_get` | `int (*)(const char *key, char *val, int val_len_max)` | キーに合う値を返す |
+| `h_set` | `int (*)(const char *key, size_t len, settings_read_cb read_cb, void *cb_arg)` | 読み込んだ値を受け取る。`read_cb` で、値を読み出す |
+| `h_commit` | `int (*)(void)` | すべて読み込んだあとに呼ばれる。設定を反映するために使う |
+| `h_export` | `int (*)(int (*export_func)(...))` | `settings_save()` のとき、現在の設定をすべて書き出す |
+| `cprio` | `int` | コミットの優先度。小さいほど先 |
+
+注意:
+
+- このリポジトリが設定するのは、`name` と `h_set` だけ。
+
+使用箇所: [`app/common/cfg.c:445`](../../app/common/cfg.c#L445)
