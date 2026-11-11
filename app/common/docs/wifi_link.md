@@ -17,7 +17,7 @@ WiFi (ステーションモード) の接続です。アクセスポイントに
 
 | 変数 | 内容 |
 |:---|:---|
-| `ip_ready` | IPv4 アドレスを取得した状態か |
+| `is_ip_ready` | IPv4 アドレスを取得した状態か |
 | `connect_status` | 接続の結果 (0 なら成功) |
 | `result_sem` | 結果が確定したときに与えるセマフォ (最大 1) |
 
@@ -34,7 +34,7 @@ WiFi (ステーションモード) の接続です。アクセスポイントに
 
 ```text
 iface == NULL         → -ENODEV
-ip_ready              → すぐ成功 (つなぎ直さない)
+is_ip_ready              → すぐ成功 (つなぎ直さない)
 パスワードがあれば WPA/WPA2 の PSK、なければ暗号化なし。チャンネルは自動
 connect_status = 0、セマフォを空にする       ← 要求の直後にイベントが来ることがあるので、先に
 net_mgmt(NET_REQUEST_WIFI_CONNECT)            失敗 → その値
@@ -48,19 +48,19 @@ connect_status != 0                           → -ECONNREFUSED
 |:---|:---|
 | 接続の結果 (失敗) | `connect_status` に状態を入れて、セマフォを与える |
 | 接続の結果 (成功) | 何もしない (IPv4 アドレスを待つ) |
-| 切断 | `ip_ready = false` |
-| IPv4 アドレスの追加 | `connect_status = 0`、`ip_ready = true`、セマフォを与える |
+| 切断 | `is_ip_ready = false` |
+| IPv4 アドレスの追加 | `connect_status = 0`、`is_ip_ready = true`、セマフォを与える |
 
 接続の「成功」は、IPv4 アドレスを取得したときです。無線の接続だけでは、成功としません。
 
 ## wifi_link_disconnect
 
-`ip_ready = false` にして、すぐに接続していない状態にします (再接続を、すぐ始められるようにするため)。そのあと、`NET_REQUEST_WIFI_DISCONNECT` を要求します。結果は待ちません。
+`is_ip_ready = false` にして、すぐに接続していない状態にします (再接続を、すぐ始められるようにするため)。そのあと、`NET_REQUEST_WIFI_DISCONNECT` を要求します。結果は待ちません。
 
 ## 注意点
 
-- 切断を要求した直後に、すぐ接続し直すと、前の接続の切断のイベント (`NET_EVENT_WIFI_DISCONNECT_RESULT`) が、あとから届くことがあります。そのイベントは `ip_ready = false` にするので、新しい接続の IPv4 アドレスの取得の前なら問題ありませんが、あとに届くと、つながっているのに `wifi_link_is_up()` が false になります。ドライバのイベントの順序に依存します。
-- `ip_ready` と `connect_status` は `volatile` ですが、排他制御はありません。`cloud` スレッド、メインスレッド、シェルのスレッドから使います。
+- 切断を要求した直後に、すぐ接続し直すと、前の接続の切断のイベント (`NET_EVENT_WIFI_DISCONNECT_RESULT`) が、あとから届くことがあります。そのイベントは `is_ip_ready = false` にするので、新しい接続の IPv4 アドレスの取得の前なら問題ありませんが、あとに届くと、つながっているのに `wifi_link_is_up()` が false になります。ドライバのイベントの順序に依存します。
+- `is_ip_ready` と `connect_status` は `volatile` ですが、排他制御はありません。`cloud` スレッド、メインスレッド、シェルのスレッドから使います。
 - 1 つのインターフェース (`net_if_get_default()`) だけを扱います。
 - 接続のタイムアウトは `params.timeout = SYS_FOREVER_MS` で、ドライバ側では待ち続けます。呼び出し側の `timeout` が、実際の待ち時間の上限です。時間切れのあとも、接続の要求は残ります (呼び出し側が `wifi_link_disconnect()` で切る)。
 

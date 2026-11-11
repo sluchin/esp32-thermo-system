@@ -84,7 +84,7 @@ static struct fs_mount_t mount = {
     .mnt_point = MOUNT_POINT,
 };
 /** マウントしたか */
-static bool mounted;
+static bool is_mounted;
 /** ファイルにある記録の数 (上限は BACKLOG_MAX_RECORDS) */
 static unsigned int count;
 /** 次に書く物理の位置 (上限に達していなければ count と同じ. 達していれば, 最も古い記録の位置) */
@@ -105,8 +105,8 @@ static unsigned int first_pos;
 static unsigned int physical(unsigned int pos);
 static int read_slot(struct fs_file_t *file, unsigned int phys, uint8_t *buf);
 static uint32_t record_crc(const uint8_t *buf);
-static bool decode(const uint8_t *buf, struct backlog_record *rec, bool *sent);
-static void encode(uint8_t *out, const struct backlog_record *rec, bool sent);
+static bool decode(const uint8_t *buf, struct backlog_record *rec, bool *is_sent);
+static void encode(uint8_t *out, const struct backlog_record *rec, bool is_sent);
 static int open_file(struct fs_file_t *file, fs_mode_t flags);
 static void scan(unsigned int slots);
 static int write_record(struct fs_file_t *file, unsigned int phys, const uint8_t *buf);
@@ -125,7 +125,7 @@ int backlog_mount(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    if (mounted) {
+    if (is_mounted) {
         return EXIT_SUCCESS;
     }
 
@@ -134,7 +134,7 @@ int backlog_mount(void)
         LOG_ERR("Could not mount the SD card (err %d)", err);
         return -ENODEV;
     }
-    mounted = true;
+    is_mounted = true;
     /* マウントできたので, ログ (boot.log と error.log) も保存できる */
     sdlog_start();
 
@@ -188,23 +188,23 @@ int backlog_init(void)
  * その分, 未送信の数を減らす).
  *
  * @param[in] rec  測定値
- * @param[in] sent 送信済みとして保存するか (ゲートウェイに送った測定値は true)
+ * @param[in] is_sent 送信済みとして保存するか (ゲートウェイに送った測定値は true)
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODEV      SD カードを使えない
  * @retval -EINVAL      時刻が範囲の外 (0 から UINT32_MAX ではない)
  * @retval negative     ファイルの失敗 (負の errno)
  */
-int backlog_append(const struct backlog_record *rec, bool sent)
+int backlog_append(const struct backlog_record *rec, bool is_sent)
 {
-    struct fs_file_t file = {0};                      /* 記録のファイル */
-    struct backlog_record old = {0};                  /* 上書きされる記録 */
-    uint8_t buf[RECORD_SIZE] = {0U};                  /* 書き込む記録 */
-    const bool full = (count >= BACKLOG_MAX_RECORDS); /* 輪になっているか */
-    bool old_sent = true;         /* 上書きされる記録が送信済みか (読めなければ, 送信済み) */
+    struct fs_file_t file = {0};                         /* 記録のファイル */
+    struct backlog_record old = {0};                     /* 上書きされる記録 */
+    uint8_t buf[RECORD_SIZE] = {0U};                     /* 書き込む記録 */
+    const bool is_full = (count >= BACKLOG_MAX_RECORDS); /* 輪になっているか */
+    bool is_old_sent = true;      /* 上書きされる記録が送信済みか (読めなければ, 送信済み) */
     int err = EXIT_SUCCESS;       /* エラーコード */
     int close_err = EXIT_SUCCESS; /* 閉じたときのエラーコード */
 
-    if (!mounted) {
+    if (!is_mounted) {
         LOG_ERR("The SD card is not mounted");
         return -ENODEV;
     }
@@ -218,11 +218,11 @@ int backlog_append(const struct backlog_record *rec, bool sent)
         LOG_ERR("Could not open the file to append (err %d)", err);
         return err;
     }
-    if (full && (read_slot(&file, head, buf) == 0)) {
+    if (is_full && (read_slot(&file, head, buf) == 0)) {
         /* 上書きする記録が未送信かを知る (読めない, 壊れている記録は送信済みとして扱う) */
-        (void)decode(buf, &old, &old_sent);
+        (void)decode(buf, &old, &is_old_sent);
     }
-    encode(buf, rec, sent);
+    encode(buf, rec, is_sent);
     err = write_record(&file, head, buf);
     close_err = fs_close(&file);
     if (err != 0) {
@@ -234,10 +234,10 @@ int backlog_append(const struct backlog_record *rec, bool sent)
         return close_err;
     }
 
-    if (full) {
+    if (is_full) {
         /* 最も古い記録を上書きした: 論理の位置が 1 つずつ前にずれる */
         head = (head + 1U) % BACKLOG_MAX_RECORDS;
-        if (!old_sent) {
+        if (!is_old_sent) {
             pending--;
         }
         first_pos = ((first_pos > 0U) ? (first_pos - 1U) : 0U);
@@ -245,7 +245,7 @@ int backlog_append(const struct backlog_record *rec, bool sent)
         count++;
         head = ((count >= BACKLOG_MAX_RECORDS) ? 0U : count);
     }
-    if (!sent) {
+    if (!is_sent) {
         if (pending == 0U) {
             first_pos = count - 1U;
         }
@@ -281,7 +281,7 @@ int backlog_read(struct backlog_record *rec, unsigned int index)
     uint8_t buf[RECORD_SIZE] = {0U}; /* 読み出した記録 */
     unsigned int pos = first_pos;    /* 論理の位置 */
     unsigned int seen = 0U;          /* 数えた未送信の記録の数 */
-    bool sent = false;               /* 送信済みか */
+    bool is_sent = false;            /* 送信済みか */
     int err = EXIT_SUCCESS;          /* エラーコード */
 
     if (index >= pending) {
@@ -299,7 +299,7 @@ int backlog_read(struct backlog_record *rec, unsigned int index)
         if (err != 0) {
             break;
         }
-        if (decode(buf, rec, &sent) && (!sent)) {
+        if (decode(buf, rec, &is_sent) && (!is_sent)) {
             if (seen == index) {
                 (void)fs_close(&file);
                 return EXIT_SUCCESS;
@@ -331,7 +331,7 @@ int backlog_commit(unsigned int n)
     uint8_t buf[RECORD_SIZE] = {0U}; /* 読み出した記録 */
     struct backlog_record rec = {0}; /* 読み出した記録の内容 */
     unsigned int marked = 0U;        /* 送り終えたことにした数 */
-    bool sent = false;               /* 送信済みか */
+    bool is_sent = false;            /* 送信済みか */
     int err = EXIT_SUCCESS;          /* エラーコード */
 
     if (n > pending) {
@@ -352,7 +352,7 @@ int backlog_commit(unsigned int n)
         if (err != 0) {
             break;
         }
-        if (decode(buf, &rec, &sent) && (!sent)) {
+        if (decode(buf, &rec, &is_sent) && (!is_sent)) {
             err = mark_sent(&file, physical(first_pos));
             if (err != 0) {
                 break;
@@ -397,10 +397,10 @@ int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx
     unsigned int lo = 0U;            /* 探す範囲の下端 (論理の位置) */
     unsigned int hi = count;         /* 探す範囲の上端 */
     unsigned int mid = 0U;           /* 探す位置 */
-    bool sent = false;               /* 送信済みか */
+    bool is_sent = false;            /* 送信済みか */
     int err = EXIT_SUCCESS;          /* エラーコード */
 
-    if (!mounted) {
+    if (!is_mounted) {
         LOG_ERR("The SD card is not mounted");
         return -ENODEV;
     }
@@ -420,7 +420,7 @@ int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx
             break;
         }
         /* 壊れた記録は新しいものとして扱う (探す位置が早すぎるほうに寄る. 余分に渡すだけ) */
-        if ((!decode(buf, &rec, &sent)) || (since_unix_s <= rec.unix_s)) {
+        if ((!decode(buf, &rec, &is_sent)) || (since_unix_s <= rec.unix_s)) {
             hi = mid;
         } else {
             lo = mid + 1U;
@@ -428,7 +428,7 @@ int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx
     }
     for (; (err == 0) && (lo < count); lo++) {
         err = read_slot(&file, physical(lo), buf);
-        if ((err == 0) && decode(buf, &rec, &sent)) {
+        if ((err == 0) && decode(buf, &rec, &is_sent)) {
             visit(&rec, ctx);
         }
     }
@@ -488,11 +488,11 @@ static int read_slot(struct fs_file_t *file, unsigned int phys, uint8_t *buf)
  *
  * @param[in]  buf  記録 (RECORD_SIZE バイト)
  * @param[out] rec  記録の内容 (有効なときだけ)
- * @param[out] sent 送信済みか (有効なときだけ)
+ * @param[out] is_sent 送信済みか (有効なときだけ)
  * @retval true  有効な記録
  * @retval false CRC が合わない
  */
-static bool decode(const uint8_t *buf, struct backlog_record *rec, bool *sent)
+static bool decode(const uint8_t *buf, struct backlog_record *rec, bool *is_sent)
 {
     uint16_t pressure = 0U; /* ファイルの中の気圧 (PRES_NONE は気圧なし) */
 
@@ -504,7 +504,7 @@ static bool decode(const uint8_t *buf, struct backlog_record *rec, bool *sent)
     rec->temp_x10 = (int16_t)sys_get_le16(&buf[OFF_TEMP]);
     rec->humidity_x10 = sys_get_le16(&buf[OFF_HUMI]);
     rec->pressure_x10 = ((pressure == PRES_NONE) ? THERMO_PRESSURE_NONE : pressure);
-    *sent = (buf[OFF_FLAG] == FLAG_SENT);
+    *is_sent = (buf[OFF_FLAG] == FLAG_SENT);
 
     return true;
 }
@@ -536,14 +536,14 @@ static uint32_t record_crc(const uint8_t *buf)
  *
  * @param[out] out  書き込み先 (RECORD_SIZE バイト)
  * @param[in]  rec  記録
- * @param[in]  sent 送信済みか
+ * @param[in]  is_sent 送信済みか
  */
-static void encode(uint8_t *out, const struct backlog_record *rec, bool sent)
+static void encode(uint8_t *out, const struct backlog_record *rec, bool is_sent)
 {
     sys_put_le32((uint32_t)rec->unix_s, &out[OFF_UNIX]);
     sys_put_le16((uint16_t)rec->temp_x10, &out[OFF_TEMP]);
     sys_put_le16(rec->humidity_x10, &out[OFF_HUMI]);
-    out[OFF_FLAG] = (sent ? FLAG_SENT : 0U);
+    out[OFF_FLAG] = (is_sent ? FLAG_SENT : 0U);
     sys_put_le16(((rec->pressure_x10 == THERMO_PRESSURE_NONE) ? PRES_NONE : rec->pressure_x10),
                  &out[OFF_PRES]);
     out[OFF_RSVD] = 0U;
@@ -590,7 +590,7 @@ static void scan(unsigned int slots)
     unsigned int got = 0U;                        /* 読めた記録の数 */
     unsigned int i = 0U;                          /* 読めた記録の中の位置 */
     ssize_t n = 0;                                /* 読めたバイト数 */
-    bool sent = false;                            /* 送信済みか */
+    bool is_sent = false;                         /* 送信済みか */
 
     if ((slots == 0U) || (open_file(&file, FS_O_READ) != 0)) {
         return;
@@ -607,18 +607,18 @@ static void scan(unsigned int slots)
         got = (unsigned int)n / RECORD_SIZE;
         for (i = 0U; i < got; i++, phys++) {
             count++;
-            if (!decode(&buf[i * RECORD_SIZE], &rec, &sent)) {
+            if (!decode(&buf[i * RECORD_SIZE], &rec, &is_sent)) {
                 continue;
             }
             if (newest <= rec.unix_s) {
                 newest = rec.unix_s;
                 newest_phys = phys;
             }
-            if ((!sent) && ((oldest_unsent < 0) || (rec.unix_s < oldest_unsent))) {
+            if ((!is_sent) && ((oldest_unsent < 0) || (rec.unix_s < oldest_unsent))) {
                 oldest_unsent = rec.unix_s;
                 unsent_phys = phys;
             }
-            if (!sent) {
+            if (!is_sent) {
                 pending++;
             }
         }

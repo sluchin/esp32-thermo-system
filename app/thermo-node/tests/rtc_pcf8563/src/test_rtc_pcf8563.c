@@ -66,10 +66,10 @@ static unsigned int fail_at;
 static int fake_transfer(const struct device *dev, struct i2c_msg *msgs, uint8_t num_msgs,
                          uint16_t addr)
 {
-    unsigned int ptr = 0U; /* レジスタのアドレス */
-    bool have_ptr = false; /* アドレスを設定済みか */
-    uint8_t i = 0U;        /* メッセージの番号 */
-    uint32_t j = 0U;       /* メッセージの中のバイトの位置 */
+    unsigned int ptr = 0U;   /* レジスタのアドレス */
+    bool is_ptr_set = false; /* アドレスを設定済みか */
+    uint8_t i = 0U;          /* メッセージの番号 */
+    uint32_t j = 0U;         /* メッセージの中のバイトの位置 */
 
     ARG_UNUSED(dev);
     transfers++;
@@ -82,9 +82,9 @@ static int fake_transfer(const struct device *dev, struct i2c_msg *msgs, uint8_t
             if ((msgs[i].flags & I2C_MSG_READ) != 0U) {
                 msgs[i].buf[j] = regs[ptr % REG_COUNT];
                 ptr++;
-            } else if (!have_ptr) {
+            } else if (!is_ptr_set) {
                 ptr = msgs[i].buf[j];
-                have_ptr = true;
+                is_ptr_set = true;
             } else {
                 regs[ptr % REG_COUNT] = msgs[i].buf[j];
                 ptr++;

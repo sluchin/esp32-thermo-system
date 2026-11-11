@@ -10,7 +10,7 @@
  *
  * GPIO のコントローラを偽のもの (vnd,test-gpio) に置き換えて, 次を確認する.
  *  - button_init() がピンを入力に設定して, 失敗を返すこと
- *  - button_pressed() が押されていない状態から, 押された状態に変わったときだけ, true を返すこと
+ *  - button_is_pressed() が押されていない状態から, 押された状態に変わったときだけ, true を返すこと
  *    (押し続けても 1 回. 起動のときに押されていても, 押された動作ではない)
  */
 
@@ -134,19 +134,19 @@ ZTEST(button, test_init_configure_failure)
 ZTEST(button, test_pressed_detects_edge_once)
 {
     zassert_equal(button_init(), EXIT_SUCCESS);
-    zassert_false(button_pressed());
+    zassert_false(button_is_pressed());
 
     port_level = LEVEL_DOWN;
-    zassert_true(button_pressed());
+    zassert_true(button_is_pressed());
     /* 押し続けている間は押された動作ではない */
-    zassert_false(button_pressed());
-    zassert_false(button_pressed());
+    zassert_false(button_is_pressed());
+    zassert_false(button_is_pressed());
 
     port_level = LEVEL_UP;
-    zassert_false(button_pressed());
+    zassert_false(button_is_pressed());
 
     port_level = LEVEL_DOWN;
-    zassert_true(button_pressed());
+    zassert_true(button_is_pressed());
 }
 
 /** 起動のときに押されていても (初期化のとき), それは押された動作ではない */
@@ -154,12 +154,12 @@ ZTEST(button, test_held_at_init_is_not_a_press)
 {
     port_level = LEVEL_DOWN;
     zassert_equal(button_init(), EXIT_SUCCESS);
-    zassert_false(button_pressed());
+    zassert_false(button_is_pressed());
 
     port_level = LEVEL_UP;
-    zassert_false(button_pressed());
+    zassert_false(button_is_pressed());
     port_level = LEVEL_DOWN;
-    zassert_true(button_pressed());
+    zassert_true(button_is_pressed());
 }
 
 ZTEST_SUITE(button, NULL, NULL, before, NULL, NULL);

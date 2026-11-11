@@ -191,7 +191,7 @@ static ssize_t fake_attr_read(struct bt_conn *conn, const struct bt_gatt_attr *a
  * @param[in] expected 期待する値 (16 byte)
  * @return 同じなら true
  */
-static bool uuid128_equals(const struct bt_uuid *uuid, const uint8_t *expected)
+static bool uuid128_is_equal(const struct bt_uuid *uuid, const uint8_t *expected)
 {
     return (uuid->type == BT_UUID_TYPE_128) && (memcmp(BT_UUID_128(uuid)->val, expected, 16U) == 0);
 }
@@ -333,15 +333,15 @@ ZTEST(ble_node, test_service_attributes)
     /* 0: プライマリサービス (Thermo サービスの UUID) */
     zassert_equal(attrs[0].uuid->type, BT_UUID_TYPE_16);
     zassert_equal(BT_UUID_16(attrs[0].uuid)->val, BT_UUID_GATT_PRIMARY_VAL);
-    zassert_true(uuid128_equals((const struct bt_uuid *)attrs[0].user_data, service_uuid));
+    zassert_true(uuid128_is_equal((const struct bt_uuid *)attrs[0].user_data, service_uuid));
 
     /* 1: 特性の宣言 (読み取りと通知. 温度の特性の UUID) */
     zassert_equal(BT_UUID_16(attrs[1].uuid)->val, BT_UUID_GATT_CHRC_VAL);
     zassert_equal(chrc->properties, (BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY));
-    zassert_true(uuid128_equals(chrc->uuid, temperature_uuid));
+    zassert_true(uuid128_is_equal(chrc->uuid, temperature_uuid));
 
     /* 2: 特性の値 (読み取りだけ許可する) */
-    zassert_true(uuid128_equals(attrs[ATTR_VALUE].uuid, temperature_uuid));
+    zassert_true(uuid128_is_equal(attrs[ATTR_VALUE].uuid, temperature_uuid));
     zassert_equal(attrs[ATTR_VALUE].perm, BT_GATT_PERM_READ);
     zassert_not_null(attrs[ATTR_VALUE].read);
 
@@ -570,8 +570,8 @@ ZTEST(ble_node, test_time_attributes)
     zassert_equal(service->attr_count, ATTR_COUNT);
     zassert_equal(BT_UUID_16(attrs[ATTR_TIME_DECL].uuid)->val, BT_UUID_GATT_CHRC_VAL);
     zassert_equal(chrc->properties, BT_GATT_CHRC_WRITE);
-    zassert_true(uuid128_equals(chrc->uuid, time_uuid));
-    zassert_true(uuid128_equals(attrs[ATTR_TIME_VALUE].uuid, time_uuid));
+    zassert_true(uuid128_is_equal(chrc->uuid, time_uuid));
+    zassert_true(uuid128_is_equal(attrs[ATTR_TIME_VALUE].uuid, time_uuid));
     zassert_equal(attrs[ATTR_TIME_VALUE].perm, BT_GATT_PERM_WRITE);
     zassert_is_null(attrs[ATTR_TIME_VALUE].read);
     zassert_not_null(attrs[ATTR_TIME_VALUE].write);

@@ -43,10 +43,10 @@
 /** 機器ごとの記録 */
 struct sb_device {
     bt_addr_le_t addr; /**< アドレス */
-    bool used;         /**< 使っているか */
+    bool is_used;      /**< 使っているか */
     uint8_t model;     /**< 機種コード (サービスデータを受け取るまでは 0) */
     int8_t battery;    /**< 電池残量 [%]. わからなければ SWITCHBOT_BATTERY_UNKNOWN */
-    bool reported;     /**< 1 回でも送信する値を返したか */
+    bool is_reported;  /**< 1 回でも送信する値を返したか */
     uint32_t last_ms;  /**< 最後に送信する値を返した時刻 [ms] */
 };
 
@@ -116,11 +116,11 @@ bool switchbot_accept(const bt_addr_le_t *addr, const struct switchbot_ad *ad, u
     }
 
     /* 前回の送信から, 間隔がたっていなければ, 送らない (最初の 1 回はすぐ送る) */
-    if (dev->reported && ((now_ms - dev->last_ms) < (uint32_t)INTERVAL_MS)) {
+    if (dev->is_reported && ((now_ms - dev->last_ms) < (uint32_t)INTERVAL_MS)) {
         return false;
     }
 
-    dev->reported = true;
+    dev->is_reported = true;
     dev->last_ms = now_ms;
     out->temp_x10 = ad->temp_x10;
     out->humidity = ad->humidity;
@@ -205,10 +205,10 @@ static struct sb_device *find_device(const bt_addr_le_t *addr)
     size_t i = 0U;                      /* ループ用の添字 */
 
     for (i = 0U; i < ARRAY_SIZE(devices); i++) {
-        if (devices[i].used && bt_addr_le_eq(&devices[i].addr, addr)) {
+        if (devices[i].is_used && bt_addr_le_eq(&devices[i].addr, addr)) {
             return &devices[i];
         }
-        if (!devices[i].used && (free_slot == NULL)) {
+        if (!devices[i].is_used && (free_slot == NULL)) {
             free_slot = &devices[i];
         }
     }
@@ -216,7 +216,7 @@ static struct sb_device *find_device(const bt_addr_le_t *addr)
     if (free_slot != NULL) {
         (void)memset(free_slot, 0, sizeof(*free_slot));
         bt_addr_le_copy(&free_slot->addr, addr);
-        free_slot->used = true;
+        free_slot->is_used = true;
         free_slot->battery = SWITCHBOT_BATTERY_UNKNOWN;
     }
 

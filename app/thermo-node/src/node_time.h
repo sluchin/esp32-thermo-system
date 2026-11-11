@@ -21,7 +21,7 @@
 
 /** 日時 (ローカルタイム) */
 struct node_datetime {
-    bool valid;     /**< 時刻が設定済みで, 正しく読めたか (false のときは下の値を使わない) */
+    bool is_valid;  /**< 時刻が設定済みで, 正しく読めたか (false のときは下の値を使わない) */
     uint16_t year;  /**< 年 (2000 から 2100) */
     uint8_t month;  /**< 月 (1 から 12) */
     uint8_t day;    /**< 日 (1 から 31) */

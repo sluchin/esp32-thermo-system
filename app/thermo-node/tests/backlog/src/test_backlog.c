@@ -64,16 +64,16 @@ static struct backlog_record rec(unsigned int n)
  *
  * @param[in] first 最初の番号
  * @param[in] count 数
- * @param[in] sent  送信済みとして保存するか
+ * @param[in] is_sent  送信済みとして保存するか
  */
-static void append_n(unsigned int first, unsigned int count, bool sent)
+static void append_n(unsigned int first, unsigned int count, bool is_sent)
 {
     unsigned int i = 0U; /* ループ用の添字 */
 
     for (i = 0U; i < count; i++) {
         struct backlog_record r = rec(first + i); /* 記録 */
 
-        zassert_equal(backlog_append(&r, sent), EXIT_SUCCESS);
+        zassert_equal(backlog_append(&r, is_sent), EXIT_SUCCESS);
     }
 }
 

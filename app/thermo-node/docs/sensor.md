@@ -27,7 +27,7 @@
 
 `device_is_ready()` でセンサを確認します。使えなければ `-ENODEV`。
 
-気圧のセンサ (`HAVE_PRESSURE`) は、`device_is_ready()` の結果を `pressure_ready` に残すだけです。使えなくても、警告 (`Pressure sensor is not ready, measuring without the pressure`) を出して、成功にします (温度と湿度は測る)。BMP280 の I2C のアドレスが違うとき (0x76) などです。
+気圧のセンサ (`HAVE_PRESSURE`) は、`device_is_ready()` の結果を `is_pressure_ready` に残すだけです。使えなくても、警告 (`Pressure sensor is not ready, measuring without the pressure`) を出して、成功にします (温度と湿度は測る)。BMP280 の I2C のアドレスが違うとき (0x76) などです。
 
 ### sensor_read
 
@@ -45,7 +45,7 @@ sensor_channel_get(SENSOR_CHAN_HUMIDITY)
 ### read_pressure
 
 ```text
-pressure_ready でない                            → 気圧なし
+is_pressure_ready でない                            → 気圧なし
 sensor_sample_fetch(pressure_dev)                 失敗 → 気圧なし (LOG_ERR)
 sensor_channel_get(SENSOR_CHAN_PRESS)             失敗 → 気圧なし (LOG_ERR)
 Pa = sensor_value_to_milli(...)                   ← SENSOR_CHAN_PRESS の単位は kPa。ミリ単位で Pa

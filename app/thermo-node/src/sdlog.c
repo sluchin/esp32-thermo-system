@@ -72,9 +72,9 @@ static atomic_t boot_dropped;
 /** エラーのログで, 溜められずに捨てたバイト数 */
 static atomic_t error_dropped;
 /** SD カードが使えるか (sdlog_start() で true. 書き込みの失敗で false) */
-static bool ready;
+static bool is_ready;
 /** 起動のログのファイルを作り直したか (作り直したあとは追記する) */
-static bool boot_created;
+static bool is_boot_created;
 
 static int boot_out(uint8_t *data, size_t length, void *ctx);
 static int error_out(uint8_t *data, size_t length, void *ctx);
@@ -111,7 +111,7 @@ LOG_BACKEND_DEFINE(sdlog_backend, sdlog_api, true);
  */
 void sdlog_start(void)
 {
-    ready = true;
+    is_ready = true;
 }
 
 /**
@@ -125,7 +125,7 @@ void sdlog_flush(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    if (!ready) {
+    if (!is_ready) {
         return;
     }
 
@@ -134,7 +134,7 @@ void sdlog_flush(void)
         err = flush_error();
     }
     if (err != EXIT_SUCCESS) {
-        ready = false;
+        is_ready = false;
         LOG_WRN("Could not write the log to the SD card (err %d), stop saving", err);
         return;
     }
@@ -279,9 +279,9 @@ static int flush_boot(void)
     if (ring_buf_is_empty(&sdlog_boot_ring)) {
         return EXIT_SUCCESS;
     }
-    err = write_ring(BOOT_PATH, &sdlog_boot_ring, (boot_created ? FS_O_APPEND : FS_O_TRUNC));
+    err = write_ring(BOOT_PATH, &sdlog_boot_ring, (is_boot_created ? FS_O_APPEND : FS_O_TRUNC));
     if (err == EXIT_SUCCESS) {
-        boot_created = true;
+        is_boot_created = true;
     }
 
     return err;

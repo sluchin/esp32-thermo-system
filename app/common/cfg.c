@@ -77,7 +77,7 @@ static char backup_ssid[CFG_SSID_MAX + 1U];
 /** テザリングに切り替える前のパスワード (NUL で終わる) */
 static char backup_psk[CFG_PSK_MAX + 1U];
 /** テザリングに切り替える前の設定が保存されているか */
-static bool backup_present;
+static bool is_backup_present;
 
 /** 証明書をフラッシュに保存するときの一時的な領域 (最も大きい証明書が入る大きさ) */
 static uint8_t save_buf[CFG_KEY_PEM_MAX];
@@ -353,7 +353,7 @@ int cfg_tether(const char *ssid, const char *psk)
         return -EINVAL;
     }
 
-    if (!backup_present) {
+    if (!is_backup_present) {
         old_len = strnlen(values[CFG_KEY_SSID], CFG_SSID_MAX);
         psk_len = strnlen(values[CFG_KEY_PSK], CFG_PSK_MAX);
         (void)memcpy(blob, values[CFG_KEY_SSID], old_len + 1U);
@@ -367,7 +367,7 @@ int cfg_tether(const char *ssid, const char *psk)
         }
         (void)memcpy(backup_ssid, values[CFG_KEY_SSID], old_len + 1U);
         (void)memcpy(backup_psk, values[CFG_KEY_PSK], psk_len + 1U);
-        backup_present = true;
+        is_backup_present = true;
     }
 
     err = cfg_set(CFG_KEY_SSID, ssid);
@@ -393,7 +393,7 @@ int cfg_restore(void)
     char name[SETTINGS_NAME_SIZE] = {0}; /* settings の名前 */
     int err = EXIT_SUCCESS;              /* エラーコード */
 
-    if (!backup_present) {
+    if (!is_backup_present) {
         LOG_ERR("No backup of the WiFi settings");
         return -ENOENT;
     }
@@ -428,7 +428,7 @@ int cfg_restore(void)
  */
 bool cfg_has_backup(void)
 {
-    return backup_present;
+    return is_backup_present;
 }
 
 /**
@@ -536,7 +536,7 @@ static void clear_backup(void)
 {
     backup_ssid[0] = '\0';
     backup_psk[0] = '\0';
-    backup_present = false;
+    is_backup_present = false;
 }
 
 /**
@@ -579,7 +579,7 @@ static void load_backup(size_t len, settings_read_cb read_cb, void *cb_arg)
 
     (void)memcpy(backup_ssid, blob, ssid_len + 1U);
     (void)memcpy(backup_psk, &blob[ssid_len + 1U], psk_len + 1U);
-    backup_present = true;
+    is_backup_present = true;
 }
 
 /**

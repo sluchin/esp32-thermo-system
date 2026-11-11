@@ -187,7 +187,7 @@ ZTEST(node_time, test_get_local_time)
     struct node_datetime local = {0}; /* 日時 */
 
     zassert_equal(node_time_get(&local), EXIT_SUCCESS);
-    zassert_true(local.valid);
+    zassert_true(local.is_valid);
     zassert_equal(local.year, 2026U);
     zassert_equal(local.month, 10U);
     zassert_equal(local.day, 8U);
@@ -224,24 +224,24 @@ ZTEST(node_time, test_get_leap_day)
     zassert_equal(local.hour, 9U);
 }
 
-/** 時刻が未設定 (-ENODATA) なら, その値を返し, valid を false にする */
+/** 時刻が未設定 (-ENODATA) なら, その値を返し, is_valid を false にする */
 ZTEST(node_time, test_get_time_unset)
 {
-    struct node_datetime local = {.valid = true}; /* 日時 (valid を関数が false にすること) */
+    struct node_datetime local = {.is_valid = true}; /* 日時 (is_valid を関数が false にすること) */
 
     get_ret = -ENODATA;
     zassert_equal(node_time_get(&local), -ENODATA);
-    zassert_false(local.valid);
+    zassert_false(local.is_valid);
 }
 
-/** RTC と通信できなければ, その値を返し, valid を false にする */
+/** RTC と通信できなければ, その値を返し, is_valid を false にする */
 ZTEST(node_time, test_get_rtc_failure)
 {
-    struct node_datetime local = {.valid = true}; /* 日時 (valid を関数が false にすること) */
+    struct node_datetime local = {.is_valid = true}; /* 日時 (is_valid を関数が false にすること) */
 
     get_ret = -EIO;
     zassert_equal(node_time_get(&local), -EIO);
-    zassert_false(local.valid);
+    zassert_false(local.is_valid);
 }
 
 /** UTC の UNIX 時刻で読める (RTC の時刻そのまま. ローカルタイムの換算はしない) */

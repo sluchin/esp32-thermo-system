@@ -571,7 +571,7 @@ static void time_work_handler(struct k_work *work)
     int64_t unix_s = 0;              /* 書き込む UTC の UNIX 時刻 [s] */
     int64_t now_ms = k_uptime_get(); /* 今の稼働時間 [ms] */
     int source_err = -EAGAIN;        /* 時刻を得る関数の結果 */
-    bool waiting = false;            /* 時刻を書き込む対象のノードがあるか */
+    bool is_waiting = false;         /* 時刻を書き込む対象のノードがあるか */
     unsigned int i = 0U;             /* ループ用の添字 */
 
     ARG_UNUSED(work);
@@ -582,14 +582,14 @@ static void time_work_handler(struct k_work *work)
 
     for (i = 0U; i < MAX_NODES; i++) {
         if ((nodes[i].conn != NULL) && (nodes[i].time_handle != 0U)) {
-            waiting = true;
+            is_waiting = true;
             if ((source_err == EXIT_SUCCESS) && (now_ms >= nodes[i].time_due_ms)) {
                 write_time(&nodes[i], unix_s, now_ms);
             }
         }
     }
 
-    if (waiting) {
+    if (is_waiting) {
         (void)k_work_reschedule(&time_work, K_SECONDS(TIME_CHECK_S));
     }
 }

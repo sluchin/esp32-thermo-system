@@ -57,7 +57,7 @@ static unsigned int store_count;
 /** RTC の UNIX 時刻 [s] */
 static int64_t rtc_unix_s;
 /** RTC に時刻があるか */
-static bool rtc_ok;
+static bool is_rtc_ok;
 /** backlog_foreach_since() の戻り値 (記録を渡したあとに返す) */
 static int foreach_result;
 
@@ -65,12 +65,12 @@ static int foreach_result;
  * node_time_unix() のモック動作
  *
  * @param[out] unix_s UNIX 時刻 [s]
- * @return rtc_ok なら EXIT_SUCCESS, でなければ -ENODATA
+ * @return is_rtc_ok なら EXIT_SUCCESS, でなければ -ENODATA
  */
 static int fake_node_time_unix(int64_t *unix_s)
 {
     *unix_s = rtc_unix_s;
-    if (!rtc_ok) {
+    if (!is_rtc_ok) {
         return -ENODATA;
     }
 
@@ -138,7 +138,7 @@ static void before(void *fixture)
     (void)memset(store, 0, sizeof(store));
     store_count = 0U;
     rtc_unix_s = 1000045;
-    rtc_ok = true;
+    is_rtc_ok = true;
     foreach_result = EXIT_SUCCESS;
     history_store_reset();
 }
@@ -159,13 +159,13 @@ ZTEST_SUITE(history_store, NULL, NULL, before, NULL, NULL);
 ZTEST(history_store, test_waits_for_rtc_then_restores_once)
 {
     put(1000000, 200, 450U);
-    rtc_ok = false;
+    is_rtc_ok = false;
 
     first_sample();
     first_sample();
     zassert_equal(backlog_foreach_since_fake.call_count, 0U);
 
-    rtc_ok = true;
+    is_rtc_ok = true;
     (void)memset(&temp_h, 0, sizeof(temp_h));
     (void)memset(&humi_h, 0, sizeof(humi_h));
     first_sample();

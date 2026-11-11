@@ -24,7 +24,7 @@
 
 #include "switchbot_sample.h"
 
-int cloud_init(bool start_enabled);
+int cloud_init(bool is_start_enabled);
 
 int cloud_publish_temperature(const bt_addr_le_t *addr, int16_t temp_x10, uint16_t humidity_x10,
                               uint16_t pressure_x10);
@@ -34,7 +34,7 @@ int cloud_publish_temperature_at(const bt_addr_le_t *addr, int16_t temp_x10, uin
 
 int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sample *sample);
 
-void cloud_set_enabled(bool enabled);
+void cloud_set_enabled(bool is_enabled);
 
 void cloud_set_attempt_limit(unsigned int max_attempts);
 

@@ -16,12 +16,12 @@
 |:---|:---|:---|
 | 高 | **publish の送信成功で「送信済み」にする。** `sent_count` は `mqtt_publish()` が成功した時点で増える。PUBACK は待たない。直後に接続が切れると、ブローカーに届いていない値が、SD カードで送信済みになる | `cloud.c`、`direct.c` |
 | 高 | **publish に失敗した値は失われる。** キューから取り出したあとで失敗するので、値は戻らない。セッションは終わり、再接続する | `cloud.c` |
-| 中 | **ログの保存が止まったあと、再開できない。** `sdlog.c` が書き込みに失敗すると、`ready` が false になる。再開は `sdlog_start()` だけ。`backlog_ready` が true のままだと、`thermo sd` は `backlog_init()` を呼ばないので、再起動するまで再開しない | `sdlog.c`、`direct.c` |
+| 中 | **ログの保存が止まったあと、再開できない。** `sdlog.c` が書き込みに失敗すると、`ready` が false になる。再開は `sdlog_start()` だけ。`is_backlog_ready` が true のままだと、`thermo sd` は `backlog_init()` を呼ばないので、再起動するまで再開しない | `sdlog.c`、`direct.c` |
 | 中 | **溜めた記録を送る速さの上限。** `flush_backlog()` は 5 秒に 1 回、キューが 4 件になるまで入れる。最大で 5 秒に 4 件。1 時間分 (720 件) で約 15 分かかる | `direct.c` |
-| 中 | **`direct_init()` の失敗は、保存を黙って止める。** アドレスの取得、`cloud_init()` の失敗で、`addr_ready` が false のままになり、`direct_sample()` は何もしない。SD カードがマウントできていても、保存しない。`thermo sd` が警告する。過去には `cfg_init()` の `-EEXIST` が原因だった | `direct.c` |
+| 中 | **`direct_init()` の失敗は、保存を黙って止める。** アドレスの取得、`cloud_init()` の失敗で、`is_addr_ready` が false のままになり、`direct_sample()` は何もしない。SD カードがマウントできていても、保存しない。`thermo sd` が警告する。過去には `cfg_init()` の `-EEXIST` が原因だった | `direct.c` |
 | 中 | **RTC の時刻が戻ると、二分探索がずれる。** `backlog_foreach_since()` は、記録が時刻順であることに頼る。ゲートウェイが 1 時間ごとに書く時刻が、RTC より遅いと、時刻が戻る | `backlog.c`、`node_time.c` |
 | 中 | **グラフの復元の範囲。** 区切りの境界は、稼働時間と UNIX 時刻で、最大 1 区切り (既定 170 秒) ずれる。RTC に時刻が入るのが、最初の区切りより遅いと、復元しない | `history_store.c` |
-| 中 | **WiFi の切断のイベントの順序。** 切断を要求した直後に接続し直すと、前の切断のイベントが後から届いて、`ip_ready` を false にする可能性がある | `wifi_link.c` |
+| 中 | **WiFi の切断のイベントの順序。** 切断を要求した直後に接続し直すと、前の切断のイベントが後から届いて、`is_ip_ready` を false にする可能性がある | `wifi_link.c` |
 | 中 | **メインループが止まる。** `wifi_time_fetch()` は最大約 25 秒 (名前解決を除く)、戻らない。その間、ボタン、測定、通知、OLED が止まる。時刻がないときの、1 分に 1 回、最大 5 回 | `main.c`、`wifi_time.c` |
 | 中 | **`cloud_set_enabled(true)` はキューを空にする。** ノードが WiFi を始める前に積んだ値は、捨てられる | `cloud.c` |
 | 中 | **ノードは、ゲートウェイとスマートフォンに、同時につながれない。** `CONFIG_BT_MAX_CONN=1`。2 にすると、BLE のヒープが増えて、WiFi と TLS のぶんが足りなくなり、直接の送信が届かない (実機で確認。RAM は 99.9% 使われている)。thermo-term の BLE のタブを使うときは、ゲートウェイを止める | `thermo-node/prj.conf` |
@@ -66,8 +66,8 @@
 | `nodes[]`、`pending_*` (ゲートウェイの BLE) | Bluetooth、システムのワークキュー |
 | `connection_count` (ノードの BLE) | Bluetooth、メイン |
 | `cfg.c` の `values[]` | シェル、メイン、`cloud` |
-| `cloud.c` の `mqtt_up` など | Bluetooth、メイン、シェル、`cloud` |
-| `wifi_link.c` の `ip_ready` | `cloud`、メイン、シェル、ネットワークのスレッド |
+| `cloud.c` の `is_mqtt_up` など | Bluetooth、メイン、シェル、`cloud` |
+| `wifi_link.c` の `is_ip_ready` | `cloud`、メイン、シェル、ネットワークのスレッド |
 | `buzzer.c` の `playing` など | メイン、システムのワークキュー |
 
 ## 修正済み

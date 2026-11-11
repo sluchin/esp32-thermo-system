@@ -146,9 +146,9 @@ static unsigned int end_after_live_calls;
 /** mqtt_live() の戻り値 (接続を終わらせる回以外) */
 static int live_return;
 /** 接続を終わらせる回に, cloud_reconnect() の代わりに, cloud_set_enabled(false) を呼ぶか */
-static bool disable_at_end;
+static bool is_disable_at_end;
 /** 接続中の処理の途中で, cloud_is_connected() が true だったか */
-static bool connected_seen;
+static bool is_connected_seen;
 
 /**
  * cfg_get() のモック動作
@@ -301,9 +301,9 @@ static int fake_mqtt_live(struct mqtt_client *client)
 {
     ARG_UNUSED(client);
     live_calls++;
-    connected_seen = connected_seen || cloud_is_connected();
+    is_connected_seen = is_connected_seen || cloud_is_connected();
     if (live_calls >= end_after_live_calls) {
-        if (disable_at_end) {
+        if (is_disable_at_end) {
             cloud_set_enabled(false);
         } else {
             cloud_reconnect();
@@ -365,8 +365,8 @@ static void setup_defaults(void)
     live_calls = 0U;
     end_after_live_calls = 1U;
     live_return = -EAGAIN;
-    disable_at_end = false;
-    connected_seen = false;
+    is_disable_at_end = false;
+    is_connected_seen = false;
     (void)memset(published, 0, sizeof(published));
 }
 
@@ -1085,7 +1085,7 @@ ZTEST(cloud, test_no_limit_never_gives_up)
 /** 接続中に止めると, 接続中の処理を終えて (MQTT を閉じて), WiFi を切る */
 ZTEST(cloud, test_disable_ends_the_session)
 {
-    disable_at_end = true;
+    is_disable_at_end = true;
 
     zassert_equal(cloud_step(), EXIT_SUCCESS);
 
@@ -1109,7 +1109,7 @@ ZTEST(cloud, test_publish_at_uses_the_given_time)
     zassert_not_null(strstr(published[0].payload, "\"timestamp\":1700000000"));
     zassert_equal(cloud_sent_count(), before_count + 1U);
     zassert_equal(cloud_pending(), 0U);
-    zassert_true(connected_seen);
+    zassert_true(is_connected_seen);
 }
 
 /**

@@ -51,11 +51,11 @@ LOG_MODULE_REGISTER(thermo_node, THERMO_LOG_LEVEL);
 
 /** 任意の機器 (RTC, OLED, ボタン) を使えるか. 初期化に失敗した機器は一定間隔で, 再試行する */
 struct optional_devices {
-    bool rtc_ready;     /**< RTC を使えるか */
-    bool display_ready; /**< OLED を使えるか */
-    bool button_ready;  /**< ボタンを使えるか */
-    bool buzzer_ready;  /**< ブザーを使えるか */
-    bool wifi_ready;    /**< WiFi (時刻の取得) を使えるか */
+    bool is_rtc_ready;     /**< RTC を使えるか */
+    bool is_display_ready; /**< OLED を使えるか */
+    bool is_button_ready;  /**< ボタンを使えるか */
+    bool is_buzzer_ready;  /**< ブザーを使えるか */
+    bool is_wifi_ready;    /**< WiFi (時刻の取得) を使えるか */
 };
 
 static void log_sample(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10);
@@ -63,7 +63,7 @@ static void log_sample(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressur
 static void init_optional(struct optional_devices *devs);
 
 #ifdef CONFIG_THERMO_DISPLAY
-static bool set_display_power(bool on);
+static bool set_display_power(bool is_on);
 #endif
 
 static void boot_sequence(const struct optional_devices *devs);
@@ -73,11 +73,11 @@ static int measure(int16_t *temp_x10, uint16_t *humidity_x10, uint16_t *pressure
 static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_ms);
 
 #ifdef CONFIG_THERMO_WIFI_TIME
-static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries);
+static bool check_time(bool is_time_valid, bool is_wifi_ready, unsigned int *tries);
 #endif
 
 #ifdef CONFIG_THERMO_BUTTON_SOUND
-static void play_button_sound(bool buzzer_ready);
+static void play_button_sound(bool is_buzzer_ready);
 #endif
 
 /** 温度を測定する間隔 [ms] */
@@ -95,7 +95,7 @@ static void play_button_sound(bool buzzer_ready);
 #ifdef CONFIG_THERMO_WIFI_TIME
 #ifdef CONFIG_THERMO_DIRECT_MQTT
 /** WiFi での直接の送信を動かしているか (動かしている間は WiFi を時刻の取得に使わない) */
-#define DIRECT_BUSY() direct_active()
+#define DIRECT_BUSY() direct_is_active()
 #else
 /** WiFi での直接の送信を使わないビルドでは動かしていない */
 #define DIRECT_BUSY() false
@@ -160,15 +160,15 @@ int main(void)
 #ifdef CONFIG_THERMO_WIFI_TIME
     int64_t next_time_check_ms = 0; /* 次に RTC の時刻を確かめる稼働時間 [ms] */
     unsigned int wifi_tries = 0U;   /* WiFi で時刻を取ろうとした回数 */
-    bool time_done = false;         /* 時刻の確認を終えたか (時刻がある, または試みを尽くした) */
+    bool is_time_done = false;      /* 時刻の確認を終えたか (時刻がある, または試みを尽くした) */
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
     struct history temp_history = {0};     /* 温度の履歴 */
     struct history humidity_history = {0}; /* 湿度の履歴 */
     struct oled_view view = {0};           /* OLED に表示する内容 */
-    bool display_on = false;               /* OLED が点灯しているか */
+    bool is_display_on = false;            /* OLED が点灯しているか */
     int64_t display_off_ms = 0;            /* OLED を消す稼働時間 [ms] */
-    bool had_display = false;              /* やり直しの前に, OLED を使えたか */
+    bool is_prev_display = false;          /* やり直しの前に, OLED を使えたか */
 #endif
 
 #ifdef CONFIG_THERMO_DIRECT_MQTT
@@ -229,7 +229,7 @@ int main(void)
     LOG_INF("Boot screen ended (uptime %lld ms)", (long long)k_uptime_get());
 #if defined(CONFIG_THERMO_DISPLAY) && defined(CONFIG_THERMO_RTC)
     /* 時刻をすぐ見られるよう, 時間のかかる処理の前に, 1 回表示する (測定値はまだない) */
-    if (devs.display_ready && devs.rtc_ready) {
+    if (devs.is_display_ready && devs.is_rtc_ready) {
         (void)node_time_get(&datetime);
         view.time = &datetime;
         ret = oled_show(&view);
@@ -260,7 +260,7 @@ int main(void)
     view.temp_history = &temp_history;
     view.humidity_history = &humidity_history;
     /* OLED は起動画面から点灯していて, ボタンを押さずに DISPLAY_TIMEOUT_MS たつと消える */
-    display_on = devs.display_ready;
+    is_display_on = devs.is_display_ready;
     display_off_ms = start_ms + DISPLAY_TIMEOUT_MS;
 #endif
 
@@ -297,24 +297,24 @@ int main(void)
 #ifdef CONFIG_THERMO_DISPLAY
         /* ボタンが押されたら, 次のページにして, すぐに表示し直す (消えている OLED は点灯するだけ)
          */
-        if (devs.button_ready && button_pressed()) {
-            if (display_on || (!devs.display_ready)) {
+        if (devs.is_button_ready && button_is_pressed()) {
+            if (is_display_on || (!devs.is_display_ready)) {
                 view.page = (view.page + 1U) % OLED_PAGE_COUNT;
 #ifdef CONFIG_THERMO_BUTTON_SOUND
-                play_button_sound(devs.buzzer_ready);
+                play_button_sound(devs.is_buzzer_ready);
 #endif
             } else {
                 /* 点灯のための押下では音を鳴らさない */
-                display_on = set_display_power(true);
+                is_display_on = set_display_power(true);
             }
             display_off_ms = now_ms + DISPLAY_TIMEOUT_MS;
             next_redraw_ms = now_ms;
         }
 
         /* ボタンを押さずに DISPLAY_TIMEOUT_MS たったら, OLED を消す (0 のときは消さない) */
-        if ((DISPLAY_TIMEOUT_MS > 0) && display_on && (now_ms >= display_off_ms)) {
+        if ((DISPLAY_TIMEOUT_MS > 0) && is_display_on && (now_ms >= display_off_ms)) {
             if (set_display_power(false)) {
-                display_on = false;
+                is_display_on = false;
             } else {
                 display_off_ms = now_ms + REDRAW_INTERVAL_MS;
             }
@@ -325,13 +325,13 @@ int main(void)
         if (now_ms >= next_retry_ms) {
             next_retry_ms = next_grid_ms(start_ms, now_ms, RETRY_INTERVAL_MS);
 #ifdef CONFIG_THERMO_DISPLAY
-            had_display = devs.display_ready;
+            is_prev_display = devs.is_display_ready;
 #endif
             init_optional(&devs);
 #ifdef CONFIG_THERMO_DISPLAY
             /* OLED が使えるようになったら (初期化で点灯する), 消すまでの時間を数え直す */
-            if ((!had_display) && devs.display_ready) {
-                display_on = true;
+            if ((!is_prev_display) && devs.is_display_ready) {
+                is_display_on = true;
                 display_off_ms = now_ms + DISPLAY_TIMEOUT_MS;
             }
 #endif
@@ -339,9 +339,10 @@ int main(void)
 
 #ifdef CONFIG_THERMO_WIFI_TIME
         /* 1 分ごとに, RTC に時刻がなければ, WiFi で時刻を取る (最大 5 回. RTC が使えるまで待つ) */
-        if ((!time_done) && (now_ms >= next_time_check_ms) && devs.rtc_ready && (!DIRECT_BUSY())) {
+        if ((!is_time_done) && (now_ms >= next_time_check_ms) && devs.is_rtc_ready &&
+            (!DIRECT_BUSY())) {
             next_time_check_ms = next_grid_ms(start_ms, now_ms, TIME_CHECK_INTERVAL_MS);
-            time_done = check_time(datetime.valid, devs.wifi_ready, &wifi_tries);
+            is_time_done = check_time(datetime.is_valid, devs.is_wifi_ready, &wifi_tries);
         }
 #endif
 
@@ -350,7 +351,7 @@ int main(void)
             /* 溜めたログを SD カードに書く (カードがないときは何もしない) */
             sdlog_flush();
 #ifdef CONFIG_THERMO_RTC
-            if (devs.rtc_ready) {
+            if (devs.is_rtc_ready) {
                 /* 未設定や読み取りの失敗のときは datetime.valid が false (時刻なしと表示する) */
                 (void)node_time_get(&datetime);
 #ifdef CONFIG_THERMO_DISPLAY
@@ -360,7 +361,7 @@ int main(void)
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
             /* OLED に表示する (点灯している間だけ. 失敗しても次回に再試行する) */
-            if (display_on) {
+            if (is_display_on) {
                 ret = oled_show(&view);
                 if (ret != EXIT_SUCCESS) {
                     LOG_ERR("Failed to show on the OLED (err %d)", ret);
@@ -377,17 +378,17 @@ int main(void)
 /**
  * OLED を点灯または消灯する (失敗したときはログを出す)
  *
- * @param[in] on 点灯するなら true, 消灯するなら false
+ * @param[in] is_on 点灯するなら true, 消灯するなら false
  * @retval true  成功
  * @retval false 失敗
  */
-static bool set_display_power(bool on)
+static bool set_display_power(bool is_on)
 {
     int ret = EXIT_SUCCESS; /* 戻り値 */
 
-    ret = oled_set_power(on);
+    ret = oled_set_power(is_on);
     if (ret != EXIT_SUCCESS) {
-        LOG_ERR("Failed to turn %s the OLED (err %d)", (on ? "on" : "off"), ret);
+        LOG_ERR("Failed to turn %s the OLED (err %d)", (is_on ? "on" : "off"), ret);
         return false;
     }
 
@@ -422,10 +423,10 @@ static void init_optional(struct optional_devices *devs)
     ARG_UNUSED(devs);
 
 #ifdef CONFIG_THERMO_RTC
-    if (!devs->rtc_ready) {
+    if (!devs->is_rtc_ready) {
         rtc_ret = node_time_init();
-        devs->rtc_ready = (rtc_ret == EXIT_SUCCESS);
-        if (!devs->rtc_ready) {
+        devs->is_rtc_ready = (rtc_ret == EXIT_SUCCESS);
+        if (!devs->is_rtc_ready) {
             LOG_ERR("Failed to initialize the RTC (err %d), no time (retry in %d s)", rtc_ret,
                     RETRY_INTERVAL_S);
         }
@@ -433,10 +434,10 @@ static void init_optional(struct optional_devices *devs)
 #endif
 
 #ifdef CONFIG_THERMO_WIFI_TIME
-    if (!devs->wifi_ready) {
+    if (!devs->is_wifi_ready) {
         wifi_ret = wifi_time_init();
-        devs->wifi_ready = (wifi_ret == EXIT_SUCCESS);
-        if (!devs->wifi_ready) {
+        devs->is_wifi_ready = (wifi_ret == EXIT_SUCCESS);
+        if (!devs->is_wifi_ready) {
             LOG_ERR("Failed to initialize WiFi (err %d), no time over WiFi (retry in %d s)",
                     wifi_ret, RETRY_INTERVAL_S);
         }
@@ -444,10 +445,10 @@ static void init_optional(struct optional_devices *devs)
 #endif
 
 #ifdef CONFIG_THERMO_BUZZER
-    if (!devs->buzzer_ready) {
+    if (!devs->is_buzzer_ready) {
         buzzer_ret = buzzer_init();
-        devs->buzzer_ready = (buzzer_ret == EXIT_SUCCESS);
-        if (!devs->buzzer_ready) {
+        devs->is_buzzer_ready = (buzzer_ret == EXIT_SUCCESS);
+        if (!devs->is_buzzer_ready) {
             LOG_ERR("Failed to initialize the buzzer (err %d), no sound (retry in %d s)",
                     buzzer_ret, RETRY_INTERVAL_S);
         }
@@ -455,19 +456,19 @@ static void init_optional(struct optional_devices *devs)
 #endif
 
 #ifdef CONFIG_THERMO_DISPLAY
-    if (!devs->display_ready) {
+    if (!devs->is_display_ready) {
         display_ret = oled_init();
-        devs->display_ready = (display_ret == EXIT_SUCCESS);
-        if (!devs->display_ready) {
+        devs->is_display_ready = (display_ret == EXIT_SUCCESS);
+        if (!devs->is_display_ready) {
             LOG_ERR("Failed to initialize the OLED (err %d), no display (retry in %d s)",
                     display_ret, RETRY_INTERVAL_S);
         }
     }
 
-    if (!devs->button_ready) {
+    if (!devs->is_button_ready) {
         button_ret = button_init();
-        devs->button_ready = (button_ret == EXIT_SUCCESS);
-        if (!devs->button_ready) {
+        devs->is_button_ready = (button_ret == EXIT_SUCCESS);
+        if (!devs->is_button_ready) {
             LOG_ERR("Failed to initialize the button (err %d), the page is not switched "
                     "(retry in %d s)",
                     button_ret, RETRY_INTERVAL_S);
@@ -503,7 +504,7 @@ static void boot_sequence(const struct optional_devices *devs)
     ARG_UNUSED(devs);
 
 #ifdef CONFIG_THERMO_BUZZER
-    if (devs->buzzer_ready) {
+    if (devs->is_buzzer_ready) {
         sound_ret = buzzer_play(boot_melody, boot_melody_count);
         if (sound_ret != EXIT_SUCCESS) {
             LOG_ERR("Failed to play the boot sound (err %d)", sound_ret);
@@ -512,7 +513,7 @@ static void boot_sequence(const struct optional_devices *devs)
 #endif
 
 #ifdef CONFIG_THERMO_BOOT_SCREEN
-    if (devs->display_ready) {
+    if (devs->is_display_ready) {
         start_ms = k_uptime_get();
         while (frame < OLED_BOOT_FRAMES) {
             screen_ret = oled_show_boot(frame);
@@ -544,22 +545,22 @@ static void boot_sequence(const struct optional_devices *devs)
  * 回になったら, 確認を終える (その後に BLE で時刻が届けば, RTC に設定される). WiFi を使えないとき
  * (初期化の失敗) は試みに数えず, 次の確認を待つ.
  *
- * @param[in]     time_valid RTC に時刻があるか (直前に読んだ結果)
- * @param[in]     wifi_ready WiFi (時刻の取得) を使えるか
+ * @param[in]     is_time_valid RTC に時刻があるか (直前に読んだ結果)
+ * @param[in]     is_wifi_ready WiFi (時刻の取得) を使えるか
  * @param[in,out] tries      WiFi で時刻を取ろうとした回数
  * @retval true  確認を終えた (RTC に時刻がある, または試みを尽くした)
  * @retval false 次の確認でも, 続ける
  */
-static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries)
+static bool check_time(bool is_time_valid, bool is_wifi_ready, unsigned int *tries)
 {
     int64_t unix_s = 0;     /* WiFi で取った UTC の UNIX 時刻 [s] */
     int ret = EXIT_SUCCESS; /* 戻り値 */
 
-    if (time_valid) {
+    if (is_time_valid) {
         return true;
     }
 
-    if (!wifi_ready) {
+    if (!is_wifi_ready) {
         LOG_WRN("No time in the RTC, WiFi is not available");
         return false;
     }
@@ -589,13 +590,13 @@ static bool check_time(bool time_valid, bool wifi_ready, unsigned int *tries)
  * 鳴っている音 (起動のメロディなど) があれば, 止めて, この音を最初から鳴らす. 鳴らせなかったときは
  * ログを出して, 続ける (ページの切り替えには影響しない).
  *
- * @param[in] buzzer_ready ブザーを使えるか (使えないときは何もしない)
+ * @param[in] is_buzzer_ready ブザーを使えるか (使えないときは何もしない)
  */
-static void play_button_sound(bool buzzer_ready)
+static void play_button_sound(bool is_buzzer_ready)
 {
     int ret = EXIT_SUCCESS; /* 戻り値 */
 
-    if (!buzzer_ready) {
+    if (!is_buzzer_ready) {
         return;
     }
 

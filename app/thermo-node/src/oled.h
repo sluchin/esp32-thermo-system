@@ -53,7 +53,7 @@ struct oled_view {
 
 int oled_init(void);
 
-int oled_set_power(bool on);
+int oled_set_power(bool is_on);
 
 int oled_show(const struct oled_view *view);
 

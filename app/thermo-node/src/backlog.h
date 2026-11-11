@@ -56,7 +56,7 @@ int backlog_mount(void);
 
 int backlog_init(void);
 
-int backlog_append(const struct backlog_record *rec, bool sent);
+int backlog_append(const struct backlog_record *rec, bool is_sent);
 
 unsigned int backlog_pending(void);
 
@@ -97,13 +97,13 @@ static inline int backlog_init(void)
  * 何もしない (SD カードを使わない)
  *
  * @param[in] rec  使用しない
- * @param[in] sent 使用しない
+ * @param[in] is_sent 使用しない
  * @return -ENODEV
  */
-static inline int backlog_append(const struct backlog_record *rec, bool sent)
+static inline int backlog_append(const struct backlog_record *rec, bool is_sent)
 {
     ARG_UNUSED(rec);
-    ARG_UNUSED(sent);
+    ARG_UNUSED(is_sent);
 
     return -ENODEV;
 }

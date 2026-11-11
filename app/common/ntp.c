@@ -26,7 +26,7 @@ LOG_MODULE_REGISTER(thermo_ntp, THERMO_LOG_LEVEL);
 #define NTP_PORT "123"
 
 /** 同期したことがあるか */
-static volatile bool synced;
+static volatile bool is_synced;
 /** 前回の同期の時刻 (k_uptime_get() の値 [ms]) */
 static int64_t last_sync_ms;
 
@@ -55,7 +55,7 @@ int ntp_sync(const char *server, k_timeout_t timeout)
     int err = EXIT_SUCCESS;             /* エラーコード */
 
     /* 前回の同期から, 間もなければ, 問い合わせない */
-    if (synced &&
+    if (is_synced &&
         ((k_uptime_get() - last_sync_ms) < ((int64_t)CONFIG_THERMO_NTP_RESYNC_SEC * 1000))) {
         return EXIT_SUCCESS;
     }
@@ -86,7 +86,7 @@ int ntp_sync(const char *server, k_timeout_t timeout)
     (void)sys_clock_settime(SYS_CLOCK_REALTIME, &now);
 
     last_sync_ms = k_uptime_get();
-    synced = true;
+    is_synced = true;
     LOG_INF("Time synchronized (UNIX time %lld)", (long long)ts.seconds);
 
     return EXIT_SUCCESS;
@@ -99,7 +99,7 @@ int ntp_sync(const char *server, k_timeout_t timeout)
  */
 bool ntp_is_synced(void)
 {
-    return synced;
+    return is_synced;
 }
 
 /**
@@ -113,7 +113,7 @@ int ntp_unix_time(int64_t *sec)
 {
     struct timespec now = {0}; /* 現在時刻 */
 
-    if (!synced) {
+    if (!is_synced) {
         return -EAGAIN;
     }
     /* 戻り値は時計の種類が違うときだけ, 負. 違わないので見ない */

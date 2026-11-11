@@ -32,23 +32,23 @@ LOG_MODULE_REGISTER(thermo_direct, THERMO_LOG_LEVEL);
 /** BLE がゲートウェイにつながっていない測定が続いている回数 (上限で止める) */
 static unsigned int ble_failures;
 /** 前の測定のとき, BLE がゲートウェイにつながっていたか */
-static bool was_connected;
+static bool is_prev_connected;
 /** 直接の送信 (WiFi と MQTT) を動かしているか */
-static bool active;
+static bool is_active;
 /** あきらめたか (ゲートウェイにつながるまで, やり直さない) */
-static bool gave_up;
+static bool is_given_up;
 /** 設定が揃っていないことを知らせたか (測定のたびに, 知らせない) */
-static bool warned_incomplete;
+static bool is_warned_incomplete;
 /** 時刻がなくて, SD カードに溜められないことを知らせたか */
-static bool warned_no_time;
+static bool is_warned_no_time;
 /** このノードの BLE のアドレス (ゲートウェイが見るアドレスと同じ. トピックと payload に使う) */
 static bt_addr_le_t node_addr;
 /** node_addr を取れたか */
-static bool addr_ready;
+static bool is_addr_ready;
 /** direct_init() の結果 (成功は 0. まだ呼んでいなければ -EAGAIN) */
 static int init_status = -EAGAIN;
 /** SD カードを使えるか */
-static bool backlog_ready;
+static bool is_backlog_ready;
 /** SD カードの記録のうち, 送信のキューに入れて, まだ, 送り終えたことにしていない数 */
 static unsigned int queued;
 /** queued が 0 のときの, 送った数 (cloud_sent_count()). 送れた数を求めるために使う */
@@ -56,7 +56,8 @@ static uint32_t sent_mark;
 
 static void stop_sending(void);
 static void start_sending(void);
-static bool save_value(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10, bool sent);
+static bool save_value(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10,
+                       bool is_sent);
 static void publish_live(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10);
 static void flush_backlog(void);
 
@@ -74,14 +75,14 @@ int direct_init(void)
     int err = EXIT_SUCCESS; /* エラーコード */
 
     /* 状態を最初に戻す (やり直しても, 前の状態を引き継がない) */
-    addr_ready = false;
+    is_addr_ready = false;
     init_status = -EAGAIN;
     ble_failures = 0U;
-    was_connected = false;
-    active = false;
-    gave_up = false;
-    warned_incomplete = false;
-    warned_no_time = false;
+    is_prev_connected = false;
+    is_active = false;
+    is_given_up = false;
+    is_warned_incomplete = false;
+    is_warned_no_time = false;
     queued = 0U;
     sent_mark = 0U;
 
@@ -100,11 +101,11 @@ int direct_init(void)
     }
     cloud_set_attempt_limit(DIRECT_ATTEMPT_LIMIT);
 
-    backlog_ready = (backlog_init() == EXIT_SUCCESS);
-    if (!backlog_ready) {
+    is_backlog_ready = (backlog_init() == EXIT_SUCCESS);
+    if (!is_backlog_ready) {
         LOG_WRN("No SD card, the values are not saved while no connection is available");
     }
-    addr_ready = true;
+    is_addr_ready = true;
     init_status = EXIT_SUCCESS;
 
     return EXIT_SUCCESS;
@@ -125,56 +126,56 @@ int direct_init(void)
  */
 void direct_sample(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10)
 {
-    bool connected = false;   /* ゲートウェイにつながっているか */
-    bool saved = false;       /* SD カードに保存したか */
-    bool wifi_wanted = false; /* WiFi と MQTT が要るか */
+    bool is_connected = false;   /* ゲートウェイにつながっているか */
+    bool is_saved = false;       /* SD カードに保存したか */
+    bool is_wifi_wanted = false; /* WiFi と MQTT が要るか */
 
-    if (!addr_ready) {
+    if (!is_addr_ready) {
         return;
     }
-    connected = ble_is_connected();
+    is_connected = ble_is_connected();
 
     /* ゲートウェイにつながった: 数え直す (あきらめた状態も戻す) */
-    if (connected) {
-        if (!was_connected) {
-            gave_up = false;
+    if (is_connected) {
+        if (!is_prev_connected) {
+            is_given_up = false;
         }
         ble_failures = 0U;
-        warned_incomplete = false;
+        is_warned_incomplete = false;
     } else if (ble_failures < DIRECT_BLE_FAIL_LIMIT) {
         ble_failures++;
     }
-    was_connected = connected;
+    is_prev_connected = is_connected;
 
     /* 測定値を保存する (ゲートウェイにつながっていれば, ゲートウェイが送るので, 送信済み) */
-    saved = save_value(temp_x10, humidity_x10, pressure_x10, connected);
+    is_saved = save_value(temp_x10, humidity_x10, pressure_x10, is_connected);
 
     /* WiFi が要るのはつながらない測定が続くときと, つながっていて, 未送信の記録があるとき */
-    wifi_wanted = ((!connected) && (ble_failures >= DIRECT_BLE_FAIL_LIMIT)) ||
-                  (connected && (backlog_pending() > 0U));
+    is_wifi_wanted = ((!is_connected) && (ble_failures >= DIRECT_BLE_FAIL_LIMIT)) ||
+                     (is_connected && (backlog_pending() > 0U));
 
-    if (!wifi_wanted) {
-        if (active) {
+    if (!is_wifi_wanted) {
+        if (is_active) {
             stop_sending();
             LOG_INF("Nothing to send over WiFi, stop sending directly");
         }
-    } else if (!active) {
-        if (!gave_up) {
+    } else if (!is_active) {
+        if (!is_given_up) {
             start_sending();
         }
     } else if (cloud_has_given_up()) {
-        active = false;
-        gave_up = true;
+        is_active = false;
+        is_given_up = true;
         queued = 0U;
         LOG_ERR("Could not connect, give up sending directly until the gateway connects");
     }
 
     /* 保存できなかった測定値は送れるときだけ, そのまま送る */
-    if ((!saved) && (!connected)) {
+    if ((!is_saved) && (!is_connected)) {
         publish_live(temp_x10, humidity_x10, pressure_x10);
     }
 
-    if (active) {
+    if (is_active) {
         flush_backlog();
     }
 }
@@ -185,16 +186,16 @@ void direct_sample(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x1
  * @retval true  動かしている
  * @retval false 動かしていない
  */
-bool direct_active(void)
+bool direct_is_active(void)
 {
-    return active;
+    return is_active;
 }
 
 /** 直接の送信を止める (WiFi を切る) */
 static void stop_sending(void)
 {
     cloud_set_enabled(false);
-    active = false;
+    is_active = false;
     queued = 0U;
 }
 
@@ -202,15 +203,15 @@ static void stop_sending(void)
 static void start_sending(void)
 {
     if (!cfg_is_complete()) {
-        if (!warned_incomplete) {
+        if (!is_warned_incomplete) {
             LOG_WRN("WiFi is needed, but the settings are not complete, no direct publish");
-            warned_incomplete = true;
+            is_warned_incomplete = true;
         }
         return;
     }
 
     cloud_set_enabled(true);
-    active = true;
+    is_active = true;
     queued = 0U;
     LOG_WRN("Start sending over WiFi (%u samples without the gateway, %u records on the SD card)",
             ble_failures, backlog_pending());
@@ -228,7 +229,7 @@ static void publish_live(int16_t temp_x10, uint16_t humidity_x10, uint16_t press
     int err = EXIT_SUCCESS; /* エラーコード */
 
     /* つながっていて, 先に送る記録がなければ, すぐに送る (順序を保つ) */
-    if (!(active && cloud_is_connected() && (backlog_pending() == 0U))) {
+    if (!(is_active && cloud_is_connected() && (backlog_pending() == 0U))) {
         return;
     }
     err = cloud_publish_temperature(&node_addr, temp_x10, humidity_x10, pressure_x10);
@@ -243,34 +244,34 @@ static void publish_live(int16_t temp_x10, uint16_t humidity_x10, uint16_t press
  * @param[in] temp_x10     温度 [℃ の 10 倍]
  * @param[in] humidity_x10 湿度 [% の 10 倍]
  * @param[in] pressure_x10 気圧 [hPa の 10 倍]
- * @param[in] sent         送信済みとして保存するか
+ * @param[in] is_sent         送信済みとして保存するか
  * @retval true  保存した
  * @retval false 保存しなかった (SD カードがない, 時刻がない, 失敗)
  */
-static bool save_value(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10, bool sent)
+static bool save_value(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressure_x10, bool is_sent)
 {
     struct backlog_record rec = {0}; /* 保存する記録 */
     int err = EXIT_SUCCESS;          /* エラーコード */
 
-    if (!backlog_ready) {
+    if (!is_backlog_ready) {
         return false;
     }
 
     /* 測った UNIX 時刻が要る (あとから送るときに, そのまま payload に入れる) */
     err = node_time_unix(&rec.unix_s);
     if (err != EXIT_SUCCESS) {
-        if (!warned_no_time) {
+        if (!is_warned_no_time) {
             LOG_WRN("No time in the RTC, the values cannot be saved on the SD card");
-            warned_no_time = true;
+            is_warned_no_time = true;
         }
         return false;
     }
-    warned_no_time = false;
+    is_warned_no_time = false;
 
     rec.temp_x10 = temp_x10;
     rec.humidity_x10 = humidity_x10;
     rec.pressure_x10 = pressure_x10;
-    err = backlog_append(&rec, sent);
+    err = backlog_append(&rec, is_sent);
     if (err != EXIT_SUCCESS) {
         LOG_ERR("Could not save the value on the SD card (err %d)", err);
         return false;
@@ -339,13 +340,13 @@ int direct_sd_check(unsigned int *pending)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    if (!backlog_ready) {
+    if (!is_backlog_ready) {
         err = backlog_init();
         if (err != EXIT_SUCCESS) {
             LOG_ERR("Initializing the backlog failed (err %d)", err);
             return err;
         }
-        backlog_ready = true;
+        is_backlog_ready = true;
     }
     *pending = backlog_pending();
 

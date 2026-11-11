@@ -106,7 +106,7 @@ int node_time_init(void)
  *
  * RTC の UTC に CONFIG_THERMO_UTC_OFFSET_MIN を足して, 年月日と時分秒に直す.
  *
- * @param[out] local 日時の格納先 (NULL 不可. 失敗したときは valid が false)
+ * @param[out] local 日時の格納先 (NULL 不可. 失敗したときは is_valid が false)
  * @retval EXIT_SUCCESS 成功
  * @retval -ENODATA     時刻が未設定, または RTC の値が不正
  * @retval negative     RTC との通信の失敗 (負の errno)
@@ -121,7 +121,7 @@ int node_time_get(struct node_datetime *local)
     int64_t day = 0;        /* 日 */
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    local->valid = false;
+    local->is_valid = false;
 
     err = read_utc(&unix_s);
     if (err != EXIT_SUCCESS) {
@@ -139,7 +139,7 @@ int node_time_get(struct node_datetime *local)
     local->hour = (uint8_t)(secs / SECONDS_PER_HOUR);
     local->minute = (uint8_t)((secs % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
     local->second = (uint8_t)(secs % SECONDS_PER_MINUTE);
-    local->valid = true;
+    local->is_valid = true;
 
     return EXIT_SUCCESS;
 }

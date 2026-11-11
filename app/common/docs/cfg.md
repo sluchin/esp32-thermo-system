@@ -35,7 +35,7 @@ settings の名前は `thermo/<項目>` です (`thermo/ssid`、`thermo/ca`、`t
 | `values[4][129]` | 設定の値 (RAM のコピー)。全ての項目が、最も長い項目の大きさ |
 | `ca_buf`、`cert_buf`、`key_buf` | フラッシュから読んだ証明書の保存先 |
 | `save_buf` | 証明書を保存するときの一時的な領域 (1792 バイト) |
-| `backup_ssid`、`backup_psk`、`backup_present` | テザリングの退避の RAM のコピー |
+| `backup_ssid`、`backup_psk`、`is_backup_present` | テザリングの退避の RAM のコピー |
 
 `tls_credential_add()` は、データを**コピーせず、ポインタを保持**します。そのため、フラッシュから読んだ証明書は、`static` の配列に置いて、登録している間、残します。
 

@@ -110,17 +110,17 @@ static uint8_t tx_buf[MQTT_BUF_SIZE];
 static const sec_tag_t sec_tags[] = {CFG_TLS_SEC_TAG};
 
 /** MQTT で接続している状態か (CONNACK を受け取ってから, DISCONNECT を受け取るまで) */
-static volatile bool mqtt_up;
+static volatile bool is_mqtt_up;
 /** 設定が変わったので接続をやり直す依頼があるか */
-static volatile bool reconnect_requested;
+static volatile bool is_reconnect_requested;
 /** 次に失敗したときの再試行までの間隔 [s] */
 static unsigned int retry_s = RETRY_MIN_S;
 /** 次に publish するメッセージの ID (1 .. 65535) */
 static uint16_t message_id;
 /** 接続して送信する状態か (false の間は WiFi を切って, 待つ) */
-static volatile bool enabled = true;
+static volatile bool is_enabled = true;
 /** 接続の失敗が続く上限の回数に達して, あきらめたか */
-static volatile bool gave_up;
+static volatile bool is_given_up;
 /** 接続の失敗が続いたら, あきらめる回数 (0 はあきらめない) */
 static unsigned int max_attempts;
 /** 接続の失敗が続いている回数 */
@@ -158,7 +158,7 @@ int cloud_step(void)
     int err = EXIT_SUCCESS; /* エラーコード */
 
     /* 止められている間は WiFi を切って, 待つ */
-    if (!enabled) {
+    if (!is_enabled) {
         if (wifi_link_is_up()) {
             wifi_link_disconnect();
         }
@@ -173,7 +173,7 @@ int cloud_step(void)
     }
 
     /* 接続をやり直す依頼はこれから始める接続で, 反映される */
-    reconnect_requested = false;
+    is_reconnect_requested = false;
     err = wifi_link_connect(cfg_get(CFG_KEY_SSID), CFG_SSID_MAX, cfg_get(CFG_KEY_PSK), CFG_PSK_MAX,
                             K_SECONDS(WIFI_TIMEOUT_S));
     if (err == 0) {
@@ -198,8 +198,8 @@ int cloud_step(void)
         /* 失敗が続いたら, あきらめて, WiFi を切る (cloud_set_enabled(true) まで, 接続しない) */
         if ((max_attempts > 0U) && (attempts >= max_attempts)) {
             LOG_ERR("Connection failed (err %d), giving up after %u attempts", err, attempts);
-            gave_up = true;
-            enabled = false;
+            is_given_up = true;
+            is_enabled = false;
             wifi_link_disconnect();
             return err;
         }
@@ -214,7 +214,7 @@ int cloud_step(void)
     LOG_INF("Connected to AWS IoT Core");
     err = run_session();
     /* 止められて, 接続中の処理を終えたら, WiFi を切る */
-    if (!enabled) {
+    if (!is_enabled) {
         wifi_link_disconnect();
     }
     if (err != 0) {
@@ -229,12 +229,12 @@ int cloud_step(void)
  *
  * ほかの cloud_* の関数より先に, 1 回だけ呼ぶ.
  *
- * @param[in] start_enabled true なら, すぐに接続して送る (ゲートウェイ). false なら,
+ * @param[in] is_start_enabled true なら, すぐに接続して送る (ゲートウェイ). false なら,
  * cloud_set_enabled(true) が呼ばれるまで, 接続しないで待つ (ノード)
  * @retval EXIT_SUCCESS 成功
  * @retval negative     失敗 (負の errno)
  */
-int cloud_init(bool start_enabled)
+int cloud_init(bool is_start_enabled)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
@@ -247,8 +247,8 @@ int cloud_init(bool start_enabled)
         return err;
     }
 
-    enabled = start_enabled;
-    gave_up = false;
+    is_enabled = is_start_enabled;
+    is_given_up = false;
     attempts = 0U;
 
     err = wifi_link_init();
@@ -357,18 +357,18 @@ int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sam
  * true にすると, 失敗の回数と, あきらめた状態を戻して, すぐに接続を始める (キューの古い値は
  * 捨てる). false にすると, 接続中の処理を終えて (MQTT を閉じて), WiFi を切って, 待つ.
  *
- * @param[in] on true なら, 接続して送る. false なら, 止める
+ * @param[in] is_on true なら, 接続して送る. false なら, 止める
  */
-void cloud_set_enabled(bool on)
+void cloud_set_enabled(bool is_on)
 {
-    if (on) {
+    if (is_on) {
         attempts = 0U;
-        gave_up = false;
+        is_given_up = false;
         k_msgq_purge(&cloud_sample_q);
-        enabled = true;
+        is_enabled = true;
     } else {
-        enabled = false;
-        reconnect_requested = true;
+        is_enabled = false;
+        is_reconnect_requested = true;
     }
 }
 
@@ -390,7 +390,7 @@ void cloud_set_attempt_limit(unsigned int limit)
  */
 bool cloud_has_given_up(void)
 {
-    return gave_up;
+    return is_given_up;
 }
 
 /**
@@ -401,7 +401,7 @@ bool cloud_has_given_up(void)
  */
 bool cloud_is_connected(void)
 {
-    return mqtt_up;
+    return is_mqtt_up;
 }
 
 /**
@@ -431,7 +431,7 @@ uint32_t cloud_sent_count(void)
  */
 void cloud_reconnect(void)
 {
-    reconnect_requested = true;
+    is_reconnect_requested = true;
     wifi_link_disconnect();
 }
 
@@ -448,13 +448,13 @@ static void mqtt_evt_handler(struct mqtt_client *c, const struct mqtt_evt *evt)
     /* 使うのはこの 3 つだけ (購読はしない) */
     if (evt->type == MQTT_EVT_CONNACK) {
         if (evt->result == 0) {
-            mqtt_up = true;
+            is_mqtt_up = true;
         } else {
             LOG_ERR("MQTT connection refused (result %d)", evt->result);
         }
     } else if (evt->type == MQTT_EVT_DISCONNECT) {
         LOG_WRN("MQTT disconnected");
-        mqtt_up = false;
+        is_mqtt_up = false;
     } else if (evt->type == MQTT_EVT_PUBACK) {
         LOG_DBG("Publish acknowledged (id %u)", evt->param.puback.message_id);
     } else {
@@ -573,17 +573,18 @@ static int connect_broker(void)
     tls->hostname = endpoint;
 
     /* TCP の接続と TLS のハンドシェイクと MQTT の CONNECT の送信まで, ここで行う */
-    mqtt_up = false;
+    is_mqtt_up = false;
     err = mqtt_connect(&client);
     if (err != 0) {
         LOG_ERR("MQTT connect failed (err %d)", err);
         return err;
     }
 
-    /* CONNACK を受信して, MQTT のイベント (mqtt_evt_handler) で, mqtt_up が true になるのを確認する
+    /* CONNACK を受信して, MQTT のイベント (mqtt_evt_handler) で, is_mqtt_up が true
+     * になるのを確認する
      */
     err = poll_input(CONNACK_TIMEOUT_MS);
-    if ((err != 0) || !mqtt_up) {
+    if ((err != 0) || !is_mqtt_up) {
         LOG_ERR("MQTT CONNACK not received (err %d)", err);
         (void)mqtt_abort(&client);
         return ((err != 0) ? err : -ECONNREFUSED);
@@ -681,7 +682,7 @@ static int run_session(void)
     struct sample s = {.kind = SAMPLE_THERMO}; /* 受信したサンプル */
     int err = EXIT_SUCCESS;                    /* エラーコード */
 
-    while (!reconnect_requested) {
+    while (!is_reconnect_requested) {
         /* 送るものがあれば, すぐ送る. なければ, 最大 SESSION_TICK_MS 待って, 受信などの確認に進む
          */
         if (k_msgq_get(&cloud_sample_q, &s, K_MSEC(SESSION_TICK_MS)) == 0) {
@@ -695,7 +696,7 @@ static int run_session(void)
 
         /* 受信 (PUBACK, サーバからの切断など) を処理する. 待たない */
         err = poll_input(0);
-        if ((err == 0) && !mqtt_up) {
+        if ((err == 0) && !is_mqtt_up) {
             err = -ECONNRESET;
         }
         if (err != 0) {
@@ -715,11 +716,11 @@ static int run_session(void)
     }
 
     /* サーバが切断していなければ, DISCONNECT を送ってから, ソケットを閉じる */
-    if (mqtt_up) {
+    if (is_mqtt_up) {
         (void)mqtt_disconnect(&client, NULL);
     }
     (void)mqtt_abort(&client);
-    mqtt_up = false;
+    is_mqtt_up = false;
 
     return err;
 }
@@ -752,7 +753,7 @@ static void cloud_thread_entry(void *p1, void *p2, void *p3)
  */
 static int enqueue_sample(const struct sample *s)
 {
-    if (!enabled) {
+    if (!is_enabled) {
         return -ENOTCONN;
     }
 

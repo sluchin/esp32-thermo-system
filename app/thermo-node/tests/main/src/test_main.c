@@ -66,7 +66,7 @@ FAKE_VALUE_FUNC(int, ble_notify_temperature, int16_t, uint16_t, uint16_t)
 FAKE_VOID_FUNC(ble_set_time_callback, ble_time_cb_t)
 FAKE_VALUE_FUNC(int, node_time_set, int64_t)
 FAKE_VALUE_FUNC(int, button_init)
-FAKE_VALUE_FUNC(bool, button_pressed)
+FAKE_VALUE_FUNC(bool, button_is_pressed)
 FAKE_VOID_FUNC(history_add, struct history *, int16_t, int64_t, int64_t)
 FAKE_VALUE_FUNC(int, oled_init)
 FAKE_VALUE_FUNC(int, oled_set_power, bool)
@@ -81,7 +81,7 @@ FAKE_VALUE_FUNC(int, wifi_time_fetch, int64_t *)
 FAKE_VALUE_FUNC(int, direct_init)
 FAKE_VALUE_FUNC(int, backlog_mount)
 FAKE_VOID_FUNC(direct_sample, int16_t, uint16_t, uint16_t)
-FAKE_VALUE_FUNC(bool, direct_active)
+FAKE_VALUE_FUNC(bool, direct_is_active)
 
 /** oled_show() の呼び出しを記録する数 */
 #define SHOWN_MAX 16U
@@ -131,12 +131,12 @@ FAKE_VALUE_FUNC(bool, direct_active)
 #define WIFI_TRIES 5U
 
 /** RTC に時刻があるか (fake_time_get_switch() が返す) */
-static bool rtc_valid;
+static bool is_rtc_valid;
 
-/** 押されたことにする button_pressed() の呼び出しの回数 (0 は使わない) */
+/** 押されたことにする button_is_pressed() の呼び出しの回数 (0 は使わない) */
 static unsigned int press_at[PRESS_COUNT];
 
-static bool fake_pressed(void);
+static bool fake_is_pressed(void);
 static unsigned int shown_count(void);
 
 /** oled_show() に渡された表示内容 (呼ばれた順) */
@@ -220,7 +220,7 @@ static unsigned int shown_count(void)
  */
 static int fake_time_get(struct node_datetime *local)
 {
-    local->valid = true;
+    local->is_valid = true;
     local->year = FAKE_YEAR;
     local->month = FAKE_MONTH;
     local->day = FAKE_DAY;
@@ -232,14 +232,14 @@ static int fake_time_get(struct node_datetime *local)
 }
 
 /**
- * node_time_get() のモック動作 (rtc_valid のとおりに, 時刻があるか・ないかを返す)
+ * node_time_get() のモック動作 (is_rtc_valid のとおりに, 時刻があるか・ないかを返す)
  *
  * @param[out] local 日時
  * @return 0
  */
 static int fake_time_get_switch(struct node_datetime *local)
 {
-    local->valid = rtc_valid;
+    local->is_valid = is_rtc_valid;
     local->year = FAKE_YEAR;
     local->month = FAKE_MONTH;
     local->day = FAKE_DAY;
@@ -310,7 +310,7 @@ static void before(void *fixture)
     RESET_FAKE(ble_set_time_callback);
     RESET_FAKE(node_time_set);
     RESET_FAKE(button_init);
-    RESET_FAKE(button_pressed);
+    RESET_FAKE(button_is_pressed);
     RESET_FAKE(history_add);
     RESET_FAKE(oled_init);
     RESET_FAKE(oled_set_power);
@@ -325,14 +325,14 @@ static void before(void *fixture)
     RESET_FAKE(direct_init);
     RESET_FAKE(backlog_mount);
     RESET_FAKE(direct_sample);
-    RESET_FAKE(direct_active);
+    RESET_FAKE(direct_is_active);
     FFF_RESET_HISTORY();
     oled_show_fake.custom_fake = fake_show;
     node_time_get_fake.custom_fake = fake_time_get;
     wifi_time_fetch_fake.custom_fake = fake_fetch;
-    rtc_valid = true;
+    is_rtc_valid = true;
     (void)memset(press_at, 0, sizeof(press_at));
-    button_pressed_fake.custom_fake = fake_pressed;
+    button_is_pressed_fake.custom_fake = fake_is_pressed;
     early_shows = 0U;
     (void)memset(shown, 0, sizeof(shown));
     (void)memset(shown_time, 0, sizeof(shown_time));
@@ -402,7 +402,7 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(shown[0].temp_x10, FAKE_TEMP_1_X10);
     zassert_equal(shown[0].humidity_x10, FAKE_HUMIDITY_1);
     zassert_not_null(shown[0].time);
-    zassert_true(shown_time[0].valid);
+    zassert_true(shown_time[0].is_valid);
     zassert_equal(shown_time[0].hour, FAKE_HOUR);
 
     /* 測定値をグラフの履歴に加える (温度と湿度. 区切りの長さは 30 秒) */
@@ -499,14 +499,14 @@ ZTEST(main_node, test_time_callback_registered)
 }
 
 /**
- * button_pressed() のモック動作 (設定した回数目の呼び出しで, 押されたことにする)
+ * button_is_pressed() のモック動作 (設定した回数目の呼び出しで, 押されたことにする)
  *
  * @return 押された呼び出しなら true
  */
-static bool fake_pressed(void)
+static bool fake_is_pressed(void)
 {
-    unsigned int call = button_pressed_fake.call_count; /* 今回の呼び出しの回数 (1 始まり) */
-    unsigned int i = 0U;                                /* ループ用の添字 */
+    unsigned int call = button_is_pressed_fake.call_count; /* 今回の呼び出しの回数 (1 始まり) */
+    unsigned int i = 0U;                                   /* ループ用の添字 */
 
     for (i = 0U; i < PRESS_COUNT; i++) {
         if (call == press_at[i]) {
@@ -635,7 +635,7 @@ ZTEST(main_node, test_rtc_init_failure_continues)
     k_thread_abort(&main_thread);
 }
 
-/** 時刻が未設定 (-ENODATA) のときは日時を設定なし (valid が false) として表示する */
+/** 時刻が未設定 (-ENODATA) のときは日時を設定なし (is_valid が false) として表示する */
 ZTEST(main_node, test_time_unset)
 {
     node_time_get_fake.custom_fake = NULL;
@@ -647,7 +647,7 @@ ZTEST(main_node, test_time_unset)
     zassert_equal(node_time_get_fake.call_count, 2U); /* 起動画面のあとの 1 回と, ループの 1 回 */
     zassert_equal(shown_count(), 1U);
     zassert_not_null(shown[0].time);
-    zassert_false(shown_time[0].valid);
+    zassert_false(shown_time[0].is_valid);
 
     k_thread_abort(&main_thread);
 }
@@ -763,7 +763,7 @@ ZTEST(main_node, test_button_init_failure_continues)
 
     k_msleep(STARTUP_WAIT_MS + 300);
     zassert_equal(button_init_fake.call_count, 1U);
-    zassert_equal(button_pressed_fake.call_count, 0U);
+    zassert_equal(button_is_pressed_fake.call_count, 0U);
     zassert_equal(shown_count(), 1U);
     zassert_equal(shown[0].page, OLED_PAGE_NOW);
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
@@ -798,7 +798,7 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
     zassert_equal(buzzer_play_fake.call_count, 0U);
     zassert_equal(node_time_get_fake.call_count, 0U);
     zassert_equal(shown_count(), 0U);
-    zassert_equal(button_pressed_fake.call_count, 0U);
+    zassert_equal(button_is_pressed_fake.call_count, 0U);
     zassert_equal(ble_notify_temperature_fake.call_count, 1U);
 
     /* 60 秒後: やり直して, 3 つとも成功する. 時刻と表示とボタンが使えるようになる */
@@ -811,7 +811,7 @@ ZTEST(main_node, test_optional_devices_recover_by_retry)
     zassert_equal(buzzer_play_fake.call_count, 0U);
     zassert_true(node_time_get_fake.call_count > 0U);
     zassert_true(shown_count() > 0U);
-    zassert_true(button_pressed_fake.call_count > 0U);
+    zassert_true(button_is_pressed_fake.call_count > 0U);
     zassert_not_null(shown[0].time);
 
     /* 使えるようになったあとはやり直さない */
@@ -970,7 +970,7 @@ ZTEST(main_node, test_wifi_time_after_one_minute)
 {
     sensor_read_fake.custom_fake = fake_read;
     node_time_get_fake.custom_fake = fake_time_get_switch;
-    rtc_valid = false;
+    is_rtc_valid = false;
 
     start_main();
 
@@ -997,7 +997,7 @@ ZTEST(main_node, test_wifi_time_not_used_when_rtc_has_time)
 {
     sensor_read_fake.custom_fake = fake_read;
     node_time_get_fake.custom_fake = fake_time_get_switch;
-    rtc_valid = true;
+    is_rtc_valid = true;
 
     start_main();
 
@@ -1015,7 +1015,7 @@ ZTEST(main_node, test_wifi_time_gives_up_after_five_tries)
     node_time_get_fake.custom_fake = fake_time_get_switch;
     wifi_time_fetch_fake.custom_fake = NULL;
     wifi_time_fetch_fake.return_val = -ETIMEDOUT;
-    rtc_valid = false;
+    is_rtc_valid = false;
 
     start_main();
 
@@ -1040,7 +1040,7 @@ ZTEST(main_node, test_wifi_time_succeeds_on_retry)
     sensor_read_fake.custom_fake = fake_read;
     node_time_get_fake.custom_fake = fake_time_get_switch;
     wifi_time_fetch_fake.custom_fake = fake_fetch_third;
-    rtc_valid = false;
+    is_rtc_valid = false;
 
     start_main();
 
@@ -1059,7 +1059,7 @@ ZTEST(main_node, test_wifi_time_stops_when_time_appears)
     node_time_get_fake.custom_fake = fake_time_get_switch;
     wifi_time_fetch_fake.custom_fake = NULL;
     wifi_time_fetch_fake.return_val = -ETIMEDOUT;
-    rtc_valid = false;
+    is_rtc_valid = false;
 
     start_main();
 
@@ -1067,7 +1067,7 @@ ZTEST(main_node, test_wifi_time_stops_when_time_appears)
     zassert_equal(wifi_time_fetch_fake.call_count, 2U);
 
     /* 期待: 時刻が入ったら, 次の確認で終える (それ以上, 試さない) */
-    rtc_valid = true;
+    is_rtc_valid = true;
     k_msleep(5 * CHECK_MS);
     zassert_equal(wifi_time_fetch_fake.call_count, 2U);
 
@@ -1080,7 +1080,7 @@ ZTEST(main_node, test_wifi_time_set_failure_retries)
     sensor_read_fake.custom_fake = fake_read;
     node_time_get_fake.custom_fake = fake_time_get_switch;
     node_time_set_fake.return_val = -EIO;
-    rtc_valid = false;
+    is_rtc_valid = false;
 
     start_main();
 
@@ -1100,7 +1100,7 @@ ZTEST(main_node, test_wifi_time_init_failure_recovers)
     sensor_read_fake.custom_fake = fake_read;
     node_time_get_fake.custom_fake = fake_time_get_switch;
     SET_RETURN_SEQ(wifi_time_init, returns, ARRAY_SIZE(returns));
-    rtc_valid = false;
+    is_rtc_valid = false;
 
     start_main();
 
@@ -1118,7 +1118,7 @@ ZTEST(main_node, test_wifi_time_unavailable)
     sensor_read_fake.custom_fake = fake_read;
     node_time_get_fake.custom_fake = fake_time_get_switch;
     wifi_time_init_fake.return_val = -ENODEV;
-    rtc_valid = false;
+    is_rtc_valid = false;
 
     start_main();
 
@@ -1229,8 +1229,8 @@ ZTEST(main_node, test_wifi_time_waits_while_direct_is_active)
 {
     sensor_read_fake.custom_fake = fake_read;
     node_time_get_fake.custom_fake = fake_time_get_switch;
-    rtc_valid = false;
-    direct_active_fake.return_val = true;
+    is_rtc_valid = false;
+    direct_is_active_fake.return_val = true;
 
     start_main();
 
@@ -1239,7 +1239,7 @@ ZTEST(main_node, test_wifi_time_waits_while_direct_is_active)
     zassert_equal(wifi_time_fetch_fake.call_count, 0U);
 
     /* 期待: 止まったら, 次の確認 (1 分後) で取る */
-    direct_active_fake.return_val = false;
+    direct_is_active_fake.return_val = false;
     k_msleep(CHECK_MS);
     zassert_equal(wifi_time_fetch_fake.call_count, 1U);
 

@@ -52,7 +52,7 @@ static const struct device *const sensor_dev = DEVICE_DT_GET(DT_ALIAS(thermo_sen
 /** Devicetree (alias thermo-pressure) から取得した気圧のセンサ */
 static const struct device *const pressure_dev = DEVICE_DT_GET(DT_ALIAS(thermo_pressure));
 /** 気圧のセンサを使えるか (sensor_init() で確かめる. 使えなければ, 気圧なしで測る) */
-static bool pressure_ready;
+static bool is_pressure_ready;
 
 static uint16_t read_pressure(void);
 #endif
@@ -98,8 +98,8 @@ int sensor_init(void)
 
     LOG_INF("Sensor initialized");
 #if defined(HAVE_PRESSURE)
-    pressure_ready = device_is_ready(pressure_dev);
-    if (!pressure_ready) {
+    is_pressure_ready = device_is_ready(pressure_dev);
+    if (!is_pressure_ready) {
         LOG_WRN("Pressure sensor is not ready, measuring without the pressure");
     }
 #endif
@@ -231,7 +231,7 @@ static uint16_t read_pressure(void)
     int64_t pa = 0;                     /* 気圧 [Pa] */
     int err = EXIT_SUCCESS;             /* エラーコード */
 
-    if (!pressure_ready) {
+    if (!is_pressure_ready) {
         return THERMO_PRESSURE_NONE;
     }
 

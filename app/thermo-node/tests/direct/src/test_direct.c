@@ -77,7 +77,7 @@ FAKE_VALUE_FUNC(uint32_t, cloud_sent_count)
 /** SD カードに保存された記録 (古い順) */
 static struct backlog_record store[STORE_MAX];
 /** store の記録が送信済みか */
-static bool store_sent[STORE_MAX];
+static bool is_store_sent[STORE_MAX];
 /** store の記録の数 */
 static unsigned int store_count;
 /** backlog_read() の戻り値 (0 以外なら, 読めない) */
@@ -106,16 +106,16 @@ static int fake_address(bt_addr_le_t *addr)
  * backlog_append() のモック動作 (store に追加する. 満杯なら, -ENOSPC)
  *
  * @param[in] rec  記録
- * @param[in] sent 送信済みか
+ * @param[in] is_sent 送信済みか
  * @return 0 (成功), -ENOSPC (満杯)
  */
-static int fake_append(const struct backlog_record *rec, bool sent)
+static int fake_append(const struct backlog_record *rec, bool is_sent)
 {
     if (store_count >= STORE_MAX) {
         return -ENOSPC;
     }
     store[store_count] = *rec;
-    store_sent[store_count] = sent;
+    is_store_sent[store_count] = is_sent;
     store_count++;
 
     return 0;
@@ -132,7 +132,7 @@ static unsigned int fake_pending(void)
     unsigned int i = 0U; /* ループ用の添字 */
 
     for (i = 0U; i < store_count; i++) {
-        if (!store_sent[i]) {
+        if (!is_store_sent[i]) {
             n++;
         }
     }
@@ -156,7 +156,7 @@ static int fake_read_record(struct backlog_record *rec, unsigned int index)
         return read_error;
     }
     for (i = 0U; i < store_count; i++) {
-        if (!store_sent[i]) {
+        if (!is_store_sent[i]) {
             if (seen == index) {
                 *rec = store[i];
                 return 0;
@@ -179,8 +179,8 @@ static int fake_commit(unsigned int count)
     unsigned int i = 0U; /* ループ用の添字 */
 
     for (i = 0U; (i < store_count) && (count > 0U); i++) {
-        if (!store_sent[i]) {
-            store_sent[i] = true;
+        if (!is_store_sent[i]) {
+            is_store_sent[i] = true;
             count--;
         }
     }
@@ -259,7 +259,7 @@ static void before(void *fixture)
     node_time_unix_fake.custom_fake = fake_unix;
     cloud_is_connected_fake.return_val = true;
     (void)memset(store, 0, sizeof(store));
-    (void)memset(store_sent, 0, sizeof(store_sent));
+    (void)memset(is_store_sent, 0, sizeof(is_store_sent));
     store_count = 0U;
     read_error = 0;
     commit_return = 0;
@@ -298,7 +298,7 @@ static void put_records(unsigned int count)
         store[i].pressure_x10 = (uint16_t)(10000U + i);
     }
     store_count = count;
-    (void)memset(store_sent, 0, sizeof(store_sent));
+    (void)memset(is_store_sent, 0, sizeof(is_store_sent));
 }
 
 /**
@@ -325,7 +325,7 @@ ZTEST(direct, test_init)
     zassert_false(cloud_init_fake.arg0_val);
     zassert_equal(cloud_set_attempt_limit_fake.call_count, 1U);
     zassert_equal(cloud_set_attempt_limit_fake.arg0_val, DIRECT_ATTEMPT_LIMIT);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
 }
 
 /** アドレスを取れなければ, 失敗を返して, 何もしない (測定を知らせても, 動かさない) */
@@ -358,12 +358,12 @@ ZTEST(direct, test_starts_after_five_failures)
 {
     samples(DIRECT_BLE_FAIL_LIMIT - 1U);
     zassert_equal(cloud_set_enabled_fake.call_count, 0U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
 
     samples(1U);
     zassert_equal(cloud_set_enabled_fake.call_count, 1U);
     zassert_true(cloud_set_enabled_fake.arg0_val);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
     /* SD カードがないので, 始めた測定から, そのまま送る */
     zassert_equal(cloud_publish_temperature_fake.call_count, 1U);
 }
@@ -378,7 +378,7 @@ ZTEST(direct, test_connected_resets_the_count)
     samples(DIRECT_BLE_FAIL_LIMIT - 1U);
 
     zassert_equal(cloud_set_enabled_fake.call_count, 0U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
 }
 
 /** SD カードがないときは動かしている間, 測定のたびに, ノードのアドレスと測定値で, そのまま送る */
@@ -407,7 +407,7 @@ ZTEST(direct, test_publish_failure_keeps_going)
     samples(DIRECT_BLE_FAIL_LIMIT + 1U);
 
     zassert_equal(cloud_publish_temperature_fake.call_count, 2U);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
 }
 
 /** SD カードがなくて, MQTT につながる前 (またはつながっていても記録が残っている) は送らない */
@@ -417,7 +417,7 @@ ZTEST(direct, test_no_live_publish_before_mqtt)
 
     samples(DIRECT_BLE_FAIL_LIMIT + 2U);
 
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
     zassert_equal(cloud_publish_temperature_fake.call_count, 0U);
 }
 
@@ -441,12 +441,12 @@ ZTEST(direct, test_incomplete_settings_do_not_start)
 
     samples(DIRECT_BLE_FAIL_LIMIT + 3U);
     zassert_equal(cloud_set_enabled_fake.call_count, 0U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
 
     cfg_is_complete_fake.return_val = true;
     samples(1U);
     zassert_equal(cloud_set_enabled_fake.call_count, 1U);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
 }
 
 /** 動かしている間に, ゲートウェイにつながったら, 止める (動かしていなければ, 止めない) */
@@ -458,11 +458,11 @@ ZTEST(direct, test_gateway_connection_stops_it)
 
     ble_is_connected_fake.return_val = false;
     samples(DIRECT_BLE_FAIL_LIMIT);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
 
     ble_is_connected_fake.return_val = true;
     samples(1U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
     zassert_equal(cloud_set_enabled_fake.call_count, 2U);
     zassert_false(cloud_set_enabled_fake.arg0_val);
 }
@@ -471,16 +471,16 @@ ZTEST(direct, test_gateway_connection_stops_it)
 ZTEST(direct, test_gives_up_until_the_gateway_connects)
 {
     samples(DIRECT_BLE_FAIL_LIMIT);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
 
     cloud_has_given_up_fake.return_val = true;
     samples(1U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
 
     /* あきらめたあとはゲートウェイにつながらない測定が続いても, 始めない */
     cloud_has_given_up_fake.return_val = false;
     samples(DIRECT_BLE_FAIL_LIMIT + 2U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
     zassert_equal(cloud_set_enabled_fake.call_count, 1U);
 
     /* つながったら, あきらめた状態が戻って, また 5 回続いたら, 始める */
@@ -488,7 +488,7 @@ ZTEST(direct, test_gives_up_until_the_gateway_connects)
     samples(1U);
     ble_is_connected_fake.return_val = false;
     samples(DIRECT_BLE_FAIL_LIMIT);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
     zassert_equal(cloud_set_enabled_fake.call_count, 2U);
 }
 
@@ -522,7 +522,7 @@ ZTEST(direct, test_offline_values_are_saved_as_not_sent)
     zassert_equal(store[0].temp_x10, TEMP_X10);
     zassert_equal(store[0].humidity_x10, HUMIDITY_X10);
     zassert_equal(store[0].pressure_x10, PRESSURE_X10);
-    zassert_false(store_sent[0]);
+    zassert_false(is_store_sent[0]);
     zassert_false(backlog_append_fake.arg1_val);
     zassert_equal(cloud_publish_temperature_fake.call_count, 0U);
 }
@@ -536,10 +536,10 @@ ZTEST(direct, test_connected_values_are_saved_as_sent)
     samples(3U);
 
     zassert_equal(backlog_append_fake.call_count, 3U);
-    zassert_true(store_sent[0]);
+    zassert_true(is_store_sent[0]);
     zassert_true(backlog_append_fake.arg1_val);
     zassert_equal(backlog_pending(), 0U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
     zassert_equal(cloud_set_enabled_fake.call_count, 0U);
 }
 
@@ -563,7 +563,7 @@ ZTEST(direct, test_save_failure_keeps_going)
 {
     init_with_sd();
     store_count = STORE_MAX; /* 満杯 (全て, 送り終えたことにして, 送らない) */
-    (void)memset(store_sent, true, sizeof(store_sent));
+    (void)memset(is_store_sent, true, sizeof(is_store_sent));
 
     samples(2U);
 
@@ -578,7 +578,7 @@ ZTEST(direct, test_values_are_saved_until_mqtt_is_connected)
     cloud_is_connected_fake.return_val = false;
 
     samples(DIRECT_BLE_FAIL_LIMIT + 2U);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
     zassert_equal(cloud_publish_temperature_fake.call_count, 0U);
     zassert_equal(cloud_publish_temperature_at_fake.call_count, 0U);
     zassert_equal(backlog_append_fake.call_count, DIRECT_BLE_FAIL_LIMIT + 2U);
@@ -592,7 +592,7 @@ ZTEST(direct, test_new_values_are_sent_through_the_store)
     samples(DIRECT_BLE_FAIL_LIMIT);
 
     /* 5 回目で始めて, 5 件 (全て未送信) を古い順に送る */
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
     zassert_equal(cloud_publish_temperature_fake.call_count, 0U);
     zassert_equal(cloud_publish_temperature_at_fake.call_count, DIRECT_BLE_FAIL_LIMIT);
     zassert_equal(cloud_publish_temperature_at_fake.arg4_val, NOW_SEC);
@@ -607,7 +607,7 @@ ZTEST(direct, test_backlog_starts_wifi_with_the_gateway_connected)
 
     samples(1U);
 
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
     zassert_true(cloud_set_enabled_fake.arg0_val);
     /* 古い順に, 測った時刻つきで, ノードのアドレスで, 送信のキューに入れる */
     zassert_equal(cloud_publish_temperature_at_fake.call_count, 3U);
@@ -633,7 +633,7 @@ ZTEST(direct, test_commits_the_sent_records_and_stops)
     samples(1U);
     zassert_equal(backlog_commit_fake.call_count, 1U);
     zassert_equal(backlog_commit_fake.arg0_val, 2U);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
 
     sent_value = 3U;
     samples(1U);
@@ -642,7 +642,7 @@ ZTEST(direct, test_commits_the_sent_records_and_stops)
 
     /* 送るものがなくなって, ゲートウェイにつながっているので, 止める */
     samples(1U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
     zassert_false(cloud_set_enabled_fake.arg0_val);
 }
 
@@ -686,7 +686,7 @@ ZTEST(direct, test_flush_waits_for_mqtt)
 
     samples(2U);
 
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
     zassert_equal(cloud_publish_temperature_at_fake.call_count, 0U);
 }
 
@@ -700,7 +700,7 @@ ZTEST(direct, test_read_failure_keeps_going)
 
     samples(2U);
 
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
     zassert_equal(cloud_publish_temperature_at_fake.call_count, 0U);
 }
 
@@ -730,7 +730,7 @@ ZTEST(direct, test_commit_failure_keeps_going)
     samples(1U);
 
     zassert_equal(backlog_commit_fake.call_count, 1U);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
 }
 
 /** SD カードの記録を送りたいが, 設定が揃っていなければ, 始めない */
@@ -743,7 +743,7 @@ ZTEST(direct, test_backlog_needs_complete_settings)
 
     samples(3U);
 
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
     zassert_equal(cloud_set_enabled_fake.call_count, 0U);
 }
 
@@ -754,22 +754,22 @@ ZTEST(direct, test_backlog_gives_up_until_reconnected)
     put_records(2U);
     ble_is_connected_fake.return_val = true;
     samples(1U);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
 
     cloud_has_given_up_fake.return_val = true;
     samples(1U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
 
     cloud_has_given_up_fake.return_val = false;
     samples(3U);
-    zassert_false(direct_active());
+    zassert_false(direct_is_active());
 
     /* 切れて, また, つながったら, もう一度, 試す */
     ble_is_connected_fake.return_val = false;
     samples(1U);
     ble_is_connected_fake.return_val = true;
     samples(1U);
-    zassert_true(direct_active());
+    zassert_true(direct_is_active());
 }
 
 /** SD カードが起動のときに使えなかったら, direct_sd_check() がマウントをやり直す */

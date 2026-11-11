@@ -57,7 +57,7 @@ FAKE_VALUE_FUNC(int, ble_notify_temperature, int16_t, uint16_t, uint16_t)
 FAKE_VALUE_FUNC(int, buzzer_init)
 FAKE_VALUE_FUNC(int, buzzer_play, const struct buzzer_note *, size_t)
 FAKE_VALUE_FUNC(int, button_init)
-FAKE_VALUE_FUNC(bool, button_pressed)
+FAKE_VALUE_FUNC(bool, button_is_pressed)
 FAKE_VOID_FUNC(history_add, struct history *, int16_t, int64_t, int64_t)
 FAKE_VALUE_FUNC(int, oled_init)
 FAKE_VALUE_FUNC(int, oled_set_power, bool)
@@ -81,7 +81,7 @@ FAKE_VALUE_FUNC(int, oled_show, const struct oled_view *)
 /** oled_show() に渡された表示内容を記録する数 */
 #define SHOWN_MAX       128U
 
-/** 押されたことにする button_pressed() の呼び出しの回数 (0 は使わない) */
+/** 押されたことにする button_is_pressed() の呼び出しの回数 (0 は使わない) */
 static unsigned int press_at[PRESS_COUNT];
 /** oled_show() に渡された表示内容 (呼ばれた順) */
 static struct oled_view shown[SHOWN_MAX];
@@ -90,7 +90,7 @@ static int power_first_ret;
 /** oled_init() の 1 回目の戻り値 (2 回目以降は 0) */
 static int init_first_ret;
 /** oled_init() が呼ばれるたびに失敗するか */
-static bool init_always_fails;
+static bool is_init_always_fails;
 
 /** main を動かすスレッド */
 static struct k_thread main_thread;
@@ -134,12 +134,12 @@ static int fake_show(const struct oled_view *view)
 /**
  * oled_set_power() のモック動作 (1 回目だけ, 設定した値を返す)
  *
- * @param[in] on 点灯するなら true (使用しない)
+ * @param[in] is_on 点灯するなら true (使用しない)
  * @return 1 回目は power_first_ret, 2 回目以降は 0
  */
-static int fake_power(bool on)
+static int fake_power(bool is_on)
 {
-    ARG_UNUSED(on);
+    ARG_UNUSED(is_on);
 
     return (oled_set_power_fake.call_count == 1U) ? power_first_ret : 0;
 }
@@ -147,11 +147,12 @@ static int fake_power(bool on)
 /**
  * oled_init() のモック動作
  *
- * @return init_always_fails なら -ENODEV, そうでなければ, 1 回目は init_first_ret, 2 回目以降は 0
+ * @return is_init_always_fails なら -ENODEV, そうでなければ, 1 回目は init_first_ret, 2 回目以降は
+ * 0
  */
 static int fake_init(void)
 {
-    if (init_always_fails) {
+    if (is_init_always_fails) {
         return -ENODEV;
     }
 
@@ -159,14 +160,14 @@ static int fake_init(void)
 }
 
 /**
- * button_pressed() のモック動作 (設定した回数目の呼び出しで, 押されたことにする)
+ * button_is_pressed() のモック動作 (設定した回数目の呼び出しで, 押されたことにする)
  *
  * @return 押された呼び出しなら true
  */
-static bool fake_pressed(void)
+static bool fake_is_pressed(void)
 {
-    unsigned int call = button_pressed_fake.call_count; /* 今回の呼び出しの回数 (1 始まり) */
-    unsigned int i = 0U;                                /* ループ用の添字 */
+    unsigned int call = button_is_pressed_fake.call_count; /* 今回の呼び出しの回数 (1 始まり) */
+    unsigned int i = 0U;                                   /* ループ用の添字 */
 
     for (i = 0U; i < PRESS_COUNT; i++) {
         if (call == press_at[i]) {
@@ -208,7 +209,7 @@ static void before(void *fixture)
     RESET_FAKE(buzzer_init);
     RESET_FAKE(buzzer_play);
     RESET_FAKE(button_init);
-    RESET_FAKE(button_pressed);
+    RESET_FAKE(button_is_pressed);
     RESET_FAKE(history_add);
     RESET_FAKE(oled_init);
     RESET_FAKE(oled_set_power);
@@ -218,12 +219,12 @@ static void before(void *fixture)
     oled_show_fake.custom_fake = fake_show;
     oled_set_power_fake.custom_fake = fake_power;
     oled_init_fake.custom_fake = fake_init;
-    button_pressed_fake.custom_fake = fake_pressed;
+    button_is_pressed_fake.custom_fake = fake_is_pressed;
     (void)memset(press_at, 0, sizeof(press_at));
     (void)memset(shown, 0, sizeof(shown));
     power_first_ret = 0;
     init_first_ret = 0;
-    init_always_fails = false;
+    is_init_always_fails = false;
 }
 
 /** 別スレッドで main を動かす */
@@ -234,7 +235,7 @@ static void start_main(void)
 }
 
 /**
- * ボタンを押すループの回数 (button_pressed() の呼び出しの回数) を経過時間から求める
+ * ボタンを押すループの回数 (button_is_pressed() の呼び出しの回数) を経過時間から求める
  *
  * @param[in] ms 経過時間 [ms]
  * @return 呼び出しの回数 (1 始まり)
@@ -381,7 +382,7 @@ ZTEST(main_timeout, test_power_on_failure_waits_for_the_next_press)
 /** OLED の初期化に失敗している間は消灯も点灯もしない (ボタンを押しても, 失敗しない) */
 ZTEST(main_timeout, test_no_power_control_without_display)
 {
-    init_always_fails = true;
+    is_init_always_fails = true;
     press_at[0] = tick_at(2000U);
 
     start_main();

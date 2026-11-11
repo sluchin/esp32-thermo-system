@@ -74,7 +74,7 @@ measure()
 ### 2. ボタンとページ
 
 ```text
-ボタンが押された (button_ready && button_pressed())
+ボタンが押された (is_button_ready && button_is_pressed())
   ├ OLED が点灯中、または OLED を使えない
   │    → page = (page + 1) % OLED_PAGE_COUNT (3)
   │      ボタンの音を鳴らす (CONFIG_THERMO_BUTTON_SOUND)
@@ -83,29 +83,29 @@ measure()
   どちらも: 消灯の期限を「今 + タイムアウト」に延ばして、次の 1 周でその場で表示し直す
 ```
 
-OLED を使えないとき (`display_ready` が false) も、ページ番号と音は動きます。表示する先がないだけです。`set_display_power(true)` が失敗すると、`display_on` は false のままで、次の押下でもう一度、点灯を試みます。
+OLED を使えないとき (`is_display_ready` が false) も、ページ番号と音は動きます。表示する先がないだけです。`set_display_power(true)` が失敗すると、`is_display_on` は false のままで、次の押下でもう一度、点灯を試みます。
 
 ### 3. 自動消灯
 
-`CONFIG_THERMO_DISPLAY_TIMEOUT_SEC` (既定 10 秒、0 なら消さない) の間、ボタンが押されないと、`oled_set_power(false)` で消灯します。起動画面から点灯しているので、起動後の最初の期限は、`start_ms + タイムアウト` です。消灯に失敗したら、`display_on` は true のままで、期限を 1 秒後に延ばして、やり直します。
+`CONFIG_THERMO_DISPLAY_TIMEOUT_SEC` (既定 10 秒、0 なら消さない) の間、ボタンが押されないと、`oled_set_power(false)` で消灯します。起動画面から点灯しているので、起動後の最初の期限は、`start_ms + タイムアウト` です。消灯に失敗したら、`is_display_on` は true のままで、期限を 1 秒後に延ばして、やり直します。
 
-消灯中も、OLED の更新 (`oled_show()`) は止まります (`display_on` のときだけ呼ぶため)。
+消灯中も、OLED の更新 (`oled_show()`) は止まります (`is_display_on` のときだけ呼ぶため)。
 
 ### 4. 任意の機器の再初期化
 
-60 秒ごとに `init_optional()` を呼び、まだ使えない機器を初期化し直します。起動のときの一時的な失敗 (I2C の接触不良や、電源が安定する前など) から、再起動せずに復帰するためです。OLED が使えなかったのに、使えるようになったときは、初期化の中で点灯するので、`display_on = true` にして、消灯の期限を数え直します。
+60 秒ごとに `init_optional()` を呼び、まだ使えない機器を初期化し直します。起動のときの一時的な失敗 (I2C の接触不良や、電源が安定する前など) から、再起動せずに復帰するためです。OLED が使えなかったのに、使えるようになったときは、初期化の中で点灯するので、`is_display_on = true` にして、消灯の期限を数え直します。
 
 ### 5. 時刻の確認 (WiFi)
 
 ゲートウェイが BLE で時刻を書き込めば、RTC に時刻が入ります。書き込まれなかったときの予備として、WiFi と SNTP で時刻を取ります。
 
 ```text
-条件: !time_done && now >= next_time_check_ms && rtc_ready && !DIRECT_BUSY()
+条件: !is_time_done && now >= next_time_check_ms && is_rtc_ready && !DIRECT_BUSY()
   next_time_check_ms の初期値は start_ms + 60 秒。以後 60 秒ごと
-  time_done = check_time(datetime.valid, wifi_ready, &wifi_tries)
+  is_time_done = check_time(datetime.is_valid, is_wifi_ready, &wifi_tries)
 ```
 
-- `DIRECT_BUSY()` は、`direct_active()` です。WiFi での直接の送信が動いている間は、WiFi を時刻の取得に使いません (WiFi は 1 つしかなく、時刻の取得が WiFi を切るため)。
+- `DIRECT_BUSY()` は、`direct_is_active()` です。WiFi での直接の送信が動いている間は、WiFi を時刻の取得に使いません (WiFi は 1 つしかなく、時刻の取得が WiFi を切るため)。
 - `check_time()` の結果は次のとおりです。
 
 | 状況 | 動作 | 戻り値 |
@@ -118,27 +118,27 @@ OLED を使えないとき (`display_ready` が false) も、ページ番号と�
 
 - `wifi_time_fetch()` は、最大で約 25 秒 (WiFi の接続 20 秒 + SNTP 5 秒) 戻りません。その間、メインループは止まります。ボタンも、測定も、OLED の更新も、止まります。時刻がないという異常なときだけに、1 分ごとに、最大 5 回だけ起きる動作です。
 - 5 回で確認を終えたあとも、ゲートウェイが BLE で時刻を書けば、RTC に設定されます (書き込みは、BLE のスレッドで処理されるため)。
-- `datetime.valid` は、1 秒ごとの更新 (6) で読んだ値です。
+- `datetime.is_valid` は、1 秒ごとの更新 (6) で読んだ値です。
 
 ### 6. 1 秒ごとの更新
 
 ```text
 sdlog_flush()                溜めたログを SD カードに書く (カードがなければ何もしない)
-node_time_get(&datetime)     RTC を読む (rtc_ready のとき。失敗しても valid が false になるだけ)
+node_time_get(&datetime)     RTC を読む (is_rtc_ready のとき。失敗しても is_valid が false になるだけ)
 oled_show(&view)             点灯しているときだけ。失敗したらログを出して、次の 1 秒に再試行
 ```
 
-`view.time` は、RTC を使えるとき (`rtc_ready`) だけ、`&datetime` を指します。それまでは NULL で、OLED には日付と時刻の行が出ません。
+`view.time` は、RTC を使えるとき (`is_rtc_ready`) だけ、`&datetime` を指します。それまでは NULL で、OLED には日付と時刻の行が出ません。
 
 ## 構造体 optional_devices
 
 | メンバー | 意味 |
 |:---|:---|
-| `rtc_ready` | RTC を初期化できたか |
-| `display_ready` | OLED を初期化できたか |
-| `button_ready` | ボタンを初期化できたか |
-| `buzzer_ready` | ブザーを初期化できたか |
-| `wifi_ready` | WiFi (時刻の取得) を初期化できたか |
+| `is_rtc_ready` | RTC を初期化できたか |
+| `is_display_ready` | OLED を初期化できたか |
+| `is_button_ready` | ボタンを初期化できたか |
+| `is_buzzer_ready` | ブザーを初期化できたか |
+| `is_wifi_ready` | WiFi (時刻の取得) を初期化できたか |
 
 `init_optional()` は、`false` のメンバーだけを初期化して、成功したら `true` にします。一度 `true` になった機器は、もう呼びません。
 

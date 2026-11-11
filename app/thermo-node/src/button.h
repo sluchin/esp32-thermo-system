@@ -21,6 +21,6 @@
 
 int button_init(void);
 
-bool button_pressed(void);
+bool button_is_pressed(void);
 
 #endif /* THERMO_NODE_BUTTON_H */

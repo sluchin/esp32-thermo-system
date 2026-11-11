@@ -119,7 +119,7 @@ static struct cfb_position line_to[MAX_DRAWN];
 static int print_ret[PRINT_LINES];
 /** 設定済みの日時 (2026-10-08 14:05:09) */
 static const struct node_datetime time_valid = {
-    .valid = true,
+    .is_valid = true,
     .year = TEST_YEAR,
     .month = TEST_MONTH,
     .day = TEST_DAY,
@@ -127,8 +127,8 @@ static const struct node_datetime time_valid = {
     .minute = TEST_MINUTE,
     .second = TEST_SECOND,
 };
-/** 未設定の日時 (valid が false) */
-static const struct node_datetime time_unset = {.valid = false};
+/** 未設定の日時 (is_valid が false) */
+static const struct node_datetime time_unset = {.is_valid = false};
 
 /**
  * 偽の表示装置の set_pixel_format (設定した形式を記録して, 設定した戻り値を返す)
@@ -491,7 +491,7 @@ ZTEST(oled, test_show_time)
     zassert_equal(cfb_framebuffer_finalize_fake.call_count, 1U);
 }
 
-/** 未設定の日時 (valid が false) は日付と時刻を --- で描く (温度と湿度はその下) */
+/** 未設定の日時 (is_valid が false) は日付と時刻を --- で描く (温度と湿度はその下) */
 ZTEST(oled, test_show_time_unset)
 {
     zassert_equal(show_with_time(&time_unset), EXIT_SUCCESS);

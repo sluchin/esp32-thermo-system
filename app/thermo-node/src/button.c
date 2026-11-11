@@ -25,7 +25,7 @@ LOG_MODULE_REGISTER(button_thermo_node, THERMO_LOG_LEVEL);
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(thermo_button), gpios);
 
 /** 前回の呼び出しで, 押されていたか */
-static bool was_down;
+static bool is_prev_down;
 
 /**
  * @brief ボタンを初期化する (入力に設定する)
@@ -50,7 +50,7 @@ int button_init(void)
     }
 
     /* 起動のときに押されていても, 押された動作とはみなさない */
-    was_down = (gpio_pin_get_dt(&button) > 0);
+    is_prev_down = (gpio_pin_get_dt(&button) > 0);
     LOG_INF("Button initialized");
 
     return EXIT_SUCCESS;
@@ -65,12 +65,12 @@ int button_init(void)
  * @retval true  前回の呼び出しのあとに, 押された
  * @retval false 押されていない (押し続けている場合を含む)
  */
-bool button_pressed(void)
+bool button_is_pressed(void)
 {
-    bool down = (gpio_pin_get_dt(&button) > 0); /* 今, 押されているか */
-    bool pressed = (down && !was_down);         /* 押された動作か */
+    bool is_down = (gpio_pin_get_dt(&button) > 0); /* 今, 押されているか */
+    bool is_pressed = (is_down && !is_prev_down);  /* 押された動作か */
 
-    was_down = down;
+    is_prev_down = is_down;
 
-    return pressed;
+    return is_pressed;
 }

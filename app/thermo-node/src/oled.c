@@ -183,21 +183,21 @@ int oled_init(void)
  * 消灯 (blanking on) の間は画面に何も出ない (焼き付きと, 消費電力を減らす). 消灯の間も,
  * oled_show() で, フレームバッファを更新できる. oled_init() が成功してから呼ぶ.
  *
- * @param[in] on 点灯するなら true, 消灯するなら false
+ * @param[in] is_on 点灯するなら true, 消灯するなら false
  * @retval EXIT_SUCCESS 成功
  * @retval negative     ドライバの失敗 (負の errno)
  */
-int oled_set_power(bool on)
+int oled_set_power(bool is_on)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    if (on) {
+    if (is_on) {
         err = display_blanking_off(oled_dev);
     } else {
         err = display_blanking_on(oled_dev);
     }
     if (err != 0) {
-        LOG_ERR("Could not turn %s the OLED (%d)", (on ? "on" : "off"), err);
+        LOG_ERR("Could not turn %s the OLED (%d)", (is_on ? "on" : "off"), err);
         return err;
     }
 
@@ -451,7 +451,7 @@ static unsigned int format_lines(const struct oled_view *view, char lines[][OLED
 
     /* 日付と時刻は一番上 */
     if (view->time != NULL) {
-        if (view->time->valid) {
+        if (view->time->is_valid) {
             (void)snprintf(lines[OLED_ROW_DATE], OLED_LINE_SIZE, "%04u-%02u-%02u",
                            (unsigned int)view->time->year, (unsigned int)view->time->month,
                            (unsigned int)view->time->day);

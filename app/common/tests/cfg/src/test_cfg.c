@@ -57,7 +57,7 @@ static int save_fail_index = -1;
 static struct {
     const void *data; /**< 登録されたデータ (コピーしない. 実物と同じ) */
     size_t len;       /**< データの長さ */
-    bool present;     /**< 登録されているか */
+    bool is_present;  /**< 登録されているか */
 } store[CRED_COUNT];
 
 /** settings のハンドラに渡す, 保存されている値 */
@@ -107,7 +107,7 @@ static int fake_cred_add(sec_tag_t tag, enum tls_credential_type type, const voi
     ARG_UNUSED(tag);
     store[type - TLS_CREDENTIAL_CA_CERTIFICATE].data = cred;
     store[type - TLS_CREDENTIAL_CA_CERTIFICATE].len = credlen;
-    store[type - TLS_CREDENTIAL_CA_CERTIFICATE].present = true;
+    store[type - TLS_CREDENTIAL_CA_CERTIFICATE].is_present = true;
 
     return 0;
 }
@@ -126,7 +126,7 @@ static int fake_cred_get(sec_tag_t tag, enum tls_credential_type type, void *cre
     size_t i = (size_t)type - (size_t)TLS_CREDENTIAL_CA_CERTIFICATE; /* ループ用の添字 */
 
     ARG_UNUSED(tag);
-    if (!store[i].present) {
+    if (!store[i].is_present) {
         return -ENOENT;
     }
     if (*credlen < store[i].len) {
@@ -149,11 +149,11 @@ static int fake_cred_get(sec_tag_t tag, enum tls_credential_type type, void *cre
 static int fake_cred_delete(sec_tag_t tag, enum tls_credential_type type)
 {
     size_t i = (size_t)type - (size_t)TLS_CREDENTIAL_CA_CERTIFICATE; /* ループ用の添字 */
-    bool present = store[i].present;                                 /* 保存されているか */
-    int ret = (present ? 0 : -ENOENT);                               /* 戻り値 */
+    bool is_present = store[i].is_present;                           /* 保存されているか */
+    int ret = (is_present ? 0 : -ENOENT);                            /* 戻り値 */
 
     ARG_UNUSED(tag);
-    store[i].present = false;
+    store[i].is_present = false;
 
     return ret;
 }
@@ -406,7 +406,7 @@ ZTEST(cfg, test_save_credentials)
 ZTEST(cfg, test_save_credentials_missing)
 {
     register_all_creds();
-    store[CFG_CRED_KEY].present = false;
+    store[CFG_CRED_KEY].is_present = false;
 
     /* 期待: 秘密鍵がないので-ENOENT (CA と証明書はその前に保存される) */
     zassert_equal(cfg_save_credentials(), -ENOENT);
@@ -483,7 +483,7 @@ ZTEST(cfg, test_is_complete_missing_cred)
 
     for (i = 0U; i < CRED_COUNT; i++) {
         set_all();
-        store[i].present = false;
+        store[i].is_present = false;
         /* 期待: 証明書のどれか 1 つがなければ, false */
         zassert_false(cfg_is_complete(), "cred %zu", i);
     }

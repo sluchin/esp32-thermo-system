@@ -61,22 +61,22 @@ ZTEST(sensor_simulator, test_read_range)
 /** 値は毎回同じにならない (乱数で作る) */
 ZTEST(sensor_simulator, test_read_varies)
 {
-    int16_t first = 0;     /* 最初の温度 */
-    int16_t temp = 0;      /* 温度 */
-    uint16_t humidity = 0; /* 湿度 */
-    uint16_t pressure = 0; /* 気圧 */
-    bool changed = false;  /* 値が変わったか */
-    int i = 0;             /* ループ用の添字 */
+    int16_t first = 0;       /* 最初の温度 */
+    int16_t temp = 0;        /* 温度 */
+    uint16_t humidity = 0;   /* 湿度 */
+    uint16_t pressure = 0;   /* 気圧 */
+    bool is_changed = false; /* 値が変わったか */
+    int i = 0;               /* ループ用の添字 */
 
     /* 繰り返しの間に最初と違う値が 1 回でも出れば, 値は変化している */
     zassert_equal(sensor_read(&first, &humidity, &pressure), EXIT_SUCCESS);
     for (i = 0; i < REPEAT; i++) {
         zassert_equal(sensor_read(&temp, &humidity, &pressure), EXIT_SUCCESS);
         if (temp != first) {
-            changed = true;
+            is_changed = true;
         }
     }
-    zassert_true(changed, "temperature is always %d", first);
+    zassert_true(is_changed, "temperature is always %d", first);
 }
 
 ZTEST_SUITE(sensor_simulator, NULL, NULL, NULL, NULL, NULL);

@@ -30,7 +30,7 @@ static struct net_mgmt_event_callback ipv4_cb;
 /** 接続の結果 (成功, または失敗) が確定したときに, 与えるセマフォ */
 static K_SEM_DEFINE(result_sem, 0, 1)
         /** IPv4 アドレスを取得した状態か */
-        static volatile bool ip_ready;
+        static volatile bool is_ip_ready;
 /** 接続の結果 (0 なら成功) */
 static volatile int connect_status;
 
@@ -93,7 +93,7 @@ int wifi_link_connect(const char *ssid, size_t ssid_max, const char *psk, size_t
     }
 
     /* すでに接続していれば, つなぎ直さない */
-    if (ip_ready) {
+    if (is_ip_ready) {
         return EXIT_SUCCESS;
     }
 
@@ -138,7 +138,7 @@ int wifi_link_connect(const char *ssid, size_t ssid_max, const char *psk, size_t
  */
 bool wifi_link_is_up(void)
 {
-    return ip_ready;
+    return is_ip_ready;
 }
 
 /**
@@ -150,7 +150,7 @@ void wifi_link_disconnect(void)
     int err = EXIT_SUCCESS;                      /* エラーコード */
 
     /* 切断の完了を待たずに接続していない状態にする (再接続がすぐ始められるように) */
-    ip_ready = false;
+    is_ip_ready = false;
     if (iface == NULL) {
         return;
     }
@@ -183,11 +183,11 @@ static void event_handler(struct net_mgmt_event_callback *cb, uint64_t event, st
         }
     } else if (event == NET_EVENT_WIFI_DISCONNECT_RESULT) {
         LOG_WRN("WiFi disconnected");
-        ip_ready = false;
+        is_ip_ready = false;
     } else if (event == NET_EVENT_IPV4_ADDR_ADD) {
         LOG_INF("WiFi connected (IPv4 address acquired)");
         connect_status = 0;
-        ip_ready = true;
+        is_ip_ready = true;
         k_sem_give(&result_sem);
     } else {
         LOG_DBG("Ignoring the net event 0x%llx", (unsigned long long)event);

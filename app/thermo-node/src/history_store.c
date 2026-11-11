@@ -47,7 +47,7 @@ struct restore_state {
 };
 
 /** 時刻が入って, 復元を済ませたか */
-static bool active;
+static bool is_active;
 
 static void visit(const struct backlog_record *rec, void *ctx);
 static void flush(struct restore_state *state);
@@ -75,14 +75,14 @@ void history_store_update(struct history *temp, struct history *humidity, int64_
     int64_t unix_s = 0;     /* RTC の UNIX 時刻 [s] */
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    if (active) {
+    if (is_active) {
         return;
     }
     err = node_time_unix(&unix_s);
     if (err != EXIT_SUCCESS) {
         return;
     }
-    active = true;
+    is_active = true;
     if (temp->count > 0U) {
         return;
     }
@@ -106,7 +106,7 @@ void history_store_update(struct history *temp, struct history *humidity, int64_
  */
 void history_store_reset(void)
 {
-    active = false;
+    is_active = false;
 }
 
 /**

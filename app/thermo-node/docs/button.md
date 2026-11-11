@@ -11,23 +11,23 @@
 | 関数 | 役割 |
 |:---|:---|
 | `button_init()` | GPIO を入力に設定して、今の状態を覚える |
-| `button_pressed()` | 前回の呼び出しのあとに、押されたか |
+| `button_is_pressed()` | 前回の呼び出しのあとに、押されたか |
 
 ## button_init
 
 ```text
 gpio_is_ready_dt() でなければ                → -ENODEV
 gpio_pin_configure_dt(GPIO_INPUT)             失敗 → その値
-was_down = (gpio_pin_get_dt() > 0)             ← 起動のときに押されていても、押された動作とはしない
+is_prev_down = (gpio_pin_get_dt() > 0)             ← 起動のときに押されていても、押された動作とはしない
 ```
 
-## button_pressed
+## button_is_pressed
 
 ```c
-bool down = (gpio_pin_get_dt(&button) > 0);   /* 今、押されているか */
-bool pressed = (down && !was_down);           /* 押された動作か */
-was_down = down;
-return pressed;
+bool is_down = (gpio_pin_get_dt(&button) > 0);   /* 今、押されているか */
+bool is_pressed = (is_down && !is_prev_down);           /* 押された動作か */
+is_prev_down = is_down;
+return is_pressed;
 ```
 
 **押されていない状態から、押された状態に変わった呼び出しだけ**、true を返します。押し続けても、1 回だけです。GPIO を読めないとき (戻り値が負) は、押されていないものとして扱います。
