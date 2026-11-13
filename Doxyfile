@@ -41,7 +41,7 @@ EXCLUDE                = app/thermo-node/private
 USE_MDFILE_AS_MAINPAGE = README.md
 # Markdown の, ソースなどへの相対リンクは, HTML では切れるので, GitHub の URL にして読ませる
 FILTER_PATTERNS        = *.md=scripts/doxygen-md-filter.py
-IMAGE_PATH              = assets
+IMAGE_PATH              = docs/assets
 ENABLE_PREPROCESSING   = YES
 # ビルド構成 (Kconfig) と, Zephyr のマクロ (関数に見えてしまうもの) の扱い
 PREDEFINED             = CONFIG_THERMO_CLOUD \

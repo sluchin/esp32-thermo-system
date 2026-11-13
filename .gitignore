@@ -82,9 +82,9 @@ ENV/
 # シリアルコンソールのログ (DEBUG_LOG.md: picocom --logfile debug.log)
 /debug.log
 
-# 元のスクリーンショット (画面右上にアカウント ID が写っている). assets/ には塗りつぶした画像 (aws-*.png) だけを置く
-/assets/Screenshot*
-/assets/*.pdf
+# 元のスクリーンショット (画面右上にアカウント ID が写っている). docs/assets/ には塗りつぶした画像 (aws-*.png) だけを置く
+/docs/assets/Screenshot*
+/docs/assets/*.pdf
 
 # AWS の手順 (AWS_DYNAMODB.md と AWS_GRAPH.md) のコマンドが作る JSON. 実際のアカウント ID と ID プール ID が入るので, コミットしない
 /iot-trust.json

@@ -219,7 +219,7 @@ scripts/flash.sh gateway /dev/ttyACM0
 
 AWS IoT Core に届いた SwitchBot のデータを、CloudWatch のダッシュボードに表示した例です (左から、湿度、温度、電池残量。画像をクリックすると、拡大します)。
 
-<a href="assets/aws-dashboard-thermo.png"><img src="assets/aws-dashboard-thermo.png" width="800" alt="CloudWatch のダッシュボード thermo (湿度、温度、電池残量のグラフ)"></a>
+<a href="docs/assets/aws-dashboard-thermo.png"><img src="docs/assets/aws-dashboard-thermo.png" width="800" alt="CloudWatch のダッシュボード thermo (湿度、温度、電池残量のグラフ)"></a>
 
 ## 対応ハードウェア
 

@@ -142,7 +142,7 @@ scripts/cloud-docker.sh start                  # Docker のデーモンを起動
   - type は、次のどれか。
     - `feat`: 機能の追加
     - `fix`: バグの修正
-    - `docs`: 文書とコメントだけの変更 (`*.md`、`Doxyfile`、`assets/`、Doxygen コメント)
+    - `docs`: 文書とコメントだけの変更 (`*.md`、`Doxyfile`、`docs/assets/`、Doxygen コメント)
     - `style`: 整形、コーディング規約の適用 (動作を変えない)
     - `refactor`: 動作を変えない、書き換え
     - `test`: テストだけの変更
