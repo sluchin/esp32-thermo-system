@@ -1,6 +1,6 @@
 # esp32-thermo-system
 
-Zephyr RTOS-based BLE thermometer system featuring a sensor node and a gateway for Seeed Studio XIAO ESP32C3.
+Seeed Studio XIAO ESP32C3 で動く、Zephyr RTOS の BLE の温度計システム。センサノードとゲートウェイからなる。
 
 ## 概要
 
