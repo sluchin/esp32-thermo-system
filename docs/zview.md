@@ -61,7 +61,7 @@ scripts/flash.sh node /dev/ttyACM0
 | `CONFIG_SYS_HEAP_RUNTIME_STATS` | ヒープの使用量と断片化 |
 | `CONFIG_MEM_SLAB_TRACE_MAX_UTILIZATION` | メモリスラブの最大の使用量 |
 
-この設定は、メモリと CPU を少し余分に使います。そのため、通常のビルドには入れません。node の RAM はほぼ埋まっているので、ESP32 のタイマーのスレッド (esp_timer) と、Bluetooth のコントローラのスレッドのスタックを、通常のビルドから縮めてあります ([5. スタックの大きさ](#5-スタックの大きさ))。
+この設定は、メモリと CPU を少し余分に使います。そのため、通常のビルドには入れません。node の RAM はほぼ埋まっているので、ESP32 のタイマーのスレッド (esp_timer) と、Bluetooth のコントローラのスレッドのスタックを、通常のビルドから縮めてあります (下の「5. スタックの大きさ」)。
 
 `THERMO_ZVIEW=ON` を付けないビルドでも、スレッドとスタックは見られます。CPU の使用率とヒープは出ません。
 
