@@ -1,6 +1,6 @@
 # ログ
 
-ログ (`zephyr/logging/log.h` `log_backend.h` `log_output.h`) の、使っている API。ログは、`LOG_*` で書く (`printk` や `printf` は使わない)。ノードは、独自のバックエンドで、SD カードにログを保存する (`app/thermo-node/src/sdlog.c`)。
+ログ (`zephyr/logging/log.h` `log_backend.h` `log_output.h`) のうち、使っている API。ログは `LOG_*` で書く (`printk` や `printf` は使わない)。ノードは、独自のバックエンドで、ログを SD カードに保存する (`app/thermo-node/src/sdlog.c`)。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -14,7 +14,7 @@
 #define LOG_MODULE_REGISTER(...)
 ```
 
-ソースファイルを、ログのモジュールとして登録する。各ソースファイルで、1 回だけ書く。
+ソースファイルを、ログのモジュールとして登録する。各ソースファイルに 1 回だけ書く。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -23,7 +23,7 @@
 
 注意:
 
-- `CONFIG_LOG_DEFAULT_LEVEL` が 0 でないとき、モジュールの状態が定義され、登録される。
+- `CONFIG_LOG_DEFAULT_LEVEL` が 0 でなければ、モジュールの状態が定義され、登録される。
 
 使用箇所: [`app/common/cfg.c:23`](../../app/common/cfg.c#L23), [`app/common/cloud.c:30`](../../app/common/cloud.c#L30), [`app/common/ntp.c:23`](../../app/common/ntp.c#L23), [`app/common/wifi_link.c:23`](../../app/common/wifi_link.c#L23) ほか 15 ファイル
 
@@ -33,7 +33,7 @@
 #define LOG_ERR(...)
 ```
 
-エラーのレベルで、ログを書く。
+エラーのレベルのログを書く。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -47,7 +47,7 @@
 #define LOG_WRN(...)
 ```
 
-警告のレベルで、ログを書く。
+警告のレベルのログを書く。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -61,7 +61,7 @@
 #define LOG_INF(...)
 ```
 
-情報のレベルで、ログを書く。
+情報のレベルのログを書く。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -75,7 +75,7 @@
 #define LOG_DBG(...)
 ```
 
-デバッグのレベルで、ログを書く。
+デバッグのレベルのログを書く。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -124,7 +124,7 @@
 #define LOG_OUTPUT_DEFINE(_name, _func, _buf, _size)
 ```
 
-`log_output` のインスタンスを作る。メッセージを、文字列にして、バッファに溜め、満杯のときなどに、出力の関数を呼ぶ。
+`log_output` のインスタンスを作る。このインスタンスは、メッセージを文字列にしてバッファに溜め、満杯のときなどに出力の関数を呼ぶ。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -144,12 +144,12 @@
 #define LOG_OUTPUT_FLAG_CRLF_LFONLY       BIT(5)
 ```
 
-ログのメッセージを文字列にするときの書式のフラグ (`zephyr/logging/log_output.h`)。`log_format_func_t_get()` で得た関数の `flags` に、ビットの OR で渡す。
+ログのメッセージを文字列にするときの、書式のフラグ (`zephyr/logging/log_output.h`)。`log_format_func_t_get()` で得た関数の `flags` に、ビットの OR で渡す。
 
 | 定数 | 説明 |
 |:---|:---|
 | `LOG_OUTPUT_FLAG_TIMESTAMP` | 時刻 (起動からの時間) を付ける |
-| `LOG_OUTPUT_FLAG_FORMAT_TIMESTAMP` | 時刻を、`時:分:秒.ミリ秒,マイクロ秒` の形にする |
+| `LOG_OUTPUT_FLAG_FORMAT_TIMESTAMP` | 時刻を `時:分:秒.ミリ秒,マイクロ秒` の形にする |
 | `LOG_OUTPUT_FLAG_LEVEL` | レベル (`<err>` など) を付ける |
 | `LOG_OUTPUT_FLAG_CRLF_LFONLY` | 改行を LF だけにする (CR を付けない) |
 
@@ -177,7 +177,7 @@ log_format_func_t log_format_func_t_get(uint32_t log_type);
 static inline uint8_t log_msg_get_level(struct log_msg *msg);
 ```
 
-ログのメッセージの、レベルを返す。
+ログのメッセージのレベルを返す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -193,11 +193,11 @@ static inline uint8_t log_msg_get_level(struct log_msg *msg);
 struct log_backend_api
 ```
 
-ログのバックエンドの関数の表。バックエンドごとに、定数 (`const`) で 1 つ作り、`LOG_BACKEND_DEFINE()` に渡す。関数のポインタのメンバーは、使わないものを NULL にできる (`process` と `panic` は、NULL の確認がないので、必須)。どの関数も、第 1 引数は、バックエンド自身 (`const struct log_backend *const backend`)。
+ログのバックエンドの関数の表。バックエンドごとに定数 (`const`) で 1 つ作り、`LOG_BACKEND_DEFINE()` に渡す。関数のポインタのメンバーのうち、使わないものは NULL にできる。ただし、`process` と `panic` は NULL の確認がないので、必須。どの関数も、第 1 引数はバックエンド自身 (`const struct log_backend *const backend`)。
 
 | メンバー | 形 | 説明 |
 |:---|:---|:---|
-| `process` | `void (*)(backend, union log_msg_generic *msg)` | ログを 1 件、処理する (必須)。ログのスレッドから呼ばれる。メッセージは、戻ったあとに解放される |
+| `process` | `void (*)(backend, union log_msg_generic *msg)` | ログを 1 件処理する (必須)。ログのスレッドから呼ばれる。メッセージは、戻ったあとに解放される |
 | `dropped` | `void (*)(backend, uint32_t cnt)` | 取りこぼしたログの数 `cnt` を知らせる。NULL なら通知しない |
 | `panic` | `void (*)(backend)` | パニックのモードに切り替える (必須) |
 | `init` | `void (*)(backend)` | バックエンドの初期化 (ログのスレッドで呼ばれる)。NULL なら何もしない |
@@ -207,8 +207,8 @@ struct log_backend_api
 
 注意:
 
-- このリポジトリの `sdlog_api` が設定するのは、`process` と `panic` だけ。ほかは NULL (使わない)。
-- 表のメンバーの形は、`zephyr/logging/log_backend.h` による。`struct log_backend` (名前、`api`、`autostart` を持つ、バックエンドそのもの) は、`LOG_BACKEND_DEFINE()` が作る。
+- このリポジトリの `sdlog_api` が設定するのは、`process` と `panic` だけ。ほかは使わないので NULL。
+- 表のメンバーの形は、`zephyr/logging/log_backend.h` による。バックエンドそのもの (`struct log_backend`。名前、`api`、`autostart` を持つ) は、`LOG_BACKEND_DEFINE()` が作る。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:99`](../../app/thermo-node/src/sdlog.c#L99)
 
@@ -229,10 +229,10 @@ struct log_backend
 | `api` | `const struct log_backend_api *` | バックエンドの関数の表 |
 | `cb` | `struct log_backend_control_block *` | 制御のブロック (ID、有効か、初期化したか。RAM) |
 | `name` | `const char *` | バックエンドの名前 (定義の名前) |
-| `autostart` | `bool` | true なら、ログの起動と一緒に、初期化して有効にする |
+| `autostart` | `bool` | true なら、ログの起動と一緒に初期化して有効にする |
 
 注意:
 
-- アプリが直接、設定せず、`LOG_BACKEND_DEFINE(name, api, autostart)` に渡す。
+- アプリは直接設定せず、`LOG_BACKEND_DEFINE(name, api, autostart)` に渡す。
 
 使用箇所: [`app/thermo-node/src/sdlog.h:35`](../../app/thermo-node/src/sdlog.h#L35), [`app/thermo-node/src/sdlog.c:82`](../../app/thermo-node/src/sdlog.c#L82) (ほか 2 行)

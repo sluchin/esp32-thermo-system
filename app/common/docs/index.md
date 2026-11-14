@@ -1,6 +1,6 @@
 # 共通のコードの解析
 
-`app/common` のソースを、ファイルごとに解析した文書です。thermo-node と thermo-gateway が、共通で使うコードです。
+`app/common` のソースを、ファイルごとに解析した文書です。`app/common` には、thermo-node と thermo-gateway が共通で使うコードがあります。
 
 | 文書 | ソース | 内容 |
 |:---|:---|:---|
@@ -22,12 +22,12 @@ cfg_shell.c ──▶ cfg.c ◀──── cloud.c ──▶ payload.c
                               └───── ntp.c (時計)
 ```
 
-- `cloud.c` が中心です。設定が揃うのを待ち、WiFi につなぎ、時計を合わせ、MQTT で送ります。
-- ゲートウェイは、`cloud_init(true)` で、起動のときから動かします。ノードは、`cloud_init(false)` で作って、ゲートウェイにつながらないときだけ、`cloud_set_enabled(true)` で動かします。
-- ノードだけが使う、WiFi での時刻の取得 (`wifi_time.c`) は、`wifi_link.c` と `cfg.c` を直接使います。
+- 中心は `cloud.c` です。設定が揃うのを待ち、WiFi につなぎ、時計を合わせて、MQTT で送ります。
+- ゲートウェイは、`cloud_init(true)` で起動のときから動かします。ノードは、`cloud_init(false)` で作っておき、ゲートウェイにつながらないときだけ `cloud_set_enabled(true)` で動かします。
+- ノードだけが使う WiFi での時刻の取得 (`wifi_time.c`) は、`wifi_link.c` と `cfg.c` を直接使います。
 
 ## 関連する文書
 
 - `app/thermo-node/docs/index.md`: ノードのソースコードの解析
 - `app/thermo-gateway/docs/index.md`: ゲートウェイのソースコードの解析
-- [../../../aws_setup.md](../../../docs/aws_setup.md): AWS IoT Core の設定
+- [../../../docs/aws_setup.md](../../../docs/aws_setup.md): AWS IoT Core の設定

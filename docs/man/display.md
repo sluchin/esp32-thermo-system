@@ -1,6 +1,6 @@
 # 表示装置と文字のフレームバッファ
 
-OLED の表示 (`zephyr/drivers/display.h` `zephyr/display/cfb.h`) の、使っている API。表示は、`cfb_*` でフレームバッファに描いて、`cfb_framebuffer_finalize()` で画面に出す。
+OLED の表示 (`zephyr/drivers/display.h` `zephyr/display/cfb.h`) のうち、使っている API。`cfb_*` でフレームバッファに描いて、`cfb_framebuffer_finalize()` で画面に出す。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -14,7 +14,7 @@ OLED の表示 (`zephyr/drivers/display.h` `zephyr/display/cfb.h`) の、使っ�
 static inline int display_set_pixel_format(const struct device *dev, const enum display_pixel_format pixel_format);
 ```
 
-表示装置が使う、ピクセルの形式を設定する。
+表示装置が使うピクセルの形式を設定する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -50,7 +50,7 @@ PIXEL_FORMAT_MONO10 = BIT(2)  /* enum display_pixel_format */
 static inline int display_blanking_on(const struct device *dev);
 ```
 
-表示を消す (ブランキングを有効にする)。画面全体を消すが、フレームバッファの内容は残り、消している間も、読み書きできる。
+表示を消す (ブランキングを有効にする)。画面全体を消すが、フレームバッファの内容は残り、消している間も読み書きできる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -68,7 +68,7 @@ static inline int display_blanking_on(const struct device *dev);
 
 注意:
 
-- ドライバがバックライトの制御に対応していれば、バックライトを消す。バックライトの設定は、保持される。
+- ドライバがバックライトの制御に対応していれば、バックライトを消す。バックライトの設定は保持される。
 - ドライバがブランキングに対応していれば、ドライバの初期の状態は、この関数を呼んだ状態と同じ。
 
 使用箇所: [`app/thermo-node/src/oled.c:197`](../../app/thermo-node/src/oled.c#L197)
@@ -79,7 +79,7 @@ static inline int display_blanking_on(const struct device *dev);
 static inline int display_blanking_off(const struct device *dev);
 ```
 
-表示を戻す (ブランキングを無効にする)。フレームバッファの内容を、表示装置に戻す。
+表示を戻す (ブランキングを無効にする)。フレームバッファの内容を表示装置に戻す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -162,7 +162,7 @@ int cfb_framebuffer_set_font(const struct device *dev, uint8_t idx);
 
 エラー:
 
-- `EINVAL`: `idx` が、フォントの数の範囲の外。
+- `EINVAL`: `idx` がフォントの数の範囲の外。
 
 使用箇所: [`app/thermo-node/src/oled.c:157`](../../app/thermo-node/src/oled.c#L157)
 
@@ -182,7 +182,7 @@ int cfb_framebuffer_clear(const struct device *dev, bool clear_display);
 戻り値:
 
 - 成功は 0。
-- `clear_display` が真のときは、表示装置への書き込みの失敗の負の値。
+- `clear_display` が真のときは、表示装置への書き込みが失敗したときの負の値。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 
 エラー:
@@ -197,7 +197,7 @@ int cfb_framebuffer_clear(const struct device *dev, bool clear_display);
 int cfb_print(const struct device *dev, const char *const str, uint16_t x, uint16_t y);
 ```
 
-文字列を、フレームバッファの指定の位置に描く。
+フレームバッファの指定の位置に、文字列を描く。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -268,7 +268,7 @@ int cfb_framebuffer_finalize(const struct device *dev);
 戻り値:
 
 - 成功は 0。
-- 表示装置への書き込みの失敗の負の値。
+- 表示装置への書き込みが失敗したときの負の値。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 
 エラー:
@@ -291,7 +291,7 @@ int cfb_framebuffer_finalize(const struct device *dev);
 struct cfb_position
 ```
 
-文字のフレームバッファ (CFB) の、画面の上の位置。図形を描く `cfb_draw_point()` `cfb_draw_line()` `cfb_draw_rect()` に渡す。
+文字のフレームバッファ (CFB) の画面の上の位置。図形を描く `cfb_draw_point()` `cfb_draw_line()` `cfb_draw_rect()` に渡す。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|

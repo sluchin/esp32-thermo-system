@@ -1,6 +1,6 @@
 # ネットワーク
 
-ネットワーク (`zephyr/net/*.h`) の、使っている API。WiFi の接続、名前解決とソケット、SNTP、TLS の認証情報、MQTT。AWS IoT Core には、TLS の MQTT で発行する。
+ネットワーク (`zephyr/net/*.h`) のうち、使っている API。WiFi の接続、名前解決とソケット、SNTP、TLS の認証情報、MQTT。AWS IoT Core には、TLS の MQTT で発行する。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -26,7 +26,7 @@ struct net_if *net_if_get_default(void);
 #define net_mgmt(_mgmt_request, _iface, _data, _len)
 ```
 
-ネットワーク管理の要求を出す (イベントを生成する)。WiFi の接続や切断は、これに `NET_REQUEST_WIFI_CONNECT` `NET_REQUEST_WIFI_DISCONNECT` を渡して要求する。
+ネットワーク管理の要求を出す (イベントを生成する)。WiFi の接続や切断は、これに `NET_REQUEST_WIFI_CONNECT` や `NET_REQUEST_WIFI_DISCONNECT` を渡して要求する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -39,12 +39,12 @@ struct net_if *net_if_get_default(void);
 
 - 成功は 0。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
-- ほかの失敗は、要求を処理したドライバが返す、負の errno。
+- ほかの失敗は、要求を処理したドライバが返す負の errno。
 
 エラー:
 
 - `ENOTSUP`: その要求を処理する関数が、インターフェース (ドライバ) にない。
-- `EINVAL`: 要求の引数 (`data`、`len` の中身) が不正 (Wi-Fi の接続の要求なら、SSID の長さ、セキュリティの種類、チャンネルなど)。
+- `EINVAL`: 要求の引数 (`data`、`len` の中身) が不正 (WiFi の接続の要求なら、SSID の長さ、セキュリティの種類、チャンネルなど)。
 
 使用箇所: [`app/common/wifi_link.c:103`](../../app/common/wifi_link.c#L103) (ほか 1 行)
 
@@ -54,7 +54,7 @@ struct net_if *net_if_get_default(void);
 void net_mgmt_init_event_callback(struct net_mgmt_event_callback *cb, net_mgmt_event_handler_t handler, uint64_t mgmt_event_mask);
 ```
 
-`net_mgmt_event_callback` を、正しく初期化する補助関数。
+`net_mgmt_event_callback` を正しく初期化する補助関数。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -88,7 +88,7 @@ void net_mgmt_add_event_callback(struct net_mgmt_event_callback *cb);
 #define NET_EVENT_IPV4_ADDR_ADD (NET_EVENT_IPV4_BASE | NET_EVENT_IPV4_CMD_ADDR_ADD)
 ```
 
-IPv4 のアドレスが、インターフェースに付いたときのイベント (DHCP でアドレスを得たとき)。`net_mgmt_init_event_callback()` の `mgmt_event_mask` に渡して、WiFi の接続のあと、通信できるようになったことを知る。
+インターフェースに IPv4 のアドレスが付いたとき (DHCP でアドレスを得たとき) のイベント。`net_mgmt_init_event_callback()` の `mgmt_event_mask` に渡して、WiFi の接続のあと、通信できるようになったことを知る。
 
 使用箇所: [`app/common/wifi_link.c:51`](../../app/common/wifi_link.c#L51) (ほか 1 行)
 
@@ -113,7 +113,7 @@ WIFI_MFP_OPTIONAL             /* enum wifi_mfp_options */
 #define SYS_FOREVER_MS (-1)
 ```
 
-`wifi_connect_req_params` の、`security`、`band`、`channel`、`mfp`、`timeout` に入れる値。
+`wifi_connect_req_params` の `security`、`band`、`channel`、`mfp`、`timeout` に入れる値。
 
 | 定数 | 入れるメンバー | 説明 | 使用箇所 |
 |:---|:---|:---|:---|
@@ -126,7 +126,7 @@ WIFI_MFP_OPTIONAL             /* enum wifi_mfp_options */
 
 注意:
 
-- `SYS_FOREVER_MS` は、カーネルの関数とマクロには、そのまま渡せない (`k_timeout_t` ではない。カーネルには `SYS_TIMEOUT_MS()` か `K_FOREVER` を使う)。
+- `SYS_FOREVER_MS` は `k_timeout_t` ではないので、カーネルの関数とマクロにはそのまま渡せない。カーネルには、`SYS_TIMEOUT_MS()` か `K_FOREVER` を使う。
 
 ### NET_REQUEST_WIFI_CONNECT
 
@@ -134,7 +134,7 @@ WIFI_MFP_OPTIONAL             /* enum wifi_mfp_options */
 NET_REQUEST_WIFI_CONNECT
 ```
 
-WiFi の接続の要求。`net_mgmt()` に渡す。結果は、`NET_EVENT_WIFI_CONNECT_RESULT` で届く。
+WiFi の接続の要求。`net_mgmt()` に渡す。結果は `NET_EVENT_WIFI_CONNECT_RESULT` で届く。
 
 使用箇所: [`app/common/wifi_link.c:103`](../../app/common/wifi_link.c#L103)
 
@@ -144,7 +144,7 @@ WiFi の接続の要求。`net_mgmt()` に渡す。結果は、`NET_EVENT_WIFI_C
 NET_REQUEST_WIFI_DISCONNECT
 ```
 
-WiFi の切断の要求。`net_mgmt()` に渡す。結果は、`NET_EVENT_WIFI_DISCONNECT_RESULT` で届く。
+WiFi の切断の要求。`net_mgmt()` に渡す。結果は `NET_EVENT_WIFI_DISCONNECT_RESULT` で届く。
 
 使用箇所: [`app/common/wifi_link.c:146`](../../app/common/wifi_link.c#L146)
 
@@ -156,7 +156,7 @@ WiFi の切断の要求。`net_mgmt()` に渡す。結果は、`NET_EVENT_WIFI_D
 int zsock_getaddrinfo(const char *host, const char *service, const struct zsock_addrinfo *hints, struct zsock_addrinfo **res);
 ```
 
-ホスト名を、1 つ以上のネットワークアドレスにする (名前解決)。POSIX.1-2017 の `getaddrinfo()` と同じ。`CONFIG_POSIX_API` が有効なら、`getaddrinfo()` の名前でも使える。
+ホスト名を 1 つ以上のネットワークアドレスにする (名前解決)。POSIX.1-2017 の `getaddrinfo()` と同じ。`CONFIG_POSIX_API` が有効なら、`getaddrinfo()` の名前でも使える。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -210,7 +210,7 @@ SOCK_STREAM = 1               /* enum net_sock_type */
 SOCK_DGRAM  = 2
 ```
 
-`zsock_getaddrinfo()` の `hints` (`ai_family` と `ai_socktype`) に入れる、アドレスの種類と、ソケットの種類。
+`zsock_getaddrinfo()` の `hints` (`ai_family` と `ai_socktype`) に入れる、アドレスの種類とソケットの種類。
 
 | 定数 | 説明 | 使用箇所 |
 |:---|:---|:---|
@@ -241,10 +241,10 @@ static inline int zsock_poll(struct zsock_pollfd *fds, int nfds, int timeout);
 エラー:
 
 - `EFAULT`: `fds` のメモリにアクセスできない (ユーザー空間のとき)。
-- `ENOMEM`: 作業の領域が足りない (ユーザー空間のとき)、または `k_poll()` が `-ENOMEM` を返した。
+- `ENOMEM`: 作業の領域が足りない (ユーザー空間のとき)。または、`k_poll()` が `-ENOMEM` を返した。
 - `EINVAL`: `nfds` が不正 (POSIX の `poll()` と同じ)。
 - ほか: ソケットの実装の準備 (`POLL_PREPARE`) と `k_poll()` が返した負の値の、符号を変えたもの。
-- POSIX の `poll()` の `EINTR` は、Zephyr では失敗にならない (割り込まれたときは、再び待つ)。
+- POSIX の `poll()` の `EINTR` は、Zephyr では失敗にならない (割り込まれたときは、もう一度待つ)。
 
 使用箇所: [`app/common/cloud.c:499`](../../app/common/cloud.c#L499)
 
@@ -268,7 +268,7 @@ static inline int zsock_poll(struct zsock_pollfd *fds, int nfds, int timeout);
 
 注意:
 
-- `ZSOCK_POLLERR`、`ZSOCK_POLLHUP`、`ZSOCK_POLLNVAL` は、`events` に入れなくても、`revents` に入る。
+- `ZSOCK_POLLERR`、`ZSOCK_POLLHUP`、`ZSOCK_POLLNVAL` は、`events` に入れなくても `revents` に入る。
 
 ## SNTP (時刻の取得)
 
@@ -290,11 +290,11 @@ SNTP のコンテキストを初期化する。
 
 - 成功は 0。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
-- ほかの失敗は、ソケットを作る、または接続するときの負の errno (`-EMFILE`、`-ENOMEM`、`-EAFNOSUPPORT` など)。
+- ほかの失敗は、ソケットの作成か接続が返す負の errno (`-EMFILE`、`-ENOMEM`、`-EAFNOSUPPORT` など)。
 
 エラー:
 
-- `EFAULT`: `ctx` か `addr` が `NULL`、または `addr_len` が不正。
+- `EFAULT`: `ctx` か `addr` が `NULL`。または、`addr_len` が不正。
 
 使用箇所: [`app/common/ntp.c:68`](../../app/common/ntp.c#L68), [`app/thermo-node/src/wifi_time.c:109`](../../app/thermo-node/src/wifi_time.c#L109)
 
@@ -304,7 +304,7 @@ SNTP のコンテキストを初期化する。
 int sntp_query(struct sntp_ctx *ctx, uint32_t timeout, struct sntp_time *ts);
 ```
 
-SNTP の問い合わせをして、時刻を得る。
+SNTP で問い合わせて、時刻を得る。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -323,8 +323,8 @@ SNTP の問い合わせをして、時刻を得る。
 - `ETIMEDOUT`: `timeout` の間に、サーバから応答がない。
 - `EFAULT`: `ctx` か `ts` が `NULL`。
 - `EINVAL`: 応答が不正 (サーバのモードが違う、送信時刻が 0、時刻が矛盾している)。
-- `ERANGE`: 応答の、送ったときの時刻の控えが、要求と合わない。
-- `EBUSY`: サーバが、kiss-o'-death (取り締まりの応答) を返した。
+- `ERANGE`: 応答に入っている送信時刻の控えが、要求と合わない。
+- `EBUSY`: サーバが kiss-o'-death (取り締まりの応答) を返した。
 
 使用箇所: [`app/common/ntp.c:74`](../../app/common/ntp.c#L74), [`app/thermo-node/src/wifi_time.c:115`](../../app/thermo-node/src/wifi_time.c#L115)
 
@@ -352,7 +352,7 @@ SNTP のコンテキストを解放する (ソケットを閉じる)。
 int tls_credential_add(sec_tag_t tag, enum tls_credential_type type, const void *cred, size_t credlen);
 ```
 
-TLS / DTLS の認証に使う、認証情報を加える。
+TLS / DTLS の認証に使う認証情報を加える。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -434,7 +434,7 @@ int tls_credential_delete(sec_tag_t tag, enum tls_credential_type type);
 TLS_PEER_VERIFY_REQUIRED  /* TLS_PEER_VERIFY ソケットオプションの値 */
 ```
 
-相手の証明書の検証を、必ずする。検証に失敗したら、接続を拒否する。
+相手の証明書を必ず検証する。検証に失敗したら、接続を拒否する。
 
 使用箇所: [`app/common/cloud.c:559`](../../app/common/cloud.c#L559)
 
@@ -446,7 +446,7 @@ TLS_PEER_VERIFY_REQUIRED  /* TLS_PEER_VERIFY ソケットオプションの値 *
 void mqtt_client_init(struct mqtt_client *client);
 ```
 
-MQTT のクライアントを初期化する。パラメータの設定と、ブローカへの接続の前に、必ず呼ぶ。
+MQTT のクライアントを初期化する。パラメータの設定とブローカへの接続の前に、必ず呼ぶ。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -462,7 +462,7 @@ MQTT のクライアントを初期化する。パラメータの設定と、ブ
 MQTT_VERSION_3_1_1 = 4  /* enum mqtt_version */
 ```
 
-MQTT 3.1.1 の、プロトコルのレベル。`struct mqtt_client` の `protocol_version` に入れる (AWS IoT Core は、3.1.1 に対応する)。
+MQTT 3.1.1 のプロトコルのレベル。`struct mqtt_client` の `protocol_version` に入れる (AWS IoT Core は 3.1.1 に対応する)。
 
 使用箇所: [`app/common/cloud.c:549`](../../app/common/cloud.c#L549)
 
@@ -482,7 +482,7 @@ MQTT の接続を要求する。
 
 - 成功は 0。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
-- ほかの失敗は、ソケットの作成、TLS の設定、接続、CONNECT の送信の、負の errno (`-ECONNREFUSED`、`-ETIMEDOUT`、`-EHOSTUNREACH`、`-ENETUNREACH` など)。失敗したときは、クライアントの状態が初期化される。
+- ほかの失敗は、ソケットの作成、TLS の設定、接続、CONNECT の送信が返す負の errno (`-ECONNREFUSED`、`-ETIMEDOUT`、`-EHOSTUNREACH`、`-ENETUNREACH` など)。失敗したときは、クライアントの状態が初期化される。
 
 エラー:
 
@@ -491,7 +491,7 @@ MQTT の接続を要求する。
 
 注意:
 
-- `client` のメモリは、`mqtt_disconnect()` を呼ぶまで、有効にしておく。
+- `client` のメモリは、`mqtt_disconnect()` を呼ぶまで有効にしておく。
 - 接続したあとに、ブローカのアドレス、ユーザー名、機器 ID などを変えても、反映されない。
 - 既定のプロトコルは 3.1.1。3.1.0 を使うには、`client.protocol_version = MQTT_VERSION_3_1_0` にする。
 - キープアライブの既定は 1 分。変えるには `CONFIG_MQTT_KEEPALIVE` を変える。
@@ -515,7 +515,7 @@ int mqtt_publish(struct mqtt_client *client, const struct mqtt_publish_param *pa
 
 - 成功は 0。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
-- ほかの失敗は、送信 (`sendmsg()`) の負の errno。
+- ほかの失敗は、送信 (`sendmsg()`) が返す負の errno。
 
 エラー:
 
@@ -532,7 +532,7 @@ int mqtt_publish(struct mqtt_client *client, const struct mqtt_publish_param *pa
 MQTT_QOS_1_AT_LEAST_ONCE = 0x01  /* enum mqtt_qos */
 ```
 
-メッセージの QoS 1 (少なくとも 1 回届ける)。送ったメッセージに、受け取りの確認 (PUBACK) が返る。重なって届くことがある。`mqtt_publish()` に渡す `param.message.topic.qos` に入れる。
+メッセージの QoS 1 (少なくとも 1 回届ける)。送ったメッセージには、受け取りの確認 (PUBACK) が返る。重なって届くことがある。`mqtt_publish()` に渡す `param.message.topic.qos` に入れる。
 
 使用箇所: [`app/common/cloud.c:646`](../../app/common/cloud.c#L646)
 
@@ -542,7 +542,7 @@ MQTT_QOS_1_AT_LEAST_ONCE = 0x01  /* enum mqtt_qos */
 int mqtt_input(struct mqtt_client *client);
 ```
 
-届いた MQTT のパケットを受け取る。登録したコールバックが、パケットの内容つきで呼ばれる (`MQTT_EVT_CONNACK` `MQTT_EVT_PUBACK` `MQTT_EVT_DISCONNECT` など)。ブロックしない呼び出し。ソケットに読めるデータがあるときに呼ぶ (`zsock_poll()` と組み合わせる)。
+届いた MQTT のパケットを受け取る。登録したコールバックが、パケットの内容つきで呼ばれる (`MQTT_EVT_CONNACK` `MQTT_EVT_PUBACK` `MQTT_EVT_DISCONNECT` など)。ブロックしない呼び出しなので、ソケットに読めるデータがあるときに呼ぶ (`zsock_poll()` と組み合わせる)。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -552,7 +552,7 @@ int mqtt_input(struct mqtt_client *client);
 
 - 成功は 0。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
-- ほかの失敗は、受信と、パケットの解析の、負の errno。サーバが接続を閉じたときも、負の値になる。
+- ほかの失敗は、受信かパケットの解析が返す負の errno。サーバが接続を閉じたときも、負の値になる。
 
 エラー:
 
@@ -561,7 +561,7 @@ int mqtt_input(struct mqtt_client *client);
 
 注意:
 
-- PUBLISH メッセージの本文は、`mqtt_read_publish_payload()` で、別に読む。
+- PUBLISH メッセージの本文は、`mqtt_read_publish_payload()` で別に読む。
 
 使用箇所: [`app/common/cloud.c:522`](../../app/common/cloud.c#L522)
 
@@ -571,7 +571,7 @@ int mqtt_input(struct mqtt_client *client);
 int mqtt_live(struct mqtt_client *client);
 ```
 
-接続を保つため、必要なら Ping 要求を送る。定期的に呼ぶ。
+接続を保つために、必要なら Ping 要求を送る。定期的に呼ぶ。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -581,7 +581,7 @@ int mqtt_live(struct mqtt_client *client);
 
 - 成功は 0 (PING を送った)。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
-- ほかの失敗は、PING の送信の、負の errno。
+- ほかの失敗は、PING の送信が返す負の errno。
 
 エラー:
 
@@ -590,7 +590,7 @@ int mqtt_live(struct mqtt_client *client);
 
 注意:
 
-- 呼ぶ間隔は、接続のときにブローカと決めたキープアライブの時間を守れるようにする。
+- 接続のときにブローカと決めたキープアライブの時間を守れる間隔で呼ぶ。
 
 使用箇所: [`app/common/cloud.c:697`](../../app/common/cloud.c#L697)
 
@@ -611,7 +611,7 @@ MQTT の接続を切る。
 
 - 成功は 0 (DISCONNECT を送り、接続の状態を閉じた)。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
-- ほかの失敗は、送信の負の errno。
+- ほかの失敗は、送信が返す負の errno。
 
 エラー:
 
@@ -636,7 +636,7 @@ MQTT の接続を中止する。MQTT の切断メッセージは送らずに、�
 戻り値:
 
 - 常に 0 (`client` が `NULL` のときだけ `-EINVAL`)。
-- 接続の状態が `MQTT_STATE_IDLE` でなければ、接続を閉じて、`MQTT_EVT_DISCONNECT` のコールバックを、`result` が `-ECONNABORTED` で呼ぶ。
+- 接続の状態が `MQTT_STATE_IDLE` でなければ、接続を閉じて、`result` を `-ECONNABORTED` にして `MQTT_EVT_DISCONNECT` のコールバックを呼ぶ。
 
 使用箇所: [`app/common/cloud.c:578`](../../app/common/cloud.c#L578) (ほか 1 行)
 
@@ -646,7 +646,7 @@ MQTT の接続を中止する。MQTT の切断メッセージは送らずに、�
 MQTT_TRANSPORT_SECURE  /* enum mqtt_transport_type */
 ```
 
-`client->transport.type` に指定して、TLS で接続する。TLS の設定は、`client->transport.tls.config` に書く。
+`client->transport.type` にこれを指定すると、TLS で接続する。TLS の設定は、`client->transport.tls.config` に書く。
 
 使用箇所: [`app/common/cloud.c:558`](../../app/common/cloud.c#L558)
 
@@ -668,7 +668,7 @@ struct sockaddr
 
 注意:
 
-- メンバーは、種類だけ。アドレスの本体は、キャストした型のメンバーにある。
+- メンバーは種類だけ。アドレスの本体は、キャストした型のメンバーにある。
 
 使用箇所: [`app/common/ntp.c:69`](../../app/common/ntp.c#L69), [`app/thermo-node/src/wifi_time.c:111`](../../app/thermo-node/src/wifi_time.c#L111)
 
@@ -693,7 +693,7 @@ struct sockaddr_storage
 struct zsock_addrinfo
 ```
 
-ホストの名前を引いたとき (`zsock_getaddrinfo()`) の、結果の 1 つ。連結リストになる。ヒント (引き方の条件) として、引数にも渡す。結果は、`zsock_freeaddrinfo()` で解放する。
+ホストの名前を引いたとき (`zsock_getaddrinfo()`) の結果の 1 つ。結果は連結リストになる。ヒント (引き方の条件) として、引数にも渡す。結果は `zsock_freeaddrinfo()` で解放する。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -708,7 +708,7 @@ struct zsock_addrinfo
 
 注意:
 
-- `ai_eflags` もあるが、特別な用途のため。
+- `ai_eflags` もあるが、特別な用途のためのもの。
 - ヒントとして渡すときは、使わないメンバーを 0 にしておく。
 
 使用箇所: [`app/common/ntp.c:138`](../../app/common/ntp.c#L138) (ほか 1 行), [`app/common/cloud.c:475`](../../app/common/cloud.c#L475) (ほか 1 行), [`app/thermo-node/src/wifi_time.c:142`](../../app/thermo-node/src/wifi_time.c#L142) (ほか 1 行)
@@ -739,7 +739,7 @@ struct net_if
 
 注意:
 
-- メンバーは、ネットワークのスタックが使う。アプリは、直接、読み書きせずに、`net_if_*` の関数と、`net_mgmt()` を使う。
+- メンバーは、ネットワークのスタックが使う。アプリは直接読み書きせずに、`net_if_*` の関数と `net_mgmt()` を使う。
 
 使用箇所: [`app/common/wifi_link.c:37`](../../app/common/wifi_link.c#L37) (ほか 3 行)
 
@@ -749,7 +749,7 @@ struct net_if
 struct net_mgmt_event_callback
 ```
 
-ネットワークの管理のイベント (WiFi の接続、IP アドレスの取得など) を受け取る、コールバックの登録のための構造体。`net_mgmt_init_event_callback()` で初期化し、`net_mgmt_add_event_callback()` で登録する。登録している間は、変数を残しておく。
+ネットワークの管理のイベント (WiFi の接続、IP アドレスの取得など) を受け取るコールバックを、登録するための構造体。`net_mgmt_init_event_callback()` で初期化し、`net_mgmt_add_event_callback()` で登録する。登録している間は、変数を残しておく。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -758,7 +758,7 @@ struct net_mgmt_event_callback
 
 注意:
 
-- `node` と `sync_call` と `raised_event` は、内部用。初期化の関数が設定する。
+- `node`、`sync_call`、`raised_event` は内部用で、初期化の関数が設定する。
 
 使用箇所: [`app/common/wifi_link.c:26`](../../app/common/wifi_link.c#L26) (ほか 3 行)
 
@@ -768,7 +768,7 @@ struct net_mgmt_event_callback
 struct wifi_status
 ```
 
-WiFi の管理のイベントとコマンドの、結果の状態。共用体で、`status` (汎用の値)、`conn_status` (接続の結果)、`disconn_reason` (切断の理由)、`ap_status` (アクセスポイントの結果) の、どれかとして読む。
+WiFi の管理のイベントとコマンドの、結果の状態。共用体で、`status` (汎用の値)、`conn_status` (接続の結果)、`disconn_reason` (切断の理由)、`ap_status` (アクセスポイントの結果) のどれかとして読む。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -779,7 +779,7 @@ WiFi の管理のイベントとコマンドの、結果の状態。共用体で
 
 注意:
 
-- イベントのコールバックの、`cb->info` が、この構造体を指す (`NET_EVENT_WIFI_CONNECT_RESULT` など)。
+- イベントのコールバックの `cb->info` が、この構造体を指す (`NET_EVENT_WIFI_CONNECT_RESULT` など)。
 
 使用箇所: [`app/common/wifi_link.c:173`](../../app/common/wifi_link.c#L173) (ほか 1 行)
 
@@ -816,7 +816,7 @@ SNTP の問い合わせの状態。`sntp_init()` が初期化し、`sntp_query()
 
 注意:
 
-- メンバーは、SNTP のライブラリが使う。アプリは、直接、読み書きしない。
+- メンバーは、SNTP のライブラリが使う。アプリは直接読み書きしない。
 
 使用箇所: [`app/common/ntp.c:52`](../../app/common/ntp.c#L52), [`app/thermo-node/src/wifi_time.c:101`](../../app/thermo-node/src/wifi_time.c#L101)
 
@@ -826,7 +826,7 @@ SNTP の問い合わせの状態。`sntp_init()` が初期化し、`sntp_query()
 struct mqtt_client
 ```
 
-MQTT のクライアントの、接続の情報と状態。`mqtt_client_init()` で初期化してから、メンバーを設定し、`mqtt_connect()` に渡す。
+MQTT のクライアントの、接続の情報と状態。`mqtt_client_init()` で初期化してからメンバーを設定し、`mqtt_connect()` に渡す。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -851,8 +851,8 @@ MQTT のクライアントの、接続の情報と状態。`mqtt_client_init()` 
 
 注意:
 
-- `internal` は、内部の状態。
-- このリポジトリは、`broker` `evt_cb` `protocol_version` `rx_buf` `rx_buf_size` `tx_buf` `tx_buf_size` `keepalive` `clean_session` と、TLS の設定を、設定する。
+- `internal` は内部の状態。
+- このリポジトリが設定するのは、`broker` `evt_cb` `protocol_version` `rx_buf` `rx_buf_size` `tx_buf` `tx_buf_size` `keepalive` `clean_session` と、TLS の設定。
 - MQTT 5.0 (`CONFIG_MQTT_VERSION_5_0`) のときだけあるメンバー (`prop` `will_prop`) は、載せていない。
 
 使用箇所: [`app/common/cloud.c:102`](../../app/common/cloud.c#L102) (ほか 2 行)
@@ -890,7 +890,7 @@ PUBLISH (値の送信) のパラメータ。`mqtt_publish()` に渡す。
 
 注意:
 
-- このリポジトリは、QoS 1 (`MQTT_QOS_1_AT_LEAST_ONCE`) で送り、`dup_flag` と `retain_flag` は 0。
+- このリポジトリは QoS 1 (`MQTT_QOS_1_AT_LEAST_ONCE`) で送り、`dup_flag` と `retain_flag` は 0 にする。
 
 使用箇所: [`app/common/cloud.c:630`](../../app/common/cloud.c#L630)
 
@@ -914,6 +914,6 @@ MQTT を TLS で使うときの設定。`struct mqtt_client` の `transport.tls.
 
 注意:
 
-- このリポジトリは、`peer_verify` `sec_tag_list` `sec_tag_count` `hostname` を設定する。
+- このリポジトリが設定するのは、`peer_verify` `sec_tag_list` `sec_tag_count` `hostname`。
 
 使用箇所: [`app/common/cloud.c:545`](../../app/common/cloud.c#L545)

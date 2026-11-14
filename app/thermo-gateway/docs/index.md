@@ -1,6 +1,6 @@
 # thermo-gateway のソースコードの解析
 
-`app/thermo-gateway/src` のソースを、ファイルごとに解析した文書です。関数の動き、データの形、他のファイルとのつながり、注意点を書いています。
+`app/thermo-gateway/src` のソースを、ファイルごとに解析した文書です。関数の動き、データの形、ほかのファイルとのつながり、注意点を書いています。
 
 | 文書 | ソース | 内容 |
 |:---|:---|:---|
@@ -11,7 +11,7 @@
 ## 全体の構成
 
 ```text
-        ┌────────────┐  通知 (温度, 湿度)   ┌────────────┐
+        ┌────────────┐ 通知 (温度,湿度,気圧)┌────────────┐
         │ thermo-node │ ───────────────────▶ │            │
         └────────────┘ ◀─────────────────── │            │  MQTT over TLS
           時刻の書き込み (GATT write)          │  ble.c     │ ─────────────▶ AWS IoT Core
@@ -22,12 +22,12 @@
                                       SNTP (common/ntp.c) で合わせた時刻
 ```
 
-- ノードとは、GATT で接続します。ゲートウェイが中央機器 (Central)、ノードが周辺機器 (Peripheral) です。
-- SwitchBot の温湿度計とは、接続しません。アドバタイズだけを受け取ります。
-- AWS IoT Core への送信 (`cloud.c`)、WiFi (`wifi_link.c`)、SNTP (`ntp.c`)、設定とシェル (`cfg.c`、`cfg_shell.c`) は、ノードと共通のコードで、`app/common/` にあります。この文書の対象外です。
+- ノードとは GATT で接続します。ゲートウェイが中央機器 (Central)、ノードが周辺機器 (Peripheral) です。
+- SwitchBot の温湿度計とは接続せず、アドバタイズだけを受け取ります。
+- AWS IoT Core への送信 (`cloud.c`)、WiFi (`wifi_link.c`)、SNTP (`ntp.c`)、設定とシェル (`cfg.c`、`cfg_shell.c`) は、ノードと共通のコードで、`app/common/` にあります。これらは、この文書の対象外です。
 
 ## 関連する文書
 
 - [../../../README.md](../../../README.md): プロジェクトの概要
-- [../../../setup.md](../../../docs/setup.md): 配線と、シェルの使い方
+- [../../../docs/setup.md](../../../docs/setup.md): 配線と、シェルの使い方
 - `app/thermo-node/docs/index.md`: ノードのソースコードの解析

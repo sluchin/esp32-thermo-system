@@ -1,19 +1,19 @@
 # native_sim による Zephyr シミュレーション
 
-このプロジェクトは、Zephyr の `native_sim` ボードを使用して、Linux PC 上で ESP32C3 アプリケーションをシミュレーションできます。
+Zephyr の `native_sim` ボードを使うと、ESP32C3 のアプリケーションを、Linux PC の上でシミュレーションできます。
 
 ## 概要
 
-`native_sim` により以下が可能です：
+`native_sim` では、次のことができます。
 
-- **ハードウェアなしでテスト** - 実際のESP32デバイスなしでアプリケーションをビルド・実行
-- **高速開発ループ** - Dockerコンテナを使用した迅速なビルド
-- **BLEシミュレーション** - Bluetooth Low Energyのシミュレーション機能
-- **温度センサーシミュレーション** - ランダムな温度値を生成
+- **ハードウェアなしでテスト**: ESP32 の実機なしで、アプリケーションをビルドして実行する
+- **速い開発のループ**: Docker のコンテナで、すばやくビルドする
+- **BLE のシミュレーション**: 仮想の Bluetooth コントローラで、BLE を動かす
+- **センサのシミュレーション**: 温度、湿度、気圧の乱数を作る
 
 ## ビルド方法
 
-### 1. Docker Compose を使用（推奨）
+### 1. Docker Compose を使う (推奨)
 
 ```bash
 # Thermo Node をシミュレーション用にビルド
@@ -23,7 +23,7 @@ docker compose run --rm build-node-sim
 docker compose run --rm build-gateway-sim
 ```
 
-### 2. 直接 west コマンドを使用
+### 2. west コマンドを直接使う
 
 ```bash
 # Thermo Node
@@ -35,7 +35,7 @@ west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-si
 
 ## 実行方法
 
-ビルド後、生成された実行ファイルを実行します：
+ビルドしたら、できた実行ファイルを実行します。
 
 ```bash
 # Thermo Node を実行
@@ -45,26 +45,26 @@ west build -b native_sim/native/64 app/thermo-gateway -d build/thermo-gateway-si
 ./build/thermo-gateway-sim/zephyr/zephyr.exe
 ```
 
-このままでは Bluetooth コントローラ（HCI）がないため、BLE の初期化に失敗します（`HCI driver is not ready`）。BLE を動かす場合は、次のどちらかを使ってください。
+ただし、このままでは Bluetooth コントローラ (HCI) がないので、BLE の初期化に失敗します (`HCI driver is not ready`)。BLE を動かすときは、次の仮想コントローラを使います。
 
-### BLE を使う実行（仮想コントローラ・推奨）
+### BLE を使う実行 (仮想コントローラ)
 
-BlueZ の `btvirt` が作る仮想 Bluetooth コントローラに、Node と Gateway の両方を接続します。Bluetooth ハードウェアは不要で、Docker 内で完結します。
+BlueZ の `btvirt` が作る仮想の Bluetooth コントローラに、Node と Gateway の両方をつなぎます。Bluetooth のハードウェアは要らず、Docker の中で完結します。
 
 ```bash
 docker compose run --rm run-sim
 ```
 
-Node がアドバタイズし、Gateway がそれを検出するログが出ます（停止は Ctrl+C）。`btvirt` は `Dockerfile` で `bluez-test-tools` としてインストールされるため、初回は `docker compose build` を実行してください。
+Node がアドバタイズして、Gateway がそれを見つけるログが出ます (止めるときは Ctrl+C)。`btvirt` は、`Dockerfile` が `bluez-test-tools` としてインストールします。イメージにまだ入っていなければ、先に `docker compose build` を実行してください。
 
-`btvirt` は暗号処理に AF_ALG ソケットを使いますが、Docker の既定の seccomp と AppArmor はこれを拒否します。拒否されると `btvirt` が接続を切り、Node と Gateway は BLE の初期化で止まります。そのため `run-sim` は `seccomp=unconfined` と `apparmor=unconfined` を指定しています。
+`btvirt` は、暗号の処理に AF_ALG ソケットを使います。Docker の既定の seccomp と AppArmor は、これを拒否します。拒否されると、`btvirt` が接続を切り、Node と Gateway は BLE の初期化で止まります。そのため、`run-sim` は `seccomp=unconfined` と `apparmor=unconfined` を指定しています。
 
-ホスト上で直接実行する場合は、`btvirt -s` を起動してから、各実行ファイルに `--bt-dev=/tmp/bt-server-bredrle` を付けます。
+ホストの上で直接実行するときは、`btvirt -s` を起動してから、各実行ファイルに `--bt-dev=/tmp/bt-server-bredrle` を付けます。
 
 ### 実行例
 
 ```text
-*** Booting Zephyr OS build v3.x.x ***
+*** Booting Zephyr OS build v4.3.0 ***
 [00:00:00.000,000] <inf> thermo_node: Thermo Node started (SIMULATOR MODE)
 [00:00:00.000,500] <inf> thermo_node: Version 0.1.0 (git 584daa5c1f2e)
 [00:00:00.001,000] <wrn> sensor_thermo_node: No sensor in device tree, using simulated values
@@ -79,19 +79,19 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 
 ## シミュレーションモードの特徴
 
-### 温度センサー
+### センサ
 
-- **シミュレーション時**: 温度 (10.0〜49.9 ℃) と湿度 (30.0〜89.9 %) と気圧 (990.0〜1029.9 hPa) のランダムな値を返す
-- **実機時**: Devicetree で選んだセンサから読み取る (DHT11 などのセンサ API、または ADC。[setup.md](setup.md) の「Thermo ノードのセンサ」)
+- **シミュレーション**: 温度 (10.0〜49.9 ℃)、湿度 (30.0〜89.9 %)、気圧 (990.0〜1029.9 hPa) の乱数を返す
+- **実機**: Devicetree で選んだセンサから読む (AHT20 + BMP280 や DHT11 などのセンサ API、または ADC。[setup.md](setup.md) の「Thermo ノードのセンサ」)
 
-### BLE（Bluetooth Low Energy）
+### BLE (Bluetooth Low Energy)
 
-- **シミュレーション時**: BlueZ の `btvirt` が作る仮想コントローラを使用（「BLE を使う実行」を参照）
-- **実機時**: ESP32C3 のハードウェアBLEを使用
+- **シミュレーション**: BlueZ の `btvirt` が作る仮想コントローラを使う (「BLE を使う実行」を参照)
+- **実機**: ESP32C3 のハードウェアの BLE を使う
 
 ### デバイス名
 
-シミュレーション用と実機用でデバイス名が異なります：
+デバイス名は、シミュレーション用と実機用で違います。
 
 - **Thermo Node**
   - 実機: `Thermo-Node`
@@ -105,18 +105,18 @@ Node がアドバタイズし、Gateway がそれを検出するログが出ま�
 
 ### app/thermo-node/prj-native_sim.conf
 
-native_sim 用の Zephyr プロジェクト設定：
+native_sim 用の Zephyr のプロジェクトの設定です。おもな項目は、次のとおりです。
 
-- `CONFIG_SIMULATOR=y` - シミュレーターモードを有効化
-- `CONFIG_TEST_RANDOM_GENERATOR=y` - ランダム数生成を有効化
+- `CONFIG_SIMULATOR=y`: シミュレーションのモードにする
+- `CONFIG_TEST_RANDOM_GENERATOR=y`: 乱数の生成を有効にする
 
 ### app/thermo-node/boards/native_sim_native_64.overlay
 
-native_sim/native/64 ボード用の device tree overlay (Zephyr は `boards/<ボード>_<修飾子>.overlay` を探すので、`native_sim.overlay` では読まれない)。
+native_sim/native/64 ボード用の Devicetree の overlay です。Zephyr は `boards/<ボード>_<修飾子>.overlay` を探すので、`native_sim.overlay` という名前では読まれません。
 
 ## 開発ワークフロー
 
-1. **ローカル開発**
+1. **ローカルでの開発**
 
    ```bash
    # シミュレーション用にビルド
@@ -130,11 +130,11 @@ native_sim/native/64 ボード用の device tree overlay (Zephyr は `boards/<�
    ./build/thermo-gateway-sim/zephyr/zephyr.exe
    ```
 
-2. **実機テスト前の検証**
-   - シミュレーションで基本機能を確認
-   - ハードウェアなしで問題を検出
+2. **実機で試す前の確認**
+   - シミュレーションで、基本の機能を確かめる
+   - ハードウェアなしで、問題を見つける
 
-3. **本番環境への展開**
+3. **実機への書き込み**
 
    ```bash
    # ESP32C3 用にビルド
@@ -142,7 +142,7 @@ native_sim/native/64 ボード用の device tree overlay (Zephyr は `boards/<�
    docker compose run --rm build-gateway
 
    # フラッシング
-   # 2 台つないでいるときは, 台ごとにポートが違う (PORT で指定する)
+   # 2 台つないでいるときは台ごとにポートが違う (PORT で指定する)
    scripts/flash.sh node /dev/ttyACM0
    scripts/flash.sh gateway /dev/ttyACM1
    ```
@@ -151,17 +151,17 @@ native_sim/native/64 ボード用の device tree overlay (Zephyr は `boards/<�
 
 ### ビルドエラー
 
-「No sensor in device tree」という警告は、シミュレーション値を使うときの、正常なログです。ビルドエラーが出る場合：
+実行したときの `No sensor in device tree` の警告は、シミュレーションの値を使うときの正常なログです。ビルドでエラーが出るときは、次を確かめます。
 
-- 実機用 `prj.conf` と シミュレーション用 `prj-native_sim.conf` が正しく分離されているか確認
-- `-DCONF_FILE=` オプションが正しく指定されているか確認
+- 実機用の `prj.conf` と、シミュレーション用の `prj-native_sim.conf` を取り違えていないか
+- `-DCONF_FILE=` のオプションを、正しく指定しているか
 
 ### 実行時エラー
 
-シミュレーション実行時に実装不足の機能エラーが出る場合：
+シミュレーションの実行で、機能が足りないというエラーが出るときは、次を確かめます。
 
-- `CONFIG_SIMULATOR` が有効になっているか確認
-- ランダム数生成関連の設定を確認
+- `CONFIG_SIMULATOR` が有効になっているか
+- 乱数の生成の設定 (`CONFIG_TEST_RANDOM_GENERATOR`)
 
 ## 今後の拡張
 

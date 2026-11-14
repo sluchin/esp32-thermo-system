@@ -1,6 +1,6 @@
 # thermo-node のソースコードの解析
 
-`app/thermo-node` のソースを、ファイルごとに解析した文書です。関数の動き、データの形、他のファイルとのつながり、注意点を書いています。
+`app/thermo-node` のソースを、ファイルごとに解析した文書です。関数の動き、データの形、ほかのファイルとのつながり、注意点を書いています。
 
 ## 文書の一覧
 
@@ -9,14 +9,14 @@
 | 文書 | ソース | 内容 |
 |:---|:---|:---|
 | [main.md](main.md) | `main.c` | エントリポイントと、50 ms のメインループ |
-| [sensor.md](sensor.md) | `sensor.c` | 温湿度の読み取り (センサ API、ADC、シミュレーション) |
+| [sensor.md](sensor.md) | `sensor.c` | 温度、湿度、気圧の読み取り (センサ API、ADC、シミュレーション) |
 | [ble.md](ble.md) | `ble.c` | アドバタイズ、GATT のサービス、温度の通知、時刻の受信 |
 
 ### 保存と送信
 
 | 文書 | ソース | 内容 |
 |:---|:---|:---|
-| [direct.md](direct.md) | `direct.c` | ゲートウェイにつながらないときの、WiFi での直接の送信と、保存の制御 |
+| [direct.md](direct.md) | `direct.c` | ゲートウェイにつながらないときの、WiFi での直接の送信と保存の制御 |
 | [backlog.md](backlog.md) | `backlog.c` | SD カードの測定値の記録 (送信済みフラグ、輪) |
 | [sdlog.md](sdlog.md) | `sdlog.c` | ログの SD カードへの保存 (ログのバックエンド) |
 
@@ -35,7 +35,7 @@
 |:---|:---|:---|
 | [oled.md](oled.md) | `oled.c` | OLED の表示 (現在値、グラフ、起動画面) |
 | [history.md](history.md) | `history.c` | グラフの履歴 (区切りごとの平均のリングバッファ) |
-| [history_store.md](history_store.md) | `history_store.c` | 起動のときの、履歴の復元 |
+| [history_store.md](history_store.md) | `history_store.c` | 起動のときの履歴の復元 |
 | [button.md](button.md) | `button.c` | ボタンの検出 |
 | [buzzer.md](buzzer.md) | `buzzer.c` | ブザー (PWM) のメロディ |
 | [boot_assets.md](boot_assets.md) | `boot_assets.c` `button_assets.c` `notes.h` | 起動画面と音の素材 |
@@ -54,16 +54,16 @@
                                        backlog.c ─── sdlog.c (ログ)
                                        (SD カード)
                                             │
-                          cloud.c ◀─────────┘ (WiFi、MQTT。app/common)
+                          cloud.c ◀─────────┘ (WiFi, MQTT. app/common)
 ```
 
 測定の流れ:
 
-1. `sensor_read()` が温度と湿度を読む (5 秒ごと)。
+1. `sensor_read()` が、温度、湿度、気圧を読む (5 秒ごと)。
 2. `ble_notify_temperature()` が、つながっているゲートウェイへ通知する。
-3. `direct_sample()` が、測定値を SD カードに保存する。ゲートウェイにつながっていれば「送信済み」、つながっていなければ「未送信」で保存する。つながらない測定が続くと、WiFi と MQTT で、AWS IoT Core へ直接送る。
+3. `direct_sample()` が、測定値を SD カードに保存する。ゲートウェイにつながっていれば「送信済み」で、つながっていなければ「未送信」で保存する。つながらない測定が続くと、WiFi と MQTT で AWS IoT Core へ直接送る。
 4. `history_add()` が、グラフの履歴に加える。
-5. 1 秒ごとに、OLED を更新し、ログを SD カードに書く。
+5. 1 秒ごとに、OLED を更新して、ログを SD カードに書く。
 
 ## ビルド構成
 
@@ -80,11 +80,11 @@
 | `THERMO_SDLOG` | `sdlog.c` |
 | `THERMO_HISTORY_STORE` | `history_store.c` |
 
-`app/common` の `cloud.c`、`cfg.c` などは、ゲートウェイと共通のコードで、この文書の対象外です。
+`app/common` の `cloud.c`、`cfg.c` などは、ゲートウェイと共通のコードなので、この文書の対象外です。
 
 ## 関連する文書
 
 - [../../../README.md](../../../README.md): プロジェクトの概要
-- [../../../setup.md](../../../docs/setup.md): 配線と、シェルの使い方
-- [../../../sd_log.md](../../../docs/sd_log.md): SD カードの記録の読み方
+- [../../../docs/setup.md](../../../docs/setup.md): 配線と、シェルの使い方
+- [../../../docs/sd_log.md](../../../docs/sd_log.md): SD カードの記録の読み方
 - `app/thermo-gateway/docs/index.md`: ゲートウェイのソースコードの解析

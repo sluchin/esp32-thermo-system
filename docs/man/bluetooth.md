@@ -1,6 +1,6 @@
 # Bluetooth LE
 
-Bluetooth LE のスタック (`zephyr/bluetooth/*.h`) の、使っている API。ノードは、アドバタイズと GATT サーバ (測定値の通知、時刻の書き込み) を、ゲートウェイは、スキャンと GATT クライアント (接続、探索、購読、書き込み) を使う。
+Bluetooth LE のスタック (`zephyr/bluetooth/*.h`) のうち、使っている API。ノードは、アドバタイズと GATT サーバ (測定値の通知、時刻の書き込み) を使う。ゲートウェイは、スキャンと GATT クライアント (接続、探索、購読、書き込み) を使う。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -34,7 +34,7 @@ Bluetooth を有効にする。ローカルの Bluetooth ハードウェアと�
 
 注意:
 
-- `CONFIG_BT_SETTINGS` が有効なときは、この API が成功したあとに、`settings_load()` か `settings_load_subtree("bt")` で、Bluetooth の設定を読み込む。呼ぶ前に読み込んでも足りない。
+- `CONFIG_BT_SETTINGS` が有効なときは、この API が成功したあとに、`settings_load()` か `settings_load_subtree("bt")` で Bluetooth の設定を読み込む。この API を呼ぶ前に読み込んでも、足りない。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:167`](../../app/thermo-gateway/src/ble.c#L167), [`app/thermo-node/src/ble.c:114`](../../app/thermo-node/src/ble.c#L114)
 
@@ -91,7 +91,7 @@ int bt_le_adv_start(const struct bt_le_adv_param *param,
 - `EINVAL`: パラメータやデータが不正。
 - `EAGAIN`: Bluetooth の初期化が済んでいない。
 - `ENOMEM`: 接続可能なアドバタイズに使える接続オブジェクトがない。
-- `ECONNREFUSED`: 接続可能なアドバタイズを求めたが、コントローラの接続数が上限に達している (Zephyr のコントローラのときだけ確実。ほかでは `-EIO` になることがある)。
+- `ECONNREFUSED`: 接続可能なアドバタイズを求めたが、コントローラの接続数が上限に達している (確実なのは Zephyr のコントローラのときだけ。ほかでは `-EIO` になることがある)。
 
 注意:
 
@@ -107,7 +107,7 @@ int bt_le_adv_start(const struct bt_le_adv_param *param,
 int bt_le_scan_start(const struct bt_le_scan_param *param, bt_le_scan_cb_t cb);
 ```
 
-LE スキャンを、指定のパラメータで始めて、結果をコールバックで渡す。
+指定のパラメータで LE スキャンを始めて、結果をコールバックで渡す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -129,8 +129,8 @@ LE スキャンを、指定のパラメータで始めて、結果をコール�
 
 注意:
 
-- `CONFIG_BT_PRIVACY` が無効だと、アクティブスキャンは、ローカル機器のアイデンティティアドレスを使わない (スキャン要求のときに、アドレスを漏らさないため)。
-- `CONFIG_BT_PRIVACY` が有効で、アクティブスキャンのとき、`param.timeout` に 0 以外を指定すると `-EINVAL` になる。
+- `CONFIG_BT_PRIVACY` が無効だと、アクティブスキャンでは、ローカル機器のアイデンティティアドレスを使わない (スキャン要求でアドレスを漏らさないため)。
+- `CONFIG_BT_PRIVACY` が有効で、アクティブスキャンのときに `param.timeout` に 0 以外を指定すると、`-EINVAL` になる。
 - `CONFIG_BT_EXT_ADV` が有効なら、拡張アドバタイズのパケットも自動でスキャンする。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:249`](../../app/thermo-gateway/src/ble.c#L249)
@@ -164,7 +164,7 @@ void bt_data_parse(struct net_buf_simple *ad,
                    void *user_data);
 ```
 
-アドバタイズ (または EIR、OOB) のデータを、要素ごとに分解する補助関数。多くは、`bt_le_scan_start()` のコールバックで受けたデータに使う。
+アドバタイズ (または EIR、OOB) のデータを、要素ごとに分解する補助関数。主に、`bt_le_scan_start()` のコールバックで受けたデータに使う。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -176,7 +176,7 @@ void bt_data_parse(struct net_buf_simple *ad,
 
 注意:
 
-- `ad` は消費される。後で同じデータを使うなら、`net_buf_simple_save()` で状態を保存して、あとで `net_buf_simple_restore()` で戻す。
+- `ad` は消費される。あとで同じデータを使うなら、`net_buf_simple_save()` で状態を保存しておき、`net_buf_simple_restore()` で戻す。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:759`](../../app/thermo-gateway/src/ble.c#L759)
 
@@ -233,7 +233,7 @@ int bt_conn_le_create(const bt_addr_le_t *peer,
 
 - `EINVAL`: パラメータが不正。
 - `EAGAIN`: Bluetooth の初期化が済んでいない。
-- `EALREADY`: すでにその相手に接続している、または接続を始めている。
+- `EALREADY`: すでにその相手に接続しているか、接続を始めている。
 - `ENOMEM`: 接続オブジェクトがない。
 
 注意:
@@ -249,7 +249,7 @@ int bt_conn_le_create(const bt_addr_le_t *peer,
 int bt_conn_disconnect(struct bt_conn *conn, uint8_t reason);
 ```
 
-接続を切る。または、接続の途中なら取り消す。
+接続を切る。接続の途中なら、取り消す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -319,7 +319,7 @@ void bt_conn_unref(struct bt_conn *conn);
 struct bt_conn *bt_conn_lookup_addr_le(uint8_t id, const bt_addr_le_t *peer);
 ```
 
-アドレスから、接続オブジェクトを探す。
+アドレスから接続オブジェクトを探す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -371,7 +371,7 @@ LE アドレスをコピーする。
 static inline bool bt_addr_le_eq(const bt_addr_le_t *a, const bt_addr_le_t *b);
 ```
 
-2 つの LE アドレスが等しいかを調べる。種類 (type) と、48 ビットのアドレスが、どちらも等しいときだけ等しい。
+2 つの LE アドレスが等しいかを調べる。種類 (type) と 48 ビットのアドレスの両方が等しいときだけ、等しいとする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -388,7 +388,7 @@ static inline bool bt_addr_le_eq(const bt_addr_le_t *a, const bt_addr_le_t *b);
 static inline int bt_addr_le_to_str(const bt_addr_le_t *addr, char *str, size_t len);
 ```
 
-LE アドレスを、文字列にする。
+LE アドレスを文字列にする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -428,7 +428,7 @@ GATT サービスを登録する。サービスは、`BT_GATT_PRIMARY_SERVICE`�
 
 注意:
 
-- `CONFIG_BT_SETTINGS` のとき、CCC の値のように、結合 (bond) の設定を読み込ませたいサービスは、`settings_load()` の前に登録する。
+- `CONFIG_BT_SETTINGS` のときは、CCC の値のような、結合 (bond) の設定を読み込ませたいサービスを、`settings_load()` の前に登録する。
 - `CONFIG_BT_GATT_CACHING` のときは、GATT データベースのハッシュに入れたいサービスも、`settings_load()` の前に登録する。後から登録すると、ハッシュが再計算されて、新しく保存される。
 - 呼べるのは、`bt_init()` の前か、`settings_load()` のあと。途中で呼ぶとエラーになる。
 
@@ -442,7 +442,7 @@ ssize_t bt_gatt_attr_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                           const void *value, uint16_t value_len);
 ```
 
-属性の値を読む標準の補助関数。ローカルのデータベースの値を、バッファに入れる。読み出しのコールバックの中で使う。
+属性の値を読む標準の補助関数。ローカルのデータベースの値をバッファに入れる。読み出しのコールバックの中で使う。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -503,7 +503,7 @@ static inline int bt_gatt_notify(struct bt_conn *conn, const struct bt_gatt_attr
 
 - `EINVAL`: 属性が不正 (キャラクタリスティックの値でない、など)。
 - `ENOTCONN`: 接続していない。
-- `ENOENT`: 相手が、通知を有効にしていない。
+- `ENOENT`: 相手が通知を有効にしていない。
 - `ENOMEM`: 送信のバッファがない。
 
 使用箇所: [`app/thermo-node/src/ble.c:218`](../../app/thermo-node/src/ble.c#L218)
@@ -516,7 +516,7 @@ static inline int bt_gatt_notify(struct bt_conn *conn, const struct bt_gatt_attr
 int bt_gatt_discover(struct bt_conn *conn, struct bt_gatt_discover_params *params);
 ```
 
-サーバの属性を探索する。プライマリサービス、インクルードサービス、キャラクタリスティック、ディスクリプタの探索ができる。見つかった属性ごとに、コールバックが呼ばれ、続けるか止めるかを決める。
+サーバの属性を探索する。プライマリサービス、インクルードサービス、キャラクタリスティック、ディスクリプタを探索できる。見つかった属性ごとにコールバックが呼ばれ、続けるか止めるかを決める。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -536,7 +536,7 @@ int bt_gatt_discover(struct bt_conn *conn, struct bt_gatt_discover_params *param
 
 注意:
 
-- 応答は、`params->func` に届く。コールバックは、BT の受信スレッドから呼ばれる。
+- 応答は `params->func` に届く。コールバックは、BT の受信スレッドから呼ばれる。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:427`](../../app/thermo-gateway/src/ble.c#L427) (ほか 3 行)
 
@@ -546,7 +546,7 @@ int bt_gatt_discover(struct bt_conn *conn, struct bt_gatt_discover_params *param
 int bt_gatt_subscribe(struct bt_conn *conn, struct bt_gatt_subscribe_params *params);
 ```
 
-CCC のハンドルを使って、値の通知を購読する。通知が届くと、購読のコールバックが、通知された値を渡す。
+CCC のハンドルを使って、値の通知を購読する。通知が届くと、購読のコールバックに、通知された値が渡される。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -564,7 +564,7 @@ CCC のハンドルを使って、値の通知を購読する。通知が届く�
 - `ENOTCONN`: 接続していない。
 - `ENOMEM`: ATT 要求のキューが満杯。
 - `EALREADY`: その `params` で、すでに購読している。
-- `EBUSY`: `params.ccc_handle` が 0 で、`CONFIG_BT_GATT_AUTO_DISCOVER_CCC` が有効なとき、その `params` の探索が進行中。
+- `EBUSY`: `params.ccc_handle` が 0 で `CONFIG_BT_GATT_AUTO_DISCOVER_CCC` が有効なときに、その `params` の探索が進行中。
 
 注意:
 
@@ -598,7 +598,7 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 
 注意:
 
-- 応答は、`params->func` に届く。
+- 応答は `params->func` に届く。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:531`](../../app/thermo-gateway/src/ble.c#L531)
 
@@ -610,7 +610,7 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 #define BT_DATA(_type, _data, _data_len)
 ```
 
-アドバタイズのデータの 1 要素 (`struct bt_data`) を、種類・データ・長さで作る。
+アドバタイズのデータの 1 要素 (`struct bt_data`) を、種類、データ、長さで作る。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -674,7 +674,7 @@ int bt_gatt_write(struct bt_conn *conn, struct bt_gatt_write_params *params);
 #define BT_GATT_CCC(_changed, _perm)
 ```
 
-Client Characteristic Configuration (CCC) のディスクリプタを作る。通知 (`BT_GATT_CCC_NOTIFY`) の有効・無効を、相手が書き換えられるようにする。
+Client Characteristic Configuration (CCC) のディスクリプタを作る。通知 (`BT_GATT_CCC_NOTIFY`) の有効と無効を、相手が書き換えられるようにする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -745,7 +745,7 @@ ATT のエラーコードを、GATT のコールバックの戻り値に変え�
 #define BT_UUID_DECLARE_128(value...)
 ```
 
-128 ビットの UUID を、その場で作って、汎用の UUID のポインタ (`const struct bt_uuid *`) にする。
+128 ビットの UUID をその場で作って、汎用の UUID のポインタ (`const struct bt_uuid *`) にする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -771,7 +771,7 @@ ATT のエラーコードを、GATT のコールバックの戻り値に変え�
 
 注意:
 
-- 単位の倍数でなければ、切り捨てる。例えば `BT_GAP_MS_TO_SCAN_INTERVAL(21)` は 20.625 ms になる。
+- 単位の倍数でなければ切り捨てる。たとえば、`BT_GAP_MS_TO_SCAN_INTERVAL(21)` は 20.625 ms になる。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:245`](../../app/thermo-gateway/src/ble.c#L245)
 
@@ -791,7 +791,7 @@ ATT のエラーコードを、GATT のコールバックの戻り値に変え�
 
 注意:
 
-- 単位の倍数でなければ、切り捨てる。例えば `BT_GAP_MS_TO_SCAN_WINDOW(21)` は 20.625 ms になる。
+- 単位の倍数でなければ切り捨てる。たとえば、`BT_GAP_MS_TO_SCAN_WINDOW(21)` は 20.625 ms になる。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:246`](../../app/thermo-gateway/src/ble.c#L246)
 
@@ -820,7 +820,7 @@ ATT のエラーコードを、GATT のコールバックの戻り値に変え�
 注意:
 
 - `_ALL` は「一覧が完全」の意味。一覧の一部だけを載せるときは `BT_DATA_UUID128_SOME` (0x06) を使う。
-- このプロジェクトでは、ノードがスキャン応答に Thermo サービスの UUID を `BT_DATA_UUID128_ALL` で載せ、ゲートウェイが、種類と長さ (16 バイト) と中身で、Thermo のノードかを見分ける。
+- このプロジェクトでは、ノードが、スキャン応答に Thermo サービスの UUID を `BT_DATA_UUID128_ALL` で載せる。ゲートウェイは、種類、長さ (16 バイト)、中身で、Thermo のノードかを見分ける。
 
 ### BT_LE_AD_*
 
@@ -869,7 +869,7 @@ BT_LE_SCAN_OPT_NONE    = 0     /* enum bt_le_scan_opt */
 
 注意:
 
-- ノードは、Thermo サービスの UUID をスキャン応答に載せるので、ゲートウェイは、アクティブスキャンでないと、ノードを見分けられない。
+- ノードは Thermo サービスの UUID をスキャン応答に載せるので、ゲートウェイは、アクティブスキャンでないとノードを見分けられない。
 
 ### BT_ATT_*_ATTRIBUTE_HANDLE
 
@@ -878,7 +878,7 @@ BT_LE_SCAN_OPT_NONE    = 0     /* enum bt_le_scan_opt */
 #define BT_ATT_LAST_ATTRIBUTE_HANDLE   0xffff
 ```
 
-属性のハンドルの、有効な範囲の最初と最後 (0x0000 は、将来のために予約)。`bt_gatt_discover()` で、全ての範囲を探すときに、`start_handle` と `end_handle` に入れる。
+属性のハンドルの、有効な範囲の最初と最後 (0x0000 は将来のために予約)。`bt_gatt_discover()` で全ての範囲を探すときに、`start_handle` と `end_handle` に入れる。
 
 | 定数 | 値 | 使用箇所 |
 |:---|:---:|:---|
@@ -905,7 +905,7 @@ GATT のコールバック (`bt_gatt_subscribe()` の通知、`bt_gatt_discover(
 #define BT_UUID_GATT_CCC_VAL 0x2902
 ```
 
-クライアント特性構成記述子 (CCC。Client Characteristic Configuration) の、16 ビットの UUID の値。通知を購読するときに、CCC の記述子を探す UUID に使う。
+クライアント特性構成記述子 (CCC。Client Characteristic Configuration) の、16 ビットの UUID の値。通知を購読するときに、CCC の記述子を探すための UUID に使う。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:72`](../../app/thermo-gateway/src/ble.c#L72)
 
@@ -919,11 +919,11 @@ GATT のコールバック (`bt_gatt_subscribe()` の通知、`bt_gatt_discover(
 struct bt_conn
 ```
 
-接続を表す、公開されていない構造体 (メンバーは見えない)。ポインタだけを持ち回す。`bt_conn_le_create()` や、`connected` のコールバックで受け取り、`bt_conn_ref()` で参照を増やし、`bt_conn_unref()` で減らす。
+接続を表す、公開されていない構造体 (メンバーは見えない)。ポインタだけを持ち回す。ポインタは、`bt_conn_le_create()` や `connected` のコールバックで受け取る。`bt_conn_ref()` で参照を増やし、`bt_conn_unref()` で減らす。
 
 注意:
 
-- メンバーを直接、読み書きしない。接続の情報は、`bt_conn_get_info()` などの関数で取る。
+- メンバーは直接読み書きしない。接続の情報は、`bt_conn_get_info()` などの関数で取る。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:51`](../../app/thermo-gateway/src/ble.c#L51) (ほか 16 行), [`app/thermo-node/src/ble.c:60`](../../app/thermo-node/src/ble.c#L60) (ほか 7 行)
 
@@ -933,7 +933,7 @@ struct bt_conn
 struct bt_conn_cb
 ```
 
-接続の状態を知るためのコールバックの表。`bt_conn_cb_register()` で登録する。複数の登録ができる。使わないコールバックは NULL にする。
+接続の状態を知るためのコールバックの表。`bt_conn_cb_register()` で登録する。複数を登録できる。使わないコールバックは NULL にする。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -969,7 +969,7 @@ GATT の属性 (ATT のデータベースの 1 項目)。GATT のサービスは
 
 注意:
 
-- `BT_GATT_SERVICE_DEFINE` などのマクロが作るので、アプリが直接、初期化することは少ない。クライアントの `discover_cb` では、読み取り専用で受け取る (`handle` を見る)。
+- `BT_GATT_SERVICE_DEFINE` などのマクロが作るので、アプリが直接初期化することは少ない。クライアントの `discover_cb` では、読み取り専用で受け取る (`handle` を見る)。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:98`](../../app/thermo-gateway/src/ble.c#L98) (ほか 3 行), [`app/thermo-node/src/ble.c:60`](../../app/thermo-node/src/ble.c#L60) (ほか 4 行)
 
@@ -979,7 +979,7 @@ GATT の属性 (ATT のデータベースの 1 項目)。GATT のサービスは
 struct bt_gatt_service
 ```
 
-GATT のサービス。属性の配列とその数を持つ。実行時に、登録と解除ができる (`bt_gatt_service_register()`)。
+GATT のサービス。属性の配列とその数を持つ。実行時に登録と解除ができる (`bt_gatt_service_register()`)。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -994,7 +994,7 @@ GATT のサービス。属性の配列とその数を持つ。実行時に、登
 struct bt_gatt_discover_params
 ```
 
-GATT のクライアントが、サーバの属性を探す (`bt_gatt_discover()`) ときのパラメータ。探している間は、変数を残しておく (コールバックに同じポインタが渡される)。
+GATT のクライアントがサーバの属性を探す (`bt_gatt_discover()`) ときのパラメータ。コールバックに同じポインタが渡されるので、探している間は変数を残しておく。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -1006,9 +1006,9 @@ GATT のクライアントが、サーバの属性を探す (`bt_gatt_discover()
 
 注意:
 
-- `start_handle` は、共用体で、含まれるサービスの探索では、`_included` の別のメンバーになる。
+- `start_handle` は共用体のメンバーで、含まれるサービスの探索では、`_included` の別のメンバーになる。
 - ほかに、スタックの内部用のメンバー (`sub_params` と、`CONFIG_BT_EATT` のときの `chan_opt`) がある。
-- このリポジトリは、`uuid` `func` `start_handle` `end_handle` `type` を設定する。コールバックの中で、見つかった属性に合わせて、これらを書き換え、次の探索 (特性、記述子) に進む。
+- このリポジトリが設定するのは、`uuid` `func` `start_handle` `end_handle` `type`。コールバックの中で、見つかった属性に合わせてこれらを書き換え、次の探索 (特性、記述子) に進む。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:52`](../../app/thermo-gateway/src/ble.c#L52) (ほか 2 行)
 
@@ -1031,8 +1031,8 @@ GATT の通知を購読する (`bt_gatt_subscribe()`) ときのパラメータ�
 
 注意:
 
-- `CONFIG_BT_GATT_AUTO_DISCOVER_CCC` のときは、`ccc_handle` を `BT_GATT_AUTO_DISCOVER_CCC_HANDLE` にして、`end_handle` と `disc_params` で、CCC を自動で探せる。
-- このリポジトリは、`value_handle` `ccc_handle` `notify` を設定する。
+- `CONFIG_BT_GATT_AUTO_DISCOVER_CCC` のときは、`ccc_handle` を `BT_GATT_AUTO_DISCOVER_CCC_HANDLE` にすると、`end_handle` と `disc_params` で CCC を自動で探せる。
+- このリポジトリが設定するのは、`value_handle` `ccc_handle` `notify`。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:53`](../../app/thermo-gateway/src/ble.c#L53) (ほか 2 行)
 
@@ -1054,7 +1054,7 @@ GATT の値を書く (`bt_gatt_write()`) ときのパラメータ。書き込み
 
 注意:
 
-- このリポジトリは、時刻を書くために、これらをすべて設定する。
+- このリポジトリは、時刻を書くために、これらを全て設定する。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:54`](../../app/thermo-gateway/src/ble.c#L54) (ほか 2 行)
 
@@ -1064,7 +1064,7 @@ GATT の値を書く (`bt_gatt_write()`) ときのパラメータ。書き込み
 struct bt_data
 ```
 
-アドバタイズや、スキャン応答のデータの 1 項目 (AD の構造)。配列にして、`bt_le_adv_start()` に渡す。`BT_DATA()` `BT_DATA_BYTES()` で作る。スキャンで受け取ったデータを、`bt_data_parse()` が 1 項目ずつ、この形で、コールバックに渡す。
+アドバタイズやスキャン応答のデータの 1 項目 (AD の構造)。配列にして `bt_le_adv_start()` に渡す。`BT_DATA()` か `BT_DATA_BYTES()` で作る。スキャンで受け取ったデータは、`bt_data_parse()` が 1 項目ずつ、この形でコールバックに渡す。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -1094,7 +1094,7 @@ LE のスキャンのパラメータ。`bt_le_scan_start()` に渡す。
 
 注意:
 
-- このリポジトリは、`type` `options` `interval` `window` を設定する。
+- このリポジトリが設定するのは、`type` `options` `interval` `window`。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:242`](../../app/thermo-gateway/src/ble.c#L242)
 
@@ -1104,7 +1104,7 @@ LE のスキャンのパラメータ。`bt_le_scan_start()` に渡す。
 struct bt_uuid_16
 ```
 
-16 ビットの UUID。`BT_UUID_DECLARE_16()` や `BT_UUID_INIT_16()` で作る。ポインタ (`const struct bt_uuid *`) は、`&x.uuid` で得る。
+16 ビットの UUID。`BT_UUID_DECLARE_16()` か `BT_UUID_INIT_16()` で作る。ポインタ (`const struct bt_uuid *`) は、`&x.uuid` で得る。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -1119,7 +1119,7 @@ struct bt_uuid_16
 struct bt_uuid_128
 ```
 
-128 ビットの UUID。`BT_UUID_INIT_128()` で作る。ポインタは、`&x.uuid` で得る。
+128 ビットの UUID。`BT_UUID_INIT_128()` で作る。ポインタは `&x.uuid` で得る。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -1134,7 +1134,7 @@ struct bt_uuid_128
 struct net_buf_simple
 ```
 
-単純なバッファ。参照カウントもユーザーデータも持たない。Bluetooth のアドバタイズのデータを、`bt_data_parse()` に渡すときの入れ物として使う。
+単純なバッファ。参照カウントもユーザーデータも持たない。Bluetooth のアドバタイズのデータを `bt_data_parse()` に渡すときの入れ物として使う。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|

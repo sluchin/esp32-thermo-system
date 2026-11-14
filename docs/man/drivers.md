@@ -1,6 +1,6 @@
 # デバイスとドライバ
 
-デバイスの確認 (`zephyr/device.h`) と、ドライバ API (`zephyr/drivers/adc.h` `gpio.h` `i2c.h` `pwm.h` `rtc.h` `sensor.h`)、Devicetree のマクロ (`zephyr/devicetree.h`) の、使っている API。ハードウェアは、Devicetree から得て、使う前に `device_is_ready()` か、`*_is_ready_dt()` で確かめる。
+デバイスの確認 (`zephyr/device.h`)、ドライバ API (`zephyr/drivers/adc.h` `gpio.h` `i2c.h` `pwm.h` `rtc.h` `sensor.h`)、Devicetree のマクロ (`zephyr/devicetree.h`) のうち、使っている API。ハードウェアは Devicetree から得て、使う前に `device_is_ready()` か `*_is_ready_dt()` で確かめる。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -14,13 +14,13 @@
 bool device_is_ready(const struct device *dev);
 ```
 
-デバイスが使える状態かを調べる。`DEVICE_DT_GET()` で得たポインタは、`device_get_binding()` の準備の確認を含まないので、これで確かめる。少なくとも、デバイスの初期化が成功していることを確かめる。
+デバイスが使える状態かを調べる。`DEVICE_DT_GET()` で得たポインタでは、`device_get_binding()` が行う準備の確認が済んでいないので、これで確かめる。少なくとも、デバイスの初期化が成功していることを確かめる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
 | `dev` | in | 確かめるデバイス |
 
-戻り値: 使えれば `true`。使えない、または `NULL` を渡したら `false`。エラー番号は返さない。
+戻り値: 使えれば `true`。使えないときと、`NULL` を渡したときは `false`。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/node_time.c:84`](../../app/thermo-node/src/node_time.c#L84), [`app/thermo-node/src/oled.c:137`](../../app/thermo-node/src/oled.c#L137), [`app/thermo-node/src/sensor.c:94`](../../app/thermo-node/src/sensor.c#L94) (ほか 1 行)
 
@@ -48,7 +48,7 @@ Devicetree から得た ADC のデバイスが使えるかを調べる。
 static inline int adc_channel_setup_dt(const struct adc_dt_spec *spec);
 ```
 
-`struct adc_dt_spec` から、ADC のチャンネルを設定する。
+`struct adc_dt_spec` の情報で、ADC のチャンネルを設定する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -73,7 +73,7 @@ static inline int adc_channel_setup_dt(const struct adc_dt_spec *spec);
 static inline int adc_read_dt(const struct adc_dt_spec *spec, const struct adc_sequence *sequence);
 ```
 
-`struct adc_dt_spec` から、読み取りを要求する。
+`struct adc_dt_spec` の情報で、読み取りを要求する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -89,9 +89,9 @@ static inline int adc_read_dt(const struct adc_dt_spec *spec, const struct adc_s
 エラー:
 
 - `EINVAL`: 値が不正な引数を渡した。
-- `ENOMEM`: バッファが、要求した全ての標本を入れるには小さい。
+- `ENOMEM`: 要求した全ての標本を入れるには、バッファが小さい。
 - `ENOTSUP`: 要求した動作のモードに対応していない。
-- `EBUSY`: 前の標本の取得が終わらないうちに、次を始めた (間隔を空けて測るときだけ。間隔が短すぎる。全ての標本はバッファに入るが、一部は、予定より遅れて取ったもの)。
+- `EBUSY`: 前の標本の取得が終わらないうちに、次を始めた (間隔を空けて測るときだけ起きる。間隔が短すぎる)。全ての標本はバッファに入るが、一部は予定より遅れて取ったもの。
 
 使用箇所: [`app/thermo-node/src/sensor.c:194`](../../app/thermo-node/src/sensor.c#L194)
 
@@ -101,7 +101,7 @@ static inline int adc_read_dt(const struct adc_dt_spec *spec, const struct adc_s
 static inline int adc_raw_to_millivolts_dt(const struct adc_dt_spec *spec, int32_t *valp);
 ```
 
-ADC の生の値を、`struct adc_dt_spec` の情報を使って、ミリボルトにする。
+`struct adc_dt_spec` の情報を使って、ADC の生の値をミリボルトにする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -115,7 +115,7 @@ ADC の生の値を、`struct adc_dt_spec` の情報を使って、ミリボル�
 
 エラー:
 
-- `ENOTSUP`: Devicetree の情報が正しくない、または、利得や基準電圧の設定で、換算できない。
+- `ENOTSUP`: Devicetree の情報が正しくない。または、利得や基準電圧の設定のために換算できない。
 
 使用箇所: [`app/thermo-node/src/sensor.c:202`](../../app/thermo-node/src/sensor.c#L202)
 
@@ -143,7 +143,7 @@ GPIO のポートが使えるかを調べる。
 static inline int gpio_pin_configure_dt(const struct gpio_dt_spec *spec, gpio_flags_t extra_flags);
 ```
 
-`struct gpio_dt_spec` のピンを、Devicetree のフラグに追加のフラグを足して、設定する。`gpio_pin_configure(spec->port, spec->pin, spec->dt_flags | extra_flags)` と同じ。
+`struct gpio_dt_spec` のピンを、Devicetree のフラグに追加のフラグを足して設定する。`gpio_pin_configure(spec->port, spec->pin, spec->dt_flags | extra_flags)` と同じ。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -157,9 +157,9 @@ static inline int gpio_pin_configure_dt(const struct gpio_dt_spec *spec, gpio_fl
 
 エラー:
 
-- `ENOTSUP`: 設定のオプションのどれかに、対応していない (フラグの説明に、別の指示があるときを除く)。
+- `ENOTSUP`: 設定のオプションのどれかに対応していない (フラグの説明に別の指示があるときを除く)。
 - `EINVAL`: 引数が不正。
-- `EIO`: 外付けの GPIO チップへのアクセスの I/O エラー。
+- `EIO`: 外付けの GPIO チップへのアクセスで I/O エラーが起きた。
 - `EWOULDBLOCK`: 操作がブロックする。
 
 使用箇所: [`app/thermo-node/src/button.c:46`](../../app/thermo-node/src/button.c#L46)
@@ -184,7 +184,7 @@ static inline int gpio_pin_get_dt(const struct gpio_dt_spec *spec);
 
 エラー:
 
-- `EIO`: 外付けの GPIO チップへのアクセスの I/O エラー。
+- `EIO`: 外付けの GPIO チップへのアクセスで I/O エラーが起きた。
 - `EWOULDBLOCK`: 操作がブロックする。
 
 使用箇所: [`app/thermo-node/src/button.c:53`](../../app/thermo-node/src/button.c#L53) (ほか 1 行)
@@ -311,7 +311,7 @@ PWM のデバイスが使えるかを調べる。
 static inline int pwm_set_dt(const struct pwm_dt_spec *spec, uint32_t period, uint32_t pulse);
 ```
 
-周期とパルス幅を、ナノ秒で設定する。`spec` に書いてある周期は無視される。Devicetree の周期を、実行中に変えたいときに使う (ブザーの音階)。`pwm_set(spec->dev, spec->channel, period, pulse, spec->flags)` と同じ。
+周期とパルス幅を、ナノ秒で設定する。`spec` に書いてある周期は無視される。Devicetree の周期を実行中に変えたいとき (ブザーの音階) に使う。`pwm_set(spec->dev, spec->channel, period, pulse, spec->flags)` と同じ。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -327,7 +327,7 @@ static inline int pwm_set_dt(const struct pwm_dt_spec *spec, uint32_t period, ui
 
 エラー:
 
-- `ENOTSUP`: 要求した周期かパルスのサイクルに、対応していない。
+- `ENOTSUP`: 要求した周期かパルスのサイクルに対応していない。
 
 使用箇所: [`app/thermo-node/src/buzzer.c:134`](../../app/thermo-node/src/buzzer.c#L134)
 
@@ -337,7 +337,7 @@ static inline int pwm_set_dt(const struct pwm_dt_spec *spec, uint32_t period, ui
 static inline int pwm_set_pulse_dt(const struct pwm_dt_spec *spec, uint32_t pulse);
 ```
 
-パルス幅をナノ秒で設定する。周期は、`spec` の値を使う。`pwm_set(spec->dev, spec->channel, spec->period, pulse, spec->flags)` と同じ。
+パルス幅をナノ秒で設定する。周期には `spec` の値を使う。`pwm_set(spec->dev, spec->channel, spec->period, pulse, spec->flags)` と同じ。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -352,7 +352,7 @@ static inline int pwm_set_pulse_dt(const struct pwm_dt_spec *spec, uint32_t puls
 
 エラー:
 
-- `ENOTSUP`: 要求した周期かパルスのサイクルに、対応していない。
+- `ENOTSUP`: 要求した周期かパルスのサイクルに対応していない。
 
 使用箇所: [`app/thermo-node/src/buzzer.c:129`](../../app/thermo-node/src/buzzer.c#L129)
 
@@ -404,7 +404,7 @@ RTC の時刻を設定する。
 
 エラー:
 
-- `EINVAL`: 時刻が不正、または、ハードウェアの範囲を超えている。
+- `EINVAL`: 時刻が不正か、ハードウェアの範囲を超えている。
 
 使用箇所: [`app/thermo-node/src/node_time.c:197`](../../app/thermo-node/src/node_time.c#L197)
 
@@ -416,7 +416,7 @@ RTC の時刻を設定する。
 int sensor_sample_fetch(const struct device *dev);
 ```
 
-センサから、サンプルを取得して、ドライバの内部のバッファに入れる。有効な全てのチャンネルを読み、必要なら、値を使える形にする。取得が終わるまで待つ。値は、続けて `sensor_channel_get()` で取り出す。
+センサからサンプルを取得して、ドライバの内部のバッファに入れる。有効な全てのチャンネルを読み、必要なら値を使える形にする。取得が終わるまで待つ。値は、続けて `sensor_channel_get()` で取り出す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -431,11 +431,11 @@ int sensor_sample_fetch(const struct device *dev);
 エラー:
 
 - `EIO`: センサとの通信 (I2C、SPI など) の失敗。
-- `ENOTSUP`: センサが、その操作に対応していない。
+- `ENOTSUP`: センサがその操作に対応していない。
 
 注意:
 
-- I2C や SPI で接続したセンサは、通信をするので、割り込みから呼ばない。
+- I2C や SPI で接続したセンサは通信をするので、割り込みから呼ばない。
 
 使用箇所: [`app/thermo-node/src/sensor.c:153`](../../app/thermo-node/src/sensor.c#L153) (ほか 1 行)
 
@@ -445,7 +445,7 @@ int sensor_sample_fetch(const struct device *dev);
 int sensor_channel_get(const struct device *dev, enum sensor_channel chan, struct sensor_value *val);
 ```
 
-指定のチャンネルの値を、ドライバの内部のデータから取り出す。先に `sensor_sample_fetch()` (または `sensor_sample_fetch_chan()`) でサンプルを取得しておく。間に取得し直さなければ、続けて呼んでも、同じ値になる。
+ドライバの内部のデータから、指定のチャンネルの値を取り出す。先に `sensor_sample_fetch()` (または `sensor_sample_fetch_chan()`) でサンプルを取得しておく。間に取得し直さなければ、続けて呼んでも同じ値になる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -480,7 +480,7 @@ int sensor_channel_get(const struct device *dev, enum sensor_channel chan, struc
 static inline int64_t sensor_value_to_milli(const struct sensor_value *val);
 ```
 
-`struct sensor_value` を、1000 倍の整数 (ミリ単位) にする。
+`struct sensor_value` を 1000 倍の整数 (ミリ単位) にする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -498,7 +498,7 @@ static inline int64_t sensor_value_to_milli(const struct sensor_value *val);
 #define DEVICE_DT_GET(node_id)
 ```
 
-Devicetree のノードから、デバイスへのポインタを得る (コンパイル時に決まる)。使う前に、`device_is_ready()` で確かめる。
+Devicetree のノードから、デバイスへのポインタを得る (コンパイル時に決まる)。使う前に `device_is_ready()` で確かめる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -530,7 +530,7 @@ Devicetree の alias から、ノードの識別子を得る (例: `DT_ALIAS(rtc
 #define DT_HAS_ALIAS(alias)
 ```
 
-alias があって、ノードが有効なら 1、なければ 0 になる。`#if` や `COND_CODE_1` で、オプションの部品の有無を切り替えるのに使う。
+alias があって、ノードが有効なら 1、そうでなければ 0 になる。`#if` や `COND_CODE_1` で、オプションの部品の有無を切り替えるのに使う。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -546,9 +546,9 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 #define DT_PATH(...)
 ```
 
-ノードのパスから、ノードの識別子を得る (例: `DT_PATH(zephyr_user)`)。ルート `/` から、ノードの名前を、順に引数に並べる。得た識別子は、`DT_PROP()` `DT_NODE_HAS_PROP()` `ADC_DT_SPEC_GET()` などの、ほかの `DT_*` のマクロに渡して使う。コンパイルのときに決まる値で、実行時の処理はない。
+ノードのパスから、ノードの識別子を得る (例: `DT_PATH(zephyr_user)`)。ルート `/` から、ノードの名前を順に引数に並べる。得た識別子は、`DT_PROP()` `DT_NODE_HAS_PROP()` `ADC_DT_SPEC_GET()` などのほかの `DT_*` のマクロに渡して使う。コンパイルのときに決まる値なので、実行時の処理はない。
 
-ノードの名前は、小文字にして、C の識別子に使えない文字 (`,` `-` `@`) を `_` に置き換えて書く。ユニットアドレス (`@` の後ろ) も、名前に含める。
+ノードの名前は、小文字にして、C の識別子に使えない文字 (`,` `-` `@`) を `_` に置き換えて書く。ユニットアドレス (`@` の後ろ) も名前に含める。
 
 | パス | 書き方 |
 |:---|:---|
@@ -556,17 +556,17 @@ alias があって、ノードが有効なら 1、なければ 0 になる。`#i
 | `/soc/i2c@12340000` | `DT_PATH(soc, i2c_12340000)` |
 | `/aliases` | `DT_PATH(aliases)` |
 
-`,` と `_` は、どちらも `_` になるので、`zephyr,user` と `zephyr_user` という名前のノードは、同じ書き方になる。Devicetree の上では別のノードなので、overlay では、ノードの名前を `zephyr,user` にそろえる。
+`,` と `_` はどちらも `_` になるので、`zephyr,user` と `zephyr_user` という名前のノードは、同じ書き方になる。Devicetree の上では別のノードなので、overlay ではノードの名前を `zephyr,user` にそろえる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
 | `...` | in | ルートからのノード名の並び (小文字にして、`,` `-` `@` を `_` に置き換えたもの) |
 
-戻り値: ノードの識別子。パスにノードがなければ、ノードの識別子として使えない値になり、ほかの `DT_*` のマクロに渡すと、コンパイルのエラーになる (`DT_NODE_EXISTS()` と `DT_NODE_HAS_PROP()` は、0 になる)。
+戻り値: ノードの識別子。パスにノードがなければ、ノードの識別子としては使えない値になり、ほかの `DT_*` のマクロに渡すとコンパイルのエラーになる (`DT_NODE_EXISTS()` と `DT_NODE_HAS_PROP()` は 0 になる)。
 
 #### zephyr,user ノード
 
-`/zephyr,user` は、アプリのための特別なノード。binding (プロパティの書式の定義) を書かなくても、任意のプロパティを置ける (プロパティの型は、値から推定される)。ボードごとに変えたい値 (ADC のチャンネル、GPIO のピン、数値など) を、overlay に書いて、アプリから読むのに使う。Zephyr のドライバやサブシステムではなく、アプリとサンプルのためのもの。
+`/zephyr,user` は、アプリのための特別なノード。binding (プロパティの書式の定義) を書かなくても、任意のプロパティを置ける (プロパティの型は値から推定される)。ボードごとに変えたい値 (ADC のチャンネル、GPIO のピン、数値など) を overlay に書いて、アプリから読むのに使う。Zephyr のドライバやサブシステムのためではなく、アプリとサンプルのためのもの。
 
 このプロジェクトでは、ノードの温度センサの ADC のチャンネル (`io-channels`) を置く。`io-channels` があれば ADC を読み、なければ、ほかの方法 (センサ API か、シミュレーション) にする ([`app/thermo-node/src/sensor.c:33`](../../app/thermo-node/src/sensor.c#L33))。
 
@@ -592,7 +592,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 #define DT_NODE_HAS_PROP(node_id, prop)
 ```
 
-ノードが、そのプロパティを持っていれば 1、なければ 0 になる。
+ノードがそのプロパティを持っていれば 1、なければ 0 になる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -687,7 +687,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 POST_KERNEL  /* 初期化のレベル */
 ```
 
-デバイスの初期化のレベル。カーネルが動き出したあとに、初期化する (カーネルのサービス (スリープ、セマフォなど) と、ほかのドライバ (I2C など) を使える)。`DEVICE_DT_INST_DEFINE()` の `level` に渡す。同じレベルの中の順番は、`prio` (優先度。小さいほど先) で決まる。
+デバイスの初期化のレベル。カーネルが動き出したあとに初期化するので、カーネルのサービス (スリープ、セマフォなど) と、ほかのドライバ (I2C など) を使える。`DEVICE_DT_INST_DEFINE()` の `level` に渡す。同じレベルの中の順番は、`prio` (優先度。小さいほど先) で決まる。
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:261`](../../app/thermo-node/drivers/rtc_pcf8563.c#L261)
 
@@ -730,7 +730,7 @@ POST_KERNEL  /* 初期化のレベル */
 struct device
 ```
 
-デバイスのインスタンスを表す構造体 (ROM に置く)。ドライバのインスタンスごとに 1 つある。Devicetree のノードから、`DEVICE_DT_GET()` などでポインタを得る。
+デバイスのインスタンスを表す構造体 (ROM に置く)。ドライバのインスタンスごとに 1 つある。ポインタは、Devicetree のノードから `DEVICE_DT_GET()` などで得る。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -744,7 +744,7 @@ struct device
 
 注意:
 
-- アプリは、ポインタを持ち回し、`device_is_ready()` や、各サブシステムの API に渡す。メンバーは、ドライバが使うもので、アプリは直接、読み書きしない。
+- アプリは、ポインタを持ち回して、`device_is_ready()` や各サブシステムの API に渡す。メンバーはドライバが使うもので、アプリは直接読み書きしない。
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:95`](../../app/thermo-node/drivers/rtc_pcf8563.c#L95) (ほか 5 行), [`app/thermo-node/src/oled.c:98`](../../app/thermo-node/src/oled.c#L98), [`app/thermo-node/src/node_time.c:61`](../../app/thermo-node/src/node_time.c#L61), [`app/thermo-node/src/sensor.c:47`](../../app/thermo-node/src/sensor.c#L47) (ほか 1 行)
 
@@ -840,7 +840,7 @@ ADC の 1 回の読み取りの設定。`adc_read()` に渡す。
 
 注意:
 
-- `adc_sequence_init_dt()` が、`channels` `resolution` `oversampling` などを、`struct adc_dt_spec` から設定する。
+- `adc_sequence_init_dt()` が、`channels` `resolution` `oversampling` などを `struct adc_dt_spec` から設定する。
 
 使用箇所: [`app/thermo-node/src/sensor.c:187`](../../app/thermo-node/src/sensor.c#L187)
 
@@ -850,7 +850,7 @@ ADC の 1 回の読み取りの設定。`adc_read()` に渡す。
 struct rtc_time
 ```
 
-日時 (サブ秒の精度つき)。標準ライブラリの `struct tm` と、`tm_sec` から `tm_isdst` まで、同じ並びになっている。`rtc_time_to_tm()` で、`struct tm *` に安全に変えられる。
+日時 (サブ秒の精度つき)。`tm_sec` から `tm_isdst` までは、標準ライブラリの `struct tm` と同じ並びになっている。`rtc_time_to_tm()` で、`struct tm *` に安全に変えられる。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -867,7 +867,7 @@ struct rtc_time
 
 注意:
 
-- `tm_mon` と `tm_year` は、人の見る値と、ずれている (月は 0 から、年は 1900 を引く)。
+- `tm_mon` と `tm_year` は、人の見る値とずれている (月は 0 から始まり、年は 1900 を引いた値)。
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:95`](../../app/thermo-node/drivers/rtc_pcf8563.c#L95) (ほか 3 行), [`app/thermo-node/src/node_time.c:172`](../../app/thermo-node/src/node_time.c#L172) (ほか 1 行)
 
@@ -877,7 +877,7 @@ struct rtc_time
 struct sensor_value
 ```
 
-センサーの読み取り値。整数部と小数部を持つ。値は、`val1 + val2 × 10^-6` になる。
+センサの読み取り値。整数部と小数部を持ち、値は `val1 + val2 × 10^-6` になる。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|
@@ -887,6 +887,6 @@ struct sensor_value
 注意:
 
 - 負の値も同じ式になる。例: 0.5 は `val1 = 0, val2 = 500000`、−0.5 は `val1 = 0, val2 = −500000`、−1.5 は `val1 = −1, val2 = −500000`。
-- `sensor_value_to_double()` や `sensor_value_to_milli()` で、数に変える。
+- `sensor_value_to_double()` や `sensor_value_to_milli()` で数に変える。
 
 使用箇所: [`app/thermo-node/src/sensor.c:149`](../../app/thermo-node/src/sensor.c#L149) (ほか 2 行)

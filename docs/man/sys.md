@@ -1,6 +1,6 @@
 # システムのユーティリティ
 
-システムのライブラリ (`zephyr/sys/atomic.h` `byteorder.h` `crc.h` `ring_buffer.h` `clock.h` `util.h`、`zephyr/random/random.h`) の、使っている API。
+システムのライブラリ (`zephyr/sys/atomic.h` `byteorder.h` `crc.h` `ring_buffer.h` `clock.h` `util.h`、`zephyr/random/random.h`) のうち、使っている API。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -21,7 +21,7 @@ atomic_val_t atomic_add(atomic_t *target, atomic_val_t value);
 | `target` | in,out | アトミック変数のアドレス |
 | `value` | in | 足す値 |
 
-戻り値: `target` の、足す前の値。エラー番号は返さない。
+戻り値: 足す前の `target` の値。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:226`](../../app/thermo-node/src/sdlog.c#L226)
 
@@ -38,7 +38,7 @@ atomic_val_t atomic_set(atomic_t *target, atomic_val_t value);
 | `target` | in,out | アトミック変数のアドレス |
 | `value` | in | 設定する値 |
 
-戻り値: `target` の、設定する前の値。エラー番号は返さない。
+戻り値: 設定する前の `target` の値。エラー番号は返さない。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:330`](../../app/thermo-node/src/sdlog.c#L330)
 
@@ -135,7 +135,7 @@ IEEE 準拠の CRC32 を計算する。
 uint32_t crc32_ieee_update(uint32_t crc, const uint8_t *data, size_t len);
 ```
 
-IEEE 準拠の CRC32 を、前の結果に続けて計算する。離れた場所にあるデータを、続けて 1 つの CRC にするときに使う。`crc32_ieee(data, len)` は、`crc32_ieee_update(0, data, len)` と同じ (zlib の `crc32(data, crc)` と同じ値)。
+IEEE 準拠の CRC32 を、前の結果に続けて計算する。離れた場所にあるデータを、続けて 1 つの CRC にするときに使う。`crc32_ieee(data, len)` は `crc32_ieee_update(0, data, len)` と同じ (zlib の `crc32(data, crc)` と同じ値)。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -155,7 +155,7 @@ IEEE 準拠の CRC32 を、前の結果に続けて計算する。離れた場�
 #define RING_BUF_INIT(buf, size8)
 ```
 
-バイト単位のリングバッファ (`struct ring_buf`) の、初期化子 (静的な変数の初期値) を作る。領域は、呼び出し側が用意する。
+バイト単位のリングバッファ (`struct ring_buf`) の初期化子 (静的な変数の初期値) を作る。領域は、呼び出し側が用意する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -164,7 +164,7 @@ IEEE 準拠の CRC32 を、前の結果に続けて計算する。離れた場�
 
 注意:
 
-- 同じ働きの `RING_BUF_DECLARE(name, size8)` は、リングバッファを外部結合 (`static` なし) で定義するので、GCC 14 以降の `-Wmissing-variable-declarations` に掛かる。このプロジェクトでは、領域とリングバッファを `static` で定義して、`RING_BUF_INIT` で初期化する。
+- 同じ働きの `RING_BUF_DECLARE(name, size8)` は、リングバッファを外部結合 (`static` なし) で定義するので、GCC 14 以降の `-Wmissing-variable-declarations` に掛かる。そのため、このプロジェクトでは、領域とリングバッファを `static` で定義して、`RING_BUF_INIT` で初期化する。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:65`](../../app/thermo-node/src/sdlog.c#L65) (ほか 1 行)
 
@@ -174,7 +174,7 @@ IEEE 準拠の CRC32 を、前の結果に続けて計算する。離れた場�
 uint32_t ring_buf_put(struct ring_buf *buf, const uint8_t *data, uint32_t size);
 ```
 
-リングバッファに、データを書く (コピーする)。
+リングバッファにデータを書く (コピーする)。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -186,8 +186,8 @@ uint32_t ring_buf_put(struct ring_buf *buf, const uint8_t *data, uint32_t size);
 
 注意:
 
-- 複数の書き手が、同時に書かないようにする (プリエンプトを防ぐか、ミューテックスで守る)。
-- バイト単位の操作と、アイテム単位 (`ring_buf_item_*`) の操作は混ぜない。
+- 複数の書き手が同時に書かないようにする (プリエンプトを防ぐか、ミューテックスで守る)。
+- バイト単位の操作とアイテム単位 (`ring_buf_item_*`) の操作は、混ぜない。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:223`](../../app/thermo-node/src/sdlog.c#L223)
 
@@ -197,7 +197,7 @@ uint32_t ring_buf_put(struct ring_buf *buf, const uint8_t *data, uint32_t size);
 uint32_t ring_buf_get(struct ring_buf *buf, uint8_t *data, uint32_t size);
 ```
 
-リングバッファから、データを読む。
+リングバッファからデータを読む。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -209,7 +209,7 @@ uint32_t ring_buf_get(struct ring_buf *buf, uint8_t *data, uint32_t size);
 
 注意:
 
-- 複数の読み手が、同時に読まないようにする。
+- 複数の読み手が同時に読まないようにする。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:258`](../../app/thermo-node/src/sdlog.c#L258)
 
@@ -237,7 +237,7 @@ static inline bool ring_buf_is_empty(const struct ring_buf *buf);
 int sys_clock_gettime(int clock_id, struct timespec *tp);
 ```
 
-指定の時計から、今の時刻を取得する。
+指定の時計から今の時刻を取得する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -303,7 +303,7 @@ static inline uint32_t sys_rand32_get(void);
 static inline uint8_t bcd2bin(uint8_t bcd);
 ```
 
-BCD (8421) の値を、2 進数にする。PCF8563 のレジスタの読み出しに使う。
+BCD (8421) の値を 2 進数にする。PCF8563 のレジスタの読み出しに使う。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -319,7 +319,7 @@ BCD (8421) の値を、2 進数にする。PCF8563 のレジスタの読み出�
 static inline uint8_t bin2bcd(uint8_t bin);
 ```
 
-2 進数の値を、BCD (8421) にする。PCF8563 のレジスタへの書き込みに使う。
+2 進数の値を BCD (8421) にする。PCF8563 のレジスタへの書き込みに使う。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -402,7 +402,7 @@ static inline uint8_t bin2bcd(uint8_t bin);
 #define ARG_UNUSED(x)
 ```
 
-使わない引数や変数の、未使用の警告を出さないようにする。
+使わない引数や変数について、未使用の警告を出さないようにする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -435,11 +435,11 @@ static inline uint8_t bin2bcd(uint8_t bin);
 struct ring_buf
 ```
 
-リングバッファ。`RING_BUF_DECLARE()` や、`ring_buf_init()` で作る。
+リングバッファ。`RING_BUF_DECLARE()` か `ring_buf_init()` で作る。
 
 注意:
 
-- メンバーは、内部用 (先頭と末尾の位置、バッファへのポインタなど)。直接、読み書きしない。`ring_buf_put()` `ring_buf_get()` などの関数を使う。
+- メンバー (先頭と末尾の位置、バッファへのポインタなど) は内部用で、直接は読み書きしない。`ring_buf_put()` `ring_buf_get()` などの関数を使う。
 
 使用箇所: [`app/thermo-node/src/sdlog.c:65`](../../app/thermo-node/src/sdlog.c#L65) (ほか 5 行)
 

@@ -1,6 +1,6 @@
 # 設定 (Settings)
 
-設定の保存 (`zephyr/settings/settings.h`) の、使っている API。WiFi の SSID、パスワード、AWS IoT Core のエンドポイント、クライアント ID、証明書などを、不揮発の記憶に保存する (`app/common/cfg.c`)。
+設定の保存 (`zephyr/settings/settings.h`) のうち、使っている API。WiFi の SSID、パスワード、AWS IoT Core のエンドポイント、クライアント ID、証明書などを、不揮発の記憶に保存する (`app/common/cfg.c`)。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -14,12 +14,12 @@
 int settings_subsys_init(void);
 ```
 
-設定の仕組みと、バックエンドを初期化する。アプリの起動のときに呼べる。
+設定の仕組みとバックエンドを初期化する。アプリの起動のときに呼べる。
 
 戻り値:
 
 - 成功は 0。
-- 失敗は、保存先 (バックエンド。NVS、FCB、ファイル) の初期化の、負の errno (`-EIO`、`-ENOMEM`、`-ENODEV` など)。
+- 失敗は、保存先 (バックエンド。NVS、FCB、ファイル) の初期化が返す負の errno (`-EIO`、`-ENOMEM`、`-ENODEV` など)。
 
 注意:
 
@@ -58,7 +58,7 @@ RAM にある設定項目のハンドラを、既定のコミット優先度で�
 int settings_save_one(const char *name, const void *value, size_t val_len);
 ```
 
-1 つの値を、永続する記憶に書く (値が変わったときだけ)。
+1 つの値を、永続する記憶に書く。書くのは、値が変わったときだけ。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -86,7 +86,7 @@ int settings_save_one(const char *name, const void *value, size_t val_len);
 int settings_delete(const char *name);
 ```
 
-永続する記憶から、1 つの項目を消す。既存の項目を消すとは、その値を `NULL` にすること。
+永続する記憶から、1 つの項目を消す。既存の項目を消すことは、その値を `NULL` にすることにあたる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -94,7 +94,7 @@ int settings_delete(const char *name);
 
 戻り値:
 
-- 成功は 0 (項目がなくても、成功)。
+- 成功は 0 (項目がなくても成功)。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 - ほかの失敗は、`settings_save_one(name, NULL, 0)` と同じ。
 
@@ -110,7 +110,7 @@ int settings_delete(const char *name);
 int settings_load_subtree(const char *subtree);
 ```
 
-登録済みの永続する記憶から、指定のサブツリーの項目だけを読み込む。先に登録したサブツリーのハンドラが、そのサブツリーの値が見つかるごとに呼ばれる。
+登録済みの永続する記憶から、指定のサブツリーの項目だけを読み込む。そのサブツリーの値が見つかるたびに、先に登録したサブツリーのハンドラが呼ばれる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -119,7 +119,7 @@ int settings_load_subtree(const char *subtree);
 戻り値:
 
 - 成功は 0。
-- 失敗は、保存先の読み出しの負の errno (`-EIO` など)。ハンドラの `set` が返した負の値も、そのまま返る。
+- 失敗は、保存先の読み出しが返す負の errno (`-EIO` など)。ハンドラの `set` が返した負の値も、そのまま返る。
 
 使用箇所: [`app/common/cfg.c:465`](../../app/common/cfg.c#L465)
 
@@ -139,9 +139,9 @@ struct settings_handler
 |:---|:---|:---|
 | `name` | `const char *` | サブツリーの名前 |
 | `h_get` | `int (*)(const char *key, char *val, int val_len_max)` | キーに合う値を返す |
-| `h_set` | `int (*)(const char *key, size_t len, settings_read_cb read_cb, void *cb_arg)` | 読み込んだ値を受け取る。`read_cb` で、値を読み出す |
-| `h_commit` | `int (*)(void)` | すべて読み込んだあとに呼ばれる。設定を反映するために使う |
-| `h_export` | `int (*)(int (*export_func)(...))` | `settings_save()` のとき、現在の設定をすべて書き出す |
+| `h_set` | `int (*)(const char *key, size_t len, settings_read_cb read_cb, void *cb_arg)` | 読み込んだ値を受け取る。値は `read_cb` で読み出す |
+| `h_commit` | `int (*)(void)` | 全て読み込んだあとに呼ばれる。設定を反映するために使う |
+| `h_export` | `int (*)(int (*export_func)(...))` | `settings_save()` のときに、現在の設定を全て書き出す |
 | `cprio` | `int` | コミットの優先度。小さいほど先 |
 
 注意:

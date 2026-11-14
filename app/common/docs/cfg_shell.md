@@ -17,7 +17,7 @@
 | `thermo reset` | なし | 設定と証明書を全て消す | `cfg_reset()` |
 | `thermo sync`、`thermo sd` | なし | ノードだけ。`wifi_shell.c` が足す | |
 
-`set` は引数が 3 つ (必須)、`tether` は 2 つ必須と 1 つ任意です。
+`set` の引数は 3 つで、全て必須です。`tether` の引数は、必須が 2 つ、任意が 1 つです。
 
 ## ノード固有のコマンドを足す仕組み
 
@@ -32,7 +32,7 @@
 SHELL_STATIC_SUBCMD_SET_CREATE(thermo_cmds, ..., THERMO_SHELL_EXTRA SHELL_SUBCMD_SET_END);
 ```
 
-ノードのビルドだけが、`shell_extra.h` を持ちます。`THERMO_SHELL_EXTRA` は、ノードでは `sync` (と `sd`) のコマンドの定義になり、ゲートウェイでは空になります。
+`shell_extra.h` を持つのは、ノードのビルドだけです。`THERMO_SHELL_EXTRA` は、ノードでは `sync` と `sd` のコマンドの定義になり、ゲートウェイでは空になります。
 
 ## 設定の手順 (典型)
 
@@ -41,24 +41,24 @@ thermo set ssid <SSID>
 thermo set psk <パスワード>
 thermo set endpoint <xxxx-ats.iot.<リージョン>.amazonaws.com>
 thermo set client_id <名前>
-cred add ...                (Zephyr の cred コマンドで ca、cert、key を、セキュリティタグ 1 で登録)
+cred add ...                (Zephyr の cred コマンドで ca, cert, key をセキュリティタグ 1 で登録)
 thermo save-certs
 thermo show
 thermo apply
 ```
 
-`thermo show` は、`ready to connect: yes` になれば、接続の条件が揃っています。
+`thermo show` の表示が `ready to connect: yes` になれば、接続の条件が揃っています。
 
 ## 補足
 
-- `save-certs` の名前のハイフンは、clang-format が前後に空白を入れて別の名前にしてしまうので、そのコマンドの行だけ、整形を止めています。
+- clang-format は、`save-certs` のハイフンの前後に空白を入れて、別の名前にしてしまいます。そのため、このコマンドの行だけ、整形を止めています。
 - `thermo set` の値に空白を含めるときは、引用符で囲みます (Zephyr のシェルの規則)。
 - `thermo show` は、パスワードを `********` (空なら `(empty)`) で隠します。ただし、`thermo set psk` の入力そのものは、シェルの履歴とログに残ります。
 
 ## 注意点
 
-- `thermo apply` は `cloud_reconnect()` を呼ぶだけです。ノードで直接送信を使っていないとき (`cloud_init()` が呼ばれていないとき) は、スレッドがありません。
-- 詳しい処理は `cfg.c` にあり、このファイルは、入出力だけです。
+- `thermo apply` は `cloud_reconnect()` を呼ぶだけです。ノードで直接の送信を使っていないとき (`cloud_init()` を呼んでいないとき) は、スレッドがありません。
+- 処理の中身は `cfg.c` にあります。このファイルが受け持つのは、入出力だけです。
 
 ## 関連
 

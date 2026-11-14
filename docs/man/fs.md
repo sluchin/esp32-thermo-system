@@ -1,6 +1,6 @@
 # ファイルシステム
 
-ファイルシステム (`zephyr/fs/fs.h`) の、使っている API。SD カードの FAT に、測定値の記録 (backlog) とログ (sdlog) を保存する。
+ファイルシステム (`zephyr/fs/fs.h`) のうち、使っている API。SD カードの FAT に、測定値の記録 (backlog) とログ (sdlog) を保存する。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -14,7 +14,7 @@
 int fs_mount(struct fs_mount_t *mp);
 ```
 
-ファイルシステムをマウントする。ファイルシステム固有のマウントの処理をして、マウント済みの一覧に、マウントポイントを加える。
+ファイルシステムをマウントする。ファイルシステム固有のマウントの処理をして、マウント済みの一覧にマウントポイントを加える。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -44,7 +44,7 @@ int fs_mount(struct fs_mount_t *mp);
 int fs_unmount(struct fs_mount_t *mp);
 ```
 
-ファイルシステムをアンマウントする。ファイルシステム固有のアンマウントの処理をして、マウント済みの一覧から、マウントポイントを外す。
+ファイルシステムをアンマウントする。ファイルシステム固有のアンマウントの処理をして、マウント済みの一覧からマウントポイントを外す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -58,7 +58,7 @@ int fs_unmount(struct fs_mount_t *mp);
 
 エラー:
 
-- `EINVAL`: そのマウントポイントに、何もマウントされていない。
+- `EINVAL`: そのマウントポイントには、何もマウントされていない。
 - `ENOTSUP`: ドライバが対応していない。
 
 使用箇所: [`app/thermo-node/src/backlog.c:125`](../../app/thermo-node/src/backlog.c#L125)
@@ -71,7 +71,7 @@ int fs_unmount(struct fs_mount_t *mp);
 struct fs_file_t
 ```
 
-開いたファイルの情報。`fs_open()` に渡し、`fs_read()` `fs_write()` `fs_seek()` `fs_close()` で使う。最初に `fs_file_t_init()` で初期化する (`= {0}` でも同じ)。メンバーを直接、読み書きしない。
+開いたファイルの情報。`fs_open()` に渡し、`fs_read()` `fs_write()` `fs_seek()` `fs_close()` で使う。最初に `fs_file_t_init()` で初期化する (`= {0}` でも同じ)。メンバーは直接読み書きしない。
 
 | メンバー | 説明 |
 |:---|:---|
@@ -81,8 +81,8 @@ struct fs_file_t
 
 注意:
 
-- 同じ変数で、別のファイルを開き直すときは、先に `fs_close()` を呼ぶ。
-- 開いている間は、変数をコピーしない。関数から返る前に、`fs_close()` を呼ぶ (変数が消えるため)。
+- 同じ変数で別のファイルを開き直すときは、先に `fs_close()` を呼ぶ。
+- 開いている間は、変数をコピーしない。変数が消えるので、関数から返る前に `fs_close()` を呼ぶ。
 
 使用箇所: [`app/thermo-node/src/backlog.c:106`](../../app/thermo-node/src/backlog.c#L106) (ほか 13 行), [`app/thermo-node/src/sdlog.c:244`](../../app/thermo-node/src/sdlog.c#L244)
 
@@ -92,7 +92,7 @@ struct fs_file_t
 static inline void fs_file_t_init(struct fs_file_t *zfp);
 ```
 
-`fs_file_t` を初期化する。`fs_open()` の前に、一度、呼ぶ必要がある。
+`fs_file_t` を初期化する。`fs_open()` の前に、一度呼ぶ必要がある。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -108,7 +108,7 @@ static inline void fs_file_t_init(struct fs_file_t *zfp);
 int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags);
 ```
 
-ファイルを開く。または、作る。開いたファイルは、使い終わったら `fs_close()` で閉じる。
+ファイルを開く (または作る)。開いたファイルは、使い終わったら `fs_close()` で閉じる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -126,14 +126,14 @@ int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags);
 
 - `EBUSY`: `zfp` が使用中。
 - `EINVAL`: ファイル名が不正。
-- `EROFS`: 読み込み専用のファイルを書き込みで開いた、または、`FS_MOUNT_FLAG_READ_ONLY` でマウントしたところに作ろうとした。
+- `EROFS`: 読み込み専用のファイルを書き込みで開いた。または、`FS_MOUNT_FLAG_READ_ONLY` でマウントしたところに作ろうとした。
 - `ENOENT`: ファイルがない。
 - `ENOTSUP`: ドライバが対応していない。
 - `EACCES`: 書き込みで開かずに、`FS_O_TRUNC` を指定した。
 
 注意:
 
-- `flags` を 0 にすると、あれば開くが、読み書きはできない。
+- `flags` を 0 にすると、ファイルがあれば開くが、読み書きはできない。
 
 使用箇所: [`app/thermo-node/src/backlog.c:528`](../../app/thermo-node/src/backlog.c#L528), [`app/thermo-node/src/sdlog.c:252`](../../app/thermo-node/src/sdlog.c#L252)
 
@@ -143,7 +143,7 @@ int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags);
 int fs_close(struct fs_file_t *zfp);
 ```
 
-ファイルを閉じる。ストリームを書き出して (flush) から、閉じる。
+ストリームを書き出して (flush) から、ファイルを閉じる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -194,7 +194,7 @@ ssize_t fs_read(struct fs_file_t *zfp, void *ptr, size_t size);
 ssize_t fs_write(struct fs_file_t *zfp, const void *ptr, size_t size);
 ```
 
-ファイルに、`size` バイトを書こうとする。負の値を返したときは、ファイルの位置は進んでいない。
+ファイルに `size` バイトを書こうとする。負の値を返したときは、ファイルの位置は進んでいない。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -225,7 +225,7 @@ ssize_t fs_write(struct fs_file_t *zfp, const void *ptr, size_t size);
 int fs_seek(struct fs_file_t *zfp, off_t offset, int whence);
 ```
 
-ファイルの位置を動かす。`offset` を、`whence` で決まる位置に足す。
+ファイルの位置を動かす。`whence` で決まる位置に `offset` を足す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -275,7 +275,7 @@ int fs_stat(const char *path, struct fs_dirent *entry);
 
 注意:
 
-- ストレージ上のファイルは、閉じるまで、更新されていないことがある。
+- ストレージ上のファイルは、閉じるまで更新されていないことがある。
 
 使用箇所: [`app/thermo-node/src/backlog.c:140`](../../app/thermo-node/src/backlog.c#L140), [`app/thermo-node/src/sdlog.c:314`](../../app/thermo-node/src/sdlog.c#L314)
 
@@ -382,7 +382,7 @@ struct fs_mount_t
 struct fs_dirent
 ```
 
-ファイルやディレクトリの情報。`fs_stat()` と、`fs_readdir()` が書いて返す。
+ファイルやディレクトリの情報。`fs_stat()` と `fs_readdir()` が書いて返す。
 
 | メンバー | 型 | 説明 |
 |:---|:---|:---|

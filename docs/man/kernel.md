@@ -1,6 +1,6 @@
 # カーネル
 
-カーネル (`zephyr/kernel.h`) の、使っている API。スレッド、スリープ、セマフォ、メッセージキュー、遅延ワーク。
+カーネル (`zephyr/kernel.h`) のうち、使っている API。スレッド、スリープ、セマフォ、メッセージキュー、遅延ワーク。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -17,7 +17,7 @@ k_tid_t k_thread_create(struct k_thread *new_thread, k_thread_stack_t *stack,
                        int prio, uint32_t options, k_timeout_t delay);
 ```
 
-スレッドを作って、実行できる状態にする。遅延なしなら、スケジューラが、今のスレッドを止めて、すぐ新しいスレッドを実行することがある。
+スレッドを作って、実行できる状態にする。遅延なしなら、スケジューラが今のスレッドを止めて、すぐに新しいスレッドを実行することがある。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -42,7 +42,7 @@ k_tid_t k_thread_create(struct k_thread *new_thread, k_thread_stack_t *stack,
 int k_thread_name_set(k_tid_t thread, const char *str);
 ```
 
-スレッドの名前を付ける。`CONFIG_THREAD_MONITOR` が有効なときの、トレースとデバッグで使う。
+スレッドに名前を付ける。名前は、`CONFIG_THREAD_MONITOR` が有効なときに、トレースとデバッグで使う。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -68,7 +68,7 @@ int k_thread_name_set(k_tid_t thread, const char *str);
 void k_thread_abort(k_tid_t thread);
 ```
 
-スレッドを、永久に止める。スレッドは、レディキュー、タイムアウトキュー、カーネルオブジェクトの待ちキューから外れる。
+スレッドを永久に止める。スレッドは、レディキュー、タイムアウトキュー、カーネルオブジェクトの待ちキューから外れる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -79,7 +79,7 @@ void k_thread_abort(k_tid_t thread);
 注意:
 
 - スレッドが持っているカーネルの資源 (ミューテックスやメモリブロックなど) は、解放されない。後始末は、呼び出し側の責任。
-- 関数が戻った後は、そのスレッドが、動いていないことと、動けるようにならないことが保証される。
+- 関数が戻ったあとは、そのスレッドが動いておらず、動けるようにもならないことが保証される。
 
 使用箇所: [`app/common/cloud.c:270`](../../app/common/cloud.c#L270)
 
@@ -99,7 +99,7 @@ int32_t k_sleep(k_timeout_t timeout);
 
 戻り値:
 
-- 時間が経ったら 0。`k_wakeup()` で起こされたら、残りの時間 (ミリ秒に切り上げ。`INT_MAX` で切り詰める)。
+- 時間が経ったら 0。`k_wakeup()` で起こされたら、残りの時間 (ミリ秒に切り上げ、`INT_MAX` で切り詰める)。
 - エラー番号は返さない (負の値は返らない)。
 
 使用箇所: [`app/common/cloud.c:165`](../../app/common/cloud.c#L165) (ほか 3 行), [`app/thermo-gateway/src/main.c:96`](../../app/thermo-gateway/src/main.c#L96)
@@ -145,13 +145,13 @@ int64_t k_uptime_get(void);
 uint32_t k_uptime_get_32(void);
 ```
 
-システムが起動してからの時間の、下位 32 ビットを、ミリ秒で返す。
+システムが起動してからの時間の下位 32 ビットを、ミリ秒で返す。
 
 戻り値: 起動からの時間の下位 32 ビット [ms]。エラー番号は返さない。
 
 注意:
 
-- `k_uptime_get()` に比べて、利点はほとんどない (アプリが `2^32` ティックを超えて動かないと分かっているときだけ)。割り込みを止めて、64 ビットの計算をすることがある。
+- `k_uptime_get()` に比べた利点は、ほとんどない (利点があるのは、アプリが `2^32` ティックを超えて動かないと分かっているときだけ)。割り込みを止めて、64 ビットの計算をすることがある。
 
 使用箇所: [`app/common/cloud.c:293`](../../app/common/cloud.c#L293) (ほか 3 行), [`app/thermo-gateway/src/main.c:163`](../../app/thermo-gateway/src/main.c#L163)
 
@@ -161,7 +161,7 @@ uint32_t k_uptime_get_32(void);
 #define k_ticks_to_ms_ceil32(t)
 ```
 
-ティックの時間を、ミリ秒に換算する。32 ビットで計算し、切り上げる。
+ティックの時間をミリ秒に換算する。32 ビットで計算し、切り上げる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -232,31 +232,31 @@ void k_sem_reset(struct k_sem *sem);
 
 ## メッセージキュー
 
-メッセージキュー (`struct k_msgq`) は、決まった大きさのメッセージを、決まった数だけ溜めておけるキュー。スレッドの間や、割り込みとスレッドの間で、データを受け渡すのに使う。
+メッセージキュー (`struct k_msgq`) は、決まった大きさのメッセージを決まった数だけ溜めておけるキュー。スレッドの間や、割り込みとスレッドの間で、データを受け渡すのに使う。
 
-- **先入れ先出し**: 先に送ったメッセージから、順に受け取る。
-- **コピーで受け渡す**: 送るときは、メッセージの内容を、キューの中のバッファ (リングバッファ) にコピーする。受け取るときは、バッファから、呼び出し側の領域にコピーする。ポインタを渡すのではないので、送ったあと、元の変数を書き換えてもよい。
-- **大きさと数は、作るときに決める**: メッセージの大きさ (`q_msg_size`) と、最大の数 (`q_max_msgs`) は、あとから変えられない。バッファは、`q_msg_size × q_max_msgs` バイト。
-- **満杯と空のときは、待つか、すぐ戻るか、選ぶ**: `k_msgq_put()` は満杯のとき、`k_msgq_get()` は空のときに、`timeout` の間だけ待つ。`K_NO_WAIT` なら、待たずに `-ENOMSG` で戻る。割り込みから呼ぶときは、`K_NO_WAIT` にする。
-- **排他は、キューがする**: 複数のスレッドから、同時に送ったり、受け取ったりしてよい (キューの中で、ロックする)。
+- **先入れ先出し**: 先に送ったメッセージから順に受け取る。
+- **コピーで受け渡す**: 送るときは、メッセージの内容をキューの中のバッファ (リングバッファ) にコピーする。受け取るときは、バッファから呼び出し側の領域にコピーする。ポインタを渡すのではないので、送ったあとに元の変数を書き換えてもよい。
+- **大きさと数は、作るときに決める**: メッセージの大きさ (`q_msg_size`) と最大の数 (`q_max_msgs`) は、あとから変えられない。バッファは `q_msg_size × q_max_msgs` バイト。
+- **満杯と空のときは、待つか、すぐ戻るかを選ぶ**: `k_msgq_put()` は満杯のときに、`k_msgq_get()` は空のときに、`timeout` の間だけ待つ。`K_NO_WAIT` なら、待たずに `-ENOMSG` で戻る。割り込みから呼ぶときは、`K_NO_WAIT` にする。
+- **排他はキューがする**: キューの中でロックするので、複数のスレッドから同時に送ったり受け取ったりしてよい。
 
 ### 定義と宣言
 
-キューを作るには、2 つの方法がある。
+キューを作る方法は、2 つある。
 
-1. **`k_msgq_init()` で、実行時に初期化する** (このプロジェクトの方法): バッファと、キューの本体 (`struct k_msgq`) を、ふつうの変数として宣言して、使う前に `k_msgq_init()` で初期化する。`static` を付けて、ファイルの中だけの名前にできる。
+1. **`k_msgq_init()` で、実行時に初期化する** (このプロジェクトの方法): バッファとキューの本体 (`struct k_msgq`) を、ふつうの変数として宣言して、使う前に `k_msgq_init()` で初期化する。`static` を付けて、ファイルの中だけの名前にできる。
 
    ```c
-   static struct sample cloud_sample_buf[QUEUE_LEN]; /* バッファ (要素の型は、メッセージと同じ) */
+   static struct sample cloud_sample_buf[QUEUE_LEN]; /* バッファ (要素の型はメッセージと同じ) */
    static struct k_msgq cloud_sample_q;              /* キューの本体 */
 
-   /* 使う前に。メッセージの大きさは、バッファの要素の大きさ (sizeof(cloud_sample_buf[0])) */
+   /* 使う前に. メッセージの大きさはバッファの要素の大きさ (sizeof(cloud_sample_buf[0])) */
    k_msgq_init(&cloud_sample_q, (char *)cloud_sample_buf, sizeof(cloud_sample_buf[0]), QUEUE_LEN);
    ```
 
-   初期化する前に、キューを使ってはいけない。このプロジェクトでは、`cloud_init()` の最初で初期化し、ほかの `cloud_*` の関数は、`cloud_init()` の後でだけ呼ぶ。
+   初期化する前に、キューを使ってはいけない。このプロジェクトでは、`cloud_init()` の最初で初期化し、ほかの `cloud_*` の関数は `cloud_init()` のあとでだけ呼ぶ。
 
-2. **`K_MSGQ_DEFINE` で、静的に定義する** (このプロジェクトでは、使っていない): マクロが、バッファとキューの本体の定義に展開され、初期化も済んだ状態になる。
+2. **`K_MSGQ_DEFINE` で、静的に定義する** (このプロジェクトでは使っていない): マクロが、バッファとキューの本体の定義に展開され、初期化も済んだ状態になる。
 
    ```c
    /* K_MSGQ_DEFINE(q, sizeof(struct sample), QUEUE_LEN, 4); の展開 (概略) */
@@ -265,14 +265,14 @@ void k_sem_reset(struct k_sem *sem);
        Z_MSGQ_INITIALIZER(q, _k_fifo_buf_q, sizeof(struct sample), QUEUE_LEN);
    ```
 
-   - バッファは `static` だが、キューの本体 (`struct k_msgq q`) は、`static` ではない (全てのファイルから見える名前になる)。ほかのファイルからは、`extern struct k_msgq q;` と宣言して使う。
-   - マクロの前に、`static` を付けることはできない (展開の先頭が `static char ...` なので、`static static` になる)。
-   - 変数の宣言がマクロの中に隠れるので、型と、`static` かどうかが、ソースから読み取りにくい。このプロジェクトが `k_msgq_init()` を使うのは、このため。
-   - `static` で定義するマクロ `K_MSGQ_DEFINE_STATIC` は、Zephyr v4.4 で加わったもので、このプロジェクトの v4.3.0 には、ない。
+   - バッファは `static` だが、キューの本体 (`struct k_msgq q`) は `static` ではない (全てのファイルから見える名前になる)。ほかのファイルからは、`extern struct k_msgq q;` と宣言して使う。
+   - 展開の先頭が `static char ...` なので、マクロの前に `static` を付けると `static static` になり、付けられない。
+   - 変数の宣言がマクロの中に隠れるので、型と、`static` かどうかを、ソースから読み取りにくい。このプロジェクトが `k_msgq_init()` を使うのは、このため。
+   - `static` で定義するマクロ `K_MSGQ_DEFINE_STATIC` は Zephyr v4.4 で加わったもので、このプロジェクトの v4.3.0 にはない。
 
 ### このプロジェクトでの使い方
 
-AWS IoT Core へ送る値のキュー `cloud_sample_q` ([`app/common/cloud.c:99`](../../app/common/cloud.c#L99)) だけで使う。
+このプロジェクトでは、AWS IoT Core へ送る値のキュー `cloud_sample_q` ([`app/common/cloud.c:99`](../../app/common/cloud.c#L99)) だけで使う。
 
 | 項目 | 内容 |
 |:---|:---|
@@ -290,7 +290,7 @@ AWS IoT Core へ送る値のキュー `cloud_sample_q` ([`app/common/cloud.c:99`
 void k_msgq_init(struct k_msgq *msgq, char *buffer, size_t msg_size, uint32_t max_msgs);
 ```
 
-メッセージキューを、使う前に初期化する。キューのバッファ (`buffer`) には、`msg_size` バイトのメッセージが、`max_msgs` 個入る大きさが要る。バッファのアラインメントは、必須ではない。
+メッセージキューを、使う前に初期化する。キューのバッファ (`buffer`) には、`msg_size` バイトのメッセージが `max_msgs` 個入る大きさが要る。バッファのアラインメントは必須ではない。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -309,7 +309,7 @@ void k_msgq_init(struct k_msgq *msgq, char *buffer, size_t msg_size, uint32_t ma
 int k_msgq_put(struct k_msgq *msgq, const void *data, k_timeout_t timeout);
 ```
 
-メッセージキューの末尾に、メッセージを送る。メッセージの内容は、`data` から、キューにコピーされる (ポインタは、保持されない)。割り込みから呼べる。
+メッセージキューの末尾にメッセージを送る。メッセージの内容は、`data` からキューにコピーされる (ポインタは保持されない)。割り込みから呼べる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -335,7 +335,7 @@ int k_msgq_put(struct k_msgq *msgq, const void *data, k_timeout_t timeout);
 int k_msgq_get(struct k_msgq *msgq, void *data, k_timeout_t timeout);
 ```
 
-メッセージキューから、メッセージを、先入れ先出しで受け取る。割り込みから呼べる。
+メッセージキューから、先入れ先出しでメッセージを受け取る。割り込みから呼べる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -377,7 +377,7 @@ uint32_t k_msgq_num_used_get(struct k_msgq *msgq);
 void k_msgq_purge(struct k_msgq *msgq);
 ```
 
-メッセージキューの、受け取っていないメッセージを、全て捨てる。キューに送ろうとして待っているスレッドは、`-ENOMSG` で起こされる。
+メッセージキューの、受け取っていないメッセージを全て捨てる。キューに送ろうとして待っているスレッドは、`-ENOMSG` で起こされる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -395,7 +395,7 @@ void k_msgq_purge(struct k_msgq *msgq);
 int k_work_schedule(struct k_work_delayable *dwork, k_timeout_t delay);
 ```
 
-何もしていない遅延ワークを、指定の時間のあとに、システムのワークキューに登録する。すでに登録済みなら、時間は、そのままにする。
+何もしていない遅延ワークを、指定の時間のあとに、システムのワークキューに登録する。すでに登録済みなら、時間はそのままにする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -404,14 +404,14 @@ int k_work_schedule(struct k_work_delayable *dwork, k_timeout_t delay);
 
 戻り値:
 
-- 0: すでに、予定されている、または登録されている。
+- 0: すでに予定されているか、登録されている。
 - 1: 予定した。
 - 2: `delay` が `K_NO_WAIT` で、仕事が実行中だったので、その仕事を実行していたキューに入れた。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 
 エラー:
 
-- `EBUSY`、`EINVAL`、`ENODEV`: `delay` が `K_NO_WAIT` で、`k_work_submit_to_queue()` が、その値で失敗した。
+- `EBUSY`、`EINVAL`、`ENODEV`: `delay` が `K_NO_WAIT` で、`k_work_submit_to_queue()` がその値で失敗した。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:796`](../../app/thermo-gateway/src/ble.c#L796), [`app/thermo-node/src/buzzer.c:77`](../../app/thermo-node/src/buzzer.c#L77) (ほか 1 行)
 
@@ -421,7 +421,7 @@ int k_work_schedule(struct k_work_delayable *dwork, k_timeout_t delay);
 int k_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay);
 ```
 
-遅延ワークを、指定の時間のあとに、システムのワークキューに登録する。すでに登録済みなら、時間を、新しく数え直す。
+遅延ワークを、指定の時間のあとに、システムのワークキューに登録する。すでに登録済みなら、時間を新しく数え直す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -430,14 +430,14 @@ int k_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay);
 
 戻り値:
 
-- 0: `delay` が `K_NO_WAIT` で、仕事は、すでにキューにあった。
-- 1: `delay` が `K_NO_WAIT` で、仕事を、キューに入れた。または、`delay` が `K_NO_WAIT` ではなく、仕事を予定した。
+- 0: `delay` が `K_NO_WAIT` で、仕事はすでにキューにあった。
+- 1: `delay` が `K_NO_WAIT` で、仕事をキューに入れた。または、`delay` が `K_NO_WAIT` ではなく、仕事を予定した。
 - 2: `delay` が `K_NO_WAIT` で、仕事が実行中だったので、その仕事を実行していたキューに入れた。
 - 失敗のときは、「エラー」の番号の符号を変えた負の値 (`-EINVAL` など) を返す。
 
 エラー:
 
-- `EBUSY`、`EINVAL`、`ENODEV`: `delay` が `K_NO_WAIT` で、`k_work_submit_to_queue()` が、その値で失敗した。
+- `EBUSY`、`EINVAL`、`ENODEV`: `delay` が `K_NO_WAIT` で、`k_work_submit_to_queue()` がその値で失敗した。
 
 使用箇所: [`app/thermo-gateway/src/ble.c:477`](../../app/thermo-gateway/src/ble.c#L477) (ほか 2 行)
 
@@ -447,18 +447,18 @@ int k_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay);
 int k_work_cancel_delayable(struct k_work_delayable *dwork);
 ```
 
-遅延ワークを取り消す。登録や実行待ちなら、取り消す。取り消しの完了は待たない。割り込みから呼べる。
+遅延ワークを取り消す。登録されているか実行を待っているなら、取り消す。取り消しの完了は待たない。割り込みから呼べる。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
 | `dwork` | in,out | 遅延ワーク |
 
-戻り値: 取り消しの手順が済んだあとの、`k_work_delayable_busy_get()` の状態 (`K_WORK_DELAYED`、`K_WORK_QUEUED`、`K_WORK_RUNNING`、`K_WORK_CANCELING`、`K_WORK_FLUSHING` のビットの組み合わせ。0 は、仕事が動いていない)。エラー番号は返さない。
+戻り値: 取り消しの手順が済んだあとの `k_work_delayable_busy_get()` の状態 (`K_WORK_DELAYED`、`K_WORK_QUEUED`、`K_WORK_RUNNING`、`K_WORK_CANCELING`、`K_WORK_FLUSHING` のビットの組み合わせ。0 なら、仕事は動いていない)。エラー番号は返さない。
 
 注意:
 
-- 戻ったときも、ワークがまだ動いていることがある。動いていないことを確かめるには、`k_work_flush_delayable()` か `k_work_cancel_delayable_sync()` を使う。
-- 取り消しても、再び登録することは防げない。取り消しが終わるまで、実行の登録だけを防ぐ。
+- 戻ったときにも、ワークがまだ動いていることがある。動いていないことを確かめるには、`k_work_flush_delayable()` か `k_work_cancel_delayable_sync()` を使う。
+- 取り消しても、再び登録することは防げない。取り消しが終わるまで防ぐのは、実行の登録だけ。
 
 使用箇所: [`app/thermo-node/src/buzzer.c:72`](../../app/thermo-node/src/buzzer.c#L72)
 
@@ -470,7 +470,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 #define K_MSEC(ms)
 ```
 
-ミリ秒を、`k_timeout_t` にする。
+ミリ秒を `k_timeout_t` にする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -484,7 +484,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 #define K_SECONDS(s)
 ```
 
-秒を、`k_timeout_t` にする。
+秒を `k_timeout_t` にする。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -499,7 +499,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 #define NSEC_PER_SEC ((NSEC_PER_USEC) * (USEC_PER_MSEC) * (MSEC_PER_SEC))  /* 1000000000 */
 ```
 
-1 秒のミリ秒の数と、ナノ秒の数 (`zephyr/sys/clock.h`)。時間の単位を換算するときに使う。
+1 秒あたりのミリ秒の数と、ナノ秒の数 (`zephyr/sys/clock.h`)。時間の単位を換算するときに使う。
 
 | 定数 | 値 | 使用箇所 |
 |:---|:---:|:---|
@@ -516,7 +516,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 #define K_SEM_DEFINE(name, initial_count, count_limit)
 ```
 
-セマフォを、静的に定義して、初期化する。
+セマフォを静的に定義して、初期化する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -532,7 +532,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 #define K_THREAD_STACK_DEFINE(sym, size)
 ```
 
-スレッドのスタックを、静的に定義する。`k_thread_create()` に渡す。
+スレッドのスタックを静的に定義する。`k_thread_create()` に渡す。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -563,7 +563,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 #define K_WORK_DELAYABLE_DEFINE(work, work_handler)
 ```
 
-遅延ワークを、静的に定義して、初期化する。
+遅延ワークを静的に定義して、初期化する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -597,11 +597,11 @@ struct k_work
 struct k_thread
 ```
 
-スレッドの情報 (カーネルのオブジェクト)。`K_THREAD_DEFINE` や `k_thread_create()` に渡す、スレッドの入れ物になる。大きな構造体で、アーキテクチャと設定 (`CONFIG_*`) で、メンバーが変わる。
+スレッドの情報 (カーネルのオブジェクト)。`K_THREAD_DEFINE` や `k_thread_create()` に渡す、スレッドの入れ物になる。大きな構造体で、アーキテクチャと設定 (`CONFIG_*`) によって、メンバーが変わる。
 
 注意:
 
-- メンバーを直接、読み書きしない。スレッドの操作は、`k_thread_name_set()`、`k_thread_join()` などの関数を使う。
+- メンバーは直接読み書きしない。スレッドの操作には、`k_thread_name_set()`、`k_thread_join()` などの関数を使う。
 - このリポジトリでは、`cloud` のスレッドを `k_thread_create()` で作るために、変数として持つ。
 
 使用箇所: [`app/common/cloud.c:132`](../../app/common/cloud.c#L132)
@@ -612,10 +612,10 @@ struct k_thread
 struct k_msgq
 ```
 
-メッセージキュー。決まった大きさのメッセージを、先入れ先出しで渡す。`K_MSGQ_DEFINE` や `k_msgq_init()` で作る。
+メッセージキュー。決まった大きさのメッセージを、先入れ先出しで渡す。`K_MSGQ_DEFINE` か `k_msgq_init()` で作る。
 
 注意:
 
-- メンバーは、カーネルが使う (`msg_size` `max_msgs` `used_msgs` などの、バッファの管理の情報)。直接、読み書きしない。数は、`k_msgq_num_used_get()` などの関数で得る。
+- メンバー (`msg_size` `max_msgs` `used_msgs` などの、バッファの管理の情報) は、カーネルが使う。直接は読み書きしない。数は、`k_msgq_num_used_get()` などの関数で得る。
 
 使用箇所: [`app/common/cloud.c:99`](../../app/common/cloud.c#L99)

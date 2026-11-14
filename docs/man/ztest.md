@@ -1,10 +1,10 @@
 # Ztest (単体テスト)
 
-単体テストの書き方に使っている Ztest (Zephyr のテストフレームワーク) の、使っているマクロ。ヘッダは `zephyr/ztest.h` (Zephyr v4.3.0 の `subsys/testsuite/ztest/include/zephyr/ztest_test.h` と `ztest_assert.h`)。`app/*/tests/` の 32 のテストスイートが、全て使っている。
+単体テストに使っている Ztest (Zephyr のテストフレームワーク) のうち、使っているマクロ。ヘッダは `zephyr/ztest.h` (Zephyr v4.3.0 の `subsys/testsuite/ztest/include/zephyr/ztest_test.h` と `ztest_assert.h`)。`app/*/tests/` の 27 のテストアプリ (32 のテストスイート) が、全て使っている。
 
 出典: Zephyr v4.3.0 のヘッダの Doxygen コメントを訳して、このプロジェクトでの使い方に絞った。**英語の原文が正**なので、細かい挙動で迷ったら、ヘッダを見る。
 
-Ztest は、テストのスイート (関連するテストの集まり) を登録して、各テストの前後に準備と後始末を呼び、アサーションが失敗したテストを失敗とする。`native_sim` で実行し、twister が結果を集める (`testcase.yaml`)。モックは、FFF を使う ([fff.md](fff.md))。
+Ztest は、テストのスイート (関連するテストの集まり) を登録して、各テストの前後に準備と後始末を呼び、アサーションが失敗したテストを失敗とする。テストは `native_sim` で実行し、twister が結果を集める (`testcase.yaml`)。モックには FFF を使う ([fff.md](fff.md))。
 
 ## テストの構成
 
@@ -23,7 +23,7 @@ ZTEST(ntp, test_a_resolve_failure)
 }
 ```
 
-スイートは、ファイルの途中に 1 つ定義すれば、あとは `ZTEST` で、そのスイートにテストを足す。テストは、スイートの中で、定義した順に実行される (順序に頼るテストは、名前の頭に `test_a_` `test_b_` を付けて、順を明示している)。
+スイートをファイルの途中に 1 つ定義すれば、あとは `ZTEST` で、そのスイートにテストを足せる。テストは、スイートの中で定義した順に実行される (順序に頼るテストでは、名前の頭に `test_a_` `test_b_` を付けて、順を明示している)。
 
 ## 定義するマクロ
 
@@ -33,7 +33,7 @@ ZTEST(ntp, test_a_resolve_failure)
 ZTEST_SUITE(SUITE_NAME, PREDICATE, setup_fn, before_fn, after_fn, teardown_fn);
 ```
 
-テストのスイートを作って、登録する。
+テストのスイートを作って登録する。
 
 | 引数 | 入出力 | 内容 |
 |:---|:---|:---|
@@ -46,9 +46,9 @@ ZTEST_SUITE(SUITE_NAME, PREDICATE, setup_fn, before_fn, after_fn, teardown_fn);
 
 注意:
 
-- このプロジェクトは、`PREDICATE` と `teardown_fn` を、使っていない (全て `NULL`)。
-- 各テストの初期化 (FFF のフェイクのリセットなど) は、`before_fn` に書く。`setup_fn` は、スイートの間で状態を引き継ぐテスト (`sdlog` の RAM ディスクのマウントなど) だけが使う。
-- `main()` は、書かない。Ztest が提供する。
+- このプロジェクトでは、`PREDICATE` と `teardown_fn` を使っていない (全て `NULL`)。
+- 各テストの初期化 (FFF のフェイクのリセットなど) は、`before_fn` に書く。`setup_fn` を使うのは、スイートの間で状態を引き継ぐテスト (`sdlog` の RAM ディスクのマウントなど) だけ。
+- `main()` は Ztest が提供するので、書かない。
 
 使用箇所: [`app/thermo-gateway/tests/main/src/test_main.c:318`](../../app/thermo-gateway/tests/main/src/test_main.c#L318) (`app/*/tests/` の全体で、32 か所。`setup_fn` を使うのは [`app/thermo-node/tests/sdlog/src/test_sdlog.c:295`](../../app/thermo-node/tests/sdlog/src/test_sdlog.c#L295) など 4 か所。ほかは [`app/common/tests/shell/src/test_shell.c:435`](../../app/common/tests/shell/src/test_shell.c#L435) [`app/common/tests/cloud/src/test_cloud.c:1129`](../../app/common/tests/cloud/src/test_cloud.c#L1129) [`app/thermo-node/tests/wifi_shell/src/test_wifi_shell.c:203`](../../app/thermo-node/tests/wifi_shell/src/test_wifi_shell.c#L203))
 
@@ -61,7 +61,7 @@ ZTEST(suite, fn)
 }
 ```
 
-テストを作って、スイート `suite` に足す。`fn` がテストの名前で、本体は、引数のない関数と同じに書く。スイートは、同じファイルで定義していなくてもよい。
+テストを作って、スイート `suite` に足す。`fn` はテストの名前で、本体は引数のない関数と同じに書く。スイートは、同じファイルで定義していなくてもよい。
 
 | 引数 | 入出力 | 内容 |
 |:---|:---|:---|
@@ -72,7 +72,7 @@ ZTEST(suite, fn)
 
 ## アサーション
 
-どれも、条件が成り立たなければ、テストを失敗にして、そのテストを止める。最後の `...` には、失敗のときに表示する、メッセージ (`printf` の書式) と引数を書ける (省略できる)。
+どれも、条件が成り立たなければ、テストを失敗にして、そのテストを止める。最後の `...` には、失敗のときに表示するメッセージ (`printf` の書式) と引数を書ける (省略できる)。
 
 | マクロ | 成り立つべき条件 | 使用箇所 (最初) | 数 |
 |:---|:---|:---|---:|
@@ -103,16 +103,16 @@ ZTEST(suite, fn)
 
 注意:
 
-- `zassert_equal` は、`a` と `b` を変換せずに比べるので、符号付きと符号なしを混ぜると、警告になることがある。型をそろえて書く (`zassert_equal(x, 5U)`)。
-- `zassert_mem_equal` の引数は、マクロを 2 回展開してから、評価する。
-- `zassert_str_equal` は、`strcmp()` なので、`NULL` を渡すと落ちる。先に `zassert_not_null` で確かめる。
-- コーディング規約の「条件式は bool だけ」などは、単体テストには、適用しない (`docs/coding_style.md`)。
+- `zassert_equal` は `a` と `b` を変換せずに比べるので、符号付きと符号なしを混ぜると、警告になることがある。型をそろえて書く (`zassert_equal(x, 5U)`)。
+- `zassert_mem_equal` の引数は、マクロを 2 回展開してから評価する。
+- `zassert_str_equal` は `strcmp()` で比べるので、`NULL` を渡すと落ちる。先に `zassert_not_null` で確かめる。
+- コーディング規約の「条件式は bool だけ」などは、単体テストには適用しない (`docs/coding_style.md`)。
 
 ## 使っていない機能
 
 このプロジェクトのテストは、次の機能を使っていない。
 
-- 失敗しても続ける `zexpect_*` と、前提が成り立たないとき、テストを飛ばす `zassume_*`。
+- 失敗しても続ける `zexpect_*` と、前提が成り立たないときにテストを飛ばす `zassume_*`。
 - `zassert_ok` `zassert_not_ok` `zassert_equal_ptr` `zassert_between_inclusive` `zassert_unreachable`。
 - 構造体のフィクスチャを使う `ZTEST_F` `ZTEST_SUITE` の `PREDICATE`。
 - ユーザースレッドで実行する `ZTEST_USER`。

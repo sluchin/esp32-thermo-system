@@ -1,6 +1,6 @@
 # シェル
 
-シェル (`zephyr/shell/shell.h`) の、使っている API。ノードとゲートウェイのシェルに、設定のコマンド (`app/common/cfg_shell.c`) を足す。
+シェル (`zephyr/shell/shell.h`) のうち、使っている API。ノードとゲートウェイのシェルに、設定のコマンド (`app/common/cfg_shell.c`) を足す。
 
 出典: Zephyr v4.3.0 のヘッダ (`include/zephyr/...`) の Doxygen コメントを、このプロジェクトでの使い方に絞って翻訳した。英語の原文が正。
 
@@ -14,7 +14,7 @@
 #define shell_print(_sh, _ft, ...)
 ```
 
-シェルに、通常のメッセージを出力する。
+シェルに通常のメッセージを出力する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -32,7 +32,7 @@
 #define shell_warn(_sh, _ft, ...)
 ```
 
-シェルに、警告のメッセージを出力する。
+シェルに警告のメッセージを出力する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -50,7 +50,7 @@
 #define shell_error(_sh, _ft, ...)
 ```
 
-シェルに、エラーのメッセージを出力する。
+シェルにエラーのメッセージを出力する。
 
 | 引数 | 入出力 | 説明 |
 |:---|:---:|:---|
@@ -142,10 +142,10 @@
 struct shell
 ```
 
-シェルのインスタンス (内部の情報)。コマンドのハンドラの、第 1 引数として渡される。
+シェルのインスタンス (内部の情報)。コマンドのハンドラに、第 1 引数として渡される。
 
 注意:
 
-- メンバーは、シェルの内部用。ハンドラは、このポインタを、`shell_print()` `shell_error()` などの出力の関数に、そのまま渡す。
+- メンバーは、シェルの内部用。ハンドラは、このポインタを、`shell_print()` `shell_error()` などの出力の関数にそのまま渡す。
 
 使用箇所: [`app/common/cfg_shell.c:51`](../../app/common/cfg_shell.c#L51) (ほか 6 行), [`app/thermo-node/src/wifi_shell.c:43`](../../app/thermo-node/src/wifi_shell.c#L43) (ほか 1 行), [`app/thermo-node/src/shell_extra.h:22`](../../app/thermo-node/src/shell_extra.h#L22) (ほか 1 行)

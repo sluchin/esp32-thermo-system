@@ -1,23 +1,23 @@
 # FFF (モック)
 
-単体テストのモックに使っている FFF (Fake Function Framework) の、使っているマクロとメンバー。ヘッダは `zephyr/fff.h` (Zephyr v4.3.0 の `subsys/testsuite/include/zephyr/fff.h`)。`app/*/tests/` の 27 のテストスイートのうち、16 のスイートが使っている (使っていないのは、`payload` `switchbot` `backlog` `backlog_nodisk` `button` `buzzer` `history` `node_time` `rtc_pcf8563` `sdlog` `sensor`)。
+単体テストのモックに使っている FFF (Fake Function Framework) のうち、使っているマクロとメンバー。ヘッダは `zephyr/fff.h` (Zephyr v4.3.0 の `subsys/testsuite/include/zephyr/fff.h`)。`app/*/tests/` の 27 のテストアプリのうち、16 のアプリが使っている (使っていないのは、`payload` `switchbot` `backlog` `backlog_nodisk` `button` `buzzer` `history` `node_time` `rtc_pcf8563` `sdlog` `sensor`)。
 
-出典: Zephyr v4.3.0 に入っている `fff.h` (Michael Long 作。MIT ライセンス) のマクロの定義を読んで、このプロジェクトでの使い方に絞って書いた。ヘッダには Doxygen コメントがないので、他の `man/` のファイルと違って、翻訳ではなく、マクロの動作の説明になっている。英語の原文が正なので、細かい挙動で迷ったら、ヘッダを見る。
+出典: Zephyr v4.3.0 に入っている `fff.h` (Michael Long 作。MIT ライセンス) のマクロの定義を読んで、このプロジェクトでの使い方に絞って書いた。ヘッダには Doxygen コメントがないので、ほかの `man/` のファイルと違って、翻訳ではなくマクロの動作の説明になっている。英語の原文が正なので、細かい挙動で迷ったら、ヘッダを見る。
 
-FFF は、関数の代わりになる偽の関数 (フェイク) を作る。フェイクは、呼ばれた回数と引数を記録して、決めておいた値を返す。実物の関数が、ハードウェアやネットワークに頼るときに、テストでその部分を置き換えるために使う。
+FFF は、関数の代わりになる偽の関数 (フェイク) を作る。フェイクは、呼ばれた回数と引数を記録して、決めておいた値を返す。実物の関数がハードウェアやネットワークに頼るときに、テストでその部分を置き換えるために使う。
 
 ## FFF を使う理由
 
-Zephyr には、Ztest 自身のモック (`ztest_mock.h`。`CONFIG_ZTEST_MOCKING=y` で使う) もある。それでも FFF を使うのは、次の理由による。
+Zephyr には、Ztest 自身のモック (`ztest_mock.h`。`CONFIG_ZTEST_MOCKING=y` で使う) もある。それでも FFF を使う理由は、次のとおり。
 
-- フェイクを 1 行で作れる。`FAKE_VALUE_FUNC` と `FAKE_VOID_FUNC` が、関数の本体と、記録用のメンバーを作る。このプロジェクトのテストには、フェイクが 173 個ある (値を返すものが 150、返さないものが 23)。Ztest のモックは、モックの関数の本体を手で書き、その中で `ztest_check_expected_value()` や `ztest_get_return_value()` を呼ぶ。173 個の本体を、手で書き直すことになる。
-- 呼ばれた回数を数える。`call_count` は、テストで 582 回使っている。Ztest のモックには、これに当たるものがない。回数を調べるには、モックごとにカウンタを書く。
-- 呼ばれたときの動作を、テストごとに差し替えられる。`custom_fake` は 147 回使っている。Ztest のモックは、動作をモックの関数の本体に書くので、差し替えるには、関数ポインタとグローバル変数を自分で用意する。
-- 引数の履歴が残る。`argN_val` と `argN_history` を約 150 回使っている。Ztest のモックは、期待する値を呼び出しの順に積んでおき、順に突き合わせる。順が違うと、失敗する。
+- フェイクを 1 行で作れる。`FAKE_VALUE_FUNC` と `FAKE_VOID_FUNC` が、関数の本体と記録用のメンバーを作る。このプロジェクトのテストには、フェイクが 173 個ある (値を返すものが 150、返さないものが 23)。Ztest のモックでは、モックの関数の本体を手で書き、その中で `ztest_check_expected_value()` や `ztest_get_return_value()` を呼ぶ。173 個の本体を、手で書き直すことになる。
+- 呼ばれた回数を数える。テストでは、`call_count` を 582 回使っている。Ztest のモックには、これに当たるものがなく、回数を調べるには、モックごとにカウンタを書く。
+- 呼ばれたときの動作を、テストごとに差し替えられる。`custom_fake` は 147 回使っている。Ztest のモックでは動作をモックの関数の本体に書くので、差し替えるには、関数ポインタとグローバル変数を自分で用意する。
+- 引数の履歴が残る。`argN_val` と `argN_history` を約 150 回使っている。Ztest のモックは、期待する値を呼び出しの順に積んでおき、順に突き合わせるので、順が違うと失敗する。
 - 状態を戻す方法が決まっている。`RESET_FAKE` を 188 回使っている。Ztest のモックは、積んだ期待値が使われずに残ると、テストの終わりで失敗にする。
-- 呼ばれても呼ばれなくてもよい関数を、そのまま置ける。FFF のフェイクは、何も決めなくても、0 を返して、呼ばれたことを記録するだけである。Ztest のモックは、期待値が足りなくても余っても失敗にするので、ログ出力のような関数が多いと、テストが壊れやすい。
+- 呼ばれても呼ばれなくてもよい関数を、そのまま置ける。FFF のフェイクは、何も決めなければ、0 を返して、呼ばれたことを記録するだけである。Ztest のモックは期待値が足りなくても余っても失敗にするので、ログ出力のような関数が多いと、テストが壊れやすい。
 
-Ztest のモックは、「この引数で、この順に呼ばれる」ことを厳密に確かめたいときに向く。このプロジェクトのテストは、主に「呼ばれたか、何回か、どの引数か」を確かめるので、FFF のほうが書きやすい。
+Ztest のモックは、「この引数で、この順に呼ばれる」ことを厳密に確かめたいときに向く。このプロジェクトのテストが主に確かめるのは「呼ばれたか、何回か、どの引数か」なので、FFF のほうが書きやすい。
 
 ## 仕組み
 
@@ -27,7 +27,7 @@ Ztest のモックは、「この引数で、この順に呼ばれる」こと�
 - 構造体の変数 `bt_enable_fake`。呼び出しの記録と、返す値の設定が入っている (「フェイクのメンバー」)。
 - リセットの関数 `bt_enable_reset()`。`RESET_FAKE(bt_enable)` が呼ぶ。
 
-`bt_enable_fake` の宣言は、リポジトリのどこにも書かれていない。マクロが作る。名前は、関数名に `_fake` を付けた形。
+`bt_enable_fake` の宣言は、リポジトリのどこにも書かれておらず、マクロが作る。名前は、関数名に `_fake` を付けた形。
 
 ## 定義するマクロ
 
@@ -37,7 +37,7 @@ Ztest のモックは、「この引数で、この順に呼ばれる」こと�
 DEFINE_FFF_GLOBALS
 ```
 
-FFF が全てのフェイクで共有する変数 `fff` (呼び出しの順序の記録) を定義する。末尾に `;` は付けない。テストのアプリ (1 つの実行ファイル) につき、1 回だけ、ファイルの先頭に書く。
+全てのフェイクで共有する変数 `fff` (呼び出しの順序の記録) を定義する。末尾に `;` は付けない。テストのアプリ (1 つの実行ファイル) につき 1 回だけ、ファイルの先頭に書く。
 
 使用箇所: [`app/thermo-gateway/tests/ble/src/test_ble.c:35`](../../app/thermo-gateway/tests/ble/src/test_ble.c#L35) (ほか 20 のテスト)
 
@@ -47,7 +47,7 @@ FFF が全てのフェイクで共有する変数 `fff` (呼び出しの順序�
 FAKE_VALUE_FUNC(RETURN_TYPE, FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 ```
 
-値を返す関数のフェイクを作る。引数の型を、順に並べる。引数のない関数は、型を書かない (`FAKE_VALUE_FUNC(int, bt_le_scan_stop)`)。引数の数は、マクロが数える (最大 20 個。`FFF_MAX_ARGS`)。
+値を返す関数のフェイクを作る。引数の型を順に並べる。引数のない関数では、型を書かない (`FAKE_VALUE_FUNC(int, bt_le_scan_stop)`)。引数の数はマクロが数える (最大 20 個。`FFF_MAX_ARGS`)。
 
 | 引数 | 入出力 | 内容 |
 |:---|:---|:---|
@@ -57,8 +57,8 @@ FAKE_VALUE_FUNC(RETURN_TYPE, FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 
 注意:
 
-- 実物の関数がヘッダで宣言されているときは、フェイクが同じ型で、もう一度宣言する。そのため、テストの `CMakeLists.txt` で `-Wno-redundant-decls` を付けている。
-- 実物の関数は、リンクしない (テストの `CMakeLists.txt` に、そのソースを入れない)。
+- 実物の関数がヘッダで宣言されているときは、フェイクが同じ型でもう一度宣言する。そのため、テストの `CMakeLists.txt` で `-Wno-redundant-decls` を付けている。
+- 実物の関数はリンクしない (テストの `CMakeLists.txt` に、そのソースを入れない)。
 
 使用箇所: [`app/thermo-gateway/tests/ble/src/test_ble.c:72`](../../app/thermo-gateway/tests/ble/src/test_ble.c#L72) (`app/*/tests/` の全体で、194 か所)
 
@@ -68,19 +68,19 @@ FAKE_VALUE_FUNC(RETURN_TYPE, FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 FAKE_VOID_FUNC(FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 ```
 
-戻り値のない関数のフェイクを作る。引数は `FAKE_VALUE_FUNC` と同じ。フェイクのメンバーのうち、戻り値に関するもの (`return_val` など) は、ない。
+戻り値のない関数のフェイクを作る。引数は `FAKE_VALUE_FUNC` と同じ。フェイクのメンバーのうち、戻り値に関するもの (`return_val` など) はない。
 
 使用箇所: [`app/thermo-gateway/tests/ble/src/test_ble.c:81`](../../app/thermo-gateway/tests/ble/src/test_ble.c#L81) (`app/*/tests/` の全体で、30 か所)
 
 ## フェイクのメンバー
 
-`FUNCNAME_fake` (`FUNCNAME` は偽の関数の名前) の、メンバー。
+`FUNCNAME_fake` (`FUNCNAME` は偽の関数の名前) のメンバー。
 
 | メンバー | 型 | 内容 |
 |:---|:---|:---|
 | `call_count` | `unsigned int` | 呼ばれた回数 |
-| `arg0_val`、`arg1_val` ... | 引数の型 | 最後に呼ばれたときの、引数の値 |
-| `arg0_history[]`、`arg1_history[]` ... | 引数の型の配列 | 呼ばれた順の、引数の値。`arg0_history[0]` が 1 回目。長さは 50 (`FFF_ARG_HISTORY_LEN`)。それより多く呼ばれた分は、記録されず、`arg_histories_dropped` が増える |
+| `arg0_val`、`arg1_val` ... | 引数の型 | 最後に呼ばれたときの引数の値 |
+| `arg0_history[]`、`arg1_history[]` ... | 引数の型の配列 | 呼ばれた順の引数の値。`arg0_history[0]` が 1 回目。長さは 50 (`FFF_ARG_HISTORY_LEN`)。それより多く呼ばれた分は記録されず、`arg_histories_dropped` が増える |
 | `arg_history_len` | `unsigned int` | 引数の履歴の長さ (50) |
 | `arg_histories_dropped` | `unsigned int` | 履歴に入らなかった呼び出しの回数 |
 | `return_val` | 戻り値の型 | 返す値 (値を返すフェイクだけ) |
@@ -93,16 +93,16 @@ FAKE_VOID_FUNC(FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 
 偽の関数が呼ばれると、次の順に動く。
 
-1. 引数を、`argN_val` に保存する。履歴に空きがあれば、`argN_history` にも保存する。
+1. 引数を `argN_val` に保存する。履歴に空きがあれば、`argN_history` にも保存する。
 2. `call_count` を 1 増やす。呼び出しの順序 (`fff.call_history`) に、この関数を加える。
-3. 返す値 (値を返すフェイク) を、次の優先順位で決める。上にあるほうが優先される。
-   1. `custom_fake_seq` (設定されているとき)。順に 1 つずつ呼んで、最後まで来たら、最後の関数を呼び続ける。
+3. 値を返すフェイクでは、返す値を次の優先順位で決める。上にあるほうが優先される。
+   1. `custom_fake_seq` (設定されているとき)。順に 1 つずつ呼び、最後まで来たら、最後の関数を呼び続ける。
    2. `custom_fake` (`NULL` でないとき)。その戻り値を返す。
-   3. `return_val_seq` (設定されているとき)。順に 1 つずつ返して、最後まで来たら、最後の値を返し続ける。
+   3. `return_val_seq` (設定されているとき)。順に 1 つずつ返し、最後まで来たら、最後の値を返し続ける。
    4. `return_val`。
-4. 戻り値のないフェイクは、`custom_fake_seq` と `custom_fake` の両方が設定されていれば、両方を呼ぶ。
+4. 戻り値のないフェイクでは、`custom_fake_seq` と `custom_fake` の両方が設定されていれば、両方を呼ぶ。
 
-何も設定しないと、値を返すフェイクは 0 を返す (変数が 0 で初期化されているため)。
+何も設定しなければ、変数が 0 で初期化されているので、値を返すフェイクは 0 を返す。
 
 ### call_count
 
@@ -118,13 +118,13 @@ FAKE_VOID_FUNC(FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 
 ### arg0_val
 
-最後の呼び出しの、最初の引数。ポインタ (文字列など) も、値のまま、ポインタが入る。
+最後の呼び出しの最初の引数。ポインタ (文字列など) の引数では、ポインタの値がそのまま入る。
 
 使用箇所: [`app/common/tests/cloud/src/test_cloud.c:447`](../../app/common/tests/cloud/src/test_cloud.c#L447) (ほか、`arg1_val` などを含めて、約 140 か所)
 
 ### arg0_history
 
-呼ばれた順の、最初の引数の履歴。同じ関数が何度も呼ばれて、途中の引数を確認したいときに使う。
+呼ばれた順の、最初の引数の履歴。同じ関数が何度も呼ばれて、途中の引数を確かめたいときに使う。
 
 使用箇所: [`app/common/tests/wifi/src/test_wifi.c:137`](../../app/common/tests/wifi/src/test_wifi.c#L137)、[`app/thermo-node/tests/oled/src/test_oled.c:434`](../../app/thermo-node/tests/oled/src/test_oled.c#L434) (`arg2_history`)
 
@@ -146,7 +146,7 @@ bt_enable_fake.custom_fake = fake_bt_enable;
 RESET_FAKE(FUNCNAME);
 ```
 
-フェイクのメンバーを全て 0 (`custom_fake` と `custom_fake_seq` は `NULL`) に戻す。前のテストの設定と記録が残らないように、テストの前 (`before` の関数) で、使うフェイクごとに呼ぶ。`fff` の呼び出しの順序は、戻さない (`FFF_RESET_HISTORY` で戻す)。
+フェイクのメンバーを全て 0 (`custom_fake` と `custom_fake_seq` は `NULL`) に戻す。前のテストの設定と記録が残らないように、テストの前 (`before` の関数) に、使うフェイクごとに呼ぶ。`fff` の呼び出しの順序は戻さない (戻すには `FFF_RESET_HISTORY` を使う)。
 
 使用箇所: [`app/common/tests/cfg/src/test_cfg.c:263`](../../app/common/tests/cfg/src/test_cfg.c#L263) (ほか、約 250 か所)
 
@@ -166,7 +166,7 @@ FFF_RESET_HISTORY();
 SET_RETURN_SEQ(FUNCNAME, ARRAY_POINTER, ARRAY_LEN);
 ```
 
-呼ばれるたびに、配列の値を順に返すようにする。`return_val_seq` と `return_val_seq_len` に、配列とその長さを入れる。配列の最後まで来たら、最後の値を返し続ける。配列は、テストが終わるまで、有効でなければならない (ローカル変数で足りる)。`RESET_FAKE` のあとに設定する (リセットが、列を消すため)。
+呼ばれるたびに、配列の値を順に返すようにする。`return_val_seq` と `return_val_seq_len` に、配列とその長さを入れる。配列の最後まで来たら、最後の値を返し続ける。配列は、テストが終わるまで有効でなければならない (ローカル変数で足りる)。リセットで列が消えるので、`RESET_FAKE` のあとに設定する。
 
 | 引数 | 入出力 | 内容 |
 |:---|:---|:---|
@@ -182,7 +182,7 @@ SET_RETURN_SEQ(FUNCNAME, ARRAY_POINTER, ARRAY_LEN);
 SET_CUSTOM_FAKE_SEQ(FUNCNAME, ARRAY_POINTER, ARRAY_LEN);
 ```
 
-`SET_RETURN_SEQ` の、`custom_fake` 版。呼ばれるたびに、関数の配列の関数を順に呼ぶ。このプロジェクトでは、使っていない。
+`SET_RETURN_SEQ` の `custom_fake` 版。呼ばれるたびに、配列の関数を順に呼ぶ。このプロジェクトでは使っていない。
 
 ## 呼び出しの順序
 
@@ -192,9 +192,9 @@ SET_CUSTOM_FAKE_SEQ(FUNCNAME, ARRAY_POINTER, ARRAY_LEN);
 extern fff_globals_t fff;   /* fff.call_history[], fff.call_history_idx */
 ```
 
-どの関数が、どの順に呼ばれたかの記録。全てのフェイクで共通で、呼ばれるたびに、関数のアドレスが 1 つ加わる。長さは 50 (`FFF_CALL_HISTORY_LEN`)。`fff.call_history_idx` が、記録した数。
+どの関数がどの順に呼ばれたかの記録。全てのフェイクで共通で、呼ばれるたびに関数のアドレスが 1 つ加わる。長さは 50 (`FFF_CALL_HISTORY_LEN`)。記録した数は `fff.call_history_idx`。
 
-要素は関数ポインタなので、比べるときは、`uintptr_t` を経由して `void *` に直す (関数ポインタをオブジェクトポインタに直接キャストすることは、ISO C で許されないため)。このプロジェクトでは、`FUNCTION_ADDRESS()` で包んでいる。
+要素は関数ポインタなので、比べるときは、`uintptr_t` を経由して `void *` に直す (ISO C では、関数ポインタをオブジェクトポインタに直接キャストできないため)。このプロジェクトでは、これを `FUNCTION_ADDRESS()` で包んでいる。
 
 使用箇所: [`app/thermo-gateway/tests/main/src/test_main.c:222`](../../app/thermo-gateway/tests/main/src/test_main.c#L222) (`ble_init` と `cloud_init` の呼ばれた順の確認)
 
@@ -205,4 +205,4 @@ extern fff_globals_t fff;   /* fff.call_history[], fff.call_history_idx */
 - `SET_CUSTOM_FAKE_SEQ` と `custom_fake_seq`。
 - `return_val_history`。
 - 可変個引数の関数のフェイク (`FAKE_VALUE_FUNC_VARARG` と `FAKE_VOID_FUNC_VARARG`)。
-- 履歴の長さを変えるマクロ (`FFF_ARG_HISTORY_LEN` と `FFF_CALL_HISTORY_LEN`。既定は、どちらも 50)。
+- 履歴の長さを変えるマクロ (`FFF_ARG_HISTORY_LEN` と `FFF_CALL_HISTORY_LEN`。既定はどちらも 50)。
