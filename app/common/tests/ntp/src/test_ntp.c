@@ -108,7 +108,7 @@ ZTEST_SUITE(ntp, NULL, NULL, before, NULL, NULL);
 
 /* 同期できなかったテストを先に実行する (同期済みの状態はリセットできないため, 名前順) */
 
-/** 名前を解決できなければ -EHOSTUNREACH で, SNTP には進まず, 同期済みにならない */
+/** 名前を解決できなければ -EHOSTUNREACH で, SNTP には進まず同期済みにならない */
 ZTEST(ntp, test_a_resolve_failure)
 {
     int64_t sec = 0; /* UNIX 時刻 [s] */
@@ -121,7 +121,7 @@ ZTEST(ntp, test_a_resolve_failure)
     zassert_equal(ntp_unix_time(&sec), -EAGAIN);
 }
 
-/** 問い合わせに失敗したら, そのエラーを返して, SNTP を閉じて, 時計は設定しない */
+/** 問い合わせに失敗したら, SNTP を閉じてそのエラーを返す. 時計は設定しない */
 ZTEST(ntp, test_b_query_failure)
 {
     sntp_query_fake.custom_fake = NULL;
@@ -131,7 +131,7 @@ ZTEST(ntp, test_b_query_failure)
     zassert_false(ntp_is_synced());
 }
 
-/** SNTP の初期化に失敗したら, そのエラーを返して, 問い合わせない */
+/** SNTP の初期化に失敗したら, そのエラーを返して問い合わせない */
 ZTEST(ntp, test_c_init_failure)
 {
     sntp_init_fake.return_val = -ENOMEM;

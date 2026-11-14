@@ -155,7 +155,7 @@ static int capture_notify(struct bt_conn *conn, struct bt_gatt_notify_params *pa
 }
 
 /**
- * bt_gatt_attr_read() のモック動作 (本物と同じく, offset から, 値をバッファへ写す)
+ * bt_gatt_attr_read() のモック動作 (本物と同じく, offset から値をバッファへ写す)
  *
  * @param[in] conn 使用しない
  * @param[in] attr 使用しない
@@ -164,7 +164,7 @@ static int capture_notify(struct bt_conn *conn, struct bt_gatt_notify_params *pa
  * @param[in] offset 読み取りの開始位置
  * @param[in] value 値
  * @param[in] value_len 値の大きさ
- * @return 読み取った大きさ (offset が範囲外なら, 負の値)
+ * @return 読み取った大きさ (offset が範囲外なら負の値)
  */
 static ssize_t fake_attr_read(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
                               uint16_t buf_len, uint16_t offset, const void *value,
@@ -237,7 +237,7 @@ static int on_time(int64_t unix_s)
  * @param[in] value   書き込む値
  * @param[in] len     値の大きさ
  * @param[in] offset  書き込みの開始位置
- * @return 書き込んだ大きさ (失敗なら, 負の ATT エラー)
+ * @return 書き込んだ大きさ (失敗なら負の ATT エラー)
  */
 static ssize_t write_time_attr(const struct bt_gatt_service *service, const uint8_t *value,
                                uint16_t len, uint16_t offset)
@@ -289,7 +289,7 @@ ZTEST(ble_node, test_init_success)
     zassert_not_null(bt_conn_cb_register_fake.arg0_val->disconnected);
 }
 
-/** ble_init() は bt_enable() のエラーを返して, 何も登録しない */
+/** ble_init() は bt_enable() のエラーを返して何も登録しない */
 ZTEST(ble_node, test_init_enable_failure)
 {
     bt_enable_fake.return_val = -EIO;
@@ -477,7 +477,7 @@ ZTEST(ble_node, test_advertise_failure)
     zassert_equal(bt_le_adv_start_fake.call_count, 1U);
 }
 
-/** 接続のコールバック: 接続の数に空きがあれば, アドバタイズを続ける. 満杯なら, 続けない */
+/** 接続のコールバック: 接続の数に空きがあれば, アドバタイズを続ける. 満杯なら続けない */
 ZTEST(ble_node, test_connected_callback)
 {
     struct bt_conn_cb *cb = NULL; /* コールバックの登録情報 */
@@ -492,14 +492,14 @@ ZTEST(ble_node, test_connected_callback)
     cb->connected(NULL, 0x3EU); /* 接続に失敗 (ログを出すだけ) */
     zassert_equal(bt_le_adv_start_fake.call_count, 0U);
 
-    cb->connected(NULL, 0U); /* 1 つ目: 空きがあるので, アドバタイズを続ける */
+    cb->connected(NULL, 0U); /* 1 つ目: 空きがあるのでアドバタイズを続ける */
     zassert_equal(bt_le_adv_start_fake.call_count, 1U);
 
     cb->connected(NULL, 0U); /* 2 つ目: 満杯 (CONFIG_BT_MAX_CONN = 2) */
     zassert_equal(bt_le_adv_start_fake.call_count, 1U);
 }
 
-/** 接続のコールバック: アドバタイズを続けるのに失敗しても, ログを出すだけ (EALREADY は何もしない)
+/** 接続のコールバック: アドバタイズを続けるのに失敗してもログを出すだけ (EALREADY は何もしない)
  */
 ZTEST(ble_node, test_connected_advertise_failure)
 {
@@ -536,7 +536,7 @@ ZTEST(ble_node, test_disconnected_does_not_advertise)
     zassert_equal(bt_le_adv_start_fake.call_count, 0U);
 }
 
-/** 接続のオブジェクトが解放されたら, アドバタイズを再開する (失敗しても, ログを出すだけ) */
+/** 接続のオブジェクトが解放されたら, アドバタイズを再開する (失敗してもログを出すだけ) */
 ZTEST(ble_node, test_recycled_restarts_advertising)
 {
     struct bt_conn_cb *cb = NULL; /* コールバックの登録情報 */
@@ -548,7 +548,7 @@ ZTEST(ble_node, test_recycled_restarts_advertising)
     cb->recycled();
     zassert_equal(bt_le_adv_start_fake.call_count, 1U);
 
-    /* アドバタイズの再開に失敗しても, ログを出すだけ */
+    /* アドバタイズの再開に失敗してもログを出すだけ */
     bt_le_adv_start_fake.return_val = -ENOMEM;
     cb->recycled();
     zassert_equal(bt_le_adv_start_fake.call_count, 2U);

@@ -15,7 +15,7 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
-# git のコマンドはコンテナの中でも, 所有者の違いで拒否されないようにする
+# コンテナの中でも, git のコマンドが所有者の違いで拒否されないようにする
 files=$(git -c safe.directory='*' ls-files -z --cached --others --exclude-standard |
     tr '\0' '\n' | grep -vE '(^LICENSE$|\.patch$|\.diff$)' || true)
 

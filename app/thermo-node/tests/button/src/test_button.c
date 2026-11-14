@@ -8,10 +8,10 @@
  * @file
  * @brief button.c の単体テスト
  *
- * GPIO のコントローラを偽のもの (vnd,test-gpio) に置き換えて, 次を確認する.
+ * GPIO のコントローラを偽のもの (vnd,test-gpio) に置き換えて次を確認する.
  *  - button_init() がピンを入力に設定して, 失敗を返すこと
  *  - button_is_pressed() が押されていない状態から, 押された状態に変わったときだけ, true を返すこと
- *    (押し続けても 1 回. 起動のときに押されていても, 押された動作ではない)
+ *    (押し続けても 1 回. 起動のときに押されていても押された動作ではない)
  */
 
 /** 偽の GPIO コントローラのドライバが使う compatible (vnd,test-gpio) */
@@ -45,7 +45,7 @@ static struct gpio_driver_data fake_data;
 static const struct gpio_driver_config fake_config = {.port_pin_mask = UINT32_MAX};
 
 /**
- * 偽の GPIO コントローラの pin_configure (フラグを記録して, 設定した戻り値を返す)
+ * 偽の GPIO コントローラの pin_configure (フラグを記録して設定した戻り値を返す)
  *
  * @param[in] port  コントローラ (使用しない)
  * @param[in] pin   ピンの番号 (使用しない)
@@ -129,7 +129,7 @@ ZTEST(button, test_init_configure_failure)
     zassert_equal(button_init(), -EIO);
 }
 
-/** 押された動作は 1 回だけ検出する (押し続けても, 離すまで 1 回. 離して, もう一度押すと, もう 1 回)
+/** 押された動作は 1 回だけ検出する (押し続けても離すまで 1 回. 離してもう一度押すと, もう 1 回)
  */
 ZTEST(button, test_pressed_detects_edge_once)
 {

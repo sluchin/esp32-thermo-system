@@ -17,9 +17,9 @@
  * CONFIG_THERMO_BACKLOG_MOUNT).
  *  - boot.log: 起動から CONFIG_THERMO_SDLOG_BOOT_SEC 秒の間の, 全てのレベルのログ
  * (起動のたびに作り直す)
- *  - error.log: エラー (LOG_ERR) のログ (起動のあとも, 追記する).
- * CONFIG_THERMO_SDLOG_ERROR_MAX_BYTES に 達したら, error.old に移して (古い error.old は消す),
- * 新しい error.log に書く SD カードが使えるようになる (sdlog_start()) まで, ログは RAM に溜める.
+ *  - error.log: エラー (LOG_ERR) のログ (起動のあとも追記する).
+ * CONFIG_THERMO_SDLOG_ERROR_MAX_BYTES に達したら, error.old に移して (古い error.old は消す)
+ * 新しい error.log に書く. SD カードが使えるようになる (sdlog_start()) まで, ログは RAM に溜める.
  * 溜め切れなかったログは捨てて, エラーのログに知らせる. 使わないときは CONFIG_THERMO_SDLOG=n
  * でビルドする.
  */

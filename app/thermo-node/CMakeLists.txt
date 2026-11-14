@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.20.0)
 
 # デバッグログ (LOG_DBG と LOG_HEXDUMP_DBG) を有効にする. アプリのソースだけに, THERMO_LOG_LEVEL=4 (DBG) を付ける
-# (Zephyr のモジュールは既定のレベルのまま. 全体を DBG にすると, ログの量が多すぎて, 動かなくなる).
+# (Zephyr のモジュールは既定のレベルのまま. 全体を DBG にすると, ログの量が多すぎて動かなくなる).
 # 例: west build -b xiao_esp32c3 app/thermo-node -- -DTHERMO_DEBUG_LOG=ON
 option(THERMO_DEBUG_LOG "Enable the debug logs of the application" OFF)
 
-# デバッグログのときはセンサのドライバの DBG ログも出す. DHT11 のドライバは「データのチェックサムが
-# 合わない」(センサは応答したが, BLE の割り込みなどで読み取りが乱れた) を DBG ログに出す.
-# このログがなく, -EIO だけのときはセンサの応答がない (配線, 接触, 電源). native_sim にはセンサの
+# デバッグログのときはセンサのドライバの DBG ログも出す. DHT11 のドライバは "データのチェックサムが
+# 合わない" (センサは応答したが, BLE の割り込みなどで読み取りが乱れた) を DBG ログに出す.
+# このログがなく -EIO だけのときはセンサの応答がない (配線, 接触, 電源). native_sim にはセンサの
 # ドライバがないので, 付けない
 if(THERMO_DEBUG_LOG AND NOT BOARD MATCHES "^native_sim")
   list(APPEND EXTRA_CONF_FILE ${CMAKE_CURRENT_LIST_DIR}/debug.conf)
@@ -16,7 +16,7 @@ endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(thermo-node)
-# strnlen は POSIX の関数. native_sim (glibc, -std=c99) では, この定義がないと宣言が見えない
+# strnlen は POSIX の関数. native_sim (glibc, -std=c99) ではこの定義がないと宣言が見えない
 target_compile_definitions(app PRIVATE _POSIX_C_SOURCE=200809L)
 
 target_sources(app PRIVATE src/main.c)
@@ -32,7 +32,7 @@ target_sources(app PRIVATE src/sensor.c)
 target_sources_ifdef(CONFIG_THERMO_DISPLAY app PRIVATE src/oled.c src/history.c src/button.c)
 # 起動画面と起動音 (CONFIG_THERMO_BOOT_SCREEN と CONFIG_THERMO_BUZZER がどちらも n のときはビルドしない).
 # 素材 (絵, 題名, メロディ) は private/src/boot_assets.c (別のプライベートリポジトリをサブモジュールとして置く)
-# があれば, それを使う. なければ, このアプリのオリジナルの素材 (src/boot_assets.c). SETUP.md を参照
+# があればそれを使う. なければ, このアプリのオリジナルの素材 (src/boot_assets.c). docs/setup.md を参照
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/private/src/boot_assets.c)
   set(THERMO_BOOT_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/private/src/boot_assets.c)
 else()
@@ -45,7 +45,7 @@ if(CONFIG_THERMO_BOOT_SCREEN OR CONFIG_THERMO_BUZZER)
 endif()
 target_sources_ifdef(CONFIG_THERMO_BUZZER app PRIVATE src/buzzer.c)
 # ボタンを押したときの音 (CONFIG_THERMO_BUTTON_SOUND=n のときはビルドしない). 素材は private/src/button_assets.c があれば,
-# それを使う (起動画面と起動音と同じ). なければ, このアプリのオリジナルの音 (src/button_assets.c). SETUP.md を参照
+# それを使う (起動画面と起動音と同じ). なければ, このアプリのオリジナルの音 (src/button_assets.c). docs/setup.md を参照
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/private/src/button_assets.c)
   set(THERMO_BUTTON_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/private/src/button_assets.c)
 else()

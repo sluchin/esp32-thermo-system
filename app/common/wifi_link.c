@@ -57,16 +57,16 @@ int wifi_link_init(void)
 /**
  * @brief アクセスポイントに接続して, IPv4 アドレスを取得するまで待つ
  *
- * すでに接続していれば, すぐ戻る.
+ * すでに接続していればすぐ戻る.
  *
  * @param[in] ssid     SSID
- * @param[in] ssid_max SSID の最大長 [バイト] (NUL を除く. ssid は, ssid_max + 1 バイト以上の領域)
- * @param[in] psk      パスワード (空の文字列なら, 暗号化なしで接続する)
- * @param[in] psk_max  パスワードの最大長 [バイト] (NUL を除く. psk は, psk_max + 1
+ * @param[in] ssid_max SSID の最大長 [バイト] (NUL を除く. ssid は ssid_max + 1 バイト以上の領域)
+ * @param[in] psk      パスワード (空の文字列なら暗号化なしで接続する)
+ * @param[in] psk_max  パスワードの最大長 [バイト] (NUL を除く. psk は psk_max + 1
  * バイト以上の領域)
  * @param[in] timeout  待つ時間
  * @retval EXIT_SUCCESS    接続して, IPv4 アドレスを取得した
- * @retval -EINVAL         SSID かパスワードが, 最大長より長い
+ * @retval -EINVAL         SSID かパスワードが最大長より長い
  * @retval -ENODEV         ネットワークインターフェースがない
  * @retval -ETIMEDOUT      時間内に完了しなかった
  * @retval -ECONNREFUSED   接続に失敗した (SSID やパスワードの誤りなど)
@@ -92,7 +92,7 @@ int wifi_link_connect(const char *ssid, size_t ssid_max, const char *psk, size_t
         return -ENODEV;
     }
 
-    /* すでに接続していれば, つなぎ直さない */
+    /* すでに接続していればつなぎ直さない */
     if (is_ip_ready) {
         return EXIT_SUCCESS;
     }

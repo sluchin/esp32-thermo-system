@@ -54,7 +54,7 @@ int ntp_sync(const char *server, k_timeout_t timeout)
     struct timespec now = {0};          /* 現在時刻 */
     int err = EXIT_SUCCESS;             /* エラーコード */
 
-    /* 前回の同期から, 間もなければ, 問い合わせない */
+    /* 前回の同期から, 間もなければ問い合わせない */
     if (is_synced &&
         ((k_uptime_get() - last_sync_ms) < ((int64_t)CONFIG_THERMO_NTP_RESYNC_SEC * 1000))) {
         return EXIT_SUCCESS;
@@ -105,7 +105,7 @@ bool ntp_is_synced(void)
 /**
  * @brief 現在の UNIX 時刻を返す
  *
- * @param[out] sec UNIX 時刻 [s] (同期していなければ, 変更しない)
+ * @param[out] sec UNIX 時刻 [s] (同期していなければ変更しない)
  * @retval EXIT_SUCCESS 成功
  * @retval -EAGAIN      まだ, 同期していない
  */

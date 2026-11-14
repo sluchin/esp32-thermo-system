@@ -13,13 +13,13 @@
  *
  * 設定は Zephyr のシェル (`thermo` コマンド. cfg_shell.c) で入力して, フラッシュ (settings の
  * NVS) に保存する. TLS の証明書は Zephyr の `cred` コマンドで, いったん RAM に登録してから,
- * `thermo save-certs` で, フラッシュに保存する.
+ * `thermo save-certs` でフラッシュに保存する.
  */
 
 #include <zephyr/net/tls_credentials.h>
 #include <stdbool.h> /* bool */
 
-/** TLS の証明書を登録する, セキュリティタグ (CA, クライアント証明書, 秘密鍵で共通) */
+/** TLS の証明書を登録するセキュリティタグ (CA, クライアント証明書, 秘密鍵で共通) */
 #define CFG_TLS_SEC_TAG 1
 
 /** SSID の最大長 [byte] (NUL を除く) */
@@ -44,7 +44,7 @@
 /** 設定の項目 */
 enum cfg_key {
     CFG_KEY_SSID,      /**< WiFi の SSID */
-    CFG_KEY_PSK,       /**< WiFi のパスワード (空なら, オープンネットワーク) */
+    CFG_KEY_PSK,       /**< WiFi のパスワード (空ならオープンネットワーク) */
     CFG_KEY_ENDPOINT,  /**< AWS IoT Core のエンドポイント */
     CFG_KEY_CLIENT_ID, /**< MQTT のクライアント ID (トピックにも使う) */
     CFG_KEY_COUNT,     /**< 項目の数 */

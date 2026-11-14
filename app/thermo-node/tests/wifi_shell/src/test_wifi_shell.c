@@ -117,7 +117,7 @@ ZTEST(thermo_wifi_shell, test_sync)
     zassert_not_null(strstr(out, "time set"));
 }
 
-/** 時刻を取れなかったら, そのエラーを返して, RTC に設定しない */
+/** 時刻を取れなかったら, そのエラーを返して RTC に設定しない */
 ZTEST(thermo_wifi_shell, test_sync_fetch_failure)
 {
     int ret = 0;            /* 戻り値 */
@@ -173,7 +173,7 @@ ZTEST(thermo_wifi_shell, test_sd)
     zassert_is_null(strstr(out, "Saving is off"));
 }
 
-/** SD カードが使えても, direct_init() が失敗していたら, 保存しないことを表示する */
+/** SD カードが使えても direct_init() が失敗していたら, 保存しないことを表示する */
 ZTEST(thermo_wifi_shell, test_sd_saving_off)
 {
     int ret = 0;            /* 戻り値 */
@@ -187,7 +187,7 @@ ZTEST(thermo_wifi_shell, test_sd_saving_off)
     zassert_not_null(strstr(out, "Saving is off: direct_init() failed at the start (err -2)"));
 }
 
-/** SD カードが使えなければ, そのエラーを返して, 表示する */
+/** SD カードが使えなければ, そのエラーを返して表示する */
 ZTEST(thermo_wifi_shell, test_sd_failure)
 {
     int ret = 0;            /* 戻り値 */

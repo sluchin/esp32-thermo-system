@@ -18,7 +18,7 @@
  *  - 9 から 10: 気圧 (10 倍した値. 0 は気圧なし)
  *  - 11: 予約 (0)
  *  - 12 から 15: 先頭の 8 バイトと気圧の 2 バイトの CRC-32 (フラグは含めない). 気圧なし (0) の
- *    ときは, 先頭の 8 バイトだけの CRC-32 (気圧を足す前の記録と同じ. 以前の記録も, そのまま読める)
+ *    ときは, 先頭の 8 バイトだけの CRC-32 (気圧を足す前の記録と同じ. 以前の記録もそのまま読める)
  *
  * 記録の位置は 2 通りで表す. 物理の位置 (ファイルの中の順番) と, 論理の位置 (古い順. 0
  * が最も古い). ファイルが輪になっていないとき (記録の数が上限に達するまで) は同じ.
@@ -57,7 +57,7 @@ LOG_MODULE_REGISTER(thermo_backlog, THERMO_LOG_LEVEL);
 #define FLAG_SENT   1U
 /** 気圧の, CRC を求める範囲のバイト数 */
 #define PRES_SIZE   2U
-/** ファイルの中の, 気圧なしを示す値 (気圧を足す前の記録は, 予約で 0) */
+/** ファイルの中で気圧なしを示す値 (気圧を足す前の記録では予約で 0) */
 #define PRES_NONE   0U
 
 /** 記録の中の位置: 測った UNIX 時刻 */
@@ -87,7 +87,7 @@ static struct fs_mount_t mount = {
 static bool is_mounted;
 /** ファイルにある記録の数 (上限は BACKLOG_MAX_RECORDS) */
 static unsigned int count;
-/** 次に書く物理の位置 (上限に達していなければ count と同じ. 達していれば, 最も古い記録の位置) */
+/** 次に書く物理の位置 (上限に達していなければ count と同じ. 達していれば最も古い記録の位置) */
 static unsigned int head;
 /** 未送信の記録の数 */
 static unsigned int pending;
@@ -113,7 +113,7 @@ static int write_record(struct fs_file_t *file, unsigned int phys, const uint8_t
 static int mark_sent(struct fs_file_t *file, unsigned int phys);
 
 /**
- * @brief SD カードをマウントする (マウントしてあれば, 何もしない)
+ * @brief SD カードをマウントする (マウントしてあれば何もしない)
  *
  * マウントできると, ログ (boot.log と error.log) も保存できる. 記録の走査 (backlog_init())
  * より速い (約 0.5 秒) ので, 起動のログが RAM のバッファにあふれないよう, 起動の早い時点で呼ぶ.
@@ -200,7 +200,7 @@ int backlog_append(const struct backlog_record *rec, bool is_sent)
     struct backlog_record old = {0};                     /* 上書きされる記録 */
     uint8_t buf[RECORD_SIZE] = {0U};                     /* 書き込む記録 */
     const bool is_full = (count >= BACKLOG_MAX_RECORDS); /* 輪になっているか */
-    bool is_old_sent = true;      /* 上書きされる記録が送信済みか (読めなければ, 送信済み) */
+    bool is_old_sent = true;      /* 上書きされる記録が送信済みか (読めなければ送信済み) */
     int err = EXIT_SUCCESS;       /* エラーコード */
     int close_err = EXIT_SUCCESS; /* 閉じたときのエラーコード */
 
@@ -380,7 +380,7 @@ int backlog_commit(unsigned int n)
 /**
  * @brief 指定の時刻以降の記録を古い順に, 関数に渡す (送信済みも含む)
  *
- * 記録は時刻の順に並んでいるものとして, 二分探索で, 最初の記録を見つける.
+ * 記録は時刻の順に並んでいるものとして, 二分探索で最初の記録を見つける.
  *
  * @param[in] since_unix_s この UNIX 時刻 [s] 以降の記録を渡す
  * @param[in] visit        記録ごとに呼ぶ関数
@@ -484,7 +484,7 @@ static int read_slot(struct fs_file_t *file, unsigned int phys, uint8_t *buf)
 }
 
 /**
- * 16 バイトの記録を読む (CRC が合わなければ, 無効)
+ * 16 バイトの記録を読む (CRC が合わなければ無効)
  *
  * @param[in]  buf  記録 (RECORD_SIZE バイト)
  * @param[out] rec  記録の内容 (有効なときだけ)
@@ -532,7 +532,7 @@ static uint32_t record_crc(const uint8_t *buf)
 /**
  * 記録を 16 バイトに符号化する (末尾に CRC を付ける)
  *
- * 気圧なし (THERMO_PRESSURE_NONE) は, ファイルの中では PRES_NONE (0) にする.
+ * 気圧なし (THERMO_PRESSURE_NONE) は, ファイルの中で PRES_NONE (0) にする.
  *
  * @param[out] out  書き込み先 (RECORD_SIZE バイト)
  * @param[in]  rec  記録
@@ -596,7 +596,7 @@ static void scan(unsigned int slots)
         return;
     }
     /* 1 件ずつ読むと, 呼び出しが記録の数だけになり遅いので, まとめて読む (端の 16 バイトに満たない
-     * 部分は, 数えない)
+     * 部分は数えない)
      */
     while (phys < slots) {
         want = MIN(SCAN_CHUNK, slots - phys);

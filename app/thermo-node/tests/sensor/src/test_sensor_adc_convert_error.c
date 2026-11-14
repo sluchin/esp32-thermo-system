@@ -8,8 +8,8 @@
  * @file
  * @brief sensor.c の単体テスト (ADC の電圧への換算の失敗)
  *
- * ADC のチャンネルのノードが Devicetree にないと, sensor_init() は失敗する. テストの中で,
- * チャンネルを設定すれば, 読み取りはできるが, 電圧への換算 (adc_raw_to_millivolts_dt) は
+ * ADC のチャンネルのノードが Devicetree にないと, sensor_init() は失敗する. テストの中で
+ * チャンネルを設定すれば読み取りはできるが, 電圧への換算 (adc_raw_to_millivolts_dt) は
  * 設定が Devicetree にないので, -ENOTSUP で失敗する.
  */
 
@@ -45,7 +45,7 @@ ZTEST(sensor_adc_convert_error, test_read_convert_failure)
         .channel_id = 0U,
     }; /* テストの中で設定するチャンネル (Devicetree にはない) */
 
-    /* 期待: チャンネルを設定すれば, 生値は読めるが, 換算に必要な設定がないので, -ENOTSUP */
+    /* 期待: チャンネルを設定すれば生値は読めるが, 換算に必要な設定がないので -ENOTSUP */
     zassert_equal(adc_channel_setup(adc_dev, &cfg), 0);
     ret = sensor_read(&temp, &humidity, &pressure);
     zassert_equal(ret, -ENOTSUP, "ret=%d", ret);

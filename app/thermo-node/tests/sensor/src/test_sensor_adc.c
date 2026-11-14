@@ -64,7 +64,7 @@ static void before(void *fixture)
 /** sensor_init() は ADC が準備できていれば, 成功する */
 ZTEST(sensor_adc, test_init)
 {
-    /* 期待: 準備できていれば, 成功する */
+    /* 期待: 準備できていれば成功する */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
 }
 
@@ -74,7 +74,7 @@ ZTEST(sensor_adc, test_init_not_ready)
     struct device_state *state = adc_dev->state; /* ADC デバイスの状態 */
 
     state->initialized = false;
-    /* 期待: ADC が初期化されていなければ -ENODEV (終わったら, 元に戻す) */
+    /* 期待: ADC が初期化されていなければ -ENODEV (終わったら元に戻す) */
     zassert_equal(sensor_init(), -ENODEV);
     state->initialized = true;
 }
@@ -101,7 +101,7 @@ ZTEST(sensor_adc, test_read_full_scale)
     uint16_t humidity = 0; /* 湿度 */
     uint16_t pressure = 0; /* 気圧 */
 
-    /* 期待: 3300 mV は 330.0 ℃ (3300. 換算で切り捨てるので, 誤差は 2 まで) */
+    /* 期待: 3300 mV は 330.0 ℃ (3300. 換算で切り捨てるので誤差は 2 まで) */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     zassert_equal(adc_emul_const_value_set(adc_dev, CHANNEL, REF_MV), 0);
     zassert_equal(sensor_read(&temp, &humidity, &pressure), EXIT_SUCCESS);

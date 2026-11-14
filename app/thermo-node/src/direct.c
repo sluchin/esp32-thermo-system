@@ -49,7 +49,7 @@ static bool is_addr_ready;
 static int init_status = -EAGAIN;
 /** SD カードを使えるか */
 static bool is_backlog_ready;
-/** SD カードの記録のうち, 送信のキューに入れて, まだ, 送り終えたことにしていない数 */
+/** SD カードの記録のうち, 送信のキューに入れて, まだ送り終えたことにしていない数 */
 static unsigned int queued;
 /** queued が 0 のときの, 送った数 (cloud_sent_count()). 送れた数を求めるために使う */
 static uint32_t sent_mark;
@@ -65,7 +65,7 @@ static void flush_backlog(void);
  * @brief 直接の送信の準備をする (止めた状態で, 送信のスレッドを作って, SD カードを使えるようにする)
  *
  * BLE を初期化したあとに呼ぶ. 失敗したときは直接の送信を使わない (ほかの機能には影響しない).
- * SD カードがなくても, 成功する (溜めないだけ).
+ * SD カードがなくても成功する (溜めないだけ).
  *
  * @retval EXIT_SUCCESS 成功
  * @retval negative     失敗 (負の errno)
@@ -74,7 +74,7 @@ int direct_init(void)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    /* 状態を最初に戻す (やり直しても, 前の状態を引き継がない) */
+    /* 状態を最初に戻す (やり直しても前の状態を引き継がない) */
     is_addr_ready = false;
     init_status = -EAGAIN;
     ble_failures = 0U;
@@ -287,7 +287,7 @@ static bool save_value(int16_t temp_x10, uint16_t humidity_x10, uint16_t pressur
 static void flush_backlog(void)
 {
     struct backlog_record rec = {0}; /* SD カードから読み出した記録 */
-    uint32_t done = 0U;              /* 前回から, 送れた数 */
+    uint32_t done = 0U;              /* 前回から送れた数 */
     int err = EXIT_SUCCESS;          /* エラーコード */
 
     if (!cloud_is_connected()) {
@@ -326,9 +326,9 @@ static void flush_backlog(void)
 }
 
 /**
- * @brief SD カードが使えるかを確かめる (使えなければ, マウントをやり直す. シェルの `thermo sd` 用)
+ * @brief SD カードが使えるかを確かめる (使えなければマウントをやり直す. シェルの `thermo sd` 用)
  *
- * 起動のときに SD カードをマウントできなかったときも, カードを挿し直したあとに, 再起動せずに
+ * 起動のときに SD カードをマウントできなかったときも, カードを挿し直したあとに再起動せずに
  * 確かめられる. 失敗の理由は backlog_init() のログに出る. すでに使えているときは
  * マウントし直さない (測定値の保存の途中に, 外さないため).
  *

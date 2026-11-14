@@ -121,7 +121,7 @@ static ssize_t fake_read(struct fs_file_t *file, void *dst, size_t size)
 }
 
 /**
- * fs_read() のモック動作 (全て 0 の記録を返す. CRC が合わないので, 壊れた記録になる)
+ * fs_read() のモック動作 (全て 0 の記録を返す. CRC が合わないので壊れた記録になる)
  *
  * @param[in]  file 使用しない
  * @param[out] dst  読み出した記録
@@ -253,7 +253,7 @@ ZTEST(backlog_fserr, test_init_read_failure)
     zassert_equal(backlog_pending(), 0U);
 }
 
-/** 起動: 輪が満杯で, 全ての記録が壊れていても, 先頭から上書きを始める (未送信は 0 件) */
+/** 起動: 輪が満杯で全ての記録が壊れていても, 先頭から上書きを始める (未送信は 0 件) */
 ZTEST(backlog_fserr, test_init_full_ring_all_broken)
 {
     struct backlog_record r = rec(); /* 記録 */
@@ -267,7 +267,7 @@ ZTEST(backlog_fserr, test_init_full_ring_all_broken)
     zassert_equal(backlog_pending(), 1U);
 }
 
-/** 追記: 開けないと, その errno を返して, 数えない */
+/** 追記: 開けないと, その errno を返して数えない */
 ZTEST(backlog_fserr, test_append_open_failure)
 {
     struct backlog_record r = rec(); /* 記録 */
@@ -278,7 +278,7 @@ ZTEST(backlog_fserr, test_append_open_failure)
     zassert_equal(backlog_pending(), INITIAL_RECORDS);
 }
 
-/** 追記: 移動できないと, その errno を返して, 書かず, 数えない */
+/** 追記: 移動できないと, 書かず数えずに, その errno を返す */
 ZTEST(backlog_fserr, test_append_seek_failure)
 {
     struct backlog_record r = rec(); /* 記録 */
@@ -304,7 +304,7 @@ ZTEST(backlog_fserr, test_append_write_failure)
     zassert_equal(backlog_pending(), INITIAL_RECORDS);
 }
 
-/** 追記: 閉じるのに失敗すると, その errno を返して, 数えない */
+/** 追記: 閉じるのに失敗すると, その errno を返して数えない */
 ZTEST(backlog_fserr, test_append_close_failure)
 {
     struct backlog_record r = rec(); /* 記録 */

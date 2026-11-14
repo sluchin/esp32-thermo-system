@@ -93,7 +93,7 @@ struct sample {
 
 /** 送信を待つ温度のキューのバッファ (struct sample が QUEUE_LEN 個入る) */
 static struct sample cloud_sample_buf[QUEUE_LEN];
-/* キューのバッファ (RAM) を増やさないこと (ノードの RAM は, ほとんど余りがない) */
+/* キューのバッファ (RAM) を増やさないこと (ノードの RAM にはほとんど余りがない) */
 BUILD_ASSERT(sizeof(cloud_sample_buf[0]) <= 32U, "struct sample is too large");
 /** 送信を待つ温度のキュー (cloud_init() で初期化する) */
 static struct k_msgq cloud_sample_q;
@@ -192,10 +192,10 @@ int cloud_step(void)
             err = -ETIME;
         }
     }
-    /* 失敗したら, 間隔をあけてから, やり直す (間隔は失敗のたびに倍にして, 上限で止める) */
+    /* 失敗したら間隔をあけてからやり直す (間隔は失敗のたびに倍にして, 上限で止める) */
     if (err != 0) {
         attempts++;
-        /* 失敗が続いたら, あきらめて, WiFi を切る (cloud_set_enabled(true) まで, 接続しない) */
+        /* 失敗が続いたらあきらめて WiFi を切る (cloud_set_enabled(true) まで接続しない) */
         if ((max_attempts > 0U) && (attempts >= max_attempts)) {
             LOG_ERR("Connection failed (err %d), giving up after %u attempts", err, attempts);
             is_given_up = true;
@@ -238,7 +238,7 @@ int cloud_init(bool is_start_enabled)
 {
     int err = EXIT_SUCCESS; /* エラーコード */
 
-    /* 送信のキューは, ほかの処理より先に初期化する (失敗して戻っても, キューは使える) */
+    /* 送信のキューはほかの処理より先に初期化する (失敗して戻ってもキューは使える) */
     k_msgq_init(&cloud_sample_q, (char *)cloud_sample_buf, sizeof(cloud_sample_buf[0]), QUEUE_LEN);
 
     err = cfg_init();
@@ -354,8 +354,8 @@ int cloud_publish_switchbot(const bt_addr_le_t *addr, const struct switchbot_sam
 /**
  * @brief 接続して送る状態にするか, 止めて WiFi を切る状態にするかを切り替える
  *
- * true にすると, 失敗の回数と, あきらめた状態を戻して, すぐに接続を始める (キューの古い値は
- * 捨てる). false にすると, 接続中の処理を終えて (MQTT を閉じて), WiFi を切って, 待つ.
+ * true にすると, 失敗の回数とあきらめた状態を戻して, すぐに接続を始める (キューの古い値は
+ * 捨てる). false にすると, 接続中の処理を終えて (MQTT を閉じて) WiFi を切り, 待つ.
  *
  * @param[in] is_on true なら, 接続して送る. false なら, 止める
  */
@@ -385,7 +385,7 @@ void cloud_set_attempt_limit(unsigned int limit)
 /**
  * @brief 接続の失敗が続いて, あきらめたか
  *
- * @retval true  あきらめた (cloud_set_enabled(true) まで, 接続しない)
+ * @retval true  あきらめた (cloud_set_enabled(true) まで接続しない)
  * @retval false あきらめていない
  */
 bool cloud_has_given_up(void)
@@ -396,7 +396,7 @@ bool cloud_has_given_up(void)
 /**
  * @brief MQTT で接続しているか
  *
- * @retval true  接続している (CONNACK を受け取って, 切断されていない)
+ * @retval true  接続している (CONNACK を受け取って切断されていない)
  * @retval false 接続していない
  */
 bool cloud_is_connected(void)
@@ -490,7 +490,7 @@ static int resolve_broker(const char *host)
 /**
  * ソケットを待って, 受信したデータがあれば, MQTT の処理をする
  *
- * @param[in] timeout_ms 待つ時間 [ms] (0 なら, 待たない)
+ * @param[in] timeout_ms 待つ時間 [ms] (0 なら待たない)
  * @retval EXIT_SUCCESS データがなかった, または処理した
  * @retval -ECONNRESET  ソケットにエラーがある
  * @retval -EIO         poll() が失敗したが, errno が設定されなかった
@@ -508,7 +508,7 @@ static int poll_input(int timeout_ms)
     ret = zsock_poll(&fds, 1, timeout_ms);
     poll_errno = errno;
     if (ret < 0) {
-        /* errno が設定されなかったときは, -EIO にする (0 を返すと, 成功と区別できない) */
+        /* errno が設定されなかったときは, -EIO にする (0 を返すと成功と区別できない) */
         poll_errno = ((poll_errno != 0) ? poll_errno : EIO);
         LOG_ERR("poll failed (errno %d)", poll_errno);
         return -poll_errno;
@@ -672,7 +672,7 @@ static int publish_sample(const struct sample *s)
 /**
  * 接続している間, キューの温度を publish して, 受信と keep alive を処理する
  *
- * 接続が切れるか, エラーになるか, cloud_reconnect() が呼ばれたら, MQTT を閉じて戻る.
+ * 接続が切れるか, エラーになるか, cloud_reconnect() が呼ばれたら MQTT を閉じて戻る.
  *
  * @retval EXIT_SUCCESS cloud_reconnect() が呼ばれた
  * @retval negative     接続が切れた, またはエラー (負の errno)
@@ -683,7 +683,7 @@ static int run_session(void)
     int err = EXIT_SUCCESS;                    /* エラーコード */
 
     while (!is_reconnect_requested) {
-        /* 送るものがあれば, すぐ送る. なければ, 最大 SESSION_TICK_MS 待って, 受信などの確認に進む
+        /* 送るものがあればすぐ送る. なければ最大 SESSION_TICK_MS 待って, 受信などの確認に進む
          */
         if (k_msgq_get(&cloud_sample_q, &s, K_MSEC(SESSION_TICK_MS)) == 0) {
             err = publish_sample(&s);

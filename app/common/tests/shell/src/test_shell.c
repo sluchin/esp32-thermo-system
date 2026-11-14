@@ -211,7 +211,7 @@ ZTEST(thermo_shell, test_set_unknown_item)
     zassert_not_null(strstr(out, "Unknown item 'nothing'"));
 }
 
-/** 保存に失敗したら, そのエラーを返して, 表示する */
+/** 保存に失敗したら, そのエラーを返して表示する */
 ZTEST(thermo_shell, test_set_failure)
 {
     int ret = 0;            /* 戻り値 */
@@ -225,14 +225,14 @@ ZTEST(thermo_shell, test_set_failure)
     zassert_not_null(strstr(out, "Failed to set 'psk' (err -22)"));
 }
 
-/** 引数が足りなければ, 保存しない */
+/** 引数が足りなければ保存しない */
 ZTEST(thermo_shell, test_set_missing_argument)
 {
     int ret = 0; /* 戻り値 */
 
     (void)run("thermo set ssid", &ret);
 
-    /* 期待: 値がなければ, シェルが拒否して, 保存しない */
+    /* 期待: 値がなければ, シェルが拒否して保存しない */
     zassert_not_equal(ret, 0);
     zassert_equal(cfg_set_fake.call_count, 0U);
 }
@@ -267,7 +267,7 @@ ZTEST(thermo_shell, test_show)
     zassert_not_null(strstr(out, "ready to connect: no"));
 }
 
-/** `thermo tether <SSID> <パスワード>` は切り替えて, 元の SSID を表示する */
+/** `thermo tether <SSID> <パスワード>` は切り替えて元の SSID を表示する */
 ZTEST(thermo_shell, test_tether)
 {
     int ret = 0;                                                  /* 戻り値 */
@@ -291,7 +291,7 @@ ZTEST(thermo_shell, test_tether_without_psk)
     zassert_str_equal(cfg_tether_fake.arg1_val, "");
 }
 
-/** 切り替えに失敗したら, そのエラーを返して, 表示する */
+/** 切り替えに失敗したら, そのエラーを返して表示する */
 ZTEST(thermo_shell, test_tether_failure)
 {
     int ret = 0;            /* 戻り値 */
@@ -304,7 +304,7 @@ ZTEST(thermo_shell, test_tether_failure)
     zassert_not_null(strstr(out, "Failed to switch to the tethering (err -22)"));
 }
 
-/** SSID がなければ, 切り替えない */
+/** SSID がなければ切り替えない */
 ZTEST(thermo_shell, test_tether_missing_argument)
 {
     int ret = 0; /* 戻り値 */
@@ -315,7 +315,7 @@ ZTEST(thermo_shell, test_tether_missing_argument)
     zassert_equal(cfg_tether_fake.call_count, 0U);
 }
 
-/** `thermo restore` は元に戻して, 戻したことを表示する */
+/** `thermo restore` は元に戻して戻したことを表示する */
 ZTEST(thermo_shell, test_restore)
 {
     int ret = 0;                                   /* 戻り値 */
@@ -326,7 +326,7 @@ ZTEST(thermo_shell, test_restore)
     zassert_not_null(strstr(out, "original settings restored"));
 }
 
-/** 戻すのに失敗したら, そのエラーを返す */
+/** 戻すのに失敗したらそのエラーを返す */
 ZTEST(thermo_shell, test_restore_failure)
 {
     int ret = 0;            /* 戻り値 */
@@ -339,7 +339,7 @@ ZTEST(thermo_shell, test_restore_failure)
     zassert_not_null(strstr(out, "Failed to restore the original settings (err -2)"));
 }
 
-/** `thermo show` は元の設定があれば, その SSID を表示する */
+/** `thermo show` は元の設定があればその SSID を表示する */
 ZTEST(thermo_shell, test_show_backup)
 {
     int ret = 0;            /* 戻り値 */
@@ -352,7 +352,7 @@ ZTEST(thermo_shell, test_show_backup)
     zassert_not_null(strstr(out, "tether backup: home-ap"));
 }
 
-/** パスワードが空なら "(empty)", 全て揃っていれば, 接続できると表示する */
+/** パスワードが空なら "(empty)", 全て揃っていれば接続できると表示する */
 ZTEST(thermo_shell, test_show_empty_psk_and_ready)
 {
     int ret = 0;            /* 戻り値 */
@@ -361,7 +361,7 @@ ZTEST(thermo_shell, test_show_empty_psk_and_ready)
     cfg_is_complete_fake.return_val = true;
     out = run("thermo show", &ret);
 
-    /* 期待: 空のパスワードは "(empty)". 揃っていれば, 接続できると表示する */
+    /* 期待: 空のパスワードは "(empty)". 揃っていれば接続できると表示する */
     zassert_equal(ret, 0);
     zassert_not_null(strstr(out, "psk: (empty)"));
     zassert_not_null(strstr(out, "tether backup: (none)"));
@@ -380,7 +380,7 @@ ZTEST(thermo_shell, test_save_certs)
     zassert_not_null(strstr(out, "certificates saved"));
 }
 
-/** 証明書の保存に失敗したら, そのエラーを返して, 登録の手順を表示する */
+/** 証明書の保存に失敗したら, そのエラーを返して登録の手順を表示する */
 ZTEST(thermo_shell, test_save_certs_failure)
 {
     int ret = 0;            /* 戻り値 */
@@ -407,7 +407,7 @@ ZTEST(thermo_shell, test_apply)
     zassert_not_null(strstr(out, "reconnecting"));
 }
 
-/** `thermo reset` は全て消して, 消したことを表示する */
+/** `thermo reset` は全て消して消したことを表示する */
 ZTEST(thermo_shell, test_reset)
 {
     int ret = 0;                                 /* 戻り値 */
@@ -419,7 +419,7 @@ ZTEST(thermo_shell, test_reset)
     zassert_not_null(strstr(out, "settings erased"));
 }
 
-/** 消すのに失敗したら, そのエラーを返す */
+/** 消すのに失敗したらそのエラーを返す */
 ZTEST(thermo_shell, test_reset_failure)
 {
     int ret = 0;            /* 戻り値 */

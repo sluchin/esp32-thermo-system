@@ -302,7 +302,7 @@ ZTEST(rtc_pcf8563, test_set_time)
     zassert_equal(regs[REG_SECONDS + 6U], 0x26U); /* 2026 年 (tm_year は 126) */
 }
 
-/** 設定できる最小 (2000-01-01) と最大 (2099-12-31) の時刻を設定して, 読み戻せる */
+/** 設定できる最小 (2000-01-01) と最大 (2099-12-31) の時刻を設定して読み戻せる */
 ZTEST(rtc_pcf8563, test_set_limits)
 {
     struct rtc_time tm = valid_time(); /* 設定する時刻 */

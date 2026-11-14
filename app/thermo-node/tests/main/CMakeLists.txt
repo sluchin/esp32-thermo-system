@@ -1,6 +1,6 @@
 # thermo-node の main.c の単体テスト (Ztest + FFF).
 # sensor と ble の関数 (sensor_init() など) を FFF のモックに置き換える.
-# main.c の main() は Zephyr のテストの main() と名前が同じなので, 名前を変える.
+# main.c の main() は Zephyr のテストの main() と名前が同じなので名前を変える.
 cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})

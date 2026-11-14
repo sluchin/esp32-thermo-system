@@ -1,10 +1,10 @@
 #!/bin/bash
 # クラウドのセッション (claude.ai/code) で, Docker を使うための補助.
 #
-#   scripts/cloud-docker.sh start        Docker のデーモン (dockerd) を起動する (起動済みなら, 何もしない)
+#   scripts/cloud-docker.sh start        Docker のデーモン (dockerd) を起動する (起動済みなら何もしない)
 #   scripts/cloud-docker.sh hook         SessionStart フック用. クラウドのときだけ, start する
 #   scripts/cloud-docker.sh build        開発用のイメージ (esp32-thermo-system) をプロキシと CA の設定を足して作る
-#   scripts/cloud-docker.sh run <引数>   docker compose run --rm <引数> を実行する (イメージがなければ, 先に build する)
+#   scripts/cloud-docker.sh run <引数>   docker compose run --rm <引数> を実行する (イメージがなければ先に build する)
 #                                        (例: scripts/cloud-docker.sh run build-node)
 #
 # なぜ必要か: クラウドの VM の外への通信は全て, プロキシ (HTTPS_PROXY=http://127.0.0.1:<ポート>) と,
@@ -16,7 +16,7 @@
 # プロキシ経由になって, 拒否されたため (プロキシを通さずに, 直接つながる).
 #
 # build はベースのイメージ (ubuntu:26.04) を Docker Hub から取る. 429 (回数制限) で失敗したときは
-# Google のミラー (mirror.gcr.io) から取って, 元のタグを付ける.
+# Google のミラー (mirror.gcr.io) から取って元のタグを付ける.
 #
 # リポジトリの Dockerfile は変えない (一時的なコピーに, CA を取り込む行を足して, ビルドする).
 # ローカルや CI では使わない (プロキシの設定がないとき: ビルドは通常どおり).
@@ -53,7 +53,7 @@ parse_proxy() {
     PROXY_PORT="${hp##*:}"
 }
 
-# Dockerfile のベースのイメージ (最初の FROM) がなければ, 取得する. Docker Hub が 429 (回数制限) を
+# Dockerfile のベースのイメージ (最初の FROM) がなければ取得する. Docker Hub が 429 (回数制限) を
 # 返すときは Google のミラー (mirror.gcr.io) から取って, 元の名前のタグを付ける
 ensure_base_image() {
     local root="$1" base mirror
@@ -98,7 +98,7 @@ cmd_start() {
     return 1
 }
 
-# SessionStart フック: クラウドのときだけ起動する. 失敗しても, セッションの開始は止めない
+# SessionStart フック: クラウドのときだけ起動する. 失敗してもセッションの開始は止めない
 cmd_hook() {
     if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
         return 0
@@ -124,7 +124,7 @@ split_ca() {
 }
 
 # Dockerfile のコピーを作る. 最初の apt の段落 (&& rm -rf /var/lib/apt/lists/*) の直後に,
-# CA を取り込む行と, Python (pip, west) に CA を教える引数 (ARG なので, イメージには残らない) を足す
+# CA を取り込む行と, Python (pip, west) に CA を教える引数 (ARG なのでイメージには残らない) を足す
 make_dockerfile() {
     local src="$1" dst="$2"
     awk '
@@ -193,7 +193,7 @@ cmd_build() {
 }
 
 # docker compose run --rm <引数>. イメージがなければ, 先に build する (通常の docker compose がプロキシなしで
-# ビルドを始めて, 失敗するのを避ける)
+# ビルドを始めて失敗するのを避ける)
 cmd_run() {
     local root
     root="$(repo_root)" || return 1

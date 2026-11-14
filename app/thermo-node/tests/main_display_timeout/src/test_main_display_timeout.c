@@ -15,11 +15,11 @@
  *  - 消えている間にボタンを押すと, 点灯するだけで, ページは切り替えないこと (点灯のあとは
  * 表示を続ける)
  *  - 消えている間にボタンを押して点灯するときはボタンの音 (buzzer_play()) を鳴らさないこと
- *  - 点灯している間にボタンを押すと, ページを切り替えて, ボタンの音を鳴らして,
+ *  - 点灯している間にボタンを押すと, ページを切り替えてボタンの音を鳴らし,
  * 消すまでの時間を数え直すこと
  *  - 消灯と点灯に失敗したときはやり直すこと (消灯は 1 秒後, 点灯は次のボタン)
  *  - OLED の初期化に失敗した間は消灯も点灯もしないこと (ボタンではページを切り替える).
- * やり直して, 初期化に成功したら, 点灯して, 消すまでの時間を数えること
+ * やり直して初期化に成功したら, 点灯して消すまでの時間を数えること
  */
 
 #include <zephyr/ztest.h>
@@ -257,7 +257,7 @@ ZTEST(main_timeout, test_display_turns_off_after_timeout)
     zassert_equal(oled_set_power_fake.call_count, 0U);
     zassert_true(oled_show_fake.call_count >= 9U);
 
-    /* 10 秒たったら, 消す */
+    /* 10 秒たったら消す */
     k_msleep(2 * MARGIN_MS);
     zassert_equal(oled_set_power_fake.call_count, 1U);
     zassert_false(oled_set_power_fake.arg0_val);
@@ -271,7 +271,7 @@ ZTEST(main_timeout, test_display_turns_off_after_timeout)
     k_thread_abort(&main_thread);
 }
 
-/** 消えている間にボタンを押すと, 点灯するだけで, ページは切り替えない. 点灯したあとは表示を続ける
+/** 消えている間にボタンを押すと, 点灯するだけでページは切り替えない. 点灯したあとは表示を続ける
  */
 ZTEST(main_timeout, test_button_wakes_display_without_switching_page)
 {
@@ -371,7 +371,7 @@ ZTEST(main_timeout, test_power_on_failure_waits_for_the_next_press)
     zassert_equal(oled_set_power_fake.call_count, 2U);
     zassert_equal(oled_show_fake.call_count, shown_when_off);
 
-    /* 15 秒に押す: 点灯して, 表示し直す */
+    /* 15 秒に押す: 点灯して表示し直す */
     k_msleep(2 * MARGIN_MS + 1000);
     zassert_equal(oled_set_power_fake.call_count, 3U);
     zassert_true(oled_show_fake.call_count > shown_when_off);
@@ -379,7 +379,7 @@ ZTEST(main_timeout, test_power_on_failure_waits_for_the_next_press)
     k_thread_abort(&main_thread);
 }
 
-/** OLED の初期化に失敗している間は消灯も点灯もしない (ボタンを押しても, 失敗しない) */
+/** OLED の初期化に失敗している間は消灯も点灯もしない (ボタンを押しても失敗しない) */
 ZTEST(main_timeout, test_no_power_control_without_display)
 {
     is_init_always_fails = true;
@@ -426,7 +426,7 @@ ZTEST(main_timeout, test_retry_keeps_the_state_of_a_working_display)
 {
     start_main();
 
-    /* 10 秒で消えて, 60 秒のやり直しのあとも, 消えたまま (1 回だけ消す) */
+    /* 10 秒で消えて, 60 秒のやり直しのあとも消えたまま (1 回だけ消す) */
     k_msleep(RETRY_MS + 1000);
     zassert_equal(oled_set_power_fake.call_count, 1U);
     zassert_equal(oled_init_fake.call_count, 1U);

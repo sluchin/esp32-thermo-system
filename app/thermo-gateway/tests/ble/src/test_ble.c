@@ -13,7 +13,7 @@
  *  - ble_init() が接続のコールバックを登録すること
  *  - ble_scan() が正しいパラメータでスキャンを始めること
  *  - スキャンで Thermo サービスを持つノードだけに接続すること (台数の上限, 重複の無視を含む)
- *  - 接続したあと, サービス, 温度の特性, CCC を順に探索して, 通知を購読すること
+ *  - 接続したあと, サービス, 温度の特性, CCC を順に探索して通知を購読すること
  *  - 通知された温度 (リトルエンディアン) をコールバックに渡すこと
  *  - 切断や失敗のときに状態を戻して, スキャンを再開すること
  */
@@ -158,7 +158,7 @@ static struct bt_conn *conn_of(unsigned int index)
  * bt_data_parse() のモック動作 (本物と同じに要素ごとにコールバックを呼ぶ)
  *
  * @param[in] ad アドバタイズデータ (長さ, 種別, データの繰り返し)
- * @param[in] func 要素ごとに呼ぶコールバック (false を返したら, 終了する)
+ * @param[in] func 要素ごとに呼ぶコールバック (false を返したら終了する)
  * @param[in,out] user_data コールバックに渡す
  */
 static void fake_data_parse(struct net_buf_simple *ad, data_cb_t func, void *user_data)
@@ -542,7 +542,7 @@ ZTEST(ble_gateway, test_scan_ignores_known_node)
     zassert_equal(bt_conn_le_create_fake.call_count, 0U);
 }
 
-/** 接続できる台数 (CONFIG_BT_MAX_CONN) に達したら, それ以上は接続しない */
+/** 接続できる台数 (CONFIG_BT_MAX_CONN) に達したらそれ以上は接続しない */
 ZTEST(ble_gateway, test_scan_respects_max_nodes)
 {
     scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
@@ -558,7 +558,7 @@ ZTEST(ble_gateway, test_scan_respects_max_nodes)
     zassert_equal(bt_conn_le_create_fake.call_count, (unsigned int)MAX_NODES);
 }
 
-/** スキャンを止められなかったら (EBUSY, EALREADY 以外), 接続せず, スキャンを再開する */
+/** スキャンを止められなかったら (EBUSY, EALREADY 以外), 接続せずにスキャンを再開する */
 ZTEST(ble_gateway, test_scan_stop_failure)
 {
     scan_cb_ptr_t scan_cb = start_scanning();               /* スキャン結果のコールバック */
@@ -567,7 +567,7 @@ ZTEST(ble_gateway, test_scan_stop_failure)
     bt_le_scan_stop_fake.return_val = -EIO;
     find_node(scan_cb, 0U);
 
-    /* 期待: スキャンを止められなければ, 接続しないで, スキャンを再開する */
+    /* 期待: スキャンを止められなければ, 接続しないでスキャンを再開する */
     zassert_equal(bt_le_scan_stop_fake.call_count, 1U);
     zassert_equal(bt_conn_le_create_fake.call_count, 0U);
     zassert_equal(bt_le_scan_start_fake.call_count, starts + 1U);
@@ -577,7 +577,7 @@ ZTEST(ble_gateway, test_scan_stop_failure)
     zassert_equal(bt_conn_le_create_fake.call_count, 1U);
 }
 
-/** スキャンの再開に失敗しても, ログを出すだけ (次に見つけたときに, やり直す) */
+/** スキャンの再開に失敗してもログを出すだけ (次に見つけたときにやり直す) */
 ZTEST(ble_gateway, test_scan_stop_failure_restart_failure)
 {
     scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
@@ -605,7 +605,7 @@ ZTEST(ble_gateway, test_scan_stop_already_stopped_connects)
     zassert_equal(bt_conn_le_create_fake.call_count, 1U);
 }
 
-/** スキャンを止められなくても (EBUSY), 少し待ってやり直して, 止められたら接続する */
+/** スキャンを止められなくても (EBUSY), 少し待ってやり直して止められたら接続する */
 ZTEST(ble_gateway, test_scan_stop_busy_retries)
 {
     scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
@@ -639,7 +639,7 @@ ZTEST(ble_gateway, test_scan_stop_busy_gives_up)
     zassert_equal(bt_conn_le_create_fake.call_count, 1U);
 }
 
-/** bt_conn_le_create() が戻る前に接続が完了しても, その接続を使って, 探索を始める */
+/** bt_conn_le_create() が戻る前に接続が完了しても, その接続を使って探索を始める */
 ZTEST(ble_gateway, test_connected_before_create_returns)
 {
     scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
@@ -672,7 +672,7 @@ ZTEST(ble_gateway, test_connected_other_address_before_create_returns)
     zassert_equal(bt_gatt_discover_fake.call_count, 0U);
 }
 
-/** 接続を始められなかったら, 状態を戻して, スキャンを再開する */
+/** 接続を始められなかったら, 状態を戻してスキャンを再開する */
 ZTEST(ble_gateway, test_scan_connect_failure_restarts_scan)
 {
     scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
@@ -772,7 +772,7 @@ ZTEST(ble_gateway, test_discovery_flow_subscribes)
     conn_cb->connected(conn_of(0U), 0U);
     params = bt_gatt_discover_fake.arg1_val;
 
-    /* サービスが見つかった: 次はその中から, 温度の特性を探す */
+    /* サービスが見つかった: 次はその中から温度の特性を探す */
     ret = params->func(conn_of(0U), &service_attr, params);
     zassert_equal(ret, BT_GATT_ITER_STOP);
     zassert_equal(bt_gatt_discover_fake.call_count, 2U);
@@ -814,7 +814,7 @@ ZTEST(ble_gateway, test_discovery_not_found_disconnects)
     conn_cb->connected(conn_of(0U), 0U);
     params = bt_gatt_discover_fake.arg1_val;
 
-    /* 期待: サービスが見つからなければ (属性が NULL), 探索を止めて, 切断する */
+    /* 期待: サービスが見つからなければ (属性が NULL), 探索を止めて切断する */
     zassert_equal(params->func(conn_of(0U), NULL, params), BT_GATT_ITER_STOP);
     zassert_equal(bt_conn_disconnect_fake.call_count, 1U);
 }
@@ -880,7 +880,7 @@ ZTEST(ble_gateway, test_notification_delivers_temperature)
     zassert_mem_equal(received.addr.a.val, node_addr[0].a.val, sizeof(received.addr.a.val));
 }
 
-/** 気圧を足す前のノードの通知 (温度と湿度の 4 byte) は, 気圧なしとして, コールバックへ渡す */
+/** 気圧を足す前のノードの通知 (温度と湿度の 4 byte) は, 気圧なしとしてコールバックへ渡す */
 ZTEST(ble_gateway, test_notification_without_pressure)
 {
     scan_cb_ptr_t scan_cb = start_scanning();           /* スキャン結果のコールバック */
@@ -914,7 +914,7 @@ ZTEST(ble_gateway, test_notification_wrong_length_ignored)
     struct bt_gatt_subscribe_params *sub = NULL;        /* 購読のパラメータ */
     const uint8_t data[5] = {1U, 2U, 3U, 4U, 5U}; /* 入力データ (4 byte でも 6 byte でもない) */
 
-    /* ノードに接続して, 購読まで進める */
+    /* ノードに接続して購読まで進める */
     find_node(scan_cb, 0U);
     conn_cb->connected(conn_of(0U), 0U);
     params = bt_gatt_discover_fake.arg1_val;
@@ -946,7 +946,7 @@ ZTEST(ble_gateway, test_notification_unsubscribed_and_no_callback)
     (void)params->func(conn_of(0U), &ccc_attr, params);
     sub = bt_gatt_subscribe_fake.arg1_val;
 
-    /* コールバックを解除しても (NULL), 通知を受け取って, 落ちない */
+    /* コールバックを解除しても (NULL), 通知を受け取って落ちない */
     ble_set_temperature_callback(NULL);
     zassert_equal(sub->notify(conn_of(0U), sub, data, sizeof(data)), BT_GATT_ITER_CONTINUE);
     zassert_equal(received.count, 0U);
@@ -1019,7 +1019,7 @@ ZTEST(ble_gateway, test_scan_ignores_short_uuid)
     zassert_equal(bt_conn_le_create_fake.call_count, 0U);
 }
 
-/** 接続を始める依頼を処理している間 (スキャンを止められず, 待っている間) は次の依頼を受けない */
+/** 接続を始める依頼を処理している間 (スキャンを止められず待っている間) は次の依頼を受けない */
 ZTEST(ble_gateway, test_scan_ignores_while_pending)
 {
     scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
@@ -1063,7 +1063,7 @@ ZTEST(ble_gateway, test_connected_scan_restart_failure)
     bt_le_scan_start_fake.return_val = -EIO;
     conn_cb->connected(conn_of(0U), 0U);
 
-    /* 期待: スキャンの再開に失敗しても, 探索はすでに始まっている */
+    /* 期待: スキャンの再開に失敗しても探索はすでに始まっている */
     zassert_equal(bt_gatt_discover_fake.call_count, 1U);
     zassert_equal(bt_le_scan_start_fake.call_count, 2U);
 }
@@ -1129,7 +1129,7 @@ ZTEST(ble_gateway, test_disconnected_scan_restart_failure)
     bt_le_scan_start_fake.return_val = -EIO;
     conn_cb->disconnected(conn_of(0U), 0x08U);
 
-    /* 期待: スキャンの再開に失敗しても, 状態 (参照) は戻している */
+    /* 期待: スキャンの再開に失敗しても状態 (参照) は戻している */
     zassert_equal(bt_conn_unref_fake.call_count, 1U);
 }
 
@@ -1187,7 +1187,7 @@ ZTEST(ble_gateway, test_scan_switchbot_without_callback)
     zassert_equal(bt_conn_le_create_fake.call_count, 0U);
 }
 
-/** Thermo のノードを見つけても, SwitchBot のコールバックは呼ばない (従来どおり, 接続する) */
+/** Thermo のノードを見つけても, SwitchBot のコールバックは呼ばない (従来どおり接続する) */
 ZTEST(ble_gateway, test_scan_thermo_node_is_not_switchbot)
 {
     scan_cb_ptr_t scan_cb = start_scanning(); /* スキャン結果のコールバック */
@@ -1292,7 +1292,7 @@ ZTEST(ble_gateway, test_time_discovery_skipped_without_source)
     zassert_equal(bt_gatt_discover_fake.call_count, 3U);
 }
 
-/** 時刻の特性の探索を始められなくても, 接続は切らない (温度の受信は続ける) */
+/** 時刻の特性の探索を始められなくても接続は切らない (温度の受信は続ける) */
 ZTEST(ble_gateway, test_time_discovery_start_failure_keeps_connection)
 {
     scan_cb_ptr_t scan_cb = start_scanning();      /* スキャン結果のコールバック */
@@ -1308,7 +1308,7 @@ ZTEST(ble_gateway, test_time_discovery_start_failure_keeps_connection)
     params = bt_gatt_discover_fake.arg1_val;
     (void)params->func(conn_of(0U), &service_attr, params);
 
-    /* CCC が見つかって, 購読できたが, 時刻の特性の探索を始められない */
+    /* CCC が見つかって購読できたが, 時刻の特性の探索を始められない */
     params->type = BT_GATT_DISCOVER_DESCRIPTOR;
     bt_gatt_discover_fake.return_val = -ENOMEM;
     (void)params->func(conn_of(0U), &ccc_attr, params);
@@ -1316,7 +1316,7 @@ ZTEST(ble_gateway, test_time_discovery_start_failure_keeps_connection)
     zassert_equal(bt_conn_disconnect_fake.call_count, 0U);
 }
 
-/** ノードに時刻の特性がなければ (古いファームウェア), 警告を出すだけで, 接続は切らない */
+/** ノードに時刻の特性がなければ (古いファームウェア), 警告を出すだけで接続は切らない */
 ZTEST(ble_gateway, test_time_characteristic_not_found_is_ignored)
 {
     struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
@@ -1350,7 +1350,7 @@ ZTEST(ble_gateway, test_time_characteristic_found_writes_time)
     zassert_not_null(write->func);
 }
 
-/** SNTP の同期がまだなら (時刻がわからない), 書き込みを見送って, 同期したら書き込む */
+/** SNTP の同期がまだなら (時刻がわからない), 書き込みを見送って同期したら書き込む */
 ZTEST(ble_gateway, test_time_write_waits_for_sync)
 {
     struct bt_gatt_discover_params *params = NULL; /* ディスカバリのパラメータ */
@@ -1365,7 +1365,7 @@ ZTEST(ble_gateway, test_time_write_waits_for_sync)
     k_sleep(K_SECONDS(TIME_CHECK_S * 2));
     zassert_equal(bt_gatt_write_fake.call_count, 0U);
 
-    /* 同期したら, 次の確認で書き込む */
+    /* 同期したら次の確認で書き込む */
     time_source_ret = EXIT_SUCCESS;
     k_sleep(K_SECONDS(TIME_CHECK_S + 1));
     zassert_equal(bt_gatt_write_fake.call_count, 1U);
@@ -1388,7 +1388,7 @@ ZTEST(ble_gateway, test_time_write_resyncs_periodically)
     k_sleep(K_SECONDS(TIME_RESYNC_S - TIME_CHECK_S * 3));
     zassert_equal(bt_gatt_write_fake.call_count, 1U);
 
-    /* 間隔がたったら, もう一度書き込む */
+    /* 間隔がたったらもう一度書き込む */
     k_sleep(K_SECONDS(TIME_CHECK_S * 4));
     zassert_equal(bt_gatt_write_fake.call_count, 2U);
 }
@@ -1470,7 +1470,7 @@ ZTEST(ble_gateway, test_time_write_skips_node_without_time_characteristic)
     find_time_characteristic(0U, params0);
     zassert_equal(bt_gatt_write_fake.call_count, 1U);
 
-    /* 2 台目は接続して, 購読したが, 時刻の特性はまだ見つかっていない */
+    /* 2 台目は接続して購読したが, 時刻の特性はまだ見つかっていない */
     (void)subscribe_node(scan_cb, 1U);
     k_sleep(K_SECONDS(TIME_CHECK_S + 1));
 

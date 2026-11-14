@@ -62,7 +62,7 @@ static struct fs_mount_t mnt = {
 static char content[READ_SIZE];
 
 /**
- * ファイルの内容を content に読む (ファイルがなければ, 空にする)
+ * ファイルの内容を content に読む (ファイルがなければ空にする)
  *
  * @param[in] path ファイル
  */
@@ -135,7 +135,7 @@ static void *setup(void)
 }
 
 /**
- * sdlog_start() の前は書かない. 前のファイルも, 触らない
+ * sdlog_start() の前は書かない. 前のファイルにも触らない
  */
 ZTEST(sdlog, test_1_not_started)
 {
@@ -158,7 +158,7 @@ ZTEST(sdlog, test_1_not_started)
 }
 
 /**
- * 始めたら, 溜めたログを書く. boot.log は作り直し, 全てのレベルのログが入る. error.log には
+ * 始めたら溜めたログを書く. boot.log は作り直し, 全てのレベルのログが入る. error.log には
  * エラーだけが入る
  */
 ZTEST(sdlog, test_2_start_writes_buffered)
@@ -193,7 +193,7 @@ ZTEST(sdlog, test_3_overflow_reported)
     for (i = 0; i < 20; i++) {
         LOG_INF("filler %02d abcdefghijklmnopqrstuvwxyz", i);
     }
-    sdlog_flush(); /* 書いてから, 捨てた分を知らせる */
+    sdlog_flush(); /* 書いてから捨てた分を知らせる */
     sdlog_flush(); /* 知らせたログを書く */
 
     expect_has(BOOT_PATH, "filler 00 ");
@@ -238,7 +238,7 @@ ZTEST(sdlog, test_5_after_boot_window)
 }
 
 /**
- * error.log が上限に達したら, error.old に移して, 新しい error.log に書く
+ * error.log が上限に達したら, error.old に移して新しい error.log に書く
  */
 ZTEST(sdlog, test_6_error_log_rotates)
 {
@@ -257,7 +257,7 @@ ZTEST(sdlog, test_6_error_log_rotates)
 }
 
 /**
- * 容量がなくて書けないときも, 止める. 空けて sdlog_start() すると, 書く
+ * 容量がなくて書けないときも止める. 空けて sdlog_start() すると書く
  */
 ZTEST(sdlog, test_7_disk_full_stops_until_restart)
 {
@@ -278,13 +278,13 @@ ZTEST(sdlog, test_7_disk_full_stops_until_restart)
     }
     zassert_equal(fs_unlink(FILL_PATH), 0);
 
-    /* 空けても, 止まったまま */
+    /* 空けても止まったまま */
     before = file_size(ERROR_PATH);
     LOG_ERR("after the disk was freed");
     sdlog_flush();
     zassert_equal(file_size(ERROR_PATH), before);
 
-    /* 始め直すと, 溜めたログを書く. 溜め切れなかった分の知らせも, 次の呼び出しで書く */
+    /* 始め直すと溜めたログを書く. 溜め切れなかった分の知らせも次の呼び出しで書く */
     sdlog_start();
     sdlog_flush();
     sdlog_flush();

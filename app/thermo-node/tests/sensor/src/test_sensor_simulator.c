@@ -35,7 +35,7 @@
 /** sensor_init() はセンサがなくても成功する */
 ZTEST(sensor_simulator, test_init)
 {
-    /* 期待: 準備できていれば, 成功する */
+    /* 期待: 準備できていれば成功する */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
 }
 

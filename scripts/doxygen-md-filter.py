@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Doxygen の入力の絞り込み (FILTER_PATTERNS): Markdown の, ソースなどへの相対リンクを GitHub の URL にする.
 
-Markdown (GitHub で読む) の相対リンクは, そのままにしておく. 生成した HTML には, リンク先のソース,
-LICENSE, 画像が入らないので, Doxygen に読ませるときだけ, GitHub の URL (blob と raw) に書き換える.
-*.md へのリンク (Doxygen が, ページ同士のリンクにする) と, 外のリンク, ページの中のリンクは変えない.
+Markdown (GitHub で読む) の相対リンクは, そのままにしておく. 生成した HTML にはリンク先のソース,
+LICENSE, 画像が入らないので, Doxygen に読ませるときだけ GitHub の URL (blob と raw) に書き換える.
+*.md へのリンク (Doxygen がページ同士のリンクにする), 外のリンク, ページの中のリンクは変えない.
 
-使い方: doxygen-md-filter.py ファイル  (書き換えた内容を, 標準出力に出す)
+使い方: doxygen-md-filter.py ファイル  (書き換えた内容を標準出力に出す)
 """
 import os
 import re

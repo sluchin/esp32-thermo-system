@@ -32,7 +32,7 @@
 #define OLED_PAGE_TEMP_GRAPH     1U
 /** ページ: 湿度の履歴のグラフ */
 #define OLED_PAGE_HUMIDITY_GRAPH 2U
-/** ページの数 (ボタンで, 順に切り替えて, 最後の次は最初に戻る) */
+/** ページの数 (ボタンで順に切り替えて, 最後の次は最初に戻る) */
 #define OLED_PAGE_COUNT          3U
 
 /** OLED に表示する内容 */
@@ -42,11 +42,11 @@ struct oled_view {
     uint16_t humidity_x10; /**< 湿度 [% の 10 倍] (THERMO_HUMIDITY_NONE は測れない) */
     const struct node_datetime *time;       /**< 日時 (NULL のときは日付と時刻の行を表示しない) */
     unsigned int page;                      /**< 表示するページ (OLED_PAGE_*) */
-    const struct history *temp_history;     /**< 温度の履歴 (NULL なら, グラフはデータなし) */
-    const struct history *humidity_history; /**< 湿度の履歴 (NULL なら, グラフはデータなし) */
+    const struct history *temp_history;     /**< 温度の履歴 (NULL ならグラフはデータなし) */
+    const struct history *humidity_history; /**< 湿度の履歴 (NULL ならグラフはデータなし) */
 };
 
-/** 起動画面のフレームの数 (OLED_BOOT_FRAME_MS ごとに, 1 フレーム. 全体で, 約 3 秒) */
+/** 起動画面のフレームの数 (OLED_BOOT_FRAME_MS ごとに, 1 フレーム. 全体で約 3 秒) */
 #define OLED_BOOT_FRAMES   50U
 /** 起動画面の 1 フレームの時間 [ms] */
 #define OLED_BOOT_FRAME_MS 60U

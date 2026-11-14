@@ -50,7 +50,7 @@ static struct {
 } saves[MAX_SAVES];
 /** 記録した保存の回数 */
 static unsigned int save_count;
-/** この番号 (0 から) の保存を失敗させる (負なら, 失敗させない) */
+/** この番号 (0 から) の保存を失敗させる (負なら失敗させない) */
 static int save_fail_index = -1;
 
 /** TLS の認証情報の代わりの保存先 (種類は TLS_CREDENTIAL_CA_CERTIFICATE が 1 から続く) */
@@ -64,7 +64,7 @@ static struct {
 static struct {
     const uint8_t *data; /**< 値 */
     size_t len;          /**< 値の長さ */
-    int err;             /**< 負なら, 読み出しが失敗する */
+    int err;             /**< 負なら読み出しが失敗する */
 } source;
 
 /**
@@ -287,7 +287,7 @@ static void before(void *fixture)
     tls_credential_delete_fake.custom_fake = fake_cred_delete;
 }
 
-/** 項目の名前から, 項目を探せる. ない名前は -ENOENT */
+/** 項目の名前から項目を探せる. ない名前は -ENOENT */
 ZTEST(cfg, test_key_names)
 {
     /* 名前から項目 */
@@ -297,7 +297,7 @@ ZTEST(cfg, test_key_names)
     zassert_equal(cfg_key_from_name("client_id", CFG_NAME_MAX), CFG_KEY_CLIENT_ID);
     zassert_equal(cfg_key_from_name("unknown", CFG_NAME_MAX), -ENOENT);
     zassert_equal(cfg_key_from_name("", CFG_NAME_MAX), -ENOENT);
-    /* 長い名前は, 先頭が項目と同じでも一致しない */
+    /* 長い名前は先頭が項目と同じでも一致しない */
     zassert_equal(cfg_key_from_name("ssid-and-more-and-more", CFG_NAME_MAX), -ENOENT);
 
     /* 項目から名前 */
@@ -321,7 +321,7 @@ ZTEST(cfg, test_cred_names)
 /** 設定した値は読み出せて, フラッシュに (NUL を含めて) 保存される */
 ZTEST(cfg, test_set_saves_and_get)
 {
-    /* 期待: 取り出せて, "thermo/ssid" に NUL を含めて, 保存される */
+    /* 期待: 取り出せて, "thermo/ssid" に NUL を含めて保存される */
     zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
 
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "home-ap");
@@ -361,10 +361,10 @@ ZTEST(cfg, test_set_length_limit)
     zassert_equal(save_count, 1U);
 }
 
-/** 保存に失敗したら, そのエラーを返して, 値は更新しない */
+/** 保存に失敗したら, そのエラーを返して値は更新しない */
 ZTEST(cfg, test_set_save_failure)
 {
-    /* 期待: 保存に失敗したら, エラーを返して, 前の値のままにする */
+    /* 期待: 保存に失敗したら, エラーを返して前の値のままにする */
     zassert_equal(cfg_set(CFG_KEY_SSID, "old"), EXIT_SUCCESS);
 
     save_fail_index = 1;
@@ -426,7 +426,7 @@ ZTEST(cfg, test_save_credentials_too_large)
     zassert_equal(save_count, 0U);
 }
 
-/** 保存に失敗したら, そのエラーを返して, 残りは保存しない */
+/** 保存に失敗したら, そのエラーを返して残りは保存しない */
 ZTEST(cfg, test_save_credentials_save_failure)
 {
     register_all_creds();
@@ -489,7 +489,7 @@ ZTEST(cfg, test_is_complete_missing_cred)
     }
 }
 
-/** 設定と証明書を消すと, フラッシュの全ての項目を消して, 値を空にして, 証明書を削除する */
+/** 設定と証明書を消すと, フラッシュの全ての項目を消して値を空にし, 証明書を削除する */
 ZTEST(cfg, test_reset)
 {
     set_all();
@@ -499,7 +499,7 @@ ZTEST(cfg, test_reset)
 
     zassert_equal(cfg_reset(), EXIT_SUCCESS);
 
-    zassert_equal(settings_delete_fake.call_count, 8U); /* 項目 4 つと, 証明書 3 つと, 元の設定 */
+    zassert_equal(settings_delete_fake.call_count, 8U); /* 項目 4 つと証明書 3 つと元の設定 */
     zassert_equal(tls_credential_delete_fake.call_count, 3U);
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "");
     zassert_str_equal(cfg_get(CFG_KEY_CLIENT_ID), "");
@@ -521,7 +521,7 @@ ZTEST(cfg, test_reset_failure_returns_first_error)
     zassert_str_equal(cfg_get(CFG_KEY_PSK), ""); /* 失敗しても値は空にする */
 }
 
-/** 項目は成功して, 証明書の削除だけが失敗した場合も, そのエラーを返す */
+/** 項目の削除が成功して証明書の削除だけが失敗した場合も, そのエラーを返す */
 ZTEST(cfg, test_reset_failure_in_credentials)
 {
     int results[] = {0, 0, 0, 0, 0, -ENOMEM, -EIO}; /* モックが順に返す戻り値 */
@@ -544,7 +544,7 @@ ZTEST(cfg, test_reset_failure_in_backup)
     zassert_equal(cfg_reset(), -EIO);
 }
 
-/** 設定を消すと, テザリングの前の設定も, 消える */
+/** 設定を消すと, テザリングの前の設定も消える */
 ZTEST(cfg, test_reset_clears_backup)
 {
     zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
@@ -579,7 +579,7 @@ ZTEST(cfg, test_tether_saves_backup)
     zassert_str_equal(cfg_backup_ssid(), "home-ap");
 }
 
-/** 続けて切り替えても, 最初の元の設定を残す (上書きしない) */
+/** 続けて切り替えても最初の元の設定を残す (上書きしない) */
 ZTEST(cfg, test_tether_keeps_first_backup)
 {
     zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
@@ -613,7 +613,7 @@ ZTEST(cfg, test_tether_invalid)
     zassert_false(cfg_has_backup());
 }
 
-/** 元の設定の保存に失敗したら, そのエラーを返して, 設定は変えない */
+/** 元の設定の保存に失敗したら, そのエラーを返して設定は変えない */
 ZTEST(cfg, test_tether_backup_save_failure)
 {
     zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
@@ -667,7 +667,7 @@ ZTEST(cfg, test_restore_without_backup)
     zassert_equal(cfg_restore(), -ENOENT);
 }
 
-/** SSID の保存に失敗したら, そのエラーを返して, 元の設定を残す */
+/** SSID の保存に失敗したら, そのエラーを返して元の設定を残す */
 ZTEST(cfg, test_restore_ssid_save_failure)
 {
     zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
@@ -679,7 +679,7 @@ ZTEST(cfg, test_restore_ssid_save_failure)
     zassert_true(cfg_has_backup());
 }
 
-/** パスワードの保存に失敗したら, そのエラーを返して, 元の設定を残す */
+/** パスワードの保存に失敗したら, そのエラーを返して元の設定を残す */
 ZTEST(cfg, test_restore_psk_save_failure)
 {
     zassert_equal(cfg_tether("phone", "pw"), EXIT_SUCCESS);
@@ -691,7 +691,7 @@ ZTEST(cfg, test_restore_psk_save_failure)
     zassert_true(cfg_has_backup());
 }
 
-/** 元の設定の削除に失敗したら, そのエラーを返して, もう一度戻せる */
+/** 元の設定の削除に失敗したら, そのエラーを返してもう一度戻せる */
 ZTEST(cfg, test_restore_delete_failure)
 {
     zassert_equal(cfg_set(CFG_KEY_SSID, "home-ap"), EXIT_SUCCESS);
@@ -805,7 +805,7 @@ ZTEST(cfg, test_init_register_failure)
     zassert_equal(settings_load_subtree_fake.call_count, 0U);
 }
 
-/** ハンドラが登録済みなら (2 回目の初期化), エラーにせず, 読み込む */
+/** ハンドラが登録済みなら (2 回目の初期化), エラーにせず読み込む */
 ZTEST(cfg, test_init_already_registered)
 {
     settings_register_fake.return_val = -EEXIST;
@@ -815,12 +815,12 @@ ZTEST(cfg, test_init_already_registered)
     zassert_equal(settings_load_subtree_fake.call_count, 1U);
 }
 
-/** 読み込みに失敗したら, そのエラーを返す */
+/** 読み込みに失敗したらそのエラーを返す */
 ZTEST(cfg, test_init_load_failure)
 {
     settings_load_subtree_fake.return_val = -EIO;
 
-    /* 期待: 読み込みに失敗したら, そのエラーを返す */
+    /* 期待: 読み込みに失敗したらそのエラーを返す */
     zassert_equal(cfg_init(), -EIO);
 }
 
@@ -846,7 +846,7 @@ ZTEST(cfg, test_load_value_empty_ignored)
     zassert_str_equal(cfg_get(CFG_KEY_SSID), "keep");
 }
 
-/** 長さが最大 (NUL を含めて, 最大 + 1) を超える項目は無視する */
+/** 長さが最大 (NUL を含めて最大 + 1) を超える項目は無視する */
 ZTEST(cfg, test_load_value_too_long_ignored)
 {
     static char big[CFG_SSID_MAX + 2U]; /* 上限を超える長さの文字列 */

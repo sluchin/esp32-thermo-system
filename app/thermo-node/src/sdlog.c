@@ -11,7 +11,7 @@
  * ログのバックエンドの process() はログを出した文脈 (ISR を含む) で呼ばれるので, 文字列にして
  * リングバッファに入れるだけにする. SD カードへの書き込みは sdlog_flush() が行う (メインスレッド
  * から呼ぶ). バッファがいっぱいのときは新しい文字列を捨てる (起動の最初のログを残す).
- * 書き込みに失敗したら, 次の sdlog_start() まで, 書き込みを止める (カードが外れたときに, 失敗の
+ * 書き込みに失敗したら, 次の sdlog_start() まで書き込みを止める (カードが外れたときに失敗の
  * ログが溜まり続けないため).
  */
 
@@ -115,7 +115,7 @@ void sdlog_start(void)
 }
 
 /**
- * @brief 溜めたログを SD カードのファイルに書く (メインスレッドから, 1 秒ごとに呼ぶ)
+ * @brief 溜めたログを SD カードのファイルに書く (メインスレッドから 1 秒ごとに呼ぶ)
  *
  * SD カードが使えないとき (sdlog_start() の前, または書き込みに失敗したあと) は何もしない
  * (ログは RAM に溜めたまま). 失敗したら, ログを出して, 次の sdlog_start() まで書き込みを止める.
@@ -230,7 +230,7 @@ static void store(struct ring_buf *ring, atomic_t *dropped, const uint8_t *data,
 /**
  * リングバッファの中身をファイルに書く
  *
- * ファイルを開けなかったときはリングバッファを残す (あとで, 書き直す). 開けたら, 全て取り出して
+ * ファイルを開けなかったときはリングバッファを残す (あとで書き直す). 開けたら, 全て取り出して
  * 書く (書けなかった分は捨てる).
  *
  * @param[in]     path  ファイル
@@ -267,7 +267,7 @@ static int write_ring(const char *path, struct ring_buf *ring, fs_mode_t flags)
 }
 
 /**
- * 溜めた起動のログを boot.log に書く (最初は作り直して, 2 回目からは追記する)
+ * 溜めた起動のログを boot.log に書く (最初は作り直して 2 回目からは追記する)
  *
  * @retval EXIT_SUCCESS 成功 (書くログがないときも)
  * @retval negative     失敗 (負の errno)
@@ -288,7 +288,7 @@ static int flush_boot(void)
 }
 
 /**
- * 溜めたエラーのログを error.log に追記する (上限に達していたら, 先に error.old に移す)
+ * 溜めたエラーのログを error.log に追記する (上限に達していたら先に error.old に移す)
  *
  * @retval EXIT_SUCCESS 成功 (書くログがないときも)
  * @retval negative     失敗 (負の errno)
@@ -313,7 +313,7 @@ static void rotate_error(void)
 
     err = fs_stat(ERROR_PATH, &entry);
     if ((err == 0) && (entry.size >= (size_t)CONFIG_THERMO_SDLOG_ERROR_MAX_BYTES)) {
-        /* 移せなくても, error.log に追記を続ける (次の書き込みで, もう一度移す) */
+        /* 移せなくても error.log に追記を続ける (次の書き込みでもう一度移す) */
         (void)fs_unlink(ERROR_OLD_PATH);
         (void)fs_rename(ERROR_PATH, ERROR_OLD_PATH);
     }

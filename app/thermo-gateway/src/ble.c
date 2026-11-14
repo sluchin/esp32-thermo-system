@@ -54,7 +54,7 @@ struct node {
     struct bt_gatt_write_params write;         /**< 時刻の書き込みのパラメータ */
     uint16_t service_start;                    /**< サービスの中の最初の属性のハンドル */
     uint16_t service_end;                      /**< サービスの最後の属性のハンドル */
-    uint16_t time_handle;                      /**< 時刻の特性の値のハンドル (0 なら, 特性がない) */
+    uint16_t time_handle;                      /**< 時刻の特性の値のハンドル (0 なら特性がない) */
     int64_t time_due_ms;                       /**< 次に時刻を書き込む時刻 (稼働時間 [ms]) */
     uint8_t time_buf[THERMO_TIME_SIZE];        /**< 書き込む時刻 (UTC の UNIX 時刻. uint32 LE) */
 };
@@ -78,12 +78,12 @@ static const uint8_t service_uuid_val[] = {THERMO_UUID_SERVICE_VAL};
 static ble_temperature_cb_t temperature_cb;
 /** SwitchBot のアドバタイズを受信したときのコールバック */
 static ble_switchbot_cb_t switchbot_cb;
-/** ノードに書き込む時刻を得る関数 (NULL なら, 時刻を書き込まない) */
+/** ノードに書き込む時刻を得る関数 (NULL なら時刻を書き込まない) */
 static ble_time_source_t time_source;
 
 /** 接続を始めるノードのアドレス (スキャンのコールバックが記録する) */
 static bt_addr_le_t pending_addr;
-/** 接続を始める依頼で確保したノードの状態 (依頼から, 接続を始めるまでの間. 依頼がなければ NULL)
+/** 接続を始める依頼で確保したノードの状態 (依頼から接続を始めるまでの間. 依頼がなければ NULL)
  */
 static struct node *pending_node;
 /** 接続を始め直した回数 */
@@ -209,7 +209,7 @@ void ble_set_switchbot_callback(ble_switchbot_cb_t cb)
  *
  * ノードの時刻の特性を見つけたら, この関数で得た UTC の UNIX 時刻をノードに書き込む
  * (ノードは RTC を合わせる). 関数が失敗している間 (まだ SNTP で同期していない) は書き込みを
- * 見送って, TIME_CHECK_S ごとに確かめる. 書き込んだあとも, TIME_RESYNC_S ごとに, 書き込み直す.
+ * 見送って, TIME_CHECK_S ごとに確かめる. 書き込んだあとも TIME_RESYNC_S ごとに書き込み直す.
  * ble_scan() の前に設定しておくこと. NULL で解除する (時刻は書き込まない).
  *
  * @param[in] source 時刻を得る関数
@@ -225,7 +225,7 @@ void ble_set_time_source(ble_time_source_t source)
  * スキャン応答に Thermo サービスの UUID を持つノードを見つけたら, 接続して, 温度の特性の
  * 通知 (notify) を購読する. 温度を受信するたびに ble_set_temperature_callback() で設定した
  * コールバックを呼ぶ. 接続できる台数は CONFIG_BT_MAX_CONN まで. 接続が切れたら,
- * スキャンを再開して, 再び接続する.
+ * スキャンを再開して再び接続する.
  *
  * SwitchBot のアドバタイズ (接続しない) を受信したら, ble_set_switchbot_callback() で設定した
  * コールバックを呼ぶ.
@@ -339,12 +339,12 @@ static bool parse_ad(struct bt_data *data, void *user_data)
 /**
  * 通知のコールバック (ノードが送った温度と湿度と気圧を受信する)
  *
- * 気圧を足す前のノードは, 温度と湿度だけ (THERMO_TEMPERATURE_SIZE_NO_PRESSURE バイト) を送るので,
+ * 気圧を足す前のノードは温度と湿度だけ (THERMO_TEMPERATURE_SIZE_NO_PRESSURE バイト) を送るので,
  * 気圧なし (THERMO_PRESSURE_NONE) として受け取る.
  *
  * @param[in] conn 接続
  * @param[in,out] params 購読のパラメータ
- * @param[in] data 通知されたデータ (NULL なら, 購読が解除された)
+ * @param[in] data 通知されたデータ (NULL なら購読が解除された)
  * @param[in] length データの大きさ
  * @return BT_GATT_ITER_CONTINUE (購読を続ける), または BT_GATT_ITER_STOP (購読を解除する)
  */
@@ -369,7 +369,7 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
 
     /*
      * 温度 (int16) と湿度 (uint16) と気圧 (uint16) がこの順に 2 byte ずつ, リトルエンディアンで
-     * 並んでいる (気圧は, ないことがある)
+     * 並んでいる (気圧はないことがある)
      */
     temp_x10 = (int16_t)sys_get_le16((const uint8_t *)data);
     humidity_x10 = sys_get_le16((const uint8_t *)data + sizeof(temp_x10));
@@ -387,10 +387,10 @@ static uint8_t notify_cb(struct bt_conn *conn, struct bt_gatt_subscribe_params *
 /**
  * サービスの探索のコールバック
  *
- * Thermo サービス, 温度の特性, CCC の順に探索して, 最後に通知を購読する.
+ * Thermo サービス, 温度の特性, CCC の順に探索して最後に通知を購読する.
  *
  * @param[in] conn 接続
- * @param[in] attr 見つかった属性 (NULL なら, 探索が終わった)
+ * @param[in] attr 見つかった属性 (NULL なら探索が終わった)
  * @param[in,out] params 探索のパラメータ
  * @return BT_GATT_ITER_STOP (探索を続けない)
  */
@@ -401,7 +401,7 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
     const struct bt_gatt_service_val *service = NULL;                /* GATT サービス */
     int err = EXIT_SUCCESS;                                          /* エラーコード */
 
-    /* 時刻の特性の探索 (ノードに時刻の特性がなくても, 温度の受信は続ける) */
+    /* 時刻の特性の探索 (ノードに時刻の特性がなくても温度の受信は続ける) */
     if (params->uuid == &time_uuid.uuid) {
         return time_discover_cb(attr, node);
     }
@@ -416,7 +416,7 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
     }
 
     if (params->type == BT_GATT_DISCOVER_PRIMARY) {
-        /* 次はサービスの中から, 温度の特性を探す */
+        /* 次はサービスの中から温度の特性を探す */
         service = (const struct bt_gatt_service_val *)attr->user_data;
         node->service_start = (uint16_t)(attr->handle + 1U);
         node->service_end = service->end_handle;
@@ -461,7 +461,7 @@ static uint8_t discover_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr
 /**
  * 時刻の特性の探索のコールバック (見つかったら, すぐに, 時刻を書き込む処理を動かす)
  *
- * @param[in]     attr 見つかった属性 (NULL なら, 探索が終わった. ノードに時刻の特性がない)
+ * @param[in]     attr 見つかった属性 (NULL なら探索が終わった. ノードに時刻の特性がない)
  * @param[in,out] node 対象のノード
  * @return BT_GATT_ITER_STOP (探索を続けない)
  */
@@ -483,7 +483,7 @@ static uint8_t time_discover_cb(const struct bt_gatt_attr *attr, struct node *no
 /**
  * 時刻の特性の探索を始める (購読のあとで呼ぶ)
  *
- * 時刻の特性は必須ではないので, 始められなくても, 接続は切らない (温度の受信は続ける).
+ * 時刻の特性は必須ではないので, 始められなくても接続は切らない (温度の受信は続ける).
  *
  * @param[in]     conn 接続
  * @param[in,out] node 対象のノード (サービスの範囲を記録済みであること)
@@ -536,10 +536,10 @@ static void write_time(struct node *node, int64_t unix_s, int64_t now_ms)
 }
 
 /**
- * 時刻の書き込みの応答のコールバック (ノードが拒否したら, 少し待って, やり直す)
+ * 時刻の書き込みの応答のコールバック (ノードが拒否したら少し待ってやり直す)
  *
  * @param[in]     conn   接続 (使用しない)
- * @param[in]     err    ATT のエラー (0 なら, 成功)
+ * @param[in]     err    ATT のエラー (0 なら成功)
  * @param[in,out] params 書き込みのパラメータ
  */
 static void write_time_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_params *params)
@@ -597,7 +597,7 @@ static void time_work_handler(struct k_work *work)
 /**
  * 接続のコールバック
  *
- * 接続できたら, Thermo サービスの探索を始める. 接続できなかったら, 状態を戻す.
+ * 接続できたら, Thermo サービスの探索を始める. 接続できなかったら状態を戻す.
  * どちらの場合もほかのノードを探すために, スキャンを再開する.
  *
  * @param[in] conn 接続
@@ -652,7 +652,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
 }
 
 /**
- * 切断のコールバック (状態を戻して, スキャンを再開する)
+ * 切断のコールバック (状態を戻してスキャンを再開する)
  *
  * @param[in] conn 接続
  * @param[in] reason 切断の理由
@@ -707,7 +707,7 @@ static void connect_work_handler(struct k_work *work)
     if (err != 0) {
         LOG_ERR("Stopping scan failed (err %d)", err);
         pending_node = NULL; /* 次にノードが見つかったときに, やり直す */
-        /* スキャンが止まったままにならないよう, 再開する (動いていれば, 成功を返す) */
+        /* スキャンが止まったままにならないよう, 再開する (動いていれば成功を返す) */
         err = ble_scan();
         if (err != EXIT_SUCCESS) {
             LOG_ERR("Failed to restart scanning (err %d)", err);

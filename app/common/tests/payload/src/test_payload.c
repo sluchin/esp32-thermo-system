@@ -45,12 +45,12 @@ ZTEST(payload, test_topic)
     int len = payload_format_topic(buf, sizeof(buf), "gateway-01",
                                    &node); /* 書き込んだ長さ [バイト] */
 
-    /* 期待: thermo/<クライアント ID>/<アドレス>/temperature の形式で, 長さは NUL を除く */
+    /* 期待: thermo/<クライアント ID>/<アドレス>/temperature の形式で長さは NUL を除く */
     zassert_equal(len, (int)strlen(EXPECTED_TOPIC));
     zassert_str_equal(buf, EXPECTED_TOPIC);
 }
 
-/** バッファがちょうどの大きさ (文字列 + NUL) なら, トピックを作れる */
+/** バッファがちょうどの大きさ (文字列 + NUL) ならトピックを作れる */
 ZTEST(payload, test_topic_exact_size)
 {
     char buf[sizeof(EXPECTED_TOPIC)] = {0}; /* 出力バッファ */
@@ -70,7 +70,7 @@ ZTEST(payload, test_topic_no_space)
     zassert_equal(payload_format_topic(buf, sizeof(buf), "gateway-01", &node), -ENOSPC);
 }
 
-/** ペイロードはアドレス, 温度, 湿度, 稼働時間の JSON (気圧がないときは, 気圧の項目はない) */
+/** ペイロードはアドレス, 温度, 湿度, 稼働時間の JSON (気圧がないときは気圧の項目はない) */
 ZTEST(payload, test_payload)
 {
     char buf[160] = {0}; /* 出力バッファ */
@@ -105,19 +105,19 @@ ZTEST(payload, test_payload_without_humidity)
 {
     char buf[160] = {0}; /* 出力バッファ */
 
-    /* 期待: 温度は出力して, 湿度の項目はない */
+    /* 期待: 温度は出力して湿度の項目はない */
     zassert_true(payload_format_temperature(buf, sizeof(buf), &node, 235, THERMO_HUMIDITY_NONE,
                                             THERMO_PRESSURE_NONE, 123456U, -1) > 0);
     zassert_str_equal(buf, "{\"node\":\"00:AA:01:00:00:42\",\"type\":\"thermo\","
                            "\"temperature_c\":23.5,\"uptime_ms\":123456}");
 }
 
-/** 値が最大 (温度 3276.7, 湿度 6553.4, 気圧 6553.4, 稼働時間 4294967295) でも, そのまま出力する */
+/** 値が最大 (温度 3276.7, 湿度 6553.4, 気圧 6553.4, 稼働時間 4294967295) でもそのまま出力する */
 ZTEST(payload, test_payload_max_values)
 {
     char buf[176] = {0}; /* 出力バッファ (cloud.c の PAYLOAD_SIZE) */
 
-    /* 期待: 最大の値でも, 桁を切らずに出力する */
+    /* 期待: 最大の値でも桁を切らずに出力する */
     zassert_true(payload_format_temperature(buf, sizeof(buf), &node, INT16_MAX, 0xFFFEU, 0xFFFEU,
                                             UINT32_MAX, -1) > 0);
     zassert_not_null(strstr(buf, "\"temperature_c\":3276.7,"));
@@ -130,7 +130,7 @@ ZTEST(payload, test_payload_max_values)
                                              UINT32_MAX, INT64_MAX),
                   163);
 
-    /* 温度が最小 (-3276.8) でも, 符号付きの絶対値で出力する */
+    /* 温度が最小 (-3276.8) でも符号付きの絶対値で出力する */
     zassert_true(payload_format_temperature(buf, sizeof(buf), &node, INT16_MIN, 0U,
                                             THERMO_PRESSURE_NONE, 1U, -1) > 0);
     zassert_not_null(strstr(buf, "\"temperature_c\":-3276.8,"));
@@ -149,7 +149,7 @@ ZTEST(payload, test_payload_pressure)
     zassert_not_null(strstr(buf, "\"pressure_hpa\":0.5,"));
 }
 
-/** 湿度がなくて, 気圧があるときは, 温度の次に "pressure_hpa" を出力する */
+/** 湿度がなくて気圧があるときは, 温度の次に "pressure_hpa" を出力する */
 ZTEST(payload, test_payload_pressure_without_humidity)
 {
     char buf[176] = {0}; /* 出力バッファ */
@@ -210,7 +210,7 @@ ZTEST(payload, test_switchbot_payload)
                                            "\"uptime_ms\":123456}");
 }
 
-/** 0 ℃ 未満の温度は符号を付ける (整数部が 0 の -0.5 でも, 符号を落とさない) */
+/** 0 ℃ 未満の温度は符号を付ける (整数部が 0 の -0.5 でも符号を落とさない) */
 ZTEST(payload, test_switchbot_payload_negative_temperature)
 {
     char buf[160] = {0}; /* 出力バッファ */
@@ -295,7 +295,7 @@ ZTEST(payload, test_payload_timestamp_zero)
     zassert_not_null(strstr(buf, "\"uptime_ms\":1,\"timestamp\":0}"));
 }
 
-/** SwitchBot のペイロードにも, "timestamp" を末尾に出力する */
+/** SwitchBot のペイロードにも末尾に "timestamp" を出力する */
 ZTEST(payload, test_switchbot_payload_timestamp)
 {
     char buf[160] = {0}; /* 出力バッファ */
@@ -306,7 +306,7 @@ ZTEST(payload, test_switchbot_payload_timestamp)
     zassert_not_null(strstr(buf, "\"uptime_ms\":1,\"timestamp\":1790000000}"));
 }
 
-/** 最大の値 (UNIX 時刻が 19 桁を含む) でも, 155 文字で 160 byte に収まる */
+/** 最大の値 (UNIX 時刻が 19 桁を含む) でも 155 文字で 160 byte に収まる */
 ZTEST(payload, test_switchbot_payload_longest_with_timestamp)
 {
     char buf[160] = {0}; /* 出力バッファ */

@@ -10,7 +10,7 @@
  *
  * alias thermo-sensor と thermo-pressure に, 偽のセンサ (vnd,test-sensor) を 1 つずつ接続して,
  * AHT20 と BMP280 のような, 温度と湿度のセンサと, 気圧のセンサが別の経路をテストする.
- * センサが返す値とエラーは, センサごとに, テストから設定する.
+ * センサが返す値とエラーは, センサごとにテストから設定する.
  */
 
 #include <zephyr/ztest.h>
@@ -23,7 +23,7 @@
 #include "sensor.h"
 #include "thermo_ble_uuid.h"
 
-/** 偽のセンサ 1 つの状態 (戻り値と値は, テストから設定する) */
+/** 偽のセンサ 1 つの状態 (戻り値と値はテストから設定する) */
 struct fake_state {
     int fetch_ret;             /**< sample_fetch の戻り値 */
     int channel_ret;           /**< channel_get の戻り値 */
@@ -94,7 +94,7 @@ DEVICE_DT_DEFINE(DT_NODELABEL(test_pressure), NULL, NULL, NULL, &pressure_state,
 static const struct device *const pressure_dev = DEVICE_DT_GET(DT_ALIAS(thermo_pressure));
 
 /**
- * 各テストの前に, 偽のセンサを 23.5 ℃, 45 %, 1013.2 hPa の正常な状態に戻して, 初期化する
+ * 各テストの前に, 偽のセンサを 23.5 ℃, 45 %, 1013.2 hPa の正常な状態に戻して初期化する
  *
  * @param[in] fixture 使用しない
  */
@@ -125,7 +125,7 @@ ZTEST(pressure_api, test_read)
     zassert_equal(pressure, 10132U);
 }
 
-/** 気圧のセンサが準備できていなければ, 初期化は成功して, 気圧なしで測る */
+/** 気圧のセンサが準備できていなければ, 初期化は成功して気圧なしで測る */
 ZTEST(pressure_api, test_init_pressure_not_ready)
 {
     struct device_state *state = pressure_dev->state; /* 気圧のセンサの状態 */
@@ -133,7 +133,7 @@ ZTEST(pressure_api, test_init_pressure_not_ready)
     uint16_t humidity = 0;                            /* 湿度 */
     uint16_t pressure = 0;                            /* 気圧 */
 
-    /* 期待: 初期化は成功して, 温度と湿度は読めて, 気圧は THERMO_PRESSURE_NONE (終わったら, 戻す) */
+    /* 期待: 初期化は成功し, 温度と湿度は読めて, 気圧は THERMO_PRESSURE_NONE (終わったら戻す) */
     state->initialized = false;
     zassert_equal(sensor_init(), EXIT_SUCCESS);
     zassert_equal(sensor_read(&temp, &humidity, &pressure), EXIT_SUCCESS);
@@ -143,7 +143,7 @@ ZTEST(pressure_api, test_init_pressure_not_ready)
     zassert_equal(pressure, THERMO_PRESSURE_NONE);
 }
 
-/** 気圧のセンサの測定 (sample_fetch) に失敗しても, 気圧なしで成功する */
+/** 気圧のセンサの測定 (sample_fetch) に失敗しても気圧なしで成功する */
 ZTEST(pressure_api, test_read_pressure_fetch_failure)
 {
     int16_t temp = 0;      /* 温度 */
@@ -158,7 +158,7 @@ ZTEST(pressure_api, test_read_pressure_fetch_failure)
     zassert_equal(pressure, THERMO_PRESSURE_NONE);
 }
 
-/** 気圧の取得 (channel_get) に失敗しても, 気圧なしで成功する */
+/** 気圧の取得 (channel_get) に失敗しても気圧なしで成功する */
 ZTEST(pressure_api, test_read_pressure_get_failure)
 {
     int16_t temp = 0;      /* 温度 */
@@ -187,7 +187,7 @@ ZTEST(pressure_api, test_read_pressure_negative)
     zassert_equal(pressure, THERMO_PRESSURE_NONE);
 }
 
-/** uint16 の 10 分の 1 hPa に入る最大 (6553.4 hPa) までは, そのまま返す */
+/** uint16 の 10 分の 1 hPa に入る最大 (6553.4 hPa) まではそのまま返す */
 ZTEST(pressure_api, test_read_pressure_max)
 {
     int16_t temp = 0;      /* 温度 */
@@ -201,7 +201,7 @@ ZTEST(pressure_api, test_read_pressure_max)
     zassert_equal(pressure, 65534U);
 }
 
-/** 気圧なしの値 (6553.5 hPa) 以上は, 気圧なしにする */
+/** 気圧なしの値 (6553.5 hPa) 以上は気圧なしにする */
 ZTEST(pressure_api, test_read_pressure_too_high)
 {
     int16_t temp = 0;      /* 温度 */
@@ -215,7 +215,7 @@ ZTEST(pressure_api, test_read_pressure_too_high)
     zassert_equal(pressure, THERMO_PRESSURE_NONE);
 }
 
-/** 温度と湿度のセンサの失敗は, 気圧のセンサがあっても, そのまま返す */
+/** 温度と湿度のセンサの失敗は, 気圧のセンサがあってもそのまま返す */
 ZTEST(pressure_api, test_read_sensor_failure)
 {
     int16_t temp = 0;      /* 温度 */

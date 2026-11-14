@@ -51,7 +51,7 @@ int wifi_time_init(void)
 /**
  * @brief WiFi に接続して, SNTP で UTC の UNIX 時刻を取り, WiFi を切る
  *
- * 成功しても失敗しても, 最後に WiFi を切る.
+ * 成功しても失敗しても最後に WiFi を切る.
  *
  * @param[out] unix_s UTC の UNIX 時刻 [s]
  * @retval EXIT_SUCCESS    成功

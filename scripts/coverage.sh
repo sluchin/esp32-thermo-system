@@ -33,9 +33,9 @@ west twister -T "$tests" -p native_sim/native/64 -O "$out" --coverage --coverage
 }
 
 # テストのビルドごとに gcovr の JSON を作り, 分岐を行の中の順番で数え直してから, 合わせて集計する.
-# (GCC 14 以降は, 分岐をブロックの番号で見分けるので, そのままでは, 設定の違うビルドの同じ行の
+# (GCC 14 以降は分岐をブロックの番号で見分けるので, そのままでは設定の違うビルドの同じ行の
 # 分岐が合わない. scripts/coverage_merge.py)
-# gcov の出力は, 書き込める $out に置く (--gcov-object-directory .. ソースは読み取り専用).
+# gcov の出力は書き込める $out に置く (--gcov-object-directory .. ソースは読み取り専用).
 cd "$out"
 rm -f cov-*.json
 tracefiles=()

@@ -35,7 +35,7 @@
 #define DECIMAL_MASK        0x0FU
 /** 温度の整数部の最上位の bit: 1 なら 0 ℃ 以上, 0 なら 0 ℃ 未満 */
 #define SIGN_POSITIVE_BIT   0x80U
-/** 湿度の最大値 [%] (これを超えたら, 壊れたデータ) */
+/** 湿度の最大値 [%] (これを超えたら壊れたデータ) */
 #define HUMIDITY_MAX        100U
 /** 送信の間隔 [ms] */
 #define INTERVAL_MS         CONFIG_THERMO_SWITCHBOT_INTERVAL_MS

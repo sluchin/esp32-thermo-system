@@ -68,7 +68,7 @@ int payload_format_topic(char *buf, size_t size, const char *client_id, const bt
  * @param[in]  humidity_x10 湿度 [% の 10 倍] (湿度がなければ THERMO_HUMIDITY_NONE)
  * @param[in]  pressure_x10 気圧 [hPa の 10 倍] (気圧がなければ THERMO_PRESSURE_NONE)
  * @param[in]  uptime_ms    値を受信したときのゲートウェイの稼働時間 [ms]
- * @param[in]  unix_s       値を受信したときの UNIX 時刻 [s] (負なら, わからない)
+ * @param[in]  unix_s       値を受信したときの UNIX 時刻 [s] (負ならわからない)
  * @return 文字列の長さ (NUL を除く). buf が小さければ -ENOSPC
  */
 int payload_format_temperature(char *buf, size_t size, const bt_addr_le_t *addr, int16_t temp_x10,
@@ -137,7 +137,7 @@ int payload_format_switchbot_topic(char *buf, size_t size, const char *client_id
  * @param[in]  addr      機器のアドレス
  * @param[in]  sample    温度, 湿度, 電池残量
  * @param[in]  uptime_ms 受信したときのゲートウェイの稼働時間 [ms]
- * @param[in]  unix_s    受信したときの UNIX 時刻 [s] (負なら, わからない)
+ * @param[in]  unix_s    受信したときの UNIX 時刻 [s] (負ならわからない)
  * @return 文字列の長さ (NUL を除く). buf が小さければ -ENOSPC
  */
 int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
@@ -169,7 +169,7 @@ int payload_format_switchbot(char *buf, size_t size, const bt_addr_le_t *addr,
 /**
  * アドレスを"00:AA:01:00:00:42" の形式の文字列にする
  *
- * bt_addr_le_to_str() は末尾に " (public)" などが付くので, 使わない.
+ * bt_addr_le_to_str() は末尾に " (public)" などが付くので使わない.
  *
  * @param[out] out  出力先 (ADDR_STR_SIZE 以上)
  * @param[in]  addr アドレス (val[0] が下位の byte)
@@ -201,9 +201,9 @@ static int check_length(int written, size_t size)
 /**
  * UNIX 時刻の項目 (",\"timestamp\":<秒>") を作る
  *
- * @param[out] field  出力先 (NUL で終わる. unix_s が負なら, 空の文字列)
+ * @param[out] field  出力先 (NUL で終わる. unix_s が負なら空の文字列)
  * @param[in]  size   field のサイズ
- * @param[in]  unix_s UNIX 時刻 [s] (負なら, わからない)
+ * @param[in]  unix_s UNIX 時刻 [s] (負ならわからない)
  */
 static void format_timestamp(char *field, size_t size, int64_t unix_s)
 {

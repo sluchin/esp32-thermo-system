@@ -11,7 +11,7 @@
  * @file
  * @brief ファームウェアのバージョンと git のハッシュ (thermo-node と thermo-gateway で共有する)
  *
- * 値は、ビルドのときに app/version.cmake が、マクロとして渡す (リポジトリ直下の VERSION と、
+ * 値はビルドのときに app/version.cmake がマクロとして渡す (リポジトリ直下の VERSION と
  * git describe --always --dirty). 渡されなかったとき (単体テストなど) は unknown.
  */
 
@@ -21,7 +21,7 @@
 #endif
 
 #ifndef THERMO_GIT_HASH
-/** git のハッシュ (コミットしていない変更があれば、末尾に -dirty が付く) */
+/** git のハッシュ (コミットしていない変更があれば末尾に -dirty が付く) */
 #define THERMO_GIT_HASH "unknown"
 #endif
 

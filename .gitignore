@@ -98,7 +98,7 @@ ENV/
 /rule-node.json
 /dashboard.json
 
-# AWS_SETUP.md のコマンドが作る証明書, 秘密鍵, ポリシー. コミットしない
+# docs/aws_setup.md のコマンドが作る証明書, 秘密鍵, ポリシー. コミットしない
 /policy.json
 /device.pem.crt
 /public.pem.key

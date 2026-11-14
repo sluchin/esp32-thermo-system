@@ -3,7 +3,7 @@
 # RTC と WiFi と起動画面は無効にする (tests/main はそれらを有効にして, 消灯を無効にしている).
 # ブザーとボタンの音は有効にする (点灯のための押下では音を鳴らさないことを確かめる. buzzer_play() はモック).
 # 関数 (sensor_init() など) は FFF のモックに置き換える.
-# main.c の main() は Zephyr のテストの main() と名前が同じなので, 名前を変える.
+# main.c の main() は Zephyr のテストの main() と名前が同じなので名前を変える.
 cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})

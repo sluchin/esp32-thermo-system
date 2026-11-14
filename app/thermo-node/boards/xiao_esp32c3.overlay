@@ -6,13 +6,13 @@
  *   AHT20 (温度と湿度. I2C のアドレスは 0x38) は alias thermo-sensor で使う (Zephyr の aosong,aht20
  *   のドライバ).
  *   BMP280 (気圧. I2C のアドレスは 0x77) は alias thermo-pressure で使う (Zephyr の bosch,bme280 の
- *   ドライバ. チップの ID で, BMP280 として動く). モジュールによっては 0x76 なので, 起動のログに
+ *   ドライバ. チップの ID で BMP280 として動く). モジュールによっては 0x76 なので, 起動のログに
  *   Pressure sensor is not ready が出たら, bmp280 のノードの reg と, ノードの名前を 0x76 にする.
- * 温度は AHT20 の値を使う (BMP280 の温度は使わない). BMP280 が使えないときも, 温度と湿度は送る
+ * 温度は AHT20 の値を使う (BMP280 の温度は使わない). BMP280 が使えないときも温度と湿度は送る
  * (気圧なし).
  *
  * DHT11 (3 ピンのモジュール) に替えるときは, app/thermo-node/sensors/dht11.overlay を足して
- * ビルドする (THERMO_SENSOR=dht11 docker compose run --rm build-node. SETUP.md).
+ * ビルドする (THERMO_SENSOR=dht11 docker compose run --rm build-node. docs/setup.md).
  *
  * ADC のアナログセンサ (LM35 など) に替えるときはこのファイルの aliases の thermo-sensor と
  * thermo-pressure と, aht20 と bmp280 のノードを消して, zephyr,user に io-channels を書く

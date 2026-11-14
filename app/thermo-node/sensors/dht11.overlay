@@ -26,7 +26,7 @@
         compatible = "aosong,dht";
         status = "okay";
         /* ドライバは線を LOW にする状態を active として扱う (開始信号は LOW を 18 ms 出す).
-         * GPIO_ACTIVE_HIGH にすると, 開始信号が HIGH になり, センサが応答せず, -EIO になる. */
+         * GPIO_ACTIVE_HIGH にすると開始信号が HIGH になり, センサが応答せずに -EIO になる. */
         dio-gpios = <&xiao_d 7 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
     };
 };

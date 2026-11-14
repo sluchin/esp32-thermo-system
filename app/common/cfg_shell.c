@@ -13,7 +13,7 @@
  *   thermo set <ssid|psk|endpoint|client_id> <値>
  *   thermo tether <SSID> [パスワード]   (元の SSID とパスワードを残して, テザリングに切り替える)
  *   thermo restore                      (元の SSID とパスワードに戻す)
- *   cred buf load               (Zephyr のコマンド. PEM を貼り付けて, Ctrl-C で終える)
+ *   cred buf load               (Zephyr のコマンド. PEM を貼り付けて Ctrl-C で終える)
  *   cred add 1 CA default strt  (Zephyr のコマンド. 証明書の登録. CA, CLIENT, PK の 3 つ)
  *   thermo save-certs
  *   thermo show

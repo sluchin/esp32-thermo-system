@@ -11,14 +11,14 @@
  * ble と cfg と cloud と backlog の関数を FFF のモックに置き換えて, 次を確認する.
  *  - 初期化: ノードのアドレスを取って, 止めた状態で送信のスレッドを作って,
  * あきらめる回数を決めること
- *  - BLE がつながっていない測定が 5 回続いたら, 直接の送信を始めること (つながったら, 数え直す)
+ *  - BLE がつながっていない測定が 5 回続いたら, 直接の送信を始めること (つながったら数え直す)
  *  - 設定が揃っていなければ, 始めないこと
  *  - 測定値を測定のたびに SD カードに保存すること (ゲートウェイにつながっていれば送信済み,
- * つながって いなければ未送信. SD カードや時刻がなければ, 保存しない. 失敗しても続ける)
- *  - SD カードに未送信の記録があれば, WiFi と MQTT を動かして, 古い順に送り, 送れた分を
+ * つながっていなければ未送信. SD カードや時刻がなければ保存しない. 失敗しても続ける)
+ *  - SD カードに未送信の記録があれば, WiFi と MQTT を動かして古い順に送り, 送れた分を
  * 送り終えたことにすること (キューを満杯にしない. 失敗しても続ける)
  *  - SD カードに保存できないときは動かしていて MQTT につながっていれば, 測定値をそのまま送ること
- *  - ゲートウェイにつながって, 送るものがなくなったら, 止めること
+ *  - ゲートウェイにつながって送るものがなくなったら止めること
  *  - あきらめたら, ゲートウェイにつながるまで, やり直さないこと
  */
 
@@ -80,7 +80,7 @@ static struct backlog_record store[STORE_MAX];
 static bool is_store_sent[STORE_MAX];
 /** store の記録の数 */
 static unsigned int store_count;
-/** backlog_read() の戻り値 (0 以外なら, 読めない) */
+/** backlog_read() の戻り値 (0 以外なら読めない) */
 static int read_error;
 /** backlog_commit() の戻り値 */
 static int commit_return;
@@ -145,7 +145,7 @@ static unsigned int fake_pending(void)
  *
  * @param[out] rec   記録
  * @param[in]  index 古いほうからの順番
- * @return read_error (0 以外なら, 読めない), そうでなければ 0
+ * @return read_error (0 以外なら読めない), そうでなければ 0
  */
 static int fake_read_record(struct backlog_record *rec, unsigned int index)
 {
@@ -328,7 +328,7 @@ ZTEST(direct, test_init)
     zassert_false(direct_is_active());
 }
 
-/** アドレスを取れなければ, 失敗を返して, 何もしない (測定を知らせても, 動かさない) */
+/** アドレスを取れなければ失敗を返して何もしない (測定を知らせても動かさない) */
 ZTEST(direct, test_init_address_failure)
 {
     ble_get_address_fake.custom_fake = NULL;
@@ -342,7 +342,7 @@ ZTEST(direct, test_init_address_failure)
     zassert_equal(cloud_set_enabled_fake.call_count, 0U);
 }
 
-/** 送信のスレッドを作れなければ, 失敗を返して, 動かさない */
+/** 送信のスレッドを作れなければ, 失敗を返して動かさない */
 ZTEST(direct, test_init_cloud_failure)
 {
     cloud_init_fake.return_val = -EIO;
@@ -364,11 +364,11 @@ ZTEST(direct, test_starts_after_five_failures)
     zassert_equal(cloud_set_enabled_fake.call_count, 1U);
     zassert_true(cloud_set_enabled_fake.arg0_val);
     zassert_true(direct_is_active());
-    /* SD カードがないので, 始めた測定から, そのまま送る */
+    /* SD カードがないので, 始めた測定からそのまま送る */
     zassert_equal(cloud_publish_temperature_fake.call_count, 1U);
 }
 
-/** つながった測定があれば, 数え直す (4 回, つながって, 4 回では始めない) */
+/** つながった測定があれば数え直す (4 回失敗, 1 回つながる, 4 回失敗では始めない) */
 ZTEST(direct, test_connected_resets_the_count)
 {
     samples(DIRECT_BLE_FAIL_LIMIT - 1U);
@@ -381,7 +381,7 @@ ZTEST(direct, test_connected_resets_the_count)
     zassert_false(direct_is_active());
 }
 
-/** SD カードがないときは動かしている間, 測定のたびに, ノードのアドレスと測定値で, そのまま送る */
+/** SD カードがないときは, 動かしている間, 測定のたびにノードのアドレスと測定値をそのまま送る */
 ZTEST(direct, test_publishes_every_sample_without_sd)
 {
     samples(DIRECT_BLE_FAIL_LIMIT - 1U);
@@ -399,7 +399,7 @@ ZTEST(direct, test_publishes_every_sample_without_sd)
     zassert_equal(cloud_publish_temperature_fake.call_count, 2U);
 }
 
-/** キューが満杯などで, 送れなくても, 動かし続ける */
+/** キューが満杯などで送れなくても動かし続ける */
 ZTEST(direct, test_publish_failure_keeps_going)
 {
     cloud_publish_temperature_fake.return_val = -ENOMSG;
@@ -421,7 +421,7 @@ ZTEST(direct, test_no_live_publish_before_mqtt)
     zassert_equal(cloud_publish_temperature_fake.call_count, 0U);
 }
 
-/** 時刻がなくて保存できなくても, 送っていない記録が残っていれば, そのまま送らない (順序を保つ) */
+/** 時刻がなくて保存できなくても, 送っていない記録が残っていれば, そのままは送らない (順序を保つ) */
 ZTEST(direct, test_no_live_publish_while_records_remain)
 {
     init_with_sd();
@@ -434,7 +434,7 @@ ZTEST(direct, test_no_live_publish_while_records_remain)
     zassert_equal(cloud_publish_temperature_fake.call_count, 0U);
 }
 
-/** 設定が揃っていなければ, 始めない (測定のたびに調べる). 揃ったら, 次の測定で始める */
+/** 設定が揃っていなければ, 始めない (測定のたびに調べる). 揃ったら次の測定で始める */
 ZTEST(direct, test_incomplete_settings_do_not_start)
 {
     cfg_is_complete_fake.return_val = false;
@@ -449,7 +449,7 @@ ZTEST(direct, test_incomplete_settings_do_not_start)
     zassert_true(direct_is_active());
 }
 
-/** 動かしている間に, ゲートウェイにつながったら, 止める (動かしていなければ, 止めない) */
+/** 動かしている間にゲートウェイにつながったら止める (動かしていなければ止めない) */
 ZTEST(direct, test_gateway_connection_stops_it)
 {
     ble_is_connected_fake.return_val = true;
@@ -467,7 +467,7 @@ ZTEST(direct, test_gateway_connection_stops_it)
     zassert_false(cloud_set_enabled_fake.arg0_val);
 }
 
-/** あきらめたら, 止めて, ゲートウェイにつながるまで, やり直さない. つながったら, また始められる */
+/** あきらめたら止めて, ゲートウェイにつながるまでやり直さない. つながったらまた始められる */
 ZTEST(direct, test_gives_up_until_the_gateway_connects)
 {
     samples(DIRECT_BLE_FAIL_LIMIT);
@@ -477,13 +477,13 @@ ZTEST(direct, test_gives_up_until_the_gateway_connects)
     samples(1U);
     zassert_false(direct_is_active());
 
-    /* あきらめたあとはゲートウェイにつながらない測定が続いても, 始めない */
+    /* あきらめたあとは, ゲートウェイにつながらない測定が続いても始めない */
     cloud_has_given_up_fake.return_val = false;
     samples(DIRECT_BLE_FAIL_LIMIT + 2U);
     zassert_false(direct_is_active());
     zassert_equal(cloud_set_enabled_fake.call_count, 1U);
 
-    /* つながったら, あきらめた状態が戻って, また 5 回続いたら, 始める */
+    /* つながったらあきらめた状態が戻り, また 5 回続いたら始める */
     ble_is_connected_fake.return_val = true;
     samples(1U);
     ble_is_connected_fake.return_val = false;
@@ -492,7 +492,7 @@ ZTEST(direct, test_gives_up_until_the_gateway_connects)
     zassert_equal(cloud_set_enabled_fake.call_count, 2U);
 }
 
-/** 初期化は SD カードも使えるようにする. SD カードがなくても, 成功する */
+/** 初期化は SD カードも使えるようにする. SD カードがなくても成功する */
 ZTEST(direct, test_init_with_and_without_sd)
 {
     zassert_equal(direct_init(), EXIT_SUCCESS);
@@ -502,7 +502,7 @@ ZTEST(direct, test_init_with_and_without_sd)
     zassert_equal(backlog_init_fake.call_count, 3U);
 }
 
-/** SD カードがなければ, 保存しない */
+/** SD カードがなければ保存しない */
 ZTEST(direct, test_no_sd_does_not_save)
 {
     samples(2U);
@@ -543,7 +543,7 @@ ZTEST(direct, test_connected_values_are_saved_as_sent)
     zassert_equal(cloud_set_enabled_fake.call_count, 0U);
 }
 
-/** RTC に時刻がなければ, 保存しない (知らせるのは 1 回だけ). 時刻が入ったら, 保存する */
+/** RTC に時刻がなければ, 保存しない (知らせるのは 1 回だけ). 時刻が入ったら保存する */
 ZTEST(direct, test_no_time_does_not_save)
 {
     init_with_sd();
@@ -562,7 +562,7 @@ ZTEST(direct, test_no_time_does_not_save)
 ZTEST(direct, test_save_failure_keeps_going)
 {
     init_with_sd();
-    store_count = STORE_MAX; /* 満杯 (全て, 送り終えたことにして, 送らない) */
+    store_count = STORE_MAX; /* 満杯 (全て, 送り終えたことにして送らない) */
     (void)memset(is_store_sent, true, sizeof(is_store_sent));
 
     samples(2U);
@@ -571,7 +571,7 @@ ZTEST(direct, test_save_failure_keeps_going)
     zassert_equal(store_count, STORE_MAX);
 }
 
-/** 動かしていても, MQTT につながる前は送らずに, SD カードに保存だけする */
+/** 動かしていても, MQTT につながる前は送らずに SD カードに保存だけする */
 ZTEST(direct, test_values_are_saved_until_mqtt_is_connected)
 {
     init_with_sd();
@@ -584,7 +584,7 @@ ZTEST(direct, test_values_are_saved_until_mqtt_is_connected)
     zassert_equal(backlog_append_fake.call_count, DIRECT_BLE_FAIL_LIMIT + 2U);
 }
 
-/** MQTT につながったら, 保存した未送信の記録を古い順に送る (今の測定値も, 保存したあとに送る) */
+/** MQTT につながったら, 保存した未送信の記録を古い順に送る (今の測定値も保存したあとに送る) */
 ZTEST(direct, test_new_values_are_sent_through_the_store)
 {
     init_with_sd();
@@ -598,7 +598,7 @@ ZTEST(direct, test_new_values_are_sent_through_the_store)
     zassert_equal(cloud_publish_temperature_at_fake.arg4_val, NOW_SEC);
 }
 
-/** SD カードに送っていない記録があれば, ゲートウェイにつながっていても, WiFi で送る */
+/** SD カードに送っていない記録があれば, ゲートウェイにつながっていても WiFi で送る */
 ZTEST(direct, test_backlog_starts_wifi_with_the_gateway_connected)
 {
     init_with_sd();
@@ -609,7 +609,7 @@ ZTEST(direct, test_backlog_starts_wifi_with_the_gateway_connected)
 
     zassert_true(direct_is_active());
     zassert_true(cloud_set_enabled_fake.arg0_val);
-    /* 古い順に, 測った時刻つきで, ノードのアドレスで, 送信のキューに入れる */
+    /* 古い順に, 測った時刻とノードのアドレスを付けて送信のキューに入れる */
     zassert_equal(cloud_publish_temperature_at_fake.call_count, 3U);
     zassert_equal(cloud_publish_temperature_at_fake.arg1_history[0], 100);
     zassert_equal(cloud_publish_temperature_at_fake.arg2_history[0], 400U);
@@ -621,7 +621,7 @@ ZTEST(direct, test_backlog_starts_wifi_with_the_gateway_connected)
     zassert_equal(backlog_commit_fake.call_count, 0U);
 }
 
-/** 送れた分 (cloud_sent_count() の増えた分) を送り終えたことにする. 全て送り終えたら, 止める */
+/** 送れた分 (cloud_sent_count() の増えた分) を送り終えたことにする. 全て送り終えたら止める */
 ZTEST(direct, test_commits_the_sent_records_and_stops)
 {
     init_with_sd();
@@ -704,7 +704,7 @@ ZTEST(direct, test_read_failure_keeps_going)
     zassert_equal(cloud_publish_temperature_at_fake.call_count, 0U);
 }
 
-/** 送信のキューに入れられなければ, そこで止める (次の測定で, やり直す) */
+/** 送信のキューに入れられなければ, そこで止める (次の測定でやり直す) */
 ZTEST(direct, test_queue_failure_stops_the_flush)
 {
     init_with_sd();
@@ -717,7 +717,7 @@ ZTEST(direct, test_queue_failure_stops_the_flush)
     zassert_equal(cloud_publish_temperature_at_fake.call_count, 1U);
 }
 
-/** 送り終えた数を SD カードに保存できなくても, 続ける (次の測定で, やり直す) */
+/** 送り終えた数を SD カードに保存できなくても続ける (次の測定でやり直す) */
 ZTEST(direct, test_commit_failure_keeps_going)
 {
     init_with_sd();
@@ -733,7 +733,7 @@ ZTEST(direct, test_commit_failure_keeps_going)
     zassert_true(direct_is_active());
 }
 
-/** SD カードの記録を送りたいが, 設定が揃っていなければ, 始めない */
+/** SD カードの記録を送りたくても, 設定が揃っていなければ始めない */
 ZTEST(direct, test_backlog_needs_complete_settings)
 {
     init_with_sd();
@@ -747,7 +747,7 @@ ZTEST(direct, test_backlog_needs_complete_settings)
     zassert_equal(cloud_set_enabled_fake.call_count, 0U);
 }
 
-/** ゲートウェイにつながっていて, 記録を送るために, あきらめたら, つなぎ直すまで, やり直さない */
+/** ゲートウェイにつながっていて記録を送るときも, あきらめたらつなぎ直すまでやり直さない */
 ZTEST(direct, test_backlog_gives_up_until_reconnected)
 {
     init_with_sd();
@@ -764,7 +764,7 @@ ZTEST(direct, test_backlog_gives_up_until_reconnected)
     samples(3U);
     zassert_false(direct_is_active());
 
-    /* 切れて, また, つながったら, もう一度, 試す */
+    /* 切れて, またつながったらもう一度試す */
     ble_is_connected_fake.return_val = false;
     samples(1U);
     ble_is_connected_fake.return_val = true;
@@ -782,7 +782,7 @@ ZTEST(direct, test_sd_check_mounts_again)
     zassert_equal(direct_sd_check(&pending), -ENODEV);
     zassert_equal(pending, 99U);
 
-    /* カードを挿し直したら, 使える */
+    /* カードを挿し直したら使える */
     backlog_init_fake.return_val = 0;
     put_records(2U);
     zassert_equal(direct_sd_check(&pending), EXIT_SUCCESS);
@@ -804,7 +804,7 @@ ZTEST(direct, test_sd_check_keeps_the_mount)
 /** direct_init() の結果は成功なら 0, 失敗ならそのエラー (BLE のアドレス, クラウド) */
 ZTEST(direct, test_init_status)
 {
-    zassert_equal(direct_init_status(), EXIT_SUCCESS); /* before() で, 成功している */
+    zassert_equal(direct_init_status(), EXIT_SUCCESS); /* before() で成功している */
 
     ble_get_address_fake.custom_fake = NULL;
     ble_get_address_fake.return_val = -ENOENT;

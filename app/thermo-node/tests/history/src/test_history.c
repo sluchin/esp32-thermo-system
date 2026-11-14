@@ -41,7 +41,7 @@ static void before(void *fixture)
     (void)memset(out, 0, sizeof(out));
 }
 
-/** 何も加えていなければ, 取り出せる点は 0 */
+/** 何も加えていなければ取り出せる点は 0 */
 ZTEST(history, test_get_empty)
 {
     zassert_equal(history_get(&h, out, HISTORY_SIZE), 0U);
@@ -70,7 +70,7 @@ ZTEST(history, test_bucket_change_keeps_previous_average)
     zassert_equal(out[1], 300);
 }
 
-/** 平均は 0 に向かって切り捨てる (負の値も, 同じ) */
+/** 平均は 0 に向かって切り捨てる (負の値も同じ) */
 ZTEST(history, test_average_truncates_toward_zero)
 {
     history_add(&h, -35, 0, STEP_MS);
@@ -111,7 +111,7 @@ ZTEST(history, test_get_limited_returns_newest)
     zassert_equal(out[1], 30);
 }
 
-/** 測定値のなかった区切りは HISTORY_NONE の点になる (途中の区切りも, 今の区切りの手前も) */
+/** 測定値のなかった区切りは HISTORY_NONE の点になる (途中の区切りも今の区切りの手前も) */
 ZTEST(history, test_gap_becomes_none)
 {
     history_add(&h, 10, 0, STEP_MS);
@@ -124,7 +124,7 @@ ZTEST(history, test_gap_becomes_none)
     zassert_equal(out[2], HISTORY_NONE);
     zassert_equal(out[3], 40);
 
-    /* 次の点が覚えられても, 間は同じ */
+    /* 次の点が覚えられても間は同じ */
     history_add(&h, 50, 5 * STEP_MS, STEP_MS);
     zassert_equal(history_get(&h, out, HISTORY_SIZE), 6U);
     zassert_equal(out[3], 40);
@@ -133,7 +133,7 @@ ZTEST(history, test_gap_becomes_none)
     zassert_equal(history_last(&h), 40);
 }
 
-/** 測定値のない区切りが多すぎても, 点の数は HISTORY_SIZE まで (最新の点が最後) */
+/** 測定値のない区切りが多すぎても点の数は HISTORY_SIZE まで (最新の点が最後) */
 ZTEST(history, test_gap_is_limited)
 {
     unsigned int n = 0U; /* 取り出した点の数 */

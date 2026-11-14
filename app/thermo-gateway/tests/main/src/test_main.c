@@ -164,7 +164,7 @@ static void before(void *fixture)
     FFF_RESET_HISTORY();
 }
 
-/** BLE の初期化に失敗したら, スキャンには進まず, EXIT_FAILURE を返す */
+/** BLE の初期化に失敗したら, スキャンには進まず EXIT_FAILURE を返す */
 ZTEST(main_gateway, test_ble_init_failure)
 {
     ble_init_fake.return_val = -EIO;

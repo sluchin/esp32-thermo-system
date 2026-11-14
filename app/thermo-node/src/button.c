@@ -24,7 +24,7 @@ LOG_MODULE_REGISTER(button_thermo_node, THERMO_LOG_LEVEL);
 /** Devicetree (alias thermo-button) から取得したボタンの GPIO */
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(thermo_button), gpios);
 
-/** 前回の呼び出しで, 押されていたか */
+/** 前回の呼び出しで押されていたか */
 static bool is_prev_down;
 
 /**
@@ -49,7 +49,7 @@ int button_init(void)
         return err;
     }
 
-    /* 起動のときに押されていても, 押された動作とはみなさない */
+    /* 起動のときに押されていても押された動作とはみなさない */
     is_prev_down = (gpio_pin_get_dt(&button) > 0);
     LOG_INF("Button initialized");
 

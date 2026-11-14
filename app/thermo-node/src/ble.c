@@ -54,7 +54,7 @@ static uint16_t latest_pressure_x10 = THERMO_PRESSURE_NONE;
 static volatile unsigned int connection_count;
 
 #ifdef CONFIG_THERMO_RTC
-/** ゲートウェイから時刻を受け取ったときのコールバック (NULL なら, 書き込みを拒否する) */
+/** ゲートウェイから時刻を受け取ったときのコールバック (NULL なら書き込みを拒否する) */
 static ble_time_cb_t time_cb;
 
 static ssize_t write_time(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
@@ -195,7 +195,7 @@ int ble_advertise(void)
 /**
  * @brief 温度と湿度と気圧を更新して, 接続しているゲートウェイへ通知 (notify) する
  *
- * 通知を購読しているゲートウェイがいなくても, 値は更新される (読み取り (read) で取得できる).
+ * 通知を購読しているゲートウェイがいなくても値は更新される (読み取り (read) で取得できる).
  * 接続しているゲートウェイがいないときは成功を返す.
  *
  * @param[in] temp_x10     温度 [℃ の 10 倍]
@@ -249,7 +249,7 @@ void ble_set_time_callback(ble_time_cb_t cb)
  * @param[out] buf 値を書き込むバッファ
  * @param[in] len バッファの大きさ
  * @param[in] offset 読み取りの開始位置
- * @return 読み取った大きさ (失敗なら, 負の ATT エラー)
+ * @return 読み取った大きさ (失敗なら負の ATT エラー)
  */
 static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
                                 uint16_t len, uint16_t offset)
@@ -275,7 +275,7 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
  * @param[in] len    値の大きさ
  * @param[in] offset 書き込みの開始位置
  * @param[in] flags  書き込みのフラグ
- * @return 書き込んだ大きさ (失敗なら, 負の ATT エラー)
+ * @return 書き込んだ大きさ (失敗なら負の ATT エラー)
  */
 static ssize_t write_time(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
                           uint16_t len, uint16_t offset, uint8_t flags)

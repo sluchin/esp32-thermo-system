@@ -122,7 +122,7 @@ static int draw_line(const char *text, uint16_t row);
 /**
  * @brief OLED を初期化する
  *
- * 画素の形式を設定して, 文字のフレームバッファを初期化し, 画面を消して, 表示を始める.
+ * 画素の形式を設定して文字のフレームバッファを初期化し, 画面を消して表示を始める.
  * 失敗したときは表示しないだけで, ノードのほかの動作は続けられる (呼び出し側で判断する).
  * 失敗したあとに, もう一度呼んでもよい (確保したフレームバッファは解放してからやり直す).
  *
@@ -178,7 +178,7 @@ int oled_init(void)
 }
 
 /**
- * @brief OLED を点灯または消灯する (消灯しても, 表示の内容は消えない)
+ * @brief OLED を点灯または消灯する (消灯しても表示の内容は消えない)
  *
  * 消灯 (blanking on) の間は画面に何も出ない (焼き付きと, 消費電力を減らす). 消灯の間も,
  * oled_show() で, フレームバッファを更新できる. oled_init() が成功してから呼ぶ.
@@ -254,7 +254,7 @@ int oled_show(const struct oled_view *view)
  * @brief 起動画面の 1 フレームを OLED に表示する
  *
  * 画面の上に題名 (boot_title) を出して, その下の行を口を開け閉めする丸い絵 (boot_chomper) が
- * ドットを食べながら, 左から右へ走る. 少し後ろから, 敵の絵 (boot_chaser) が追う. frame は 0 から
+ * ドットを食べながら左から右へ走る. 少し後ろから, 敵の絵 (boot_chaser) が追う. frame は 0 から
  * OLED_BOOT_FRAMES - 1 まで (それ以上は最後のフレーム). OLED_BOOT_FRAME_MS ごとに, 進める.
  * oled_init() が成功してから呼ぶ.
  *
@@ -447,7 +447,7 @@ static int draw_line(const char *text, uint16_t row)
 static unsigned int format_lines(const struct oled_view *view, char lines[][OLED_LINE_SIZE])
 {
     char temp_text[OLED_NUM_SIZE] = {0}; /* 温度の文字列 (例: -3.5) */
-    unsigned int first = 0U;             /* 温度の行の位置 (日付と時刻があれば, その下) */
+    unsigned int first = 0U;             /* 温度の行の位置 (日付と時刻があればその下) */
 
     /* 日付と時刻は一番上 */
     if (view->time != NULL) {

@@ -46,7 +46,7 @@ struct restore_state {
     unsigned int points;      /**< 戻した点の数 */
 };
 
-/** 時刻が入って, 復元を済ませたか */
+/** 時刻が入って復元を済ませたか */
 static bool is_active;
 
 static void visit(const struct backlog_record *rec, void *ctx);

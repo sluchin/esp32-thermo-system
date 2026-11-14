@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.20.0)
 
 # デバッグログ (LOG_DBG と LOG_HEXDUMP_DBG) を有効にする. アプリのソースだけに, THERMO_LOG_LEVEL=4 (DBG) を付ける
-# (Zephyr のモジュールは既定のレベルのまま. 全体を DBG にすると, ログの量が多すぎて, 動かなくなる).
+# (Zephyr のモジュールは既定のレベルのまま. 全体を DBG にすると, ログの量が多すぎて動かなくなる).
 # 例: west build -b xiao_esp32c3 app/thermo-gateway -- -DTHERMO_DEBUG_LOG=ON
 option(THERMO_DEBUG_LOG "Enable the debug logs of the application" OFF)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(thermo-gateway)
-# strnlen は POSIX の関数. native_sim (glibc, -std=c99) では, この定義がないと宣言が見えない
+# strnlen は POSIX の関数. native_sim (glibc, -std=c99) ではこの定義がないと宣言が見えない
 target_compile_definitions(app PRIVATE _POSIX_C_SOURCE=200809L)
 
 target_sources(app PRIVATE src/main.c)

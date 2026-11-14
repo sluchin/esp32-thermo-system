@@ -17,7 +17,7 @@ sdk=-DZephyr-sdk_DIR=/opt/zephyr-sdk/zephyr-sdk-0.17.4/cmake
 
 build_node() {
     # センサの overlay と設定 (前のビルドの値が CMake のキャッシュに残らないよう, 既定でも空を渡す.
-    # DHT11 のビルドの CONFIG_DHT_LOCK_IRQS も, キャッシュ (CLI_ が付く) から消す)
+    # DHT11 のビルドの CONFIG_DHT_LOCK_IRQS もキャッシュ (CLI_ が付く) から消す)
     local sensor=(-DEXTRA_DTC_OVERLAY_FILE= -DEXTRA_CONF_FILE=)
     case "${THERMO_SENSOR:-aht20_bmp280}" in
     aht20_bmp280) sensor+=(-UCLI_CONFIG_DHT_LOCK_IRQS) ;;

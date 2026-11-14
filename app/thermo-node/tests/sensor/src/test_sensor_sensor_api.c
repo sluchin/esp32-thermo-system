@@ -106,7 +106,7 @@ static void before(void *fixture)
 /** センサが準備できていれば, sensor_init() は成功する */
 ZTEST(sensor_api, test_init)
 {
-    /* 期待: 準備できていれば, 成功する */
+    /* 期待: 準備できていれば成功する */
     zassert_equal(sensor_init(), EXIT_SUCCESS);
 }
 
@@ -116,7 +116,7 @@ ZTEST(sensor_api, test_init_not_ready)
     struct device_state *state = fake_dev->state; /* センサの状態 */
 
     state->initialized = false;
-    /* 期待: センサが初期化されていなければ -ENODEV (終わったら, 元に戻す) */
+    /* 期待: センサが初期化されていなければ -ENODEV (終わったら元に戻す) */
     zassert_equal(sensor_init(), -ENODEV);
     state->initialized = true;
 }
@@ -149,7 +149,7 @@ ZTEST(sensor_api, test_read_negative_temperature)
     zassert_equal(temp, -35);
 }
 
-/** 湿度を測れないセンサ (-ENOTSUP) は湿度なしとして, 成功する */
+/** 湿度を測れないセンサ (-ENOTSUP) は湿度なしとして成功する */
 ZTEST(sensor_api, test_read_without_humidity)
 {
     int16_t temp = 0;      /* 温度 */

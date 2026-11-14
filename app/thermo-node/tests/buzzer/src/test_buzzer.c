@@ -8,7 +8,7 @@
  * @file
  * @brief buzzer.c の単体テスト
  *
- * PWM のコントローラを偽のもの (vnd,test-pwm) に置き換えて, 次を確認する.
+ * PWM のコントローラを偽のもの (vnd,test-pwm) に置き換えて次を確認する.
  *  - buzzer_init() が PWM のデバイスの状態を返すこと
  *  - buzzer_play() がメロディの音を順に周波数に合った周期 (デューティ比は 50%) で鳴らして,
  *    休符 (周波数 0) と最後に音を消すこと. 音の長さの分だけ, 次の音まで待つこと
@@ -151,7 +151,7 @@ ZTEST(buzzer, test_init_not_ready)
     zassert_equal(buzzer_init(), -ENODEV);
 }
 
-/** メロディを順に鳴らして, 周期は 1 秒 / 周波数, 休符で音を消し, 最後にも消す */
+/** メロディを順に鳴らす. 周期は 1 秒 / 周波数. 休符で音を消し, 最後にも消す */
 ZTEST(buzzer, test_play_plays_notes_in_order)
 {
     zassert_equal(buzzer_play(melody, ARRAY_SIZE(melody)), EXIT_SUCCESS);

@@ -9,7 +9,7 @@
  * @brief history_store.c の単体テスト
  *
  * node_time_unix() と backlog_foreach_since() を FFF のモックに置き換えて, 次を確認する.
- *  - RTC に時刻が入るまでは何もしないこと (入ったら, 1 回だけ復元すること)
+ *  - RTC に時刻が入るまでは何もしないこと (入ったら 1 回だけ復元すること)
  *  - SD カードの記録が区切りごとの平均になって, 時刻のとおりの位置に戻ること (記録のなかった
  *    区切りは測定値なし)
  *  - 今の区切り以降の記録と, 古すぎる記録を戻さないこと
@@ -155,7 +155,7 @@ static void first_sample(void)
 
 ZTEST_SUITE(history_store, NULL, NULL, before, NULL, NULL);
 
-/** RTC に時刻がない間は何もせず, 時刻が入ったら, 1 回だけ復元する */
+/** RTC に時刻がない間は何もせず, 時刻が入ったら 1 回だけ復元する */
 ZTEST(history_store, test_waits_for_rtc_then_restores_once)
 {
     put(1000000, 200, 450U);
@@ -208,7 +208,7 @@ ZTEST(history_store, test_reads_the_last_128_buckets)
     zassert_equal(backlog_foreach_since_fake.arg0_val, (100004 - (int64_t)HISTORY_SIZE) * STEP_S);
 }
 
-/** 今の区切り以降の記録 (この起動で測った分) は戻さない. 古すぎる記録も, 渡されても戻さない */
+/** 今の区切り以降の記録 (この起動で測った分) は戻さない. 古すぎる記録は渡されても戻さない */
 ZTEST(history_store, test_current_and_future_buckets_are_not_restored)
 {
     put(1000020, 220, 470U); /* 区切り 100002 */
@@ -257,7 +257,7 @@ ZTEST(history_store, test_does_not_restore_when_history_has_points)
 {
     put(1000000, 200, 450U);
     history_add(&temp_h, 100, 0, STEP_MS);
-    history_add(&temp_h, 110, STEP_MS, STEP_MS); /* 区切り 0 が終わって, 1 点覚えている */
+    history_add(&temp_h, 110, STEP_MS, STEP_MS); /* 区切り 0 が終わって 1 点覚えている */
 
     history_store_update(&temp_h, &humi_h, 2000 + STEP_MS, STEP_MS);
 
@@ -265,7 +265,7 @@ ZTEST(history_store, test_does_not_restore_when_history_has_points)
     zassert_equal(history_get(&temp_h, out, HISTORY_SIZE), 2U);
 }
 
-/** SD カードを読めなくても (失敗しても), 読めた分を戻して, 続ける */
+/** SD カードを読めなくても (失敗しても), 読めた分を戻して続ける */
 ZTEST(history_store, test_read_failure_keeps_going)
 {
     put(1000000, 200, 450U);

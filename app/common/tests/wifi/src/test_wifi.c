@@ -66,7 +66,7 @@ static net_mgmt_event_handler_t handler;
  * イベントのコールバックを呼ぶ
  *
  * @param[in] event イベント
- * @param[in] status イベントの情報 (struct wifi_status の status. NULL なら, 情報なし)
+ * @param[in] status イベントの情報 (struct wifi_status の status. NULL なら情報なし)
  */
 static void send_event(uint64_t event, const int *status)
 {
@@ -81,7 +81,7 @@ static void send_event(uint64_t event, const int *status)
 }
 
 /**
- * net_mgmt(NET_REQUEST_WIFI_CONNECT) のモック動作 (パラメータを記録して, イベントを再現する)
+ * net_mgmt(NET_REQUEST_WIFI_CONNECT) のモック動作 (パラメータを記録してイベントを再現する)
  *
  * @param[in] request 使用しない
  * @param[in] iface 使用しない
@@ -166,7 +166,7 @@ ZTEST(wifi, test_init_registers_callbacks)
     zassert_equal(wifi_cb->handler, ipv4_cb->handler);
 }
 
-/** 接続して, IPv4 アドレスを取得したら, 成功して, 接続した状態になる */
+/** 接続して IPv4 アドレスを取得したら, 成功して接続した状態になる */
 ZTEST(wifi, test_connect_success)
 {
     /* 期待: 要求を 1 回出して, IPv4 アドレスの取得で成功する (接続した状態になる) */
@@ -214,7 +214,7 @@ ZTEST(wifi, test_connect_parameters)
 /** すでに接続していれば, 新しい要求はせずにすぐ成功する */
 ZTEST(wifi, test_connect_already_up)
 {
-    /* 期待: 接続済みなら, 新しい要求は出さない */
+    /* 期待: 接続済みなら新しい要求は出さない */
     zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),
                   EXIT_SUCCESS);
     zassert_equal(wifi_link_connect("home-ap", SSID_MAX, "secret-pass", PSK_MAX, K_MSEC(100)),

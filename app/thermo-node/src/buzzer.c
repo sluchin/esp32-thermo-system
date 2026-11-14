@@ -73,7 +73,7 @@ int buzzer_play(const struct buzzer_note *notes, size_t count)
     playing = notes;
     play_count = count;
     play_pos = 0U;
-    /* 戻り値は 0 以上 (ワークキューが止まっているときだけ, 負). 止まっていても, 鳴らせないだけ */
+    /* 戻り値は 0 以上 (ワークキューが止まっているときだけ負). 止まっていても鳴らせないだけ */
     (void)k_work_schedule(&step_work, K_NO_WAIT);
 
     return EXIT_SUCCESS;

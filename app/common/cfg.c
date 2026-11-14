@@ -29,7 +29,7 @@ LOG_MODULE_REGISTER(thermo_cfg, THERMO_LOG_LEVEL);
 /**
  * テザリングに切り替える前の SSID とパスワードの項目の名前
  *
- * 値は SSID, NUL, パスワード, NUL の順に並べて, 1 つの項目で保存する (保存の途中で電源が切れても,
+ * 値は SSID, NUL, パスワード, NUL の順に並べて 1 つの項目で保存する (保存の途中で電源が切れても,
  * 片方だけが残らない).
  */
 #define BACKUP_NAME        "tether_bak"
@@ -329,7 +329,7 @@ int cfg_reset(void)
  * @brief スマートフォンのテザリングの SSID とパスワードに切り替える
  *
  * 切り替える前の SSID とパスワードはまだ保存していなければ, フラッシュに保存する
- * (保存してあるときはそのまま残す. 続けて呼んでも, 元の設定を失わない).
+ * (保存してあるときはそのまま残す. 続けて呼んでも元の設定を失わない).
  * 元の設定には cfg_restore() で戻せる.
  *
  * @param[in] ssid テザリングの SSID (空でないこと)
@@ -409,7 +409,7 @@ int cfg_restore(void)
         return err;
     }
 
-    /* 戻せたあとで消す (消すのに失敗したら, 次の restore で, 同じ値を書き直せる) */
+    /* 戻せたあとで消す (消すのに失敗したら, 次の restore で同じ値を書き直せる) */
     settings_name(name, BACKUP_NAME);
     err = settings_delete(name);
     if (err != 0) {
@@ -434,7 +434,7 @@ bool cfg_has_backup(void)
 /**
  * @brief テザリングに切り替える前の SSID を返す
  *
- * @return SSID (NUL で終わる. 保存されていなければ, 空の文字列)
+ * @return SSID (NUL で終わる. 保存されていなければ空の文字列)
  */
 const char *cfg_backup_ssid(void)
 {
@@ -515,8 +515,8 @@ static void load_value(enum cfg_key key, size_t len, settings_read_cb read_cb, v
 }
 
 /**
- * 文字列の長さを最大 max までで数える (strnlen と同じ. 保存した値は, 文字列でない
- * (uint8_t の並びで, 途中に NUL を含む) ので, memchr で数える)
+ * 文字列の長さを最大 max までで数える (strnlen と同じ. 保存した値は文字列でない
+ * (uint8_t の並びで途中に NUL を含む) ので memchr で数える)
  *
  * @param[in] data 文字列の先頭
  * @param[in] max  数える最大の長さ [バイト]
@@ -564,7 +564,7 @@ static void load_backup(size_t len, settings_read_cb read_cb, void *cb_arg)
         return;
     }
 
-    /* 並びは SSID, NUL, パスワード, NUL. 終わりの NUL がなければ, 壊れている */
+    /* 並びは SSID, NUL, パスワード, NUL. 終わりの NUL がなければ壊れている */
     ssid_len = bounded_len(blob, len);
     if (len <= (ssid_len + 1U)) {
         LOG_WRN("Ignoring the broken '%s'", BACKUP_NAME);

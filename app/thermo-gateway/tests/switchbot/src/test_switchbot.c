@@ -149,7 +149,7 @@ ZTEST(switchbot, test_parse_manufacturer_humidity_limit)
     zassert_true(switchbot_parse(BT_DATA_MANUFACTURER_DATA, data, sizeof(data), &ad));
     zassert_equal(ad.humidity, 100U);
 
-    /* 期待: 101 % は拒否して, 出力を変えない */
+    /* 期待: 101 % は拒否して出力を変えない */
     ad.kind = SWITCHBOT_NONE;
     make_mfr(data, 0x05U, 0x97U, 0x65U);
     zassert_false(switchbot_parse(BT_DATA_MANUFACTURER_DATA, data, sizeof(data), &ad));
@@ -181,7 +181,7 @@ ZTEST(switchbot, test_parse_too_short_for_id)
     zassert_false(switchbot_parse(BT_DATA_MANUFACTURER_DATA, mfr_plus, 1U, &ad));
 }
 
-/** UUID, 会社 ID, AD の種類が違うデータは SwitchBot のものではないので, 拒否する */
+/** UUID, 会社 ID, AD の種類が違うデータは SwitchBot のものではないので拒否する */
 ZTEST(switchbot, test_parse_other_data)
 {
     uint8_t data[sizeof(mfr_plus)] = {0U};             /* 入力データ */
@@ -303,7 +303,7 @@ ZTEST(switchbot, test_accept_interval)
     zassert_true(switchbot_accept(&addr_a, &env, 5000U + (2U * INTERVAL_MS), &sample));
 }
 
-/** 稼働時間のカウンタが一周 (UINT32_MAX を超える) しても, 間隔を正しく測る */
+/** 稼働時間のカウンタが一周 (UINT32_MAX を超える) しても間隔を正しく測る */
 ZTEST(switchbot, test_accept_interval_wraps)
 {
     struct switchbot_sample sample = {0}; /* サンプル */

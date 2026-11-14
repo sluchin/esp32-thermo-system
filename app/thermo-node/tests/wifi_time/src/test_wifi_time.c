@@ -10,9 +10,9 @@
  *
  * cfg と wifi_link の関数と SNTP とソケットの関数を FFF のモックに置き換えて, 次を確認する.
  *  - 初期化 (設定の読み込みと WiFi の準備. どちらの失敗も伝わること)
- *  - 時刻の取得の流れ (設定の SSID とパスワードで接続して, SNTP で時刻を得て, 切る)
+ *  - 時刻の取得の流れ (設定の SSID とパスワードで接続して, SNTP で時刻を得て切る)
  *  - SSID が未設定のとき, 接続しないこと
- *  - 接続, 名前の解決, SNTP の初期化と問い合わせの各段階の失敗 (失敗しても, WiFi を切ること)
+ *  - 接続, 名前の解決, SNTP の初期化と問い合わせの各段階の失敗 (失敗しても WiFi を切ること)
  */
 
 #include <zephyr/ztest.h>
@@ -105,7 +105,7 @@ static int sntp_query_ok(struct sntp_ctx *ctx, uint32_t timeout, struct sntp_tim
 }
 
 /**
- * 各テストの前にモックを初期状態に戻す (設定は揃っていて, 全て成功する)
+ * 各テストの前にモックを初期状態に戻す (設定は揃っていて全て成功する)
  *
  * @param[in] fixture 使用しない
  */
@@ -178,7 +178,7 @@ ZTEST(wifi_time, test_fetch_success)
     zassert_equal(wifi_link_disconnect_fake.call_count, 1U);
 }
 
-/** SSID が設定されていなければ, -ENOENT で, 接続しない */
+/** SSID が設定されていなければ, -ENOENT で接続しない */
 ZTEST(wifi_time, test_fetch_not_configured)
 {
     int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
@@ -190,7 +190,7 @@ ZTEST(wifi_time, test_fetch_not_configured)
     zassert_equal(wifi_link_disconnect_fake.call_count, 0U);
 }
 
-/** 接続に失敗したら, そのエラーを返して, SNTP には進まず, WiFi を切る */
+/** 接続に失敗したら, SNTP には進まずに WiFi を切り, そのエラーを返す */
 ZTEST(wifi_time, test_fetch_connect_failure)
 {
     int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
@@ -202,7 +202,7 @@ ZTEST(wifi_time, test_fetch_connect_failure)
     zassert_equal(wifi_link_disconnect_fake.call_count, 1U);
 }
 
-/** 名前を解決できなければ -EHOSTUNREACH で, SNTP には進まず, WiFi を切る */
+/** 名前を解決できなければ -EHOSTUNREACH で, SNTP には進まず WiFi を切る */
 ZTEST(wifi_time, test_fetch_resolve_failure)
 {
     int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
@@ -215,7 +215,7 @@ ZTEST(wifi_time, test_fetch_resolve_failure)
     zassert_equal(wifi_link_disconnect_fake.call_count, 1U);
 }
 
-/** SNTP の初期化に失敗したら, そのエラーを返して, 問い合わせず, WiFi を切る */
+/** SNTP の初期化に失敗したら, 問い合わせずに WiFi を切り, そのエラーを返す */
 ZTEST(wifi_time, test_fetch_sntp_init_failure)
 {
     int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
@@ -227,7 +227,7 @@ ZTEST(wifi_time, test_fetch_sntp_init_failure)
     zassert_equal(wifi_link_disconnect_fake.call_count, 1U);
 }
 
-/** 問い合わせに失敗したら, そのエラーを返して, SNTP を閉じて, WiFi を切る */
+/** 問い合わせに失敗したら, SNTP を閉じて WiFi を切り, そのエラーを返す */
 ZTEST(wifi_time, test_fetch_sntp_query_failure)
 {
     int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */

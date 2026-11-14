@@ -17,10 +17,10 @@
  * 送るので, 送信済みとして保存する. BLE がゲートウェイにつながっていない測定が
  * DIRECT_BLE_FAIL_LIMIT 回続いたら, WiFi と MQTT (cloud.h) を動かして, 未送信の記録を
  * 古い順に送る (測った時刻をそのまま payload に入れる). BLE にも WiFi にもつながっていない間も,
- * 保存し続ける (最大 CONFIG_THERMO_BACKLOG_MAX_RECORDS 件. 超えたら, 古い記録から上書きする).
- * ゲートウェイにつながったときに, 未送信の記録があれば, WiFi と MQTT で送って, 送り終えたら,
- * WiFi を切る. WiFi か MQTT の接続が DIRECT_ATTEMPT_LIMIT 回続けて失敗したら, あきらめて,
- * ゲートウェイにつながるまで, やり直さない.
+ * 保存し続ける (最大 CONFIG_THERMO_BACKLOG_MAX_RECORDS 件. 超えたら古い記録から上書きする).
+ * ゲートウェイにつながったときに未送信の記録があれば, WiFi と MQTT で送り, 送り終えたら
+ * WiFi を切る. WiFi か MQTT の接続が DIRECT_ATTEMPT_LIMIT 回続けて失敗したらあきらめて,
+ * ゲートウェイにつながるまでやり直さない.
  *
  * SD カードや RTC の時刻がなくて保存できないときは WiFi と MQTT を動かしていて, MQTT に
  * つながっていれば, 測定値をそのまま送る (保存しない. ゲートウェイにつながったら, 止める).

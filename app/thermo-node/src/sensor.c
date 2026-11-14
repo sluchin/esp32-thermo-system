@@ -51,7 +51,7 @@ static const struct device *const sensor_dev = DEVICE_DT_GET(DT_ALIAS(thermo_sen
 
 /** Devicetree (alias thermo-pressure) から取得した気圧のセンサ */
 static const struct device *const pressure_dev = DEVICE_DT_GET(DT_ALIAS(thermo_pressure));
-/** 気圧のセンサを使えるか (sensor_init() で確かめる. 使えなければ, 気圧なしで測る) */
+/** 気圧のセンサを使えるか (sensor_init() で確かめる. 使えなければ気圧なしで測る) */
 static bool is_pressure_ready;
 
 static uint16_t read_pressure(void);
@@ -81,7 +81,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
  * @brief センサを初期化する
  *
  * Devicetree にセンサも ADC チャンネルもない場合 (シミュレータなど) は警告をログに出すだけで,
- * 成功とする. 気圧のセンサ (alias thermo-pressure) が使えないときも, 警告をログに出すだけで,
+ * 成功とする. 気圧のセンサ (alias thermo-pressure) が使えないときも, 警告をログに出すだけで
  * 成功とする (気圧なしで測る).
  *
  * @retval EXIT_SUCCESS 成功
@@ -163,7 +163,7 @@ int sensor_read(int16_t *temp_x10, uint16_t *humidity_x10, uint16_t *pressure_x1
     }
     *temp_x10 = (int16_t)(sensor_value_to_milli(&temp) / MILLI_PER_X10);
 
-    /* 湿度を測れないセンサ (-ENOTSUP) は湿度なしとして, 成功にする */
+    /* 湿度を測れないセンサ (-ENOTSUP) は湿度なしとして成功にする */
     err = sensor_channel_get(sensor_dev, SENSOR_CHAN_HUMIDITY, &humidity);
     if (err == -ENOTSUP) {
         *humidity_x10 = THERMO_HUMIDITY_NONE;
