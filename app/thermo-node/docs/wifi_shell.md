@@ -5,7 +5,7 @@
 ノードのシェルの `thermo` コマンドに、ノード固有のサブコマンドを 2 つ足します。
 
 | コマンド | 役割 | 条件 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `thermo sync` | WiFi と SNTP で時刻を取って、RTC に設定する | `CONFIG_THERMO_WIFI_TIME` |
 | `thermo sd` | SD カードが使えるかを確かめる (使えなければ、マウントし直す) | `CONFIG_THERMO_DIRECT_MQTT` |
 

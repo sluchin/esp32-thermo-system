@@ -20,7 +20,7 @@ k_tid_t k_thread_create(struct k_thread *new_thread, k_thread_stack_t *stack,
 スレッドを作って、実行できる状態にする。遅延なしなら、スケジューラが今のスレッドを止めて、すぐに新しいスレッドを実行することがある。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `new_thread` | out | 初期化前の `struct k_thread`。ここにスレッドの情報が作られる |
 | `stack` | in | スタック。`K_THREAD_STACK_DEFINE()` で作ったもの |
 | `stack_size` | in | スタックのバイト数。`K_THREAD_STACK_SIZEOF(stack)` か、`K_THREAD_STACK_DEFINE()` に渡した値 (`sizeof(stack)` など、ほかの値は未定義動作) |
@@ -45,7 +45,7 @@ int k_thread_name_set(k_tid_t thread, const char *str);
 スレッドに名前を付ける。名前は、`CONFIG_THREAD_MONITOR` が有効なときに、トレースとデバッグで使う。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `thread` | in | 名前を付けるスレッド。`NULL` なら、今のスレッド |
 | `str` | in | 名前の文字列 |
 
@@ -71,7 +71,7 @@ void k_thread_abort(k_tid_t thread);
 スレッドを永久に止める。スレッドは、レディキュー、タイムアウトキュー、カーネルオブジェクトの待ちキューから外れる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `thread` | in | 止めるスレッドの ID |
 
 戻り値: なし (エラーは返さない)。
@@ -94,7 +94,7 @@ int32_t k_sleep(k_timeout_t timeout);
 今のスレッドを、指定の時間だけ眠らせる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `timeout` | in | 眠る時間 (`K_MSEC()` `K_SECONDS()` など) |
 
 戻り値:
@@ -113,7 +113,7 @@ int32_t k_msleep(int32_t ms);
 今のスレッドを、ミリ秒で指定した時間だけ眠らせる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `ms` | in | 眠るミリ秒 |
 
 戻り値:
@@ -164,7 +164,7 @@ uint32_t k_uptime_get_32(void);
 ティックの時間をミリ秒に換算する。32 ビットで計算し、切り上げる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `t` | in | ティックの時間 (`uint64_t`) |
 
 戻り値: ミリ秒の時間 (`uint32_t`)。エラー番号は返さない。
@@ -182,7 +182,7 @@ int k_sem_take(struct k_sem *sem, k_timeout_t timeout);
 セマフォを取る。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `sem` | in,out | セマフォ |
 | `timeout` | in | 待つ時間 (`K_NO_WAIT` `K_FOREVER` か、時間)。割り込みから呼ぶときは `K_NO_WAIT` |
 
@@ -207,7 +207,7 @@ void k_sem_give(struct k_sem *sem);
 セマフォを与える。最大のカウントに達していたら、何もしない。割り込みから呼べる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `sem` | in,out | セマフォ |
 
 戻り値: なし (エラーは返さない)。
@@ -223,7 +223,7 @@ void k_sem_reset(struct k_sem *sem);
 セマフォのカウントを 0 にする。待っている `k_sem_take()` は、`-EAGAIN` で中止される。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `sem` | in,out | セマフォ |
 
 戻り値: なし (エラーは返さない)。
@@ -275,7 +275,7 @@ void k_sem_reset(struct k_sem *sem);
 このプロジェクトでは、AWS IoT Core へ送る値のキュー `cloud_sample_q` ([`app/common/cloud.c:99`](../../app/common/cloud.c#L99)) だけで使う。
 
 | 項目 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | メッセージ | `struct sample` (Thermo ノードか SwitchBot の値と、受信したときの稼働時間、測った UNIX 時刻) |
 | 最大の数 | `QUEUE_LEN` (16) |
 | 初期化 | `cloud_init()` の最初に、`k_msgq_init()` で |
@@ -293,7 +293,7 @@ void k_msgq_init(struct k_msgq *msgq, char *buffer, size_t msg_size, uint32_t ma
 メッセージキューを、使う前に初期化する。キューのバッファ (`buffer`) には、`msg_size` バイトのメッセージが `max_msgs` 個入る大きさが要る。バッファのアラインメントは必須ではない。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `msgq` | out | 初期化するメッセージキュー |
 | `buffer` | in | メッセージを溜めるバッファ (リングバッファ。`msg_size × max_msgs` バイト) |
 | `msg_size` | in | メッセージの大きさ [バイト] |
@@ -312,7 +312,7 @@ int k_msgq_put(struct k_msgq *msgq, const void *data, k_timeout_t timeout);
 メッセージキューの末尾にメッセージを送る。メッセージの内容は、`data` からキューにコピーされる (ポインタは保持されない)。割り込みから呼べる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `msgq` | in,out | メッセージキュー |
 | `data` | in | 送るメッセージ |
 | `timeout` | in | 待つ時間 (`K_NO_WAIT` `K_FOREVER` か、時間)。割り込みから呼ぶときは `K_NO_WAIT` |
@@ -338,7 +338,7 @@ int k_msgq_get(struct k_msgq *msgq, void *data, k_timeout_t timeout);
 メッセージキューから、先入れ先出しでメッセージを受け取る。割り込みから呼べる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `msgq` | in,out | メッセージキュー |
 | `data` | out | 受け取ったメッセージを入れる領域 |
 | `timeout` | in | 待つ時間 (`K_NO_WAIT` `K_FOREVER` か、時間)。割り込みから呼ぶときは `K_NO_WAIT` |
@@ -364,7 +364,7 @@ uint32_t k_msgq_num_used_get(struct k_msgq *msgq);
 メッセージキューに入っているメッセージの数を返す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `msgq` | in | メッセージキュー |
 
 戻り値: キューに入っているメッセージの数。エラー番号は返さない。
@@ -380,7 +380,7 @@ void k_msgq_purge(struct k_msgq *msgq);
 メッセージキューの、受け取っていないメッセージを全て捨てる。キューに送ろうとして待っているスレッドは、`-ENOMSG` で起こされる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `msgq` | in,out | メッセージキュー |
 
 戻り値: なし (エラーは返さない)。
@@ -398,7 +398,7 @@ int k_work_schedule(struct k_work_delayable *dwork, k_timeout_t delay);
 何もしていない遅延ワークを、指定の時間のあとに、システムのワークキューに登録する。すでに登録済みなら、時間はそのままにする。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dwork` | in,out | 遅延ワーク |
 | `delay` | in | 登録するまでの時間。`K_NO_WAIT` なら、すぐ登録する |
 
@@ -424,7 +424,7 @@ int k_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay);
 遅延ワークを、指定の時間のあとに、システムのワークキューに登録する。すでに登録済みなら、時間を新しく数え直す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dwork` | in,out | 遅延ワーク |
 | `delay` | in | 登録するまでの時間 |
 
@@ -450,7 +450,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 遅延ワークを取り消す。登録されているか実行を待っているなら、取り消す。取り消しの完了は待たない。割り込みから呼べる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dwork` | in,out | 遅延ワーク |
 
 戻り値: 取り消しの手順が済んだあとの `k_work_delayable_busy_get()` の状態 (`K_WORK_DELAYED`、`K_WORK_QUEUED`、`K_WORK_RUNNING`、`K_WORK_CANCELING`、`K_WORK_FLUSHING` のビットの組み合わせ。0 なら、仕事は動いていない)。エラー番号は返さない。
@@ -473,7 +473,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 ミリ秒を `k_timeout_t` にする。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `ms` | in | ミリ秒 |
 
 使用箇所: [`app/common/cloud.c:165`](../../app/common/cloud.c#L165) (ほか 2 行), [`app/thermo-gateway/src/ble.c:701`](../../app/thermo-gateway/src/ble.c#L701), [`app/thermo-node/src/buzzer.c:112`](../../app/thermo-node/src/buzzer.c#L112)
@@ -487,7 +487,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 秒を `k_timeout_t` にする。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `s` | in | 秒 |
 
 使用箇所: [`app/common/cloud.c:171`](../../app/common/cloud.c#L171) (ほか 3 行), [`app/thermo-gateway/src/ble.c:593`](../../app/thermo-gateway/src/ble.c#L593), [`app/thermo-gateway/src/main.c:96`](../../app/thermo-gateway/src/main.c#L96), [`app/thermo-node/src/wifi_time.c:73`](../../app/thermo-node/src/wifi_time.c#L73) (ほか 1 行)
@@ -502,7 +502,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 1 秒あたりのミリ秒の数と、ナノ秒の数 (`zephyr/sys/clock.h`)。時間の単位を換算するときに使う。
 
 | 定数 | 値 | 使用箇所 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `MSEC_PER_SEC` | 1000 | [`app/thermo-gateway/src/ble.c:529`](../../app/thermo-gateway/src/ble.c#L529) (ほか 2 行) |
 | `NSEC_PER_SEC` | 1000000000 | [`app/thermo-node/src/buzzer.c:132`](../../app/thermo-node/src/buzzer.c#L132) |
 
@@ -519,7 +519,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 セマフォを静的に定義して、初期化する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `name` | in | セマフォの名前 |
 | `initial_count` | in | 初期のカウント |
 | `count_limit` | in | カウントの上限 |
@@ -535,7 +535,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 スレッドのスタックを静的に定義する。`k_thread_create()` に渡す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `sym` | in | スタックの名前 |
 | `size` | in | スタックの大きさ [バイト] |
 
@@ -550,7 +550,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 `K_THREAD_STACK_DEFINE()` で定義したスタックの大きさを返す。`k_thread_create()` の `stack_size` に使う。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `sym` | in | スタックの名前 |
 
 戻り値: スタックの大きさ [バイト]。
@@ -566,7 +566,7 @@ int k_work_cancel_delayable(struct k_work_delayable *dwork);
 遅延ワークを静的に定義して、初期化する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `work` | in | 遅延ワークの名前 |
 | `work_handler` | in | ワークキューのスレッドで実行されるハンドラ |
 
@@ -585,9 +585,9 @@ struct k_work
 ワークキューに投入する仕事 (1 つの関数)。`k_work_init()` で初期化し、`k_work_submit()` で、システムのワークキューのスレッドから実行する。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `handler` | `k_work_handler_t` | ワークキューのスレッドが呼ぶ関数 |
-| (ほか) |  | `node`、`queue`、`flags` は、カーネルが使う。メンバーを直接、読み書きしない |
+| (ほか) | | `node`、`queue`、`flags` は、カーネルが使う。メンバーを直接、読み書きしない |
 
 使用箇所: [`app/thermo-gateway/src/ble.c:104`](../../app/thermo-gateway/src/ble.c#L104) (ほか 3 行), [`app/thermo-node/src/buzzer.c:34`](../../app/thermo-node/src/buzzer.c#L34) (ほか 1 行)
 

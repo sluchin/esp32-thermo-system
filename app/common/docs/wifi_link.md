@@ -7,7 +7,7 @@ WiFi (ステーションモード) の接続です。アクセスポイントに
 ## 公開する関数
 
 | 関数 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `wifi_link_init()` | イベントのコールバックを登録する |
 | `wifi_link_connect(ssid, psk, timeout)` | 接続して、IPv4 アドレスの取得まで待つ |
 | `wifi_link_is_up()` | IPv4 アドレスを持っているか |
@@ -16,7 +16,7 @@ WiFi (ステーションモード) の接続です。アクセスポイントに
 ## 状態
 
 | 変数 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `is_ip_ready` | IPv4 アドレスを取得した状態か |
 | `connect_status` | 接続の結果 (0 なら成功) |
 | `result_sem` | 結果が確定したときに与えるセマフォ (最大 1) |
@@ -26,7 +26,7 @@ WiFi (ステーションモード) の接続です。アクセスポイントに
 コールバックを 2 つ登録します。WiFi のイベントと IPv4 のイベントは層が違うので、別々に登録します。
 
 | コールバック | イベント |
-|:---|:---|
+| :--- | :--- |
 | `wifi_cb` | `NET_EVENT_WIFI_CONNECT_RESULT`、`NET_EVENT_WIFI_DISCONNECT_RESULT` |
 | `ipv4_cb` | `NET_EVENT_IPV4_ADDR_ADD` |
 
@@ -45,7 +45,7 @@ connect_status != 0                           -> -ECONNREFUSED
 ### イベントの処理
 
 | イベント | 処理 |
-|:---|:---|
+| :--- | :--- |
 | 接続の結果 (失敗) | `connect_status` に状態を入れて、セマフォを与える |
 | 接続の結果 (成功) | 何もしない (IPv4 アドレスを待つ) |
 | 切断 | `is_ip_ready = false` |

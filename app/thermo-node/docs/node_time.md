@@ -13,7 +13,7 @@ RTC は **UTC** を保持します。ローカルタイムに直すのは、表�
 ## 公開する関数
 
 | 関数 | 役割 | 呼び出し元 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `node_time_init()` | RTC を使えるかを確かめる | `main.c` の `init_optional()` |
 | `node_time_get()` | ローカルタイムを読む (`struct node_datetime`) | `main.c` (1 秒ごと。OLED の表示) |
 | `node_time_unix()` | UTC の UNIX 時刻を読む | `direct.c`、`history_store.c` |
@@ -22,7 +22,7 @@ RTC は **UTC** を保持します。ローカルタイムに直すのは、表�
 ## struct node_datetime
 
 | メンバー | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `valid` | 時刻が設定済みで、正しく読めたか。false のときは、下の値を使わない |
 | `year` | 年 (2000 から 2100) |
 | `month`、`day` | 月 (1 から 12)、日 (1 から 31) |

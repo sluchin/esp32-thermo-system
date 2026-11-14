@@ -222,7 +222,7 @@ west build -p always -b xiao_esp32c3 app/thermo-node
 
 ## フラッシング方法
 
-### 前提条件
+### フラッシングの前提条件
 
 - esptool のインストール (コマンド名は `esptool`。`esptool.py` は古い名前)
 
@@ -265,7 +265,7 @@ pipx install esptool
 Thermo ノードは、温度、湿度、気圧をセンサから読みます。使うセンサは、**Devicetree** で決めます (コードは変えません)。
 
 | 優先 | Devicetree の設定 | センサ |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | 1 | alias `thermo-sensor` のセンサのノードがある | Zephyr のセンサ API で読む。AHT20、DHT11 など。温度と湿度。alias `thermo-pressure` のセンサ (BMP280 など) があれば、気圧も読む |
 | 2 | `zephyr,user` に `io-channels` がある | ADC を読んで、温度に換算する (アナログの温度センサ。湿度と気圧はなし) |
 | 3 | どちらもない (`native_sim` など) | 乱数のシミュレーション値 (温度、湿度、気圧) |
@@ -277,14 +277,14 @@ Thermo ノードは、温度、湿度、気圧をセンサから読みます。�
 「Aht20+Bmp280 高精度デジタル湿度気圧センサー」などの名前で売られている、4 ピンのモジュール (DC 2.8 V〜5 V) です。1 枚の基板に、2 つのチップが載っています。
 
 | チップ | 測るもの | I2C のアドレス | Devicetree |
-|:---|:---|:---|:---|
+| :--- | :--- | :--- | :--- |
 | AHT20 | 温度、湿度 | `0x38` | `aht20` のノード (`aosong,aht20`)。alias `thermo-sensor` |
 | BMP280 | 気圧 (と温度。温度は使わない) | `0x77` (モジュールによっては `0x76`) | `bmp280` のノード (`bosch,bme280`。チップの ID で BMP280 として動く)。alias `thermo-pressure` |
 
 I2C なので、OLED や RTC と同じ線 (拡張ボードの I2C。D4 が SDA、D5 が SCL) につなぎます。アドレスが違うので、同時に使えます。
 
 | モジュール | XIAO ESP32C3 (拡張ボード) |
-|:---|:---|
+| :--- | :--- |
 | `VCC` (`VIN`) | `3V3` |
 | `GND` | `GND` |
 | `SDA` | `D4` (SDA) |
@@ -327,7 +327,7 @@ west build -b xiao_esp32c3 app/thermo-node -- -DEXTRA_DTC_OVERLAY_FILE=sensors/d
 3 ピンの DHT11 モジュール (基板の印字は、ピンを下にして左から `+` `out` `-`) を、XIAO ESP32C3 の次のピンにつなぎます。
 
 | DHT11 モジュール | 役割 | XIAO ESP32C3 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `+` | 電源 | `3V3` (3.3 V) |
 | `out` | データ (信号線) | `D7` (GPIO20) |
 | `-` | グランド | `GND` |
@@ -344,7 +344,7 @@ west build -b xiao_esp32c3 app/thermo-node -- -DEXTRA_DTC_OVERLAY_FILE=sensors/d
 2. 両端がメスのジャンパワイヤで、DHT11 の足と、ボードの**下側にあるオスのピンのヘッダ** (黒い 2 列 × 4 本) をつなぎます。ヘッダの印字は、上の列が左から `GND` `3V3` `SWDIO` `SWCLK`、下の列が左から `GND` `5V` `TX'6` `RX'7` です。
 
    | DHT11 | ボードの下側のヘッダ |
-   |:---|:---|
+   | :--- | :--- |
    | `+` | 上の列の `3V3` (左から 2 番目) |
    | `out` | 下の列の `RX'7` (右端。D7 = GPIO20) |
    | `-` | 上の列の `GND` (左端)。下の列の `GND` (左端) でも同じ |
@@ -403,7 +403,7 @@ Humi 45.0 %
 west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_THERMO_BOOT_SCREEN=n -DCONFIG_THERMO_BUZZER=n
 ```
 
-**素材 (絵、題名、メロディ) の差し替え**
+##### 素材 (絵、題名、メロディ) の差し替え
 
 素材は、`app/thermo-node/src/boot_assets.c` が定義します (このアプリのオリジナルの絵と曲です。形式は `boot_assets.h`)。**ビルドのときに `app/thermo-node/private/src/boot_assets.c` があれば、そちらを使います。** 別のプライベートリポジトリをサブモジュールとして `app/thermo-node/private/` に置けば、公開のリポジトリに素材を入れずに、好きな絵と曲に差し替えられます。
 
@@ -419,7 +419,7 @@ git submodule update --init            # 別の場所で取り込むとき (権�
 - **素材を入れてビルドしたファームウェアの実行ファイル (`zephyr.elf`、`zephyr.bin`) を、公開しないでください** (GitHub Actions の成果物、リリースなど)。素材が、実行ファイルの中に入るためです。GitHub Actions の CI はサブモジュールを取り込まない (`actions/checkout` の既定) ので、オリジナルの素材でビルドします。
 - 公開のリポジトリの履歴に一度でもコミットした素材は、あとで消しても履歴に残ります。公開のリポジトリには、コミットしないでください。
 
-**ボタンを押したときの音**
+##### ボタンを押したときの音
 
 ユーザーボタン (拡張ボードの D1。ページの切り替えに使います) を押すと、ブザーで短い音を鳴らします (`CONFIG_THERMO_BUTTON_SOUND`。既定は `y`)。前提は、`CONFIG_THERMO_BUZZER=y` と `CONFIG_THERMO_DISPLAY=y` です。ボタンを、OLED のページの切り替えに使うためです。
 
@@ -498,7 +498,7 @@ west build -p always -b xiao_esp32c3 app/thermo-node -- -DCONFIG_THERMO_DISPLAY=
 
 ゲートウェイが止まっているなどで BLE でつながらないときは、ノードが WiFi につないで、AWS IoT Core に MQTT (TLS) で直接送ります。全ての測定値は、送信済みフラグつきで SD カードに保存します。BLE も WiFi も使えない間の測定値は、未送信のまま保存し続けて、つながったときに、測った時刻のまま古い順に送ります。設定は `CONFIG_THERMO_DIRECT_MQTT` (既定は `y`。`CONFIG_THERMO_WIFI_TIME=y` が前提) と、SD カードの `CONFIG_THERMO_BACKLOG` (SD カードの Devicetree のノード `sdhc0` があれば、既定は `y`) です。
 
-**動き**
+#### 動き
 
 1. ゲートウェイにつながっていない測定 (5 秒ごと) が **5 回続いたら** (約 25 秒)、WiFi と MQTT を動かして、未送信の記録を AWS IoT Core に送ります (次の 5 と 6)。SD カードがないときは、測定値を 5 秒ごとにそのまま送ります。トピックは `thermo/<クライアント ID>/<ノードのアドレス>/temperature` で、ゲートウェイが送る形と同じなので、DynamoDB のルールと `thermon` をそのまま使えます。
 2. ゲートウェイにつながったら、直接の送信を止めて、WiFi を切ります (ゲートウェイが送るので、重複させません)。
@@ -533,7 +533,7 @@ thermo show                       (ready to connect: yes になれば揃って�
 - ファイルの中身は、シェルの `fs ls /SD:` などで見られます。`fs rm` と `fs write` も使えるので、書き込みの最中には実行しないでください。
 - 使わないとき: `-DCONFIG_THERMO_BACKLOG=n`。
 
-**制限と、未確認のこと**
+#### 制限と、未確認のこと
 
 - **実機で確認したこと**: BLE と WiFi と TLS を同時に動かして、ノード専用の証明書とクライアント ID での直接の送信が、AWS IoT Core に届くこと。
 - **実機でまだ確認していないこと**: ゲートウェイが戻ったときの停止、SD カードの読み書き (配線、フォーマット、抜き差し、電源断)、あとからの送信。単体テストは、FFF のモックと RAM ディスクの FatFS で、動作の流れだけを確かめています。
@@ -606,7 +606,7 @@ Thermo ノードのシェルには、ファイルシステムのコマンド `fs
 `.github/workflows/build.yml` は、main と `ccr-*` のブランチへの push と、main への PR で動きます。ローカルと同じ Docker イメージ (Zephyr SDK 0.17.4) で、`docker compose` のサービスを実行します。
 
 | ジョブ | 実行するサービス | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `build` | `build-node` / `build-gateway` / `build-node-sim` / `build-gateway-sim` | ビルド。警告が出たら失敗 |
 | `test` | `test-node` / `test-gateway` / `test-common` | 単体テスト (Ztest + FFF, `native_sim`) |
 | `coverage` | `coverage-node` / `coverage-gateway` / `coverage-common` | 単体テストのカバレッジ (行と分岐。100% 未満なら失敗) |
@@ -655,7 +655,7 @@ docker compose run --rm whitespace
 アーティファクトの名前は、小文字のスネークケースです (サービス名の `-` を `_` にします)。
 
 | 名前 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `build_node` `build_gateway` `build_node_sim` `build_gateway_sim` | 上のビルド成果物と `build.log` |
 | `test_node_log` `test_gateway_log` | 単体テストのログ |
 | `coverage_node_log` `coverage_gateway_log` | カバレッジのログ |

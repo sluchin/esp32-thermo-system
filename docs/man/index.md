@@ -10,7 +10,7 @@
 - ソースを解析した文書は、`app/*/docs/` にある。このディレクトリは、そこから参照される API のリファレンスにあたる。
 
 | ファイル | 内容 | API の数 |
-|:---|:---|---:|
+| :--- | :--- | ---: |
 | [bluetooth.md](bluetooth.md) | Bluetooth LE | 54 |
 | [kernel.md](kernel.md) | カーネル | 31 |
 | [drivers.md](drivers.md) | デバイスとドライバ | 41 |

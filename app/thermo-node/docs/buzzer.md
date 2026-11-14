@@ -9,7 +9,7 @@
 ## 公開する関数と構造体
 
 | 項目 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `struct buzzer_note` | 音 1 つ。`freq_hz` (周波数 [Hz]。0 は休符) と `duration_ms` (長さ [ms]) |
 | `buzzer_init()` | PWM のデバイスが使えるかを確かめる (`-ENODEV`) |
 | `buzzer_play(notes, count)` | メロディを鳴らし始める。すぐに戻る |

@@ -3,7 +3,7 @@
 `app/common` のソースを、ファイルごとに解析した文書です。`app/common` には、thermo-node と thermo-gateway が共通で使うコードがあります。
 
 | 文書 | ソース | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | [cloud.md](cloud.md) | `cloud.c` `cloud.h` | AWS IoT Core への MQTT (TLS) による送信。送信のスレッド、再接続、キュー |
 | [cfg.md](cfg.md) | `cfg.c` `cfg.h` | 設定と証明書の、フラッシュへの保存と読み出し。テザリングの退避 |
 | [cfg_shell.md](cfg_shell.md) | `cfg_shell.c` | シェルの `thermo` コマンド |

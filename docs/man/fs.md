@@ -17,7 +17,7 @@ int fs_mount(struct fs_mount_t *mp);
 ファイルシステムをマウントする。ファイルシステム固有のマウントの処理をして、マウント済みの一覧にマウントポイントを加える。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `mp` | in,out | `fs_mount_t` 構造体。マウントに失敗したときは、変更されない。成功すると、ファイルシステムの仕組みが参照を保持するので、`fs_unmount()` が成功するまで、アプリは中身を変えない |
 
 戻り値:
@@ -47,7 +47,7 @@ int fs_unmount(struct fs_mount_t *mp);
 ファイルシステムをアンマウントする。ファイルシステム固有のアンマウントの処理をして、マウント済みの一覧からマウントポイントを外す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `mp` | in,out | アンマウントする `fs_mount_t` 構造体 |
 
 戻り値:
@@ -74,7 +74,7 @@ struct fs_file_t
 開いたファイルの情報。`fs_open()` に渡し、`fs_read()` `fs_write()` `fs_seek()` `fs_close()` で使う。最初に `fs_file_t_init()` で初期化する (`= {0}` でも同じ)。メンバーは直接読み書きしない。
 
 | メンバー | 説明 |
-|:---|:---|
+| :--- | :--- |
 | `filep` | ファイルシステムのドライバが持つ、開いたファイルのデータへのポインタ。`fs_open()` が設定し、`fs_close()` のあとは使えない |
 | `mp` | ファイルがあるマウントポイント (`struct fs_mount_t`) へのポインタ。`fs_open()` が設定する |
 | `flags` | 開くときのフラグ (`fs_mode_t`。`FS_O_READ` `FS_O_WRITE` `FS_O_CREATE` `FS_O_APPEND` `FS_O_TRUNC` の組み合わせ) |
@@ -95,7 +95,7 @@ static inline void fs_file_t_init(struct fs_file_t *zfp);
 `fs_file_t` を初期化する。`fs_open()` の前に、一度呼ぶ必要がある。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `zfp` | out | 初期化するファイルオブジェクト |
 
 戻り値: なし (エラーは返さない)。
@@ -111,7 +111,7 @@ int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags);
 ファイルを開く (または作る)。開いたファイルは、使い終わったら `fs_close()` で閉じる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `zfp` | in,out | 初期化済みのファイルオブジェクト |
 | `file_name` | in | ファイル名 |
 | `flags` | in | モード。0、または次の組み合わせ。`FS_O_READ` (読み込み)、`FS_O_WRITE` (書き込み)、`FS_O_RDWR` (読み書き。`FS_O_READ \| FS_O_WRITE`)、`FS_O_CREATE` (なければ作る)、`FS_O_APPEND` (書く前に、必ず末尾へ動く)、`FS_O_TRUNC` (内容を空にする) |
@@ -146,7 +146,7 @@ int fs_close(struct fs_file_t *zfp);
 ストリームを書き出して (flush) から、ファイルを閉じる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `zfp` | in,out | 閉じるファイルオブジェクト |
 
 戻り値:
@@ -170,7 +170,7 @@ ssize_t fs_read(struct fs_file_t *zfp, void *ptr, size_t size);
 ファイルから、最大 `size` バイトを読む。読めるデータが少なければ、`size` より少ない数を返すことがある。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `zfp` | in,out | ファイルオブジェクト |
 | `ptr` | out | 読んだデータを入れるバッファ |
 | `size` | in | 読むバイト数 |
@@ -197,7 +197,7 @@ ssize_t fs_write(struct fs_file_t *zfp, const void *ptr, size_t size);
 ファイルに `size` バイトを書こうとする。負の値を返したときは、ファイルの位置は進んでいない。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `zfp` | in,out | ファイルオブジェクト |
 | `ptr` | in | 書くデータ |
 | `size` | in | 書くバイト数 |
@@ -228,7 +228,7 @@ int fs_seek(struct fs_file_t *zfp, off_t offset, int whence);
 ファイルの位置を動かす。`whence` で決まる位置に `offset` を足す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `zfp` | in,out | ファイルオブジェクト |
 | `offset` | in | 動かす量 |
 | `whence` | in | 基準の位置。`FS_SEEK_SET` (先頭から)、`FS_SEEK_CUR` (今の位置から)、`FS_SEEK_END` (末尾から) |
@@ -257,7 +257,7 @@ int fs_stat(const char *path, struct fs_dirent *entry);
 ファイルまたはディレクトリの状態を調べる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `path` | in | パス |
 | `entry` | out | 存在するときに、情報 (名前、種類、大きさ) を入れる `fs_dirent` |
 
@@ -288,7 +288,7 @@ int fs_rename(const char *from, const char *to);
 ファイルまたはディレクトリの名前を変える (または移す)。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `from` | in | 移す元のパス |
 | `to` | in | 移す先のパス。ファイルなら、ディレクトリではなく、ファイル名までのパス |
 
@@ -321,7 +321,7 @@ int fs_unlink(const char *path);
 ファイルまたはディレクトリを削除する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `path` | in | 削除するパス |
 
 戻り値:
@@ -359,7 +359,7 @@ struct fs_mount_t
 マウントの情報。`fs_mount()` に渡す。マウント中は、中身を変えない。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `type` | in | ファイルシステムの種類 (`FS_FATFS`) |
 | `mnt_point` | in | マウントポイント |
 | `fs_data` | in | ファイルシステムのデータ |
@@ -385,7 +385,7 @@ struct fs_dirent
 ファイルやディレクトリの情報。`fs_stat()` と `fs_readdir()` が書いて返す。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `type` | `enum fs_dir_entry_type` | 種類 (`FS_DIR_ENTRY_FILE` か `FS_DIR_ENTRY_DIR`) |
 | `name` | `char[MAX_FILE_NAME + 1]` | ファイルやディレクトリの名前 |
 | `size` | `size_t` | ファイルの大きさ (バイト)。ディレクトリなら 0 |

@@ -25,7 +25,7 @@ main()
 ## ビルド構成による違い
 
 | マクロ | 有効なとき | 無効なとき |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `CONFIG_SIMULATOR` | 起動ログに `SIMULATOR MODE` と出す | `started on ESP32C3` と出す |
 | `CONFIG_THERMO_CLOUD` (既定は y) | `cloud_init(true)`、`ntp_unix_time` の登録、`cloud_publish_*()` の呼び出しが入る | AWS IoT Core への送信と、ノードへの時刻の書き込みが、全て外れる (native_sim 用) |
 
@@ -36,7 +36,7 @@ main()
 ### main
 
 | 項目 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | 戻り値 | `EXIT_FAILURE` (初期化かスキャン開始の失敗)。正常時は戻らない |
 | ループの周期 | `STATUS_INTERVAL_S` = 10 秒 (`k_sleep(K_SECONDS(...))`) |
 | ログ | 10 秒ごとに `Gateway scanning for nodes...` |

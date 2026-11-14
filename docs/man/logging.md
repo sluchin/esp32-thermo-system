@@ -17,7 +17,7 @@
 ソースファイルを、ログのモジュールとして登録する。各ソースファイルに 1 回だけ書く。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `モジュール名` | in | 1 つ目の引数 |
 | `ログのレベル` | in | 2 つ目の引数。省略すると `CONFIG_LOG_DEFAULT_LEVEL` |
 
@@ -36,7 +36,7 @@
 エラーのレベルのログを書く。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `...` | in | `printf()` と同じ書式文字列と引数 |
 
 使用箇所: [`app/common/cfg.c:233`](../../app/common/cfg.c#L233) (ほか 5 行), [`app/common/cloud.c:198`](../../app/common/cloud.c#L198) (ほか 7 行), [`app/common/ntp.c:70`](../../app/common/ntp.c#L70) (ほか 2 行), [`app/common/wifi_link.c:105`](../../app/common/wifi_link.c#L105) (ほか 2 行) ほか 14 ファイル
@@ -50,7 +50,7 @@
 警告のレベルのログを書く。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `...` | in | 書式文字列と引数 |
 
 使用箇所: [`app/common/cfg.c:498`](../../app/common/cfg.c#L498) (ほか 9 行), [`app/common/cloud.c:185`](../../app/common/cloud.c#L185) (ほか 3 行), [`app/common/wifi_link.c:148`](../../app/common/wifi_link.c#L148) (ほか 1 行), [`app/thermo-gateway/src/ble.c:366`](../../app/thermo-gateway/src/ble.c#L366) (ほか 4 行) ほか 9 ファイル
@@ -64,7 +64,7 @@
 情報のレベルのログを書く。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `...` | in | 書式文字列と引数 |
 
 使用箇所: [`app/common/cloud.c:212`](../../app/common/cloud.c#L212), [`app/common/ntp.c:89`](../../app/common/ntp.c#L89), [`app/common/wifi_link.c:176`](../../app/common/wifi_link.c#L176), [`app/thermo-gateway/src/ble.c:178`](../../app/thermo-gateway/src/ble.c#L178) (ほか 8 行) ほか 12 ファイル
@@ -78,7 +78,7 @@
 デバッグのレベルのログを書く。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `...` | in | 書式文字列と引数 |
 
 使用箇所: [`app/common/cloud.c:455`](../../app/common/cloud.c#L455) (ほか 2 行), [`app/common/wifi_link.c:181`](../../app/common/wifi_link.c#L181), [`app/thermo-gateway/src/ble.c:330`](../../app/thermo-gateway/src/ble.c#L330), [`app/thermo-node/src/ble.c:221`](../../app/thermo-node/src/ble.c#L221)
@@ -92,7 +92,7 @@
 デバッグのレベルで、データを 16 進数でダンプする。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `_data` | in | データへのポインタ |
 | `_length` | in | データの長さ [バイト] |
 | `_str` | in | 見出しの文字列 (永続する文字列) |
@@ -110,7 +110,7 @@
 ログのバックエンドのインスタンスを作る。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `_name` | in | インスタンスの名前 |
 | `_api` | in | バックエンドの API (`struct log_backend_api`) |
 | `_autostart` | in | `true` なら、ログのシステムの初期化と一緒に、バックエンドを初期化して有効にする |
@@ -127,7 +127,7 @@
 `log_output` のインスタンスを作る。このインスタンスは、メッセージを文字列にしてバッファに溜め、満杯のときなどに出力の関数を呼ぶ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `_name` | in | インスタンスの名前 |
 | `_func` | in | 出力のデータを処理する関数 |
 | `_buf` | in | 出力のバッファ |
@@ -147,7 +147,7 @@
 ログのメッセージを文字列にするときの、書式のフラグ (`zephyr/logging/log_output.h`)。`log_format_func_t_get()` で得た関数の `flags` に、ビットの OR で渡す。
 
 | 定数 | 説明 |
-|:---|:---|
+| :--- | :--- |
 | `LOG_OUTPUT_FLAG_TIMESTAMP` | 時刻 (起動からの時間) を付ける |
 | `LOG_OUTPUT_FLAG_FORMAT_TIMESTAMP` | 時刻を `時:分:秒.ミリ秒,マイクロ秒` の形にする |
 | `LOG_OUTPUT_FLAG_LEVEL` | レベル (`<err>` など) を付ける |
@@ -164,7 +164,7 @@ log_format_func_t log_format_func_t_get(uint32_t log_type);
 出力の形式 (`LOG_OUTPUT_TEXT` など) から、メッセージを整形する関数を取り出す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `log_type` | in | 出力の形式 |
 
 戻り値: メッセージを整形する関数。エラー番号は返さない。
@@ -180,7 +180,7 @@ static inline uint8_t log_msg_get_level(struct log_msg *msg);
 ログのメッセージのレベルを返す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `msg` | in | ログのメッセージ |
 
 戻り値: ログのレベル (`LOG_LEVEL_ERR` など)。エラー番号は返さない。
@@ -196,7 +196,7 @@ struct log_backend_api
 ログのバックエンドの関数の表。バックエンドごとに定数 (`const`) で 1 つ作り、`LOG_BACKEND_DEFINE()` に渡す。関数のポインタのメンバーのうち、使わないものは NULL にできる。ただし、`process` と `panic` は NULL の確認がないので、必須。どの関数も、第 1 引数はバックエンド自身 (`const struct log_backend *const backend`)。
 
 | メンバー | 形 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `process` | `void (*)(backend, union log_msg_generic *msg)` | ログを 1 件処理する (必須)。ログのスレッドから呼ばれる。メッセージは、戻ったあとに解放される |
 | `dropped` | `void (*)(backend, uint32_t cnt)` | 取りこぼしたログの数 `cnt` を知らせる。NULL なら通知しない |
 | `panic` | `void (*)(backend)` | パニックのモードに切り替える (必須) |
@@ -225,7 +225,7 @@ struct log_backend
 ログのバックエンドそのもの。`LOG_BACKEND_DEFINE()` が作る。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `api` | `const struct log_backend_api *` | バックエンドの関数の表 |
 | `cb` | `struct log_backend_control_block *` | 制御のブロック (ID、有効か、初期化したか。RAM) |
 | `name` | `const char *` | バックエンドの名前 (定義の名前) |

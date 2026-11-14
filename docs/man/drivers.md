@@ -17,7 +17,7 @@ bool device_is_ready(const struct device *dev);
 デバイスが使える状態かを調べる。`DEVICE_DT_GET()` で得たポインタでは、`device_get_binding()` が行う準備の確認が済んでいないので、これで確かめる。少なくとも、デバイスの初期化が成功していることを確かめる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | 確かめるデバイス |
 
 戻り値: 使えれば `true`。使えないときと、`NULL` を渡したときは `false`。エラー番号は返さない。
@@ -35,7 +35,7 @@ static inline bool adc_is_ready_dt(const struct adc_dt_spec *spec);
 Devicetree から得た ADC のデバイスが使えるかを調べる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た ADC の仕様 |
 
 戻り値: 使えれば `true`、使えなければ `false`。エラー番号は返さない。
@@ -51,7 +51,7 @@ static inline int adc_channel_setup_dt(const struct adc_dt_spec *spec);
 `struct adc_dt_spec` の情報で、ADC のチャンネルを設定する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た ADC の仕様 |
 
 戻り値:
@@ -76,7 +76,7 @@ static inline int adc_read_dt(const struct adc_dt_spec *spec, const struct adc_s
 `struct adc_dt_spec` の情報で、読み取りを要求する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た ADC の仕様 |
 | `sequence` | in | 要求するサンプリングの手順 (結果を入れるバッファの指定を含む) |
 
@@ -104,7 +104,7 @@ static inline int adc_raw_to_millivolts_dt(const struct adc_dt_spec *spec, int32
 `struct adc_dt_spec` の情報を使って、ADC の生の値をミリボルトにする。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た ADC の仕様 |
 | `valp` | in,out | 入力は生の値。成功すると、ミリボルトの値になる。失敗したら、値は変わらない |
 
@@ -130,7 +130,7 @@ static inline bool gpio_is_ready_dt(const struct gpio_dt_spec *spec);
 GPIO のポートが使えるかを調べる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た GPIO の仕様 |
 
 戻り値: 使えれば `true`、使えなければ `false`。エラー番号は返さない。
@@ -146,7 +146,7 @@ static inline int gpio_pin_configure_dt(const struct gpio_dt_spec *spec, gpio_fl
 `struct gpio_dt_spec` のピンを、Devicetree のフラグに追加のフラグを足して設定する。`gpio_pin_configure(spec->port, spec->pin, spec->dt_flags | extra_flags)` と同じ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た GPIO の仕様 |
 | `extra_flags` | in | 追加のフラグ (入力は `GPIO_INPUT`) |
 
@@ -173,7 +173,7 @@ static inline int gpio_pin_get_dt(const struct gpio_dt_spec *spec);
 入力ピンの論理レベルを返す。`gpio_pin_get(spec->port, spec->pin)` と同じ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た GPIO の仕様 |
 
 戻り値:
@@ -200,7 +200,7 @@ static inline bool i2c_is_ready_dt(const struct i2c_dt_spec *spec);
 I2C のバスが使えるかを調べる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た I2C の仕様 |
 
 戻り値: 使えれば `true`、使えなければ `false`。エラー番号は返さない。
@@ -216,7 +216,7 @@ static inline int i2c_burst_read_dt(const struct i2c_dt_spec *spec, uint8_t star
 I2C デバイスの内部アドレスから、複数バイトを読む。`i2c_burst_read(spec->bus, spec->addr, start_addr, buf, num_bytes)` と同じ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た I2C の仕様 |
 | `start_addr` | in | 読み始める内部アドレス |
 | `buf` | out | 読んだデータを入れる領域 |
@@ -243,7 +243,7 @@ static inline int i2c_burst_write_dt(const struct i2c_dt_spec *spec, uint8_t sta
 I2C デバイスの内部アドレスへ、複数バイトを書く。`i2c_burst_write(spec->bus, spec->addr, start_addr, buf, num_bytes)` と同じ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た I2C の仕様 |
 | `start_addr` | in | 書き始める内部アドレス |
 | `buf` | in | 書くデータ |
@@ -270,7 +270,7 @@ static inline int i2c_reg_write_byte_dt(const struct i2c_dt_spec *spec, uint8_t 
 I2C デバイスの内部レジスタに、1 バイトを書く。`i2c_reg_write_byte(spec->bus, spec->addr, reg_addr, value)` と同じ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た I2C の仕様 |
 | `reg_addr` | in | 書き込むレジスタの内部アドレス |
 | `value` | in | 書き込む値 |
@@ -298,7 +298,7 @@ static inline bool pwm_is_ready_dt(const struct pwm_dt_spec *spec);
 PWM のデバイスが使えるかを調べる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た PWM の仕様 |
 
 戻り値: 使えれば `true`、使えなければ `false`。エラー番号は返さない。
@@ -314,7 +314,7 @@ static inline int pwm_set_dt(const struct pwm_dt_spec *spec, uint32_t period, ui
 周期とパルス幅を、ナノ秒で設定する。`spec` に書いてある周期は無視される。Devicetree の周期を実行中に変えたいとき (ブザーの音階) に使う。`pwm_set(spec->dev, spec->channel, period, pulse, spec->flags)` と同じ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た PWM の仕様 |
 | `period` | in | 周期 [ns] |
 | `pulse` | in | パルス幅 [ns]。0 にすると、出力が止まる |
@@ -340,7 +340,7 @@ static inline int pwm_set_pulse_dt(const struct pwm_dt_spec *spec, uint32_t puls
 パルス幅をナノ秒で設定する。周期には `spec` の値を使う。`pwm_set(spec->dev, spec->channel, spec->period, pulse, spec->flags)` と同じ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `spec` | in | Devicetree から得た PWM の仕様 |
 | `pulse` | in | パルス幅 [ns] |
 
@@ -367,7 +367,7 @@ int rtc_get_time(const struct device *dev, struct rtc_time *timeptr);
 RTC の時刻を取得する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | RTC のデバイス |
 | `timeptr` | out | 時刻を入れる領域。`struct rtc_time` の月は 0 から 11、年は 1900 年からの年数 |
 
@@ -392,7 +392,7 @@ int rtc_set_time(const struct device *dev, const struct rtc_time *timeptr);
 RTC の時刻を設定する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | RTC のデバイス |
 | `timeptr` | in | 設定する時刻 |
 
@@ -419,7 +419,7 @@ int sensor_sample_fetch(const struct device *dev);
 センサからサンプルを取得して、ドライバの内部のバッファに入れる。有効な全てのチャンネルを読み、必要なら値を使える形にする。取得が終わるまで待つ。値は、続けて `sensor_channel_get()` で取り出す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | センサのデバイス |
 
 戻り値:
@@ -448,7 +448,7 @@ int sensor_channel_get(const struct device *dev, enum sensor_channel chan, struc
 ドライバの内部のデータから、指定のチャンネルの値を取り出す。先に `sensor_sample_fetch()` (または `sensor_sample_fetch_chan()`) でサンプルを取得しておく。間に取得し直さなければ、続けて呼んでも同じ値になる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | センサのデバイス |
 | `chan` | in | チャンネル (`SENSOR_CHAN_AMBIENT_TEMP` `SENSOR_CHAN_HUMIDITY` `SENSOR_CHAN_PRESS`) |
 | `val` | out | 値を入れる領域 (`val1` が整数部、`val2` が小数部 [百万分の 1]) |
@@ -467,7 +467,7 @@ int sensor_channel_get(const struct device *dev, enum sensor_channel chan, struc
 チャンネルの単位 (このプロジェクトで使うもの):
 
 | チャンネル | 単位 | 例 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `SENSOR_CHAN_AMBIENT_TEMP` | ℃ | 23.5 ℃ は `val1 = 23`、`val2 = 500000` |
 | `SENSOR_CHAN_HUMIDITY` | % (相対湿度) | 45 % は `val1 = 45`、`val2 = 0` |
 | `SENSOR_CHAN_PRESS` | **kPa** (hPa ではない) | 1013.2 hPa (101.32 kPa) は `val1 = 101`、`val2 = 320000`。`sensor_value_to_milli()` で Pa (101320) になる |
@@ -483,7 +483,7 @@ static inline int64_t sensor_value_to_milli(const struct sensor_value *val);
 `struct sensor_value` を 1000 倍の整数 (ミリ単位) にする。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `val` | in | 変換する値 |
 
 戻り値: 変換した値。エラー番号は返さない。
@@ -501,7 +501,7 @@ static inline int64_t sensor_value_to_milli(const struct sensor_value *val);
 Devicetree のノードから、デバイスへのポインタを得る (コンパイル時に決まる)。使う前に `device_is_ready()` で確かめる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `node_id` | in | ノードの識別子 |
 
 戻り値: デバイスへのポインタ。
@@ -517,7 +517,7 @@ Devicetree のノードから、デバイスへのポインタを得る (コン�
 Devicetree の alias から、ノードの識別子を得る (例: `DT_ALIAS(rtc0)`)。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `alias` | in | alias の名前 (小文字、アンダースコア区切り) |
 
 戻り値: ノードの識別子。
@@ -533,7 +533,7 @@ Devicetree の alias から、ノードの識別子を得る (例: `DT_ALIAS(rtc
 alias があって、ノードが有効なら 1、そうでなければ 0 になる。`#if` や `COND_CODE_1` で、オプションの部品の有無を切り替えるのに使う。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `alias` | in | alias の名前 |
 
 戻り値: 1 または 0。
@@ -551,7 +551,7 @@ alias があって、ノードが有効なら 1、そうでなければ 0 にな
 ノードの名前は、小文字にして、C の識別子に使えない文字 (`,` `-` `@`) を `_` に置き換えて書く。ユニットアドレス (`@` の後ろ) も名前に含める。
 
 | パス | 書き方 |
-|:---|:---|
+| :--- | :--- |
 | `/zephyr,user` | `DT_PATH(zephyr_user)` |
 | `/soc/i2c@12340000` | `DT_PATH(soc, i2c_12340000)` |
 | `/aliases` | `DT_PATH(aliases)` |
@@ -559,7 +559,7 @@ alias があって、ノードが有効なら 1、そうでなければ 0 にな
 `,` と `_` はどちらも `_` になるので、`zephyr,user` と `zephyr_user` という名前のノードは、同じ書き方になる。Devicetree の上では別のノードなので、overlay ではノードの名前を `zephyr,user` にそろえる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `...` | in | ルートからのノード名の並び (小文字にして、`,` `-` `@` を `_` に置き換えたもの) |
 
 戻り値: ノードの識別子。パスにノードがなければ、ノードの識別子としては使えない値になり、ほかの `DT_*` のマクロに渡すとコンパイルのエラーになる (`DT_NODE_EXISTS()` と `DT_NODE_HAS_PROP()` は 0 になる)。
@@ -595,7 +595,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 ノードがそのプロパティを持っていれば 1、なければ 0 になる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `node_id` | in | ノードの識別子 |
 | `prop` | in | プロパティの名前 (小文字、アンダースコア区切り) |
 
@@ -612,7 +612,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 ノードの `io-channels` の最初のチャンネルから、`struct adc_dt_spec` の初期化子を作る。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `node_id` | in | ノードの識別子 |
 
 使用箇所: [`app/thermo-node/src/sensor.c:64`](../../app/thermo-node/src/sensor.c#L64)
@@ -626,7 +626,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 ノードのプロパティ (例: `gpios`) から、`struct gpio_dt_spec` の初期化子を作る。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `node_id` | in | ノードの識別子 |
 | `prop` | in | GPIO を指定するプロパティの名前 |
 
@@ -641,7 +641,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 ノードの `pwms` の最初の要素から、`struct pwm_dt_spec` の初期化子を作る。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `node_id` | in | ノードの識別子 |
 
 使用箇所: [`app/thermo-node/src/buzzer.c:25`](../../app/thermo-node/src/buzzer.c#L25)
@@ -655,7 +655,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 ドライバのインスタンスの番号から、`struct i2c_dt_spec` (バスとアドレス) の初期化子を作る。`drivers/rtc_pcf8563.c` で使う。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `inst` | in | インスタンスの番号 |
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:259`](../../app/thermo-node/drivers/rtc_pcf8563.c#L259)
@@ -669,7 +669,7 @@ static const struct adc_dt_spec adc_channel = ADC_DT_SPEC_GET(DT_PATH(zephyr_use
 ドライバのインスタンスの番号から、デバイスを定義する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `inst` | in | インスタンスの番号 |
 | `init_fn` | in | 初期化の関数 |
 | `pm` | in | 電源管理のデバイス (使わなければ `NULL`) |
@@ -700,7 +700,7 @@ POST_KERNEL  /* 初期化のレベル */
 `status = "okay"` の全てのインスタンスについて、`fn(inst)` を展開する。ドライバの末尾で、`DEVICE_DT_INST_DEFINE()` を呼ぶマクロを渡す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `fn` | in | インスタンスの番号を引数に取るマクロ |
 
 使用箇所: [`app/thermo-node/drivers/rtc_pcf8563.c:271`](../../app/thermo-node/drivers/rtc_pcf8563.c#L271)
@@ -714,7 +714,7 @@ POST_KERNEL  /* 初期化のレベル */
 デバイスの API の構造体を、`static const struct <_class>_driver_api _name` として定義する。ドライバ (`drivers/rtc_pcf8563.c`) の API の表に使う。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `_class` | in | デバイスの種類 (例: `rtc`) |
 | `_name` | in | 構造体の名前 |
 
@@ -733,7 +733,7 @@ struct device
 デバイスのインスタンスを表す構造体 (ROM に置く)。ドライバのインスタンスごとに 1 つある。ポインタは、Devicetree のノードから `DEVICE_DT_GET()` などで得る。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `name` | `const char *` | デバイスの名前 |
 | `config` | `const void *` | デバイスの設定 (ROM) |
 | `api` | `const void *` | デバイスが公開する API の表 (`struct sensor_driver_api` など) |
@@ -757,7 +757,7 @@ struct gpio_dt_spec
 Devicetree で指定した GPIO のピンの情報。`GPIO_DT_SPEC_GET()` で作る。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `port` | `const struct device *` | ピンを持つ GPIO のデバイス |
 | `pin` | `gpio_pin_t` | ポートの中の、ピンの番号 |
 | `dt_flags` | `gpio_dt_flags_t` | Devicetree で指定した、ピンの設定のフラグ (`GPIO_ACTIVE_LOW` など) |
@@ -773,7 +773,7 @@ struct i2c_dt_spec
 Devicetree で指定した I2C のデバイスの情報 (バスとアドレス)。`I2C_DT_SPEC_INST_GET()` などで作る。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `bus` | `const struct device *` | I2C のバス |
 | `addr` | `uint16_t` | 相手のアドレス |
 
@@ -788,7 +788,7 @@ struct pwm_dt_spec
 Devicetree で指定した PWM の情報。`PWM_DT_SPEC_GET()` で作る。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `dev` | `const struct device *` | PWM のデバイス |
 | `channel` | `uint32_t` | デバイスの中のチャンネルの番号 |
 | `period` | `uint32_t` | 信号の周期 (ナノ秒) |
@@ -805,7 +805,7 @@ struct adc_dt_spec
 Devicetree で指定した ADC のチャンネルの情報。`ADC_DT_SPEC_GET()` で作る。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `dev` | `const struct device *` | ADC のデバイス |
 | `channel_id` | `uint8_t` | チャンネルの番号 |
 | `channel_cfg_dt_node_exists` | `bool` | チャンネルの設定が、Devicetree の子ノードにあるか |
@@ -829,7 +829,7 @@ struct adc_sequence
 ADC の 1 回の読み取りの設定。`adc_read()` に渡す。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `options` | `const struct adc_sequence_options *` | 追加のオプション。NULL なら、1 回だけ読む |
 | `channels` | `uint32_t` | 読むチャンネルのビットマスク (事前に `adc_channel_setup()` で設定しておく) |
 | `buffer` | `void *` | 値を書くバッファ |
@@ -853,7 +853,7 @@ struct rtc_time
 日時 (サブ秒の精度つき)。`tm_sec` から `tm_isdst` までは、標準ライブラリの `struct tm` と同じ並びになっている。`rtc_time_to_tm()` で、`struct tm *` に安全に変えられる。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `tm_sec` | `int` | 秒 [0, 59] |
 | `tm_min` | `int` | 分 [0, 59] |
 | `tm_hour` | `int` | 時 [0, 23] |
@@ -880,7 +880,7 @@ struct sensor_value
 センサの読み取り値。整数部と小数部を持ち、値は `val1 + val2 × 10^-6` になる。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `val1` | `int32_t` | 整数部 |
 | `val2` | `int32_t` | 小数部 (100 万分の 1 の単位) |
 

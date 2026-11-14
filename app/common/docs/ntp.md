@@ -7,7 +7,7 @@ SNTP で時刻を取って、**システムの時計** (`SYS_CLOCK_REALTIME`) �
 ## 公開する関数
 
 | 関数 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `ntp_sync(server, timeout)` | NTP サーバに問い合わせて、システム時計を合わせる |
 | `ntp_is_synced()` | 1 回でも同期したか |
 | `ntp_unix_time(&sec)` | 今の UNIX 時刻を返す。同期していなければ `-EAGAIN` |

@@ -7,7 +7,7 @@
 ## 公開する関数 (ble.h)
 
 | 関数 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `ble_init()` | `bt_enable()`、GATT のサービスの登録、接続のコールバックの登録 |
 | `ble_advertise()` | 接続可能なアドバタイズを開始 |
 | `ble_notify_temperature()` | 値を更新して、購読しているゲートウェイへ通知 |
@@ -20,7 +20,7 @@
 接続可能で高速な `BT_LE_ADV_CONN_FAST_1` で始めます。
 
 | データ | 内容 |
-|:---|:---|
+| :--- | :--- |
 | アドバタイズデータ `ad[]` | フラグ (LE 一般発見可能 + BR/EDR 非対応) と、完全なデバイス名 (`CONFIG_BT_DEVICE_NAME`。`prj.conf` では `Thermo-Node`) |
 | スキャン応答 `sd[]` | Thermo サービスの UUID (128 ビット) |
 
@@ -31,7 +31,7 @@ UUID をアドバタイズデータではなくスキャン応答に入れるの
 `thermo_attrs[]` は、動的に登録する (`CONFIG_BT_GATT_DYNAMIC_DB=y`) Thermo サービスです。UUID は、`app/common/thermo_ble_uuid.h` にあります。
 
 | 位置 | 属性 | 備考 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | 0 | プライマリサービス | UUID 9F3C1A00-... |
 | 1 | 温度の特性の宣言 | 読み取り (READ) と通知 (NOTIFY) |
 | 2 | 温度の特性の値 | UUID 9F3C1A01-...。読み取りは `read_temperature()` |
@@ -44,7 +44,7 @@ UUID をアドバタイズデータではなくスキャン応答に入れるの
 ### 温度の値の形式 (6 バイト)
 
 | 位置 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | 0 から 1 | 温度 (`int16_t`、℃ の 10 倍、リトルエンディアン) |
 | 2 から 3 | 湿度 (`uint16_t`、% の 10 倍、リトルエンディアン)。0xFFFF は湿度なし |
 | 4 から 5 | 気圧 (`uint16_t`、hPa の 10 倍、リトルエンディアン)。0xFFFF は気圧なし |
@@ -78,7 +78,7 @@ pack_value() -> bt_gatt_notify(NULL, &thermo_attrs[2], value, 6)
 `CONFIG_THERMO_RTC` が有効なときだけ、ビルドされます。ゲートウェイが時刻の特性に書き込むと、Bluetooth のスレッドで `write_time()` が呼ばれます。
 
 | 確認 | 失敗したときの ATT のエラー |
-|:---|:---|
+| :--- | :--- |
 | `offset == 0` | `BT_ATT_ERR_INVALID_OFFSET` |
 | `len == 4` (`THERMO_TIME_SIZE`) | `BT_ATT_ERR_INVALID_ATTRIBUTE_LEN` |
 | `time_cb != NULL` | `BT_ATT_ERR_WRITE_NOT_PERMITTED` |

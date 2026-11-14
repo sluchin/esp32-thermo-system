@@ -9,7 +9,7 @@ Thermo Gateway は、BLE で受信した温度、湿度、気圧を、WiFi と M
 ### 1.1 Thermo ノードの温度
 
 | 項目 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | トピック | `thermo/CLIENT_ID/NODE_ADDRESS/temperature` (例: `thermo/gateway-01/00:AA:01:00:00:42/temperature`) |
 | ペイロード | `{"node":"00:AA:01:00:00:42","type":"thermo","temperature_c":23.5,"humidity":45.0,"pressure_hpa":1013.2,"uptime_ms":123456,"timestamp":1790000000}` |
 
@@ -23,7 +23,7 @@ Thermo Gateway は、BLE で受信した温度、湿度、気圧を、WiFi と M
 SwitchBot とは接続せずに、アドバタイズ (広告パケット) で受信した値を、1 台につき 10 秒に 1 回送ります (`prj.conf` の `CONFIG_THERMO_SWITCHBOT_INTERVAL_MS=10000`)。
 
 | 項目 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | トピック | `thermo/CLIENT_ID/switchbot/DEVICE_ADDRESS` (例: `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56`) |
 | ペイロード | `{"node":"B0:E9:FE:12:34:56","type":"switchbot","temperature_c":23.5,"humidity":55,"battery":87,"uptime_ms":123456,"timestamp":1790000000}` |
 
@@ -103,7 +103,7 @@ thermo set client_id gateway-01
 Zephyr の `cred` コマンドで、セキュリティタグ `1` に 3 つの PEM を登録して、`thermo save-certs` でフラッシュに保存します。
 
 | 種類 | `cred add` の種類 | ファイル |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | ルート CA | `CA` | `AmazonRootCA1.pem` |
 | クライアント証明書 | `CLIENT` | `device.pem.crt` |
 | 秘密鍵 | `PK` | `private.pem.key` |
@@ -175,7 +175,7 @@ thermo apply
 ## 5. うまくいかないとき
 
 | 症状 | 原因と対処 |
-|:---|:---|
+| :--- | :--- |
 | `WiFi connection failed` | SSID とパスワードを確かめる。2.4 GHz のネットワークを使う (ESP32C3 は 5 GHz に対応していない) |
 | `Resolving '...' failed` | エンドポイントの値を確かめる (`thermo show`)。ネットワークがインターネットにつながっているかを確かめる |
 | `MQTT connect failed (err -116)` | TLS のハンドシェイクが、時間内に終わらない。ESP32C3 は、RSA と ECDH の計算に数秒かかる (`prj.conf` の `CONFIG_NET_SOCKETS_CONNECT_TIMEOUT` は 30000 ms)。電波が弱いときも出る (外付けのアンテナを付ける) |
@@ -211,7 +211,7 @@ AWS IoT Core の相互認証のために、`prj.conf` に次の設定を入れ�
 **ゲートウェイの証明書を、ノードに流用しないでください。** ゲートウェイと共有してよいものと、いけないものは、次のとおりです。
 
 | もの | ゲートウェイと共有するか | 理由 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | ルート CA (`AmazonRootCA1.pem`) | **共有してよい** | AWS が公開している証明書で、秘密ではない。サーバを確認するためだけに使う |
 | エンドポイント | 共有してよい | AWS アカウントごとに 1 つしかない |
 | クライアント証明書、秘密鍵 | **共有しない** | 1 台の鍵が漏れたとき、その 1 台だけを無効にできるようにするため。共有すると、無効にしたときに全部の機器が止まる |
@@ -267,7 +267,7 @@ aws iot attach-thing-principal --thing-name "$NODE_ID" --principal "$CERT_ARN"
 ノードに気圧センサ (AHT20 + BMP280 のモジュール。[setup.md](setup.md) の「Thermo ノードのセンサ」) を付けると、メッセージに `pressure_hpa` (気圧 [hPa]) が増えます (1.1)。トピックは変わりません。AWS 側で要るものと要らないものは、次のとおりです。
 
 | 設定 | 変更 | 理由 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | モノ、証明書、ポリシー (2 章、7 章) | **不要** | トピック (`thermo/CLIENT_ID/NODE_ADDRESS/temperature`) が同じなので、ポリシーの `iot:Publish` の範囲に入る |
 | DynamoDB のルール ([aws_dynamodb.md](aws_dynamodb.md) の 4 章) | **不要** | `SELECT *` で全ての項目を渡すので、`pressure_hpa` も属性として保存される |
 | DynamoDB のテーブル、Cognito の未認証ロール | **不要** | DynamoDB は、キー (`node`、`ts`) のほかの属性を、決めずに保存する。ロールの権限 (`dynamodb:Query`) も、属性によらない |

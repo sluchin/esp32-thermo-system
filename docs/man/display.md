@@ -17,7 +17,7 @@ static inline int display_set_pixel_format(const struct device *dev, const enum 
 表示装置が使うピクセルの形式を設定する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | 表示装置のデバイス |
 | `pixel_format` | in | 使うピクセルの形式 |
 
@@ -53,7 +53,7 @@ static inline int display_blanking_on(const struct device *dev);
 表示を消す (ブランキングを有効にする)。画面全体を消すが、フレームバッファの内容は残り、消している間も読み書きできる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | 表示装置のデバイス |
 
 戻り値:
@@ -82,7 +82,7 @@ static inline int display_blanking_off(const struct device *dev);
 表示を戻す (ブランキングを無効にする)。フレームバッファの内容を表示装置に戻す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | 表示装置のデバイス |
 
 戻り値:
@@ -112,7 +112,7 @@ int cfb_framebuffer_init(const struct device *dev);
 文字のフレームバッファ (Character Framebuffer) を初期化する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | ドライバのインスタンスのデバイス |
 
 戻り値:
@@ -135,7 +135,7 @@ void cfb_framebuffer_deinit(const struct device *dev);
 文字のフレームバッファの初期化を解除する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | ドライバのインスタンスのデバイス |
 
 戻り値: なし (エラーは返さない)。
@@ -151,7 +151,7 @@ int cfb_framebuffer_set_font(const struct device *dev, uint8_t idx);
 使うフォントを選ぶ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | ドライバのインスタンスのデバイス |
 | `idx` | in | フォントの番号 |
 
@@ -175,7 +175,7 @@ int cfb_framebuffer_clear(const struct device *dev, bool clear_display);
 フレームバッファを消す。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | ドライバのインスタンスのデバイス |
 | `clear_display` | in | `true` なら、表示装置の画面も消す |
 
@@ -200,7 +200,7 @@ int cfb_print(const struct device *dev, const char *const str, uint16_t x, uint1
 フレームバッファの指定の位置に、文字列を描く。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | ドライバのインスタンスのデバイス |
 | `str` | in | 描く文字列 |
 | `x` | in | 文字列の先頭の X 方向の位置 [ピクセル] |
@@ -227,7 +227,7 @@ int cfb_draw_point(const struct device *dev, const struct cfb_position *pos);
 点を描く。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | ドライバのインスタンスのデバイス |
 | `pos` | in | 点の位置 |
 
@@ -244,7 +244,7 @@ int cfb_draw_line(const struct device *dev, const struct cfb_position *start, co
 線を描く。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | ドライバのインスタンスのデバイス |
 | `start` | in | 線の始点 |
 | `end` | in | 線の終点 |
@@ -262,7 +262,7 @@ int cfb_framebuffer_finalize(const struct device *dev);
 フレームバッファを確定して、表示装置の RAM に書き込む。必要なら、ピクセルの反転や並べ替えをする。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `dev` | in | ドライバのインスタンスのデバイス |
 
 戻り値:
@@ -294,7 +294,7 @@ struct cfb_position
 文字のフレームバッファ (CFB) の画面の上の位置。図形を描く `cfb_draw_point()` `cfb_draw_line()` `cfb_draw_rect()` に渡す。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `x` | `uint16_t` | 横の位置 (ピクセル)。左端が 0 |
 | `y` | `uint16_t` | 縦の位置 (ピクセル)。上端が 0 |
 

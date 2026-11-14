@@ -9,7 +9,7 @@ WiFi の接続は `app/common/wifi_link.c` が、設定 (SSID、パスワード)
 ## 公開する関数と定数
 
 | 項目 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `wifi_time_init()` | 設定を読み込んで (`cfg_init()`)、WiFi の準備をする (`wifi_link_init()`) |
 | `wifi_time_fetch(&unix_s)` | WiFi に接続して、SNTP で時刻を取り、WiFi を切る |
 | `WIFI_TIME_CONNECT_S` | WiFi の接続を待つ時間 (20 秒) |
@@ -30,7 +30,7 @@ wifi_link_disconnect()                        <- 成功しても失敗しても�
 ### 戻り値
 
 | 値 | 意味 |
-|:---|:---|
+| :--- | :--- |
 | `EXIT_SUCCESS` | 成功 |
 | `-ENOENT` | SSID が設定されていない |
 | `-ETIMEDOUT` | WiFi の接続か SNTP の応答が、時間内に済まなかった |

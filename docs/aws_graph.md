@@ -20,7 +20,7 @@ AWS IoT Core に届いた SwitchBot の温度、湿度、電池残量を、Cloud
 ### 1.1 この構成にした理由と、制限
 
 | 項目 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | よい点 | 設定だけで済む。ダッシュボードをすぐ使える。アラーム (しきい値を超えたら通知) も、同じ仕組みで作れる |
 | 保存期間 | 1 分間隔のデータは 15 日、5 分間隔のデータは 63 日、1 時間間隔のデータは 455 日 (古いデータは、間隔が粗くなって残る) |
 | 制限 | ルールからはディメンションを付けられないので、メトリクスの名前が機器ごとに別になる。そのため、グラフとアラームは、機器ごとに設定する必要がある |
@@ -35,7 +35,7 @@ AWS IoT Core に届いた SwitchBot の温度、湿度、電池残量を、Cloud
 この文書では、同じ設定を、「コンソール」と「CLI」の 2 つの方法で書いています。どちらか 1 つの方法で設定すれば十分です。
 
 | 用語 | 意味 | この文書での使い方 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | **コンソール** (AWS マネジメントコンソール) | ブラウザで開く AWS の画面 (GUI)。マウスで操作する | 各章の「コンソールで作る場合」(要点だけ) |
 | **CLI** (AWS CLI) | コマンドで AWS を操作する道具。`aws ...` というコマンド | 各章の `bash` のコマンド |
 | **CloudShell** | コンソールの中で開く、ブラウザ上のターミナル。**CLI がはじめから入っていて、ログイン中のアカウントでそのまま使える** | CLI のコマンドを実行する場所の 1 つ |
@@ -129,7 +129,7 @@ SwitchBot のメッセージ ([aws_setup.md](aws_setup.md) の 1.2) は、次の
 CloudWatch のメトリクスは、「名前空間」(`Thermo`) と「メトリクス名」で決まります。ルールからはディメンション (機器を区別するための付加情報) を付けられないので、**機器の MAC アドレスを、メトリクス名に入れます**。
 
 | メトリクス名 | 意味 |
-|:---|:---|
+| :--- | :--- |
 | `ED:2E:C4:46:3B:11_temperature_c` | 温度 [℃] |
 | `ED:2E:C4:46:3B:11_humidity` | 湿度 [%] |
 | `ED:2E:C4:46:3B:11_battery` | 電池残量 [%] |
@@ -139,7 +139,7 @@ MAC アドレスは、トピックの 4 番目の要素 (`thermo/gateway-01/swit
 Thermo ノードの値も、同じ名前空間 `Thermo` に入れられます (手順は 7.2)。このときは、ノードの BLE アドレスをメトリクス名に入れます。
 
 | メトリクス名 | 意味 |
-|:---|:---|
+| :--- | :--- |
 | `00:AA:01:00:00:42_temperature_c` | ノードの温度 [℃] |
 | `00:AA:01:00:00:42_humidity` | ノードの湿度 [%] (AHT20、DHT11 のとき) |
 | `00:AA:01:00:00:42_pressure_hpa` | ノードの気圧 [hPa] (BMP280 のとき) |
@@ -208,7 +208,7 @@ CLI を使わずに、AWS コンソールで作るときの要点です。
 4. アクションには、「**CloudWatch metric**」を 3 つ追加します。入力欄は、次のとおりです。
 
    | 入力欄 | アクション 1 (温度) | アクション 2 (湿度) | アクション 3 (電池) |
-   |:---|:---|:---|:---|
+   | :--- | :--- | :--- | :--- |
    | メトリクス名 | `${topic(4)}_temperature_c` | `${topic(4)}_humidity` | `${topic(4)}_battery` |
    | メトリクス名前空間 | `Thermo` | `Thermo` | `Thermo` |
    | 単位 | `None` | `Percent` | `Percent` |
@@ -343,7 +343,7 @@ aws sns subscribe \
 
 #### 手順 2: アラームを作る
 
-**CLI の場合**
+##### CLI の場合
 
 ```bash
 aws cloudwatch put-metric-alarm \
@@ -360,7 +360,7 @@ aws cloudwatch put-metric-alarm \
 ```
 
 | オプション | 意味 |
-|:---|:---|
+| :--- | :--- |
 | `--statistic Average --period 300` | 5 分 (300 秒) の平均を評価する |
 | `--evaluation-periods 1 --datapoints-to-alarm 1` | 5 分の平均が 1 回でもしきい値を超えたら、ALARM にする。誤報を減らしたいときは、`--evaluation-periods 3 --datapoints-to-alarm 3` (15 分続いたら ALARM にする) のようにする |
 | `--threshold 30 --comparison-operator GreaterThanThreshold` | 30 ℃ **より大きい**とき |
@@ -385,7 +385,7 @@ aws cloudwatch set-alarm-state \
 メールには、次のことが書いてあります。
 
 | 項目 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `State Change` | `OK -> ALARM` (状態が、OK から ALARM に変わった) |
 | `Reason for State Change` | `test` (`--state-reason` に書いた文字) |
 | `Threshold` | 300 秒の期間のうち 1 回、30.0 より大きくなったとき (`GreaterThanThreshold 30.0`) |
@@ -402,7 +402,7 @@ aws cloudwatch set-alarm-state \
 #### 変えるとき
 
 | やりたいこと | 変える場所 |
-|:---|:---|
+| :--- | :--- |
 | 寒いとき (例: 5 ℃ を下回ったら) | `--threshold 5 --comparison-operator LessThanThreshold` |
 | ゲートウェイが止まったことを知りたい (データが来ない) | `--treat-missing-data breaching` にして、`--period 300 --evaluation-periods 3` のようにする (15 分間データが来ないと、ALARM になる) |
 | 電池残量が少ないとき | メトリクス `ED:2E:C4:46:3B:11_battery`、`--threshold 20 --comparison-operator LessThanThreshold`、`--period 3600` |
@@ -475,7 +475,7 @@ aws iot replace-topic-rule --rule-name thermo_node_to_cloudwatch \
 ### 7.3 細かいデータを残す・分析する
 
 | 方法 | 向いていること |
-|:---|:---|
+| :--- | :--- |
 | IoT ルール → S3 (JSON) → Athena | 10 秒ごとの全てのデータを安く残して、SQL で分析する |
 | IoT ルール → DynamoDB ([aws_dynamodb.md](aws_dynamodb.md)) | 最新の値をすぐ読み出す。ほかのアプリから使う |
 | Amazon Managed Grafana (+ CloudWatch) | 見た目や、複数のデータの組み合わせを、自由に作る |
@@ -487,7 +487,7 @@ aws iot replace-topic-rule --rule-name thermo_node_to_cloudwatch \
 「CloudWatch → ダッシュボード」でダッシュボード (`thermo`) を開いて、右上の「アクション」→「ダッシュボードの共有」を押します。
 
 | 方法 | 見られる人 | 注意 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | ダッシュボードを共有し、ユーザー名とパスワードを要求する | 登録したメールアドレスの人だけ (最大 5 人) | 家族などに見せるなら、こちらが安全 |
 | ダッシュボードを**パブリックに共有する** | **リンクを知っている人なら、誰でも** | 下の警告をよく読む |
 | シングルサインオン (SSO) で、全ての CloudWatch ダッシュボードを共有する | SSO プロバイダーの全てのユーザー | SSO の設定が別に必要 |
@@ -503,7 +503,7 @@ aws iot replace-topic-rule --rule-name thermo_node_to_cloudwatch \
 ## 8. うまくいかないとき
 
 | 症状 | 確認すること |
-|:---|:---|
+| :--- | :--- |
 | メトリクスができない | MQTT テストクライアントで、`thermo/#` にメッセージが届いているか。ルールの SQL のトピック (`thermo/+/switchbot/+`) が合っているか |
 | `list-metrics` の結果が空 | 数分待つ。リージョンが、ルールを作ったリージョンと同じかを確かめる (`--region` を付ける) |
 | ルールが動かない | 「IoT Core → ルール」で、ルールが「有効」になっているか。「IoT Core → 設定 → ログ」でログを有効にして、CloudWatch Logs の `AWSIotLogsV2` でエラーを確かめる |

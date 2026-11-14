@@ -12,7 +12,7 @@
 `main.c` からは、`ble.h` の 5 つの関数だけが見えます。
 
 | 関数 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `ble_init()` | `bt_enable()` と接続のコールバックの登録 |
 | `ble_set_temperature_callback()` | 温度を受信したときのコールバックを設定 |
 | `ble_set_switchbot_callback()` | SwitchBot のアドバタイズを受信したときのコールバックを設定 |
@@ -24,7 +24,7 @@
 ### struct node (ノード 1 台ぶん)
 
 | メンバー | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `conn` | 接続。NULL なら、この要素は空き |
 | `discover` | GATT の探索のパラメータ (サービス、温度の特性、CCC、時刻の特性で使い回す) |
 | `subscribe` | 通知の購読のパラメータ |
@@ -41,7 +41,7 @@
 ### そのほかの static 変数
 
 | 変数 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `service_uuid`、`temperature_uuid`、`time_uuid`、`ccc_uuid` | 探索に使う UUID (定義は `common/thermo_ble_uuid.h`) |
 | `service_uuid_val[]` | スキャン応答の UUID と、バイト列で比べるための値 |
 | `temperature_cb`、`switchbot_cb`、`time_source` | `main.c` が登録するコールバックと関数 |
@@ -51,7 +51,7 @@
 ## 定数
 
 | 定数 | 値 | 意味 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `SCAN_INTERVAL_MS` | 100 | スキャンの間隔 |
 | `SCAN_WINDOW_MS` | 50 | スキャンのウィンドウ (間隔の半分。受信している時間の割合は 50%) |
 | `CONNECT_RETRY_MS` | 100 | スキャンを止められなかったときの、やり直しの間隔 |
@@ -128,7 +128,7 @@ disconnected() → release_node() → ble_scan()
 `discover_cb()` は、探索の各段階の結果を、1 つの関数で受け取ります。`params->type` と `params->uuid` を書き換えて `bt_gatt_discover()` を呼び直すことで、次の段階に進みます。
 
 | 段階 | `params->type` | `params->uuid` | 見つかったときの処理 |
-|:---|:---|:---|:---|
+| :--- | :--- | :--- | :--- |
 | 1 | `PRIMARY` | Thermo サービス | サービスの範囲 (`service_start`、`service_end`) を記録して、温度の特性を探す |
 | 2 | `CHARACTERISTIC` | 温度の特性 | 値のハンドルを `subscribe.value_handle` に入れて、CCC を探す (開始は `attr->handle + 2`) |
 | 3 | `DESCRIPTOR` | CCC (0x2902) | `ccc_handle` を入れて `bt_gatt_subscribe()`。成功したら、時刻の特性の探索を始める |
@@ -182,7 +182,7 @@ disconnected() → release_node() → ble_scan()
 ノードは、次の場合に書き込みを拒否します (`thermo-node/src/ble.c`)。
 
 | ATT のエラー | 原因 |
-|:---|:---|
+| :--- | :--- |
 | `INVALID_OFFSET` | オフセットが 0 でない |
 | `INVALID_ATTRIBUTE_LEN` | 長さが 4 バイトでない |
 | `WRITE_NOT_PERMITTED` | ノード側にコールバックがない |
@@ -197,7 +197,7 @@ disconnected() → release_node() → ble_scan()
 ## 補助の関数
 
 | 関数 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `find_node(conn)` | 接続から、`nodes[]` の要素を探す |
 | `find_free_node()` | `conn == NULL` の要素を探す |
 | `release_node(node)` | `bt_conn_unref()` して、構造体全体を `memset` で 0 にする |
@@ -206,7 +206,7 @@ disconnected() → release_node() → ble_scan()
 ## スレッドと排他制御
 
 | 処理 | 動くスレッド |
-|:---|:---|
+| :--- | :--- |
 | `scan_cb`、`connected`、`disconnected`、`discover_cb`、`notify_cb`、`write_time_cb` | Bluetooth のスレッド |
 | `connect_work_handler`、`time_work_handler` | システムのワークキュー |
 | `ble_init`、`ble_scan` (起動時) | メインスレッド |

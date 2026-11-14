@@ -20,7 +20,7 @@ CI は、サブモジュールを取り込みません。素材を入れてビ�
 ## boot_assets.h の宣言
 
 | 名前 | 型 | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `boot_chomper[3]` | `struct boot_sprite` の配列 | 走る絵。口の開き方が違う 3 つ (閉じる、半分、開く)。右向き |
 | `boot_chaser` | `struct boot_sprite` | 追いかける敵の絵 |
 | `boot_title` | `struct boot_title` | 画面の上に出す題名 |
@@ -39,7 +39,7 @@ CI は、サブモジュールを取り込みません。素材を入れてビ�
 ## button_assets.h の宣言
 
 | 名前 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `button_melody[]`、`button_melody_count` | ボタンを押したときの音。約 0.1 秒の、上がる 2 音 |
 
 ## notes.h: 音名から周波数への表
@@ -56,7 +56,7 @@ CI は、サブモジュールを取り込みません。素材を入れてビ�
 ## 使われ方
 
 | 素材 | 使う場所 |
-|:---|:---|
+| :--- | :--- |
 | `boot_title`、`boot_chomper`、`boot_chaser` | `oled.c` の `draw_boot_frame()` ([oled.md](oled.md)) |
 | `boot_melody` | `main.c` の `boot_sequence()` が `buzzer_play()` に渡す |
 | `button_melody` | `main.c` の `play_button_sound()` が `buzzer_play()` に渡す |

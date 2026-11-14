@@ -29,7 +29,7 @@ struct net_if *net_if_get_default(void);
 ネットワーク管理の要求を出す (イベントを生成する)。WiFi の接続や切断は、これに `NET_REQUEST_WIFI_CONNECT` や `NET_REQUEST_WIFI_DISCONNECT` を渡して要求する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `_mgmt_request` | in | 要求の識別子 |
 | `_iface` | in | ネットワークインターフェース |
 | `_data` | in,out | 追加のデータ (接続は `struct wifi_connect_req_params`。切断は `NULL`) |
@@ -57,7 +57,7 @@ void net_mgmt_init_event_callback(struct net_mgmt_event_callback *cb, net_mgmt_e
 `net_mgmt_event_callback` を正しく初期化する補助関数。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `cb` | out | アプリのコールバックの構造体 |
 | `handler` | in | ハンドラ関数 |
 | `mgmt_event_mask` | in | ハンドラが受けるイベントのマスク (`NET_EVENT_WIFI_CONNECT_RESULT` `NET_EVENT_WIFI_DISCONNECT_RESULT` など) |
@@ -75,7 +75,7 @@ void net_mgmt_add_event_callback(struct net_mgmt_event_callback *cb);
 ユーザーのコールバックを加える。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `cb` | in,out | 加えるコールバック。有効なままにしておく |
 
 戻り値: なし (エラーは返さない)。
@@ -116,7 +116,7 @@ WIFI_MFP_OPTIONAL             /* enum wifi_mfp_options */
 `wifi_connect_req_params` の `security`、`band`、`channel`、`mfp`、`timeout` に入れる値。
 
 | 定数 | 入れるメンバー | 説明 | 使用箇所 |
-|:---|:---|:---|:---|
+| :--- | :--- | :--- | :--- |
 | `WIFI_SECURITY_TYPE_NONE` | `security` | 暗号化なし (パスワードが空のとき) | [`app/common/wifi_link.c:93`](../../app/common/wifi_link.c#L93) |
 | `WIFI_SECURITY_TYPE_PSK` | `security` | WPA2-PSK (パスワードがあるとき) | [`app/common/wifi_link.c:93`](../../app/common/wifi_link.c#L93) |
 | `WIFI_FREQ_BAND_UNKNOWN` | `band` | 周波数帯を決めない (どの帯でもよい) | [`app/common/wifi_link.c:94`](../../app/common/wifi_link.c#L94) |
@@ -159,7 +159,7 @@ int zsock_getaddrinfo(const char *host, const char *service, const struct zsock_
 ホスト名を 1 つ以上のネットワークアドレスにする (名前解決)。POSIX.1-2017 の `getaddrinfo()` と同じ。`CONFIG_POSIX_API` が有効なら、`getaddrinfo()` の名前でも使える。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `host` | in | ホスト名 |
 | `service` | in | サービス名かポート番号の文字列 |
 | `hints` | in | 結果の絞り込み (`ai_family`、`ai_socktype` など) |
@@ -195,7 +195,7 @@ void zsock_freeaddrinfo(struct zsock_addrinfo *ai);
 `zsock_getaddrinfo()` が返した結果を解放する。POSIX.1-2017 の `freeaddrinfo()` と同じ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `ai` | in,out | 解放する結果の一覧の先頭 |
 
 戻り値: なし (エラーは返さない)。
@@ -213,7 +213,7 @@ SOCK_DGRAM  = 2
 `zsock_getaddrinfo()` の `hints` (`ai_family` と `ai_socktype`) に入れる、アドレスの種類とソケットの種類。
 
 | 定数 | 説明 | 使用箇所 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `AF_INET` | IPv4 のアドレス | [`app/common/ntp.c:137`](../../app/common/ntp.c#L137)、[`app/common/cloud.c:471`](../../app/common/cloud.c#L471)、[`app/thermo-node/src/wifi_time.c:140`](../../app/thermo-node/src/wifi_time.c#L140) |
 | `SOCK_STREAM` | ストリーム (TCP。MQTT over TLS) | [`app/common/cloud.c:471`](../../app/common/cloud.c#L471) |
 | `SOCK_DGRAM` | データグラム (UDP。SNTP) | [`app/common/ntp.c:137`](../../app/common/ntp.c#L137)、[`app/thermo-node/src/wifi_time.c:140`](../../app/thermo-node/src/wifi_time.c#L140) |
@@ -227,7 +227,7 @@ static inline int zsock_poll(struct zsock_pollfd *fds, int nfds, int timeout);
 複数のソケットのイベントを、まとめて待つ。POSIX.1-2017 の `poll()` と同じ。`CONFIG_POSIX_API` が有効なら、`poll()` の名前でも使える。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `fds` | in,out | 調べるソケットと、待つイベント (`events`)。戻ったとき、起きたイベントが `revents` に入る |
 | `nfds` | in | `fds` の要素数 |
 | `timeout` | in | 待つ時間 [ms]。負の値は、無期限に待つ |
@@ -260,7 +260,7 @@ static inline int zsock_poll(struct zsock_pollfd *fds, int nfds, int timeout);
 `zsock_poll()` の `events` (待つイベント) と `revents` (起きたイベント) のビット (Linux の `POLL*` と同じ値)。
 
 | 定数 | 値 | 説明 | 使用箇所 |
-|:---|:---:|:---|:---|
+| :--- | :---: | :--- | :--- |
 | `ZSOCK_POLLIN` | 1 | 読めるデータがある | [`app/common/cloud.c:498`](../../app/common/cloud.c#L498) |
 | `ZSOCK_POLLERR` | 8 | エラー (`revents` だけ) | [`app/common/cloud.c:517`](../../app/common/cloud.c#L517) |
 | `ZSOCK_POLLHUP` | 0x10 | 接続が切れた (`revents` だけ) | [`app/common/cloud.c:517`](../../app/common/cloud.c#L517) |
@@ -281,7 +281,7 @@ int sntp_init(struct sntp_ctx *ctx, struct sockaddr *addr, socklen_t addr_len);
 SNTP のコンテキストを初期化する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `ctx` | out | SNTP のコンテキスト |
 | `addr` | in | NTP / SNTP サーバの IP アドレス |
 | `addr_len` | in | `addr` の長さ |
@@ -307,7 +307,7 @@ int sntp_query(struct sntp_ctx *ctx, uint32_t timeout, struct sntp_time *ts);
 SNTP で問い合わせて、時刻を得る。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `ctx` | in,out | SNTP のコンテキスト |
 | `timeout` | in | 応答を待つ時間 [ms] |
 | `ts` | out | 1970-01-01 からの秒 (整数部と小数部) |
@@ -337,7 +337,7 @@ void sntp_close(struct sntp_ctx *ctx);
 SNTP のコンテキストを解放する (ソケットを閉じる)。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `ctx` | in,out | SNTP のコンテキスト |
 
 戻り値: なし (エラーは返さない)。
@@ -355,7 +355,7 @@ int tls_credential_add(sec_tag_t tag, enum tls_credential_type type, const void 
 TLS / DTLS の認証に使う認証情報を加える。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `tag` | in | 認証情報を参照するための、セキュリティタグ |
 | `type` | in | 認証情報の種類 (`TLS_CREDENTIAL_CA_CERTIFICATE` `TLS_CREDENTIAL_PUBLIC_CERTIFICATE` `TLS_CREDENTIAL_PRIVATE_KEY`) |
 | `cred` | in | 認証情報 |
@@ -384,7 +384,7 @@ int tls_credential_get(sec_tag_t tag, enum tls_credential_type type, void *cred,
 登録済みの認証情報を取得する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `tag` | in | 取得する認証情報のセキュリティタグ |
 | `type` | in | 認証情報の種類 |
 | `cred` | out | 認証情報を入れるバッファ |
@@ -412,7 +412,7 @@ int tls_credential_delete(sec_tag_t tag, enum tls_credential_type type);
 登録済みの認証情報を削除する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `tag` | in | 削除する認証情報のセキュリティタグ |
 | `type` | in | 認証情報の種類 |
 
@@ -449,7 +449,7 @@ void mqtt_client_init(struct mqtt_client *client);
 MQTT のクライアントを初期化する。パラメータの設定とブローカへの接続の前に、必ず呼ぶ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `client` | out | 初期化する MQTT のクライアント。`NULL` にしない |
 
 戻り値: なし (エラーは返さない)。
@@ -475,7 +475,7 @@ int mqtt_connect(struct mqtt_client *client);
 MQTT の接続を要求する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 
 戻り値:
@@ -507,7 +507,7 @@ int mqtt_publish(struct mqtt_client *client, const struct mqtt_publish_param *pa
 トピックにメッセージを発行する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 | `param` | in | 発行のパラメータ。`NULL` にしない |
 
@@ -545,7 +545,7 @@ int mqtt_input(struct mqtt_client *client);
 届いた MQTT のパケットを受け取る。登録したコールバックが、パケットの内容つきで呼ばれる (`MQTT_EVT_CONNACK` `MQTT_EVT_PUBACK` `MQTT_EVT_DISCONNECT` など)。ブロックしない呼び出しなので、ソケットに読めるデータがあるときに呼ぶ (`zsock_poll()` と組み合わせる)。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 
 戻り値:
@@ -574,7 +574,7 @@ int mqtt_live(struct mqtt_client *client);
 接続を保つために、必要なら Ping 要求を送る。定期的に呼ぶ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 
 戻り値:
@@ -603,7 +603,7 @@ int mqtt_disconnect(struct mqtt_client *client, const struct mqtt_disconnect_par
 MQTT の接続を切る。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 | `param` | in | 切断のパラメータ。`NULL` でよい (MQTT 3.1.1 では無視される) |
 
@@ -630,7 +630,7 @@ int mqtt_abort(struct mqtt_client *client);
 MQTT の接続を中止する。MQTT の切断メッセージは送らずに、下のトランスポート (ソケット) だけを閉じる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `client` | in,out | MQTT のクライアント。`NULL` にしない |
 
 戻り値:
@@ -663,7 +663,7 @@ struct sockaddr
 汎用のソケットアドレス。実際には、`struct sockaddr_in` (IPv4) や `struct sockaddr_in6` (IPv6) などにキャストして使う。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `sa_family` | `sa_family_t` | アドレスの種類 (`AF_INET` `AF_INET6`) |
 
 注意:
@@ -681,7 +681,7 @@ struct sockaddr_storage
 どの種類のアドレスも入る大きさのソケットアドレス。受け取るアドレスの種類が分からないときに、この型で確保して、`struct sockaddr *` として渡す。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `ss_family` | `sa_family_t` | アドレスの種類 |
 | `data` | `char[...]` | アドレスの本体 (種類で意味が決まる) |
 
@@ -696,7 +696,7 @@ struct zsock_addrinfo
 ホストの名前を引いたとき (`zsock_getaddrinfo()`) の結果の 1 つ。結果は連結リストになる。ヒント (引き方の条件) として、引数にも渡す。結果は `zsock_freeaddrinfo()` で解放する。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `ai_next` | `struct zsock_addrinfo *` | 次の結果 |
 | `ai_flags` | `int` | 追加のオプション |
 | `ai_family` | `int` | アドレスの種類 (`AF_INET` など) |
@@ -722,7 +722,7 @@ struct zsock_pollfd
 `zsock_poll()` で見張るソケットの情報。配列にして渡す。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `fd` | `int` | ソケットのディスクリプタ |
 | `events` | `short` | 見張るイベント (`ZSOCK_POLLIN` など) |
 | `revents` | `short` | 起きたイベント (`zsock_poll()` が書く) |
@@ -752,7 +752,7 @@ struct net_mgmt_event_callback
 ネットワークの管理のイベント (WiFi の接続、IP アドレスの取得など) を受け取るコールバックを、登録するための構造体。`net_mgmt_init_event_callback()` で初期化し、`net_mgmt_add_event_callback()` で登録する。登録している間は、変数を残しておく。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `handler` | `net_mgmt_event_handler_t` | イベントのときに呼ぶ関数 |
 | `event_mask` | `uint64_t` | 関数を呼ぶイベントのマスク (`NET_EVENT_WIFI_CONNECT_RESULT` などのビットの OR) |
 
@@ -771,7 +771,7 @@ struct wifi_status
 WiFi の管理のイベントとコマンドの、結果の状態。共用体で、`status` (汎用の値)、`conn_status` (接続の結果)、`disconn_reason` (切断の理由)、`ap_status` (アクセスポイントの結果) のどれかとして読む。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `status` | `int` | 状態の値 (0 なら成功) |
 | `conn_status` | `enum wifi_conn_status` | 接続の結果 |
 | `disconn_reason` | `enum wifi_disconn_reason` | 切断の理由 |
@@ -792,7 +792,7 @@ struct sntp_time
 SNTP で得た時刻。1970 年 1 月 1 日からの経過時間。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `seconds` | `uint64_t` | 秒 |
 | `fraction` | `uint32_t` | 秒の小数部 (2^32 分の 1 の単位) |
 
@@ -811,7 +811,7 @@ struct sntp_ctx
 SNTP の問い合わせの状態。`sntp_init()` が初期化し、`sntp_query()` と `sntp_close()` に渡す。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `expected_orig_ts` | `struct sntp_time` | 要求を送った時刻。返事の中の、送信時刻と一致するかを確かめるために使う |
 
 注意:
@@ -829,7 +829,7 @@ struct mqtt_client
 MQTT のクライアントの、接続の情報と状態。`mqtt_client_init()` で初期化してからメンバーを設定し、`mqtt_connect()` に渡す。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `client_id` | `struct mqtt_utf8` | 接続に使うクライアント ID |
 | `broker` | `const void *` | ブローカーのアドレス (トランスポートに合う型。`struct sockaddr *`) |
 | `user_name` | `struct mqtt_utf8 *` | ユーザー名。NULL なら使わない |
@@ -866,7 +866,7 @@ struct mqtt_evt
 MQTT のイベント。`evt_cb` に渡される。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `type` | `enum mqtt_evt_type` | イベントの種類 (`MQTT_EVT_CONNACK` `MQTT_EVT_PUBACK` `MQTT_EVT_DISCONNECT` など) |
 | `param` | `union mqtt_evt_param` | イベントごとのパラメータ (`param.connack` `param.puback` など) |
 | `result` | `int` | 結果。0 か、失敗の負のエラー番号 |
@@ -882,7 +882,7 @@ struct mqtt_publish_param
 PUBLISH (値の送信) のパラメータ。`mqtt_publish()` に渡す。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `message` | `struct mqtt_publish_message` | トピック、QoS、ペイロード (`message.topic.topic` `message.topic.qos` `message.payload.data` `message.payload.len`) |
 | `message_id` | `uint16_t` | メッセージの ID。QoS 0 では使わない |
 | `dup_flag` | `uint8_t` (1 ビット) | 1 なら再送。QoS 0 では意味がない |
@@ -903,7 +903,7 @@ struct mqtt_sec_config
 MQTT を TLS で使うときの設定。`struct mqtt_client` の `transport.tls.config` に設定する。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `peer_verify` | `int` | 相手の証明書を確かめるか (`TLS_PEER_VERIFY_REQUIRED` など) |
 | `cipher_count` | `uint32_t` | 暗号スイートの数 |
 | `cipher_list` | `const int *` | 使う暗号スイート。NULL なら既定 |

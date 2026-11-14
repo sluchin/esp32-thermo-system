@@ -7,7 +7,7 @@
 ### 測定と通知
 
 | 文書 | ソース | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | [main.md](main.md) | `main.c` | エントリポイントと、50 ms のメインループ |
 | [sensor.md](sensor.md) | `sensor.c` | 温度、湿度、気圧の読み取り (センサ API、ADC、シミュレーション) |
 | [ble.md](ble.md) | `ble.c` | アドバタイズ、GATT のサービス、温度の通知、時刻の受信 |
@@ -15,7 +15,7 @@
 ### 保存と送信
 
 | 文書 | ソース | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | [direct.md](direct.md) | `direct.c` | ゲートウェイにつながらないときの、WiFi での直接の送信と保存の制御 |
 | [backlog.md](backlog.md) | `backlog.c` | SD カードの測定値の記録 (送信済みフラグ、輪) |
 | [sdlog.md](sdlog.md) | `sdlog.c` | ログの SD カードへの保存 (ログのバックエンド) |
@@ -23,7 +23,7 @@
 ### 時刻
 
 | 文書 | ソース | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | [node_time.md](node_time.md) | `node_time.c` | RTC の時刻と UNIX 時刻の換算 |
 | [rtc_pcf8563.md](rtc_pcf8563.md) | `drivers/rtc_pcf8563.c` | PCF8563 の RTC ドライバ |
 | [wifi_time.md](wifi_time.md) | `wifi_time.c` | WiFi と SNTP による時刻の取得 |
@@ -32,7 +32,7 @@
 ### 表示と操作
 
 | 文書 | ソース | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | [oled.md](oled.md) | `oled.c` | OLED の表示 (現在値、グラフ、起動画面) |
 | [history.md](history.md) | `history.c` | グラフの履歴 (区切りごとの平均のリングバッファ) |
 | [history_store.md](history_store.md) | `history_store.c` | 起動のときの履歴の復元 |
@@ -70,7 +70,7 @@
 ソースは、`CONFIG_*` で入れたり外したりします (`CMakeLists.txt`)。
 
 | `CONFIG_*` | ソース |
-|:---|:---|
+| :--- | :--- |
 | `THERMO_DISPLAY` | `oled.c` `history.c` `button.c` |
 | `THERMO_BUZZER` | `buzzer.c` |
 | `THERMO_RTC` | `node_time.c` `drivers/rtc_pcf8563.c` |

@@ -50,7 +50,7 @@ FAKE_VALUE_FUNC(RETURN_TYPE, FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 値を返す関数のフェイクを作る。引数の型を順に並べる。引数のない関数では、型を書かない (`FAKE_VALUE_FUNC(int, bt_le_scan_stop)`)。引数の数はマクロが数える (最大 20 個。`FFF_MAX_ARGS`)。
 
 | 引数 | 入出力 | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `RETURN_TYPE` | in | 戻り値の型 |
 | `FUNCNAME` | in | 偽の関数の名前。実物の関数と同じにする |
 | `ARG0_TYPE` ... | in | 引数の型 (順に) |
@@ -77,7 +77,7 @@ FAKE_VOID_FUNC(FUNCNAME, ARG0_TYPE, ARG1_TYPE, ...)
 `FUNCNAME_fake` (`FUNCNAME` は偽の関数の名前) のメンバー。
 
 | メンバー | 型 | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `call_count` | `unsigned int` | 呼ばれた回数 |
 | `arg0_val`、`arg1_val` ... | 引数の型 | 最後に呼ばれたときの引数の値 |
 | `arg0_history[]`、`arg1_history[]` ... | 引数の型の配列 | 呼ばれた順の引数の値。`arg0_history[0]` が 1 回目。長さは 50 (`FFF_ARG_HISTORY_LEN`)。それより多く呼ばれた分は記録されず、`arg_histories_dropped` が増える |
@@ -169,7 +169,7 @@ SET_RETURN_SEQ(FUNCNAME, ARRAY_POINTER, ARRAY_LEN);
 呼ばれるたびに、配列の値を順に返すようにする。`return_val_seq` と `return_val_seq_len` に、配列とその長さを入れる。配列の最後まで来たら、最後の値を返し続ける。配列は、テストが終わるまで有効でなければならない (ローカル変数で足りる)。リセットで列が消えるので、`RESET_FAKE` のあとに設定する。
 
 | 引数 | 入出力 | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `FUNCNAME` | in | 偽の関数の名前 |
 | `ARRAY_POINTER` | in | 返す値の配列 |
 | `ARRAY_LEN` | in | 配列の要素の数 (`ARRAY_SIZE()`) |

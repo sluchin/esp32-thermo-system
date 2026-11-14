@@ -36,7 +36,7 @@ int settings_register(struct settings_handler *cf);
 RAM にある設定項目のハンドラを、既定のコミット優先度で登録する。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `cf` | in,out | 登録の情報を持つ構造体 |
 
 戻り値:
@@ -61,7 +61,7 @@ int settings_save_one(const char *name, const void *value, size_t val_len);
 1 つの値を、永続する記憶に書く。書くのは、値が変わったときだけ。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `name` | in | 設定項目の名前 (キー) |
 | `value` | in | 設定項目の値。`settings_handler::h_export` のハンドラに渡される |
 | `val_len` | in | `value` の長さ |
@@ -89,7 +89,7 @@ int settings_delete(const char *name);
 永続する記憶から、1 つの項目を消す。既存の項目を消すことは、その値を `NULL` にすることにあたる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `name` | in | 設定項目の名前 (キー) |
 
 戻り値:
@@ -113,7 +113,7 @@ int settings_load_subtree(const char *subtree);
 登録済みの永続する記憶から、指定のサブツリーの項目だけを読み込む。そのサブツリーの値が見つかるたびに、先に登録したサブツリーのハンドラが呼ばれる。
 
 | 引数 | 入出力 | 説明 |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `subtree` | in | 読み込むサブツリーの名前 |
 
 戻り値:
@@ -136,7 +136,7 @@ struct settings_handler
 設定のサブツリーを扱う関数の表。`settings_register()` で登録する。
 
 | メンバー | 型 | 説明 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `name` | `const char *` | サブツリーの名前 |
 | `h_get` | `int (*)(const char *key, char *val, int val_len_max)` | キーに合う値を返す |
 | `h_set` | `int (*)(const char *key, size_t len, settings_read_cb read_cb, void *cb_arg)` | 読み込んだ値を受け取る。値は `read_cb` で読み出す |

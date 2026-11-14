@@ -9,7 +9,7 @@ MISRA-C への対応方針と、あえて従わない規則は、[misra.md](misr
 Docker イメージの中で、Zephyr と同じ道具を、Zephyr のバージョン (v4.3.0) に合わせて使います。
 
 | 道具 | 設定 | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | clang-format | [.clang-format](../.clang-format) | 整形。Zephyr の `.clang-format` を、6 点だけ変えたもの (例外 1、例外 5。`StatementMacros` の追加は、下の注を参照) |
 | EditorConfig | [.editorconfig](../.editorconfig) | エディタの設定。Zephyr の `.editorconfig` の、C / C++ / Perl と Devicetree / Kconfig のインデントだけを変えたもの (例外 1) |
 | checkpatch.pl | Zephyr の `.checkpatch.conf` | Zephyr のリンター。インデントの 3 種類だけ無視する (例外 1) |

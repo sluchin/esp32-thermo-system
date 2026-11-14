@@ -5,7 +5,7 @@
 温度、湿度、気圧を読む部分です。センサの種類は**ビルドのときに Devicetree で決まり**、1 つのソースが 3 通りに切り替わります。
 
 | 構成 | 選ばれる条件 | 読み方 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | センサ API (`HAVE_SENSOR`) | `CONFIG_SIMULATOR` ではなく、alias `thermo-sensor` がある (AHT20、DHT11 など) | Zephyr のセンサ API。alias `thermo-pressure` もあれば (`HAVE_PRESSURE`。BMP280 など)、気圧も読む |
 | ADC (`HAVE_ADC`) | センサ API の条件に当たらず、`zephyr,user` に `io-channels` がある | ADC を読んで、電圧から温度に換算 |
 | シミュレーション | どちらもない (native_sim など)、または `CONFIG_SIMULATOR` | 乱数 |
@@ -15,7 +15,7 @@
 ## 公開する関数
 
 | 関数 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `sensor_init()` | センサか ADC のチャンネルを使えるようにする |
 | `sensor_read()` | 温度 (℃ の 10 倍)、湿度 (% の 10 倍)、気圧 (hPa の 10 倍) を読む |
 
@@ -63,11 +63,11 @@ BMP280 は温度も測りますが、その値は使いません (温度は AHT2
 
 ## ADC の構成
 
-### sensor_init
+### ADC の sensor_init
 
 `adc_is_ready_dt()` で ADC のコントローラを確かめ (使えなければ `-ENODEV`)、`adc_channel_setup_dt()` で Devicetree のチャンネルの設定 (ゲイン、基準電圧、分解能) を反映します。
 
-### sensor_read
+### ADC の sensor_read
 
 ```text
 adc_read_dt()                      12 ビットの生の値を 1 回読む

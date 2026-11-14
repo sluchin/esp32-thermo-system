@@ -7,7 +7,7 @@ AWS IoT Core に送る、MQTT のトピックと JSON のペイロードを作�
 ## 公開する関数
 
 | 関数 | 作るもの |
-|:---|:---|
+| :--- | :--- |
 | `payload_format_topic()` | Thermo ノードのトピック |
 | `payload_format_temperature()` | Thermo ノードのペイロード |
 | `payload_format_switchbot_topic()` | SwitchBot のトピック |
@@ -18,7 +18,7 @@ AWS IoT Core に送る、MQTT のトピックと JSON のペイロードを作�
 ## トピック
 
 | 種類 | 形式 | 例 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | Thermo ノード | `thermo/<クライアント ID>/<ノードのアドレス>/temperature` | `thermo/gateway-01/00:AA:01:00:00:42/temperature` |
 | SwitchBot | `thermo/<クライアント ID>/switchbot/<機器のアドレス>` | `thermo/gateway-01/switchbot/B0:E9:FE:12:34:56` |
 

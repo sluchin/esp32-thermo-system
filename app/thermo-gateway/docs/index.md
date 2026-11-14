@@ -3,7 +3,7 @@
 `app/thermo-gateway/src` のソースを、ファイルごとに解析した文書です。関数の動き、データの形、ほかのファイルとのつながり、注意点を書いています。
 
 | 文書 | ソース | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | [main.md](main.md) | `main.c` | エントリポイント。初期化の順序と、受信した値の扱い |
 | [ble.md](ble.md) | `ble.c` `ble.h` | ノードのスキャンと接続、GATT の探索、温度の購読、時刻の書き込み |
 | [switchbot.md](switchbot.md) | `switchbot.c` `switchbot.h` | SwitchBot のアドバタイズの解析と、送信の間引き |

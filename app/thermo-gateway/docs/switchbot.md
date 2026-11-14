@@ -7,7 +7,7 @@ SwitchBot 屋外用温湿度計 (Outdoor Meter) の値を、接続せずに、BL
 役割は 2 つです。
 
 | 関数 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `switchbot_parse()` | アドバタイズデータの 1 要素を解析して、`struct switchbot_ad` にする |
 | `switchbot_accept()` | 解析した結果を機器ごとに記録して、送信する値を取り出す (送信の間引き) |
 
@@ -22,7 +22,7 @@ SwitchBot 屋外用温湿度計 (Outdoor Meter) の値を、接続せずに、BL
 AD の種類は `BT_DATA_SVC_DATA16` です。
 
 | 位置 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | 0 から 1 | UUID 0xFD3D (リトルエンディアンなので `3D FD`) |
 | 2 | 機種コード (下位 7 ビット)。屋外用温湿度計は 0x77 (ASCII の `w`) |
 | 3 | 状態 (使わない) |
@@ -35,7 +35,7 @@ UUID のあとが 3 バイト以上あれば、解析できます (`SERVICE_PAYL
 AD の種類は `BT_DATA_MANUFACTURER_DATA` です。
 
 | 位置 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | 0 から 1 | 会社 ID 0x0969 (SwitchBot。リトルエンディアンなので `69 09`) |
 | 2 から 7 | 機器の MAC アドレス (6 バイト) |
 | 8 から 9 | 不明 (2 バイト。読み飛ばす) |
@@ -59,7 +59,7 @@ temp_x10  = (整数部の最上位ビットが 1) ? +magnitude : -magnitude
 ## struct switchbot_ad (解析の結果)
 
 | メンバー | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `kind` | `SWITCHBOT_NONE` (対象外)、`SWITCHBOT_INFO` (機種と電池残量)、`SWITCHBOT_ENV` (温度と湿度) |
 | `model`、`battery` | `INFO` のときに有効 |
 | `temp_x10`、`humidity` | `ENV` のときに有効 |
@@ -97,7 +97,7 @@ reported && (now - last) < 間隔 -> false
 ### 機器の記録 (struct sb_device)
 
 | メンバー | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `addr` | 機器のアドレス |
 | `is_used` | 使っているか |
 | `model` | 機種コード。サービスデータを受け取るまでは 0 |
@@ -110,7 +110,7 @@ reported && (now - last) < 間隔 -> false
 ## 補助の関数
 
 | 関数 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `parse_service_data()` | 長さを確かめて、`model` と `battery` を取り出す (どちらも `& 0x7F`) |
 | `parse_manufacturer_data()` | 長さと湿度の範囲を確かめて、温度と湿度を計算する |
 | `find_device()` | アドレスから記録を探す。なければ割り当てる |

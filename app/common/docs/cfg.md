@@ -5,7 +5,7 @@
 実行時の設定を、フラッシュ (Zephyr の settings、NVS) に保存して読み出します。ゲートウェイとノードが共通で使います。
 
 | 種類 | 内容 | 保存の形 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | 設定の項目 (`enum cfg_key`) | `ssid`、`psk`、`endpoint`、`client_id` | 文字列 (NUL を含めて保存) |
 | 証明書 (`enum cfg_cred`) | `ca`、`cert`、`key` | PEM のバイト列 |
 | テザリングの退避 | 切り替える前の SSID とパスワード | `tether_bak` (1 つの項目) |
@@ -15,7 +15,7 @@
 ## 最大の長さ
 
 | 定数 | 値 [byte] | 対象 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `CFG_SSID_MAX` | 32 | SSID |
 | `CFG_PSK_MAX` | 64 | WiFi のパスワード |
 | `CFG_ENDPOINT_MAX` | 128 | AWS IoT Core のエンドポイント |
@@ -31,7 +31,7 @@ settings の名前は `thermo/<項目>` です (`thermo/ssid`、`thermo/ca`、`t
 ## 状態を持つデータ
 
 | 変数 | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `values[4][129]` | 設定の値 (RAM のコピー)。どの項目の大きさも、最も長い項目に合わせてある |
 | `ca_buf`、`cert_buf`、`key_buf` | フラッシュから読んだ証明書の保存先 |
 | `save_buf` | 証明書を保存するときの一時的な領域 (1792 バイト) |
@@ -56,7 +56,7 @@ settings_load_subtree("thermo")   <- 保存された項目ごとに settings_set
 保存された項目ごとに呼ばれます (名前は `thermo/` の下)。
 
 | 名前 | 処理 |
-|:---|:---|
+| :--- | :--- |
 | `ssid`、`psk`、`endpoint`、`client_id` | `load_value()`: 長さが 0 か、最大長 + 1 を超えたら、警告を出して無視する。それ以外は読み込む |
 | `ca`、`cert`、`key` | `load_credential()`: 長さを確かめてバッファに読み、同じ種類を削除してから `tls_credential_add()` で登録する |
 | `tether_bak` | `load_backup()`: 「SSID、NUL、パスワード、NUL」の並びを検証して、退避に入れる |

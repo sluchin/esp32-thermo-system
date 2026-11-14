@@ -9,7 +9,7 @@ WiFi と MQTT over TLS で、AWS IoT Core へ値を送るコードです。ゲ�
 ## 公開する関数 (cloud.h)
 
 | 関数 | 役割 |
-|:---|:---|
+| :--- | :--- |
 | `cloud_init(is_start_enabled)` | 送信のキューを初期化し、設定を読み込み、WiFi を準備して、送信のスレッドを作る |
 | `cloud_publish_temperature()` | Thermo ノードの温度、湿度、気圧をキューに入れる (時刻は、受信したときの時刻) |
 | `cloud_publish_temperature_at()` | 測った UNIX 時刻を指定して、キューに入れる (SD カードの記録用) |
@@ -27,7 +27,7 @@ WiFi と MQTT over TLS で、AWS IoT Core へ値を送るコードです。ゲ�
 ## 定数
 
 | 定数 | 値 | 意味 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `BROKER_PORT` | 8883 | AWS IoT Core の MQTT (TLS、クライアント証明書による相互認証) |
 | `KEEPALIVE_S` | 60 | MQTT の keep alive (AWS IoT Core の許す範囲は 30 から 1200) |
 | `WAIT_CONFIG_S` | 5 | 設定が揃うのを待つ間隔 |
@@ -44,7 +44,7 @@ WiFi と MQTT over TLS で、AWS IoT Core へ値を送るコードです。ゲ�
 ## 送信を待つ値 (struct sample)
 
 | メンバー | 内容 |
-|:---|:---|
+| :--- | :--- |
 | `addr` | 送ってきた機器のアドレス |
 | `kind` | `SAMPLE_THERMO` か `SAMPLE_SWITCHBOT` (`uint8_t`) |
 | `uptime_ms` | 受信したときの稼働時間 |
@@ -99,7 +99,7 @@ WiFi に接続 (30 秒)
 ## cloud_set_enabled
 
 | 引数 | 動き |
-|:---|:---|
+| :--- | :--- |
 | `true` | `attempts` と `is_given_up` を戻す。**キューの古い値を、全て捨てる** (`k_msgq_purge`)。`enabled = true` |
 | `false` | `enabled = false`、`is_reconnect_requested = true`。実行中のセッションは 1 秒以内に終わり、MQTT を閉じて WiFi を切る |
 

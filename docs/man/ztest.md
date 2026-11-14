@@ -36,7 +36,7 @@ ZTEST_SUITE(SUITE_NAME, PREDICATE, setup_fn, before_fn, after_fn, teardown_fn);
 テストのスイートを作って登録する。
 
 | 引数 | 入出力 | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `SUITE_NAME` | in | スイートの名前 (識別子。文字列にしない) |
 | `PREDICATE` | in | スイートを実行するかを、状態から決める関数。使わないときは `NULL` |
 | `setup_fn` | in | スイートの実行の前に 1 回呼ぶ関数 (`void *(*)(void)`)。戻り値が「フィクスチャ」で、`before_fn` などの引数になる。使わないときは `NULL` |
@@ -64,7 +64,7 @@ ZTEST(suite, fn)
 テストを作って、スイート `suite` に足す。`fn` はテストの名前で、本体は引数のない関数と同じに書く。スイートは、同じファイルで定義していなくてもよい。
 
 | 引数 | 入出力 | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `suite` | in | 足す先のスイートの名前 (`ZTEST_SUITE` の `SUITE_NAME`) |
 | `fn` | in | テストの名前。このプロジェクトでは、`test_<対象の関数名>_<条件>` |
 
@@ -75,7 +75,7 @@ ZTEST(suite, fn)
 どれも、条件が成り立たなければ、テストを失敗にして、そのテストを止める。最後の `...` には、失敗のときに表示するメッセージ (`printf` の書式) と引数を書ける (省略できる)。
 
 | マクロ | 成り立つべき条件 | 使用箇所 (最初) | 数 |
-|:---|:---|:---|---:|
+| :--- | :--- | :--- | ---: |
 | `zassert_equal(a, b, ...)` | `a == b` (型は変換せず、そのまま比べる) | [`test_main.c:173`](../../app/thermo-gateway/tests/main/src/test_main.c#L173) | 1573 |
 | `zassert_not_equal(a, b, ...)` | `a != b` | [`test_cloud.c:411`](../../app/common/tests/cloud/src/test_cloud.c#L411) | 5 |
 | `zassert_true(cond, ...)` | `cond` が真 | [`test_ble.c:479`](../../app/thermo-gateway/tests/ble/src/test_ble.c#L479) | 146 |
@@ -91,7 +91,7 @@ ZTEST(suite, fn)
 引数:
 
 | 引数 | 入出力 | 内容 |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `a` `b` | in | 比べる値 |
 | `cond` | in | 調べる条件 |
 | `ptr` | in | 調べるポインタ |

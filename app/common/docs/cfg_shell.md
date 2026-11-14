@@ -7,7 +7,7 @@
 ## サブコマンド
 
 | コマンド | 引数 | 役割 | 呼ぶ関数 |
-|:---|:---|:---|:---|
+| :--- | :--- | :--- | :--- |
 | `thermo set` | 項目名 (ssid、psk、endpoint、client_id のどれか) と、値 | 設定の値をフラッシュに保存 | `cfg_set()` |
 | `thermo tether` | `<ssid> [psk]` | テザリングに切り替える (元の設定を残す) | `cfg_tether()` |
 | `thermo restore` | なし | テザリングの前に戻す | `cfg_restore()` |
