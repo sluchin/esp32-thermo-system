@@ -16,7 +16,8 @@
 #   ZVIEW_PERIOD  live で読む間隔 (秒. 既定: 1). 読むたびに CPU を止めるので, 短くしすぎない
 #   GDB_PORT      OpenOCD の GDB サーバーのポート (既定: 3333)
 #
-# OpenOCD を起動して, その GDB サーバーに zview をつなぐ. zview が終わったら, OpenOCD も止める.
+# OpenOCD を起動して, その GDB サーバーに zview をつなぐ (OpenOCD の返事に合わせる補正をして).
+# zview が終わったら, OpenOCD も止める.
 # OpenOCD のログは build/openocd-<node|gateway>.log に出す.
 set -eu
 
@@ -111,4 +112,13 @@ if [ "$command" = live ] && [[ " $* " != *" --period "* ]]; then
     extra=(--period "$period")
 fi
 
-"$zview" "$command" -e "$elf" -r gdb -t "localhost:$gdb_port" ${extra[@]+"${extra[@]}"} "$@"
+# OpenOCD の返事の順序に合わせる補正 (scripts/zview_openocd.py) を当てて, zview を動かす.
+# 補正は zview の Python に読み込ませるので, zview の実行ファイルの 1 行目 (#!) の Python を使う
+zview_path="$(command -v "$zview")"
+python="$(head -n 1 "$zview_path" | sed -n 's/^#!//p')"
+if [ -z "$python" ] || [ ! -x "$python" ]; then
+    echo "Error: cannot find the Python of zview ($zview_path)" >&2
+    exit 1
+fi
+"$python" "$(dirname "$0")/zview_openocd.py" "$command" -e "$elf" -r gdb -t "localhost:$gdb_port" \
+    ${extra[@]+"${extra[@]}"} "$@"
