@@ -3,10 +3,12 @@
 #
 # 使い方: scripts/build.sh [node|gateway|all]   (省略すると all. node と gateway の両方)
 #
-# 環境変数 (省略可): THERMO_DEBUG_LOG (OFF), THERMO_DISPLAY (y), THERMO_RTC (y),
-# THERMO_SENSOR (aht20_bmp280), THERMO_DHT_LOCK_IRQS (y), THERMO_BUZZER (y). 括弧の中が省略したときの値.
-# node だけが使う (THERMO_DEBUG_LOG は両方). THERMO_SENSOR は温湿度センサ (aht20_bmp280: AHT20 と
-# BMP280 のモジュール. 気圧も送る, dht11: DHT11. app/thermo-node/sensors/dht11.overlay を足す).
+# 環境変数 (省略可): THERMO_DEBUG_LOG (OFF), THERMO_ZVIEW (OFF), THERMO_DISPLAY (y),
+# THERMO_RTC (y), THERMO_SENSOR (aht20_bmp280), THERMO_DHT_LOCK_IRQS (y), THERMO_BUZZER (y).
+# 括弧の中が省略したときの値. THERMO_DEBUG_LOG と THERMO_ZVIEW は node と gateway の両方が使い,
+# ほかは node だけが使う. THERMO_ZVIEW は ZView の設定 (app/zview.conf. docs/zview.md) を足す.
+# THERMO_SENSOR は温湿度センサ (aht20_bmp280: AHT20 と BMP280 のモジュール. 気圧も送る,
+# dht11: DHT11. app/thermo-node/sensors/dht11.overlay を足す).
 # THERMO_DHT_LOCK_IRQS は THERMO_SENSOR=dht11 のときだけ使う.
 #
 # docker compose run --rm build / build-node / build-gateway から呼ぶ.
@@ -31,14 +33,15 @@ build_node() {
         ;;
     esac
     west build -b xiao_esp32c3 app/thermo-node -d build/thermo-node -- \
-        "-DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF}" "-DCONFIG_THERMO_DISPLAY=${THERMO_DISPLAY:-y}" \
+        "-DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF}" "-DTHERMO_ZVIEW=${THERMO_ZVIEW:-OFF}" \
+        "-DCONFIG_THERMO_DISPLAY=${THERMO_DISPLAY:-y}" \
         "-DCONFIG_THERMO_RTC=${THERMO_RTC:-y}" "${sensor[@]}" \
         "-DCONFIG_THERMO_BUZZER=${THERMO_BUZZER:-y}" "$sdk"
 }
 
 build_gateway() {
     west build -b xiao_esp32c3 app/thermo-gateway -d build/thermo-gateway -- \
-        "-DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF}" "$sdk"
+        "-DTHERMO_DEBUG_LOG=${THERMO_DEBUG_LOG:-OFF}" "-DTHERMO_ZVIEW=${THERMO_ZVIEW:-OFF}" "$sdk"
 }
 
 case "${1:-all}" in

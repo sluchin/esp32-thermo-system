@@ -21,6 +21,7 @@ INPUT                  = README.md \
                          docs/native_sim_implementation.md \
                          docs/aws_setup.md \
                          docs/debug_log.md \
+                         docs/zview.md \
                          docs/aws_graph.md \
                          docs/aws_dynamodb.md \
                          docs/coding_style.md \

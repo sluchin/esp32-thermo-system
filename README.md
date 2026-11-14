@@ -40,6 +40,7 @@ esp32-thermo-system/
 │   ├── aws_setup.md, aws_graph.md, aws_dynamodb.md  # AWS IoT Core, グラフ, DynamoDB
 │   ├── simulation.md, native_sim_implementation.md  # native_sim でのシミュレーション
 │   ├── debug_log.md            # ログの読み方
+│   ├── zview.md                # ZView でスレッドとヒープを見る
 │   ├── sd_log.md               # SD カードの記録の形式と読み方
 │   ├── test_integration.md     # 結合試験項目書 (実機)
 │   ├── coding_style.md, misra.md  # コーディングスタイルと MISRA C
@@ -103,8 +104,9 @@ docker compose run --rm clean
 オプションは、環境変数で渡します (`docker compose run --rm` の前に書く)。読むのは、ビルドのサービス (`build` `build-node` `build-gateway`) だけです。省略すると、既定の値になります。
 
 | 環境変数 | 値 | 既定 | 対象 | 内容 |
-|:---|:---|:---|:---|:---|
+| :--- | :--- | :--- | :--- | :--- |
 | `THERMO_DEBUG_LOG` | `ON` / `OFF` | `OFF` | node と gateway | `LOG_DBG` と 16 進ダンプを有効にする |
+| `THERMO_ZVIEW` | `ON` / `OFF` | `OFF` | node と gateway | ZView で CPU の使用率とヒープを見る設定を足す ([docs/zview.md](docs/zview.md)) |
 | `THERMO_DISPLAY` | `y` / `n` | `y` | node | OLED、グラフ、ボタン |
 | `THERMO_RTC` | `y` / `n` | `y` | node | RTC (PCF8563) |
 | `THERMO_BUZZER` | `y` / `n` | `y` | node | ブザー (起動音とボタンの音) |
@@ -183,6 +185,16 @@ gateway がスキャンで受け取る広告データは大量に届くので、
 
 前のビルドが残っていると、設定を切り替えても反映されないことがあります。そのときは、ビルドのディレクトリ (`build/thermo-node` など) を削除して、ビルドし直します (west は `-p always`)。
 
+### ZView
+
+[ZView](https://github.com/wkhadgar/zview) で、動いているファームウェアのスレッド (スタックの最大の使用量、CPU の使用率) とヒープを、ホストから見られます。USB の JTAG と、ホストの OpenOCD (openocd-esp32) を使います。準備と使い方は [docs/zview.md](docs/zview.md) を参照してください。
+
+```bash
+THERMO_ZVIEW=ON docker compose run --rm build-node
+scripts/flash.sh node /dev/ttyACM0
+scripts/zview.sh node /dev/ttyACM0
+```
+
 ### フラッシング
 
 ```bash
@@ -238,16 +250,16 @@ AWS IoT Core に届いた SwitchBot のデータを、CloudWatch のダッシュ
 
 精度も分解能も、AHT20 のほうがずっと良いです (値は、各データシートのもの。AHT20 の精度は代表値)。
 
-| 項目           | DHT11                                                | AHT20 (+ BMP280)          |
+| 項目 | DHT11 | AHT20 (+ BMP280) |
 | :------------- | :--------------------------------------------------- | :------------------------ |
-| 温度の精度     | ±2 ℃                                                 | ±0.3 ℃                    |
-| 温度の分解能   | 1 ℃                                                  | 0.01 ℃                    |
-| 温度の範囲     | 0〜50 ℃                                              | −40〜85 ℃                 |
-| 湿度の精度     | ±5 %RH                                               | ±2 %RH                    |
-| 湿度の分解能   | 1 %RH                                                | 0.024 %RH                 |
-| 湿度の範囲     | 20〜80 %RH 程度                                      | 0〜100 %RH                |
-| 気圧           | なし                                                 | あり (BMP280)             |
-| つなぎ方       | 専用の 1 本線 (タイミングに厳しい。読み取りの間、割り込みを止める) | I2C (OLED、RTC と同じバス) |
+| 温度の精度 | ±2 ℃ | ±0.3 ℃ |
+| 温度の分解能 | 1 ℃ | 0.01 ℃ |
+| 温度の範囲 | 0〜50 ℃ | −40〜85 ℃ |
+| 湿度の精度 | ±5 %RH | ±2 %RH |
+| 湿度の分解能 | 1 %RH | 0.024 %RH |
+| 湿度の範囲 | 20〜80 %RH 程度 | 0〜100 %RH |
+| 気圧 | なし | あり (BMP280) |
+| つなぎ方 | 専用の 1 本線 (タイミングに厳しい。読み取りの間、割り込みを止める) | I2C (OLED、RTC と同じバス) |
 
 - DHT11 の値は 1 ℃、1 % 刻みなので、グラフが階段状になります。AHT20 の値は、小数 1 桁 (送る値の単位) まで変わります。
 - DHT11 は、ほかの処理の割り込みで、読み損ねることがあります。`THERMO_DHT_LOCK_IRQS` を有効にすると、読み取りの間は割り込みを止めて、これを防ぎます。AHT20 (I2C) には、この心配がありません。

@@ -4,6 +4,7 @@ x-build-env: &build-env
   - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
   - HOME=/tmp
   - THERMO_DEBUG_LOG
+  - THERMO_ZVIEW
   - THERMO_DISPLAY
   - THERMO_RTC
   - THERMO_SENSOR

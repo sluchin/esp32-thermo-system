@@ -13,6 +13,16 @@ if(THERMO_DEBUG_LOG AND NOT BOARD MATCHES "^native_sim")
   list(APPEND EXTRA_CONF_FILE ${CMAKE_CURRENT_LIST_DIR}/debug.conf)
 endif()
 
+# ZView (docs/zview.md) で, スレッドの CPU の使用率やヒープを見るための設定 (app/zview.conf) と,
+# RAM の空きを作る node だけの設定 (zview.conf) を足す.
+# メモリと CPU を少し余分に使うので, 通常のビルドには入れない. native_sim では使わない.
+# 例: west build -b xiao_esp32c3 app/thermo-node -- -DTHERMO_ZVIEW=ON
+option(THERMO_ZVIEW "Add the Kconfig options for ZView" OFF)
+if(THERMO_ZVIEW AND NOT BOARD MATCHES "^native_sim")
+  list(APPEND EXTRA_CONF_FILE ${CMAKE_CURRENT_LIST_DIR}/../zview.conf
+       ${CMAKE_CURRENT_LIST_DIR}/zview.conf)
+endif()
+
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(thermo-node)
