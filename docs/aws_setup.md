@@ -41,7 +41,7 @@ AWS CLI の例です (リージョンは自分のものに置き換えます。�
 export AWS_REGION=ap-northeast-1
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
-# モノ (デバイス) の登録
+# モノ (Thing. デバイスの登録情報) の登録
 aws iot create-thing --thing-name gateway-01
 
 # 証明書と鍵の作成 (有効化する). ゲートウェイには device.pem.crt と private.pem.key を登録する
@@ -206,7 +206,7 @@ AWS IoT Core の相互認証のために、`prj.conf` に次の設定を入れ�
 
 ## 7. Thermo ノードから、直接送る (ゲートウェイがないとき)
 
-ノードがゲートウェイにつながらないときに、WiFi で AWS IoT Core に直接送る機能 ([setup.md](setup.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」) のための、AWS 側の準備です。**モノ、証明書、ポリシー、クライアント ID は、ノードごとに別のもの**を作ります (ゲートウェイとは共有しません)。
+ノードがゲートウェイにつながらないときに、WiFi で AWS IoT Core に直接送る機能 ([setup.md](setup.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」) のための、AWS 側の準備です。**モノ (Thing)、証明書、ポリシー、クライアント ID は、ノードごとに別のもの**を作ります (ゲートウェイとは共有しません)。
 
 **ゲートウェイの証明書を、ノードに流用しないでください。** ゲートウェイと共有してよいものと、いけないものは、次のとおりです。
 
@@ -217,7 +217,7 @@ AWS IoT Core の相互認証のために、`prj.conf` に次の設定を入れ�
 | クライアント証明書、秘密鍵 | **共有しない** | 1 台の鍵が漏れたとき、その 1 台だけを無効にできるようにするため。共有すると、無効にしたときに全部の機器が止まる |
 | クライアント ID | **共有しない** | 同じクライアント ID で 2 つ目の接続が来ると、AWS IoT Core は先の接続を切る。ゲートウェイとノードが奪い合って、どちらも接続と切断を繰り返す |
 | ポリシー | **共有しない** | ポリシーは、接続を許すクライアント ID と、publish を許すトピック (`thermo/<クライアント ID>/*`) を決めているので、別のクライアント ID では拒否される |
-| モノ (thing) | 共有しない | 機器ごとに 1 つ作る |
+| モノ (Thing) | 共有しない | 機器ごとに 1 つ作る |
 
 ```bash
 # 共通の変数 (2 章と同じ. シェルを閉じたら設定し直す)
@@ -225,7 +225,7 @@ export AWS_REGION=ap-northeast-1
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 NODE_ID=node-01        # ノードの名前 (クライアント ID. トピックの 2 つ目. ノードごとに変える)
 
-# モノの登録と, 証明書と鍵の作成 (ノードごとに別のファイル名にする)
+# モノ (Thing) の登録と, 証明書と鍵の作成 (ノードごとに別のファイル名にする)
 aws iot create-thing --thing-name "$NODE_ID"
 CERT_ARN=$(aws iot create-keys-and-certificate --set-as-active \
   --certificate-pem-outfile "${NODE_ID}.pem.crt" \
