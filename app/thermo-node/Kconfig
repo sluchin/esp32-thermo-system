@@ -102,10 +102,10 @@ config THERMO_WIFI_TIME
     default y
     depends on THERMO_RTC
     help
-      When the RTC has no time for 5 minutes (the gateway has not sent
-      the time over BLE), connect to WiFi, get the time with SNTP, set
-      the RTC and disconnect WiFi at once. WiFi is not used while the
-      RTC has the time. The SSID and the password are entered with the
+      When the RTC has no time at start-up (the check is made at once,
+      then every minute, up to 5 tries), connect to WiFi, get the time
+      with SNTP, set the RTC and disconnect WiFi at once. WiFi is not
+      used while the RTC has the time. The SSID and the password are entered with the
       "thermo" shell command (thermo set ssid ..., thermo set psk ...).
 
 config THERMO_NTP_SERVER

@@ -251,6 +251,47 @@ ZTEST(rtc_pcf8563, test_get_time_unset)
     zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
 }
 
+/** 時刻が無効なときは, 診断のために制御レジスタを 1 回だけ読む */
+ZTEST(rtc_pcf8563, test_invalid_time_reads_the_control_registers_once)
+{
+    struct rtc_time tm = {0}; /* 時刻 */
+
+    /* 有効な時刻を読んで, 診断を出した記録を戻す */
+    zassert_equal(rtc_get_time(rtc_dev, &tm), EXIT_SUCCESS);
+
+    /* 期待: 最初の 1 回は, 時刻 (1 回目の転送) と制御レジスタ (2 回目) を読む */
+    transfers = 0U;
+    regs[REG_SECONDS] = VL_BIT;
+    zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
+    zassert_equal(transfers, 2U);
+
+    /* 期待: 続けて読んでも, 時刻だけを読む */
+    zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
+    zassert_equal(transfers, 3U);
+
+    /* 期待: 有効に戻ったあとに, また無効になれば, もう一度読む */
+    regs[REG_SECONDS] = 0U;
+    zassert_equal(rtc_get_time(rtc_dev, &tm), EXIT_SUCCESS);
+    transfers = 0U;
+    set_regs(0x60U, 0x00U, 0x05U, 0x08U, 0x04U, 0x10U, 0x26U); /* 秒 60 (範囲外) */
+    zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
+    zassert_equal(transfers, 2U);
+}
+
+/** 診断の制御レジスタを読めなくても, -ENODATA を返す (通信の失敗にはしない) */
+ZTEST(rtc_pcf8563, test_invalid_time_control_read_failure)
+{
+    struct rtc_time tm = {0}; /* 時刻 */
+
+    zassert_equal(rtc_get_time(rtc_dev, &tm), EXIT_SUCCESS);
+    transfers = 0U;
+    regs[REG_SECONDS] = VL_BIT;
+    fail_at = 2U;
+
+    zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
+    zassert_equal(transfers, 2U);
+}
+
 /** 範囲外のレジスタの値は信用せずに -ENODATA を返す (1 つずつ, 範囲外にする) */
 ZTEST(rtc_pcf8563, test_get_out_of_range)
 {

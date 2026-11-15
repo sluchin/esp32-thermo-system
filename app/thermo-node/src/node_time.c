@@ -62,6 +62,8 @@ static const struct device *const rtc_dev = DEVICE_DT_GET(DT_ALIAS(thermo_rtc));
 
 static int read_utc(int64_t *unix_s);
 
+static void log_saved_time(int64_t unix_s);
+
 static int64_t days_from_civil(int64_t year, int64_t month, int64_t day);
 
 static void civil_from_days(int64_t days, int64_t *year, int64_t *month, int64_t *day);
@@ -90,6 +92,8 @@ int node_time_init(void)
     if (err == -ENODATA) {
         LOG_WRN("The time of the RTC is not set");
         err = EXIT_SUCCESS;
+    } else if (err == EXIT_SUCCESS) {
+        log_saved_time(unix_s);
     }
     if (err != EXIT_SUCCESS) {
         LOG_ERR("Reading the time of the RTC failed (err %d)", err);
@@ -205,6 +209,26 @@ int node_time_set(int64_t unix_s)
     LOG_INF("RTC set (UNIX time %lld)", (long long)unix_s);
 
     return EXIT_SUCCESS;
+}
+
+/**
+ * RTC に保存されていた時刻 (UTC) をログに出す (電源を入れ直したあとも,
+ * 電池で時刻が残っているかを見る)
+ *
+ * @param[in] unix_s RTC から読んだ UTC の UNIX 時刻 [s]
+ */
+static void log_saved_time(int64_t unix_s)
+{
+    int64_t secs = unix_s % SECONDS_PER_DAY; /* その日の 0 時からの秒数 [s] */
+    int64_t year = 0;                        /* 年 */
+    int64_t month = 0;                       /* 月 */
+    int64_t day = 0;                         /* 日 */
+
+    civil_from_days(unix_s / SECONDS_PER_DAY, &year, &month, &day);
+    LOG_INF("The RTC has the saved time (UTC %04lld-%02lld-%02lld %02lld:%02lld:%02lld)",
+            (long long)year, (long long)month, (long long)day, (long long)(secs / SECONDS_PER_HOUR),
+            (long long)((secs % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE),
+            (long long)(secs % SECONDS_PER_MINUTE));
 }
 
 /**

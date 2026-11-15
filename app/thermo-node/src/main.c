@@ -101,7 +101,7 @@ static void play_button_sound(bool is_buzzer_ready);
 #define DIRECT_BUSY() false
 #endif
 
-/** RTC に時刻があるかを確かめる間隔 [ms] (1 分. 最初の確認は起動の 1 分後) */
+/** RTC に時刻があるかを確かめる間隔 [ms] (1 分. 最初の確認は起動の直後) */
 #define TIME_CHECK_INTERVAL_MS 60000
 
 /** WiFi で時刻を取る試みの回数の上限 (時刻がなくて試みて失敗した回数) */
@@ -227,10 +227,15 @@ int main(void)
     LOG_INF("Boot screen starts (uptime %lld ms)", (long long)k_uptime_get());
     boot_sequence(&devs);
     LOG_INF("Boot screen ended (uptime %lld ms)", (long long)k_uptime_get());
+#ifdef CONFIG_THERMO_RTC
+    /* RTC に保存された時刻を読む (ここで時刻がなければ, ループの始めに WiFi で取る) */
+    if (devs.is_rtc_ready) {
+        (void)node_time_get(&datetime);
+    }
+#endif
 #if defined(CONFIG_THERMO_DISPLAY) && defined(CONFIG_THERMO_RTC)
     /* 時刻をすぐ見られるよう, 時間のかかる処理の前に, 1 回表示する (測定値はまだない) */
     if (devs.is_display_ready && devs.is_rtc_ready) {
-        (void)node_time_get(&datetime);
         view.time = &datetime;
         ret = oled_show(&view);
         if (ret != EXIT_SUCCESS) {
@@ -254,7 +259,8 @@ int main(void)
     start_ms = k_uptime_get();
     next_retry_ms = start_ms + RETRY_INTERVAL_MS;
 #ifdef CONFIG_THERMO_WIFI_TIME
-    next_time_check_ms = start_ms + TIME_CHECK_INTERVAL_MS;
+    /* RTC に時刻がなければ, 待たずに, ループの始めに WiFi で取る */
+    next_time_check_ms = start_ms;
 #endif
 #ifdef CONFIG_THERMO_DISPLAY
     view.temp_history = &temp_history;
@@ -338,7 +344,7 @@ int main(void)
         }
 
 #ifdef CONFIG_THERMO_WIFI_TIME
-        /* 1 分ごとに, RTC に時刻がなければ, WiFi で時刻を取る (最大 5 回. RTC が使えるまで待つ) */
+        /* 起動の直後と 1 分ごとに, RTC に時刻がなければ, WiFi で時刻を取る (最大 5 回) */
         if ((!is_time_done) && (now_ms >= next_time_check_ms) && devs.is_rtc_ready &&
             (!DIRECT_BUSY())) {
             next_time_check_ms = next_grid_ms(start_ms, now_ms, TIME_CHECK_INTERVAL_MS);
@@ -538,8 +544,8 @@ static void boot_sequence(const struct optional_devices *devs)
 /**
  * RTC に時刻がなければ, WiFi と SNTP で時刻を取って, RTC に設定する
  *
- * 1 分ごとに呼ぶ (最初は起動の 1 分後. その間に BLE でゲートウェイから時刻が届けば, RTC に
- * 時刻がある). RTC に時刻があれば, BLE でも WiFi でも取る必要がないので, 何もしないで,
+ * 1 分ごとに呼ぶ (最初は起動の直後. 2 回目からは, その間に BLE でゲートウェイから時刻が届けば,
+ * RTC に時刻がある). RTC に時刻があれば, BLE でも WiFi でも取る必要がないので, 何もしないで,
  * 確認を終える. なければ, WiFi につないで時刻を取り, すぐに WiFi を切る (最大 25 秒,
  * この関数は戻らない). 取れなかったときはログを出して, 次の確認でやり直す. 試みが WIFI_TRY_LIMIT
  * 回になったら, 確認を終える (その後に BLE で時刻が届けば, RTC に設定される). WiFi を使えないとき
@@ -578,6 +584,8 @@ static bool check_time(bool is_time_valid, bool is_wifi_ready, unsigned int *tri
         LOG_ERR("Failed to set the RTC (err %d)", ret);
         return *tries >= WIFI_TRY_LIMIT;
     }
+    LOG_INF("Got the time over WiFi (SNTP) and set it to the RTC (UNIX time %lld)",
+            (long long)unix_s);
 
     return true;
 }

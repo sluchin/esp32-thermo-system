@@ -965,8 +965,9 @@ ZTEST(main_node, test_boot_skipped_without_devices)
     k_thread_abort(&main_thread);
 }
 
-/** 起動の 1 分後に RTC に時刻がなければ, WiFi で時刻を取って RTC に設定する. 取れたら終える */
-ZTEST(main_node, test_wifi_time_after_one_minute)
+/** 起動の直後に RTC に時刻がなければ, 待たずに WiFi で時刻を取って RTC に設定する. 取れたら終える
+ */
+ZTEST(main_node, test_wifi_time_at_start)
 {
     sensor_read_fake.custom_fake = fake_read;
     node_time_get_fake.custom_fake = fake_time_get_switch;
@@ -974,13 +975,9 @@ ZTEST(main_node, test_wifi_time_after_one_minute)
 
     start_main();
 
-    /* 期待: 1 分たつまでは取らない (WiFi は初期化だけして, つながない) */
-    k_msleep(BOOT_MS + CHECK_MS - 1000);
+    /* 期待: 1 分を待たずに, 起動のあとすぐ, WiFi で時刻を取って, RTC に設定する */
+    k_msleep(BOOT_MS + 1000);
     zassert_equal(wifi_time_init_fake.call_count, 1U);
-    zassert_equal(wifi_time_fetch_fake.call_count, 0U);
-
-    /* 期待: 1 分後に WiFi で時刻を取って, RTC に設定する */
-    k_msleep(2000);
     zassert_equal(wifi_time_fetch_fake.call_count, 1U);
     zassert_equal(node_time_set_fake.call_count, 1U);
     zassert_equal(node_time_set_fake.arg0_val, WIFI_SEC);
@@ -1008,7 +1005,7 @@ ZTEST(main_node, test_wifi_time_not_used_when_rtc_has_time)
     k_thread_abort(&main_thread);
 }
 
-/** WiFi で時刻を取れなかったら RTC に設定せず, 1 分ごとに 5 回まで試してやめる */
+/** WiFi で時刻を取れなかったら RTC に設定せず, 起動の直後から 1 分ごとに 5 回まで試してやめる */
 ZTEST(main_node, test_wifi_time_gives_up_after_five_tries)
 {
     sensor_read_fake.custom_fake = fake_read;
@@ -1019,12 +1016,14 @@ ZTEST(main_node, test_wifi_time_gives_up_after_five_tries)
 
     start_main();
 
-    /* 期待: 1 分ごとに 1 回ずつ */
-    k_msleep(BOOT_MS + (2 * CHECK_MS) + 1000);
-    zassert_equal(wifi_time_fetch_fake.call_count, 2U);
+    /* 期待: 起動の直後に 1 回, そのあとは 1 分ごとに 1 回ずつ */
+    k_msleep(BOOT_MS + 1000);
+    zassert_equal(wifi_time_fetch_fake.call_count, 1U);
+    k_msleep(2 * CHECK_MS);
+    zassert_equal(wifi_time_fetch_fake.call_count, 3U);
 
     /* 期待: 5 回で止まる (そのあとも測定は続けるが, 時刻は取らない) */
-    k_msleep(3 * CHECK_MS);
+    k_msleep(2 * CHECK_MS);
     zassert_equal(wifi_time_fetch_fake.call_count, WIFI_TRIES);
     k_msleep(5 * CHECK_MS);
     zassert_equal(wifi_time_fetch_fake.call_count, WIFI_TRIES);
@@ -1064,12 +1063,12 @@ ZTEST(main_node, test_wifi_time_stops_when_time_appears)
     start_main();
 
     k_msleep(BOOT_MS + (2 * CHECK_MS) + 1000);
-    zassert_equal(wifi_time_fetch_fake.call_count, 2U);
+    zassert_equal(wifi_time_fetch_fake.call_count, 3U);
 
     /* 期待: 時刻が入ったら, 次の確認で終える (それ以上, 試さない) */
     is_rtc_valid = true;
     k_msleep(5 * CHECK_MS);
-    zassert_equal(wifi_time_fetch_fake.call_count, 2U);
+    zassert_equal(wifi_time_fetch_fake.call_count, 3U);
 
     k_thread_abort(&main_thread);
 }

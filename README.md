@@ -223,7 +223,7 @@ scripts/flash.sh gateway /dev/ttyACM0
   - 手順は [docs/setup.md](docs/setup.md) の「ゲートウェイにつながらないときの、WiFi での直接の送信と、SD カードへの保存」を、ノードごとの証明書は [docs/aws_setup.md](docs/aws_setup.md) の 7 章を参照する。
 - ノードのログも、テキストで SD カードに保存する (`boot.log`: 起動から 60 秒の全てのログ、`error.log`: エラーのログ。形式は [docs/sd_log.md](docs/sd_log.md))。
 - 起動のときに、OLED に約 3 秒の起動画面を出して、ブザーで短いメロディを鳴らす。ボタン (D1) を押すと、ページを切り替えて、ブザーで短い音を鳴らす。
-- RTC に時刻がないときは、ノード自身が WiFi と SNTP で時刻を取る (BLE の予備)。起動の 1 分後から 1 分ごとに確かめて、取れたら WiFi を切る。最大 5 回までやり直す ([docs/setup.md](docs/setup.md) の「WiFi での時刻の取得」)。
+- RTC に時刻がないときは、ノード自身が WiFi と SNTP で時刻を取る (BLE の予備)。起動の直後と、そのあと 1 分ごとに確かめて、取れたら WiFi を切る。最大 5 回までやり直す ([docs/setup.md](docs/setup.md) の「WiFi での時刻の取得」)。
 - UART のシリアルコンソールに、ログを出す。
 
 ### Thermo Gateway
