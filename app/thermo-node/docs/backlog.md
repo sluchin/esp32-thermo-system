@@ -16,6 +16,7 @@
 | `backlog_pending()` | 未送信の記録の数 |
 | `backlog_read()` | 未送信の記録のうち、古い方から数えて `index` 番目を読む |
 | `backlog_commit()` | 古い方から `n` 件を送信済みにする |
+| `backlog_newest_unix()` | 走査で見つけた、最も新しい記録の時刻 (なければ -1)。RTC の VL が立ったとき、時刻を信用してよいかの基準になる |
 | `backlog_foreach_since()` | 指定の時刻以降の記録を、古い順に関数へ渡す |
 
 `CONFIG_THERMO_BACKLOG=n` のときは、`backlog.c` はビルドされず、ヘッダのインライン関数が代わりになります (`backlog_init()` などは `-ENODEV`、`backlog_pending()` は 0 を返す)。呼び出し側は、SD カードがないときと同じに扱います。

@@ -28,6 +28,7 @@
 #include <string.h> /* memset */
 
 #include "node_time.h"
+#include "thermo_rtc.h"
 
 /** 2026-10-08 05:00:00 UTC の UNIX 時刻 [s] (木曜日. ローカルタイムは 14:00:00) */
 #define UNIX_2026_10_08 1791435600LL
@@ -48,7 +49,7 @@
 
 /** 偽の RTC が持つ時刻 (rtc_get_time が返し, rtc_set_time が書き換える) */
 static struct rtc_time stored;
-/** rtc_get_time が返す値 (0 以外のときは時刻を返さずに, この値を返す) */
+/** rtc_get_time が返す値 (負は時刻を返さない. THERMO_RTC_UNVERIFIED は時刻も返す) */
 static int get_ret;
 /** rtc_set_time が返す値 (0 以外のときは時刻を書き換えずに, この値を返す) */
 static int set_ret;
@@ -63,18 +64,19 @@ static unsigned int set_calls;
  * @param[in]  dev     RTC のデバイス (使用しない)
  * @param[out] timeptr 時刻の格納先
  * @retval 0       成功
- * @retval nonzero get_ret
+ * @retval positive THERMO_RTC_UNVERIFIED (時刻も返す)
+ * @retval negative get_ret
  */
 static int fake_get_time(const struct device *dev, struct rtc_time *timeptr)
 {
     ARG_UNUSED(dev);
     get_calls++;
-    if (get_ret != 0) {
+    if (get_ret < 0) {
         return get_ret;
     }
     *timeptr = stored;
 
-    return 0;
+    return get_ret;
 }
 
 /**
@@ -145,6 +147,7 @@ static void before(void *fixture)
     set_ret = 0;
     get_calls = 0U;
     set_calls = 0U;
+    node_time_set_floor(-1);
 }
 
 /** RTC に時刻が設定されていれば, node_time_init() は成功する */
@@ -159,6 +162,14 @@ ZTEST(node_time, test_init_success)
 ZTEST(node_time, test_init_time_unset)
 {
     get_ret = -ENODATA;
+
+    zassert_equal(node_time_init(), EXIT_SUCCESS);
+}
+
+/** 時刻が信用できなくても (電圧低下のビット), RTC はあるので, node_time_init() は成功する */
+ZTEST(node_time, test_init_time_unverified)
+{
+    get_ret = THERMO_RTC_UNVERIFIED;
 
     zassert_equal(node_time_init(), EXIT_SUCCESS);
 }
@@ -194,6 +205,73 @@ ZTEST(node_time, test_get_local_time)
     zassert_equal(local.hour, 14U);
     zassert_equal(local.minute, 0U);
     zassert_equal(local.second, 0U);
+}
+
+/** 正常な時刻では, is_verified が true になる */
+ZTEST(node_time, test_get_verified)
+{
+    struct node_datetime local = {0}; /* 日時 */
+
+    zassert_equal(node_time_get(&local), EXIT_SUCCESS);
+    zassert_true(local.is_verified);
+}
+
+/** 電圧低下のビットが立った妥当な時刻 (2026 年以降) は, is_verified を false にして読める */
+ZTEST(node_time, test_get_unverified)
+{
+    struct node_datetime local = {0}; /* 日時 */
+
+    get_ret = THERMO_RTC_UNVERIFIED;
+    zassert_equal(node_time_get(&local), EXIT_SUCCESS);
+    zassert_true(local.is_valid);
+    zassert_false(local.is_verified);
+    zassert_equal(local.hour, 14U);
+}
+
+/** VL が立っていても, 時刻が最後の記録以上なら信用する (is_verified が true. 記録にも使える) */
+ZTEST(node_time, test_unverified_accepted_after_last_record)
+{
+    struct node_datetime local = {0}; /* 日時 */
+    int64_t unix_s = 0;               /* UTC の UNIX 時刻 [s] */
+
+    get_ret = THERMO_RTC_UNVERIFIED;
+    node_time_set_floor(UNIX_2026_10_08 - 60);
+    zassert_equal(node_time_get(&local), EXIT_SUCCESS);
+    zassert_true(local.is_verified);
+    zassert_equal(node_time_unix(&unix_s), EXIT_SUCCESS);
+    zassert_equal(unix_s, UNIX_2026_10_08);
+
+    /* 期待: 記録の時刻とちょうど同じでも信用する. ログは 1 回だけ (基準を知らせ直すと, また出す) */
+    node_time_set_floor(UNIX_2026_10_08);
+    zassert_equal(node_time_get(&local), EXIT_SUCCESS);
+    zassert_true(local.is_verified);
+}
+
+/** VL が立っていて, 時刻が最後の記録より前なら, 信用しない (OLED だけに出す). 記録がなくても同じ */
+ZTEST(node_time, test_unverified_rejected_before_last_record)
+{
+    struct node_datetime local = {0}; /* 日時 */
+
+    get_ret = THERMO_RTC_UNVERIFIED;
+    node_time_set_floor(UNIX_2026_10_08 + 1);
+    zassert_equal(node_time_get(&local), EXIT_SUCCESS);
+    zassert_false(local.is_verified);
+
+    node_time_set_floor(-1);
+    zassert_equal(node_time_get(&local), EXIT_SUCCESS);
+    zassert_false(local.is_verified);
+}
+
+/** 電圧低下のビットが立っていて, 2026 年より前の時刻は, 読めない (-ENODATA) */
+ZTEST(node_time, test_get_unverified_implausible)
+{
+    struct node_datetime local = {.is_valid = true}; /* 日時 */
+
+    get_ret = THERMO_RTC_UNVERIFIED;
+    set_stored(2000, 1, 1, 0, 0, 7);
+    zassert_equal(node_time_get(&local), -ENODATA);
+    zassert_false(local.is_valid);
+    zassert_false(local.is_verified);
 }
 
 /** UTC の 20:00 はローカルタイムでは翌日になる (年末は翌年の 1 月 1 日になる) */
@@ -253,6 +331,15 @@ ZTEST(node_time, test_unix_time)
     zassert_equal(unix_s, UNIX_2026_10_08);
 }
 
+/** 電圧低下のビットが立った時刻は, 記録に使わないので, -ENODATA を返す */
+ZTEST(node_time, test_unix_time_unverified)
+{
+    int64_t unix_s = 0; /* UTC の UNIX 時刻 [s] */
+
+    get_ret = THERMO_RTC_UNVERIFIED;
+    zassert_equal(node_time_unix(&unix_s), -ENODATA);
+}
+
 /** 時刻が未設定 (-ENODATA) や, RTC の失敗はその値を返す */
 ZTEST(node_time, test_unix_time_failures)
 {
@@ -262,6 +349,22 @@ ZTEST(node_time, test_unix_time_failures)
     zassert_equal(node_time_unix(&unix_s), -ENODATA);
     get_ret = -EIO;
     zassert_equal(node_time_unix(&unix_s), -EIO);
+}
+
+/** 設定のとき, RTC の時刻との差をログに出す (5 分を超えたら警告. 読めなければ出さない) */
+ZTEST(node_time, test_set_logs_the_difference)
+{
+    /* RTC は 05:00:00 (UTC). 30 秒後と, 10 分後と, 10 分前を設定する */
+    zassert_equal(node_time_set(UNIX_2026_10_08 + 30), EXIT_SUCCESS);
+    set_stored(2026, 10, 8, 5, 0, 0);
+    zassert_equal(node_time_set(UNIX_2026_10_08 + 600), EXIT_SUCCESS);
+    set_stored(2026, 10, 8, 5, 0, 0);
+    zassert_equal(node_time_set(UNIX_2026_10_08 - 600), EXIT_SUCCESS);
+
+    /* RTC の時刻を読めなくても, 設定はできる */
+    get_ret = -ENODATA;
+    zassert_equal(node_time_set(UNIX_2026_10_08), EXIT_SUCCESS);
+    zassert_equal(set_calls, 4U);
 }
 
 /** 時刻を設定すると, 月 (0 から 11), 年 (1900 年から), 曜日などが RTC に渡される */

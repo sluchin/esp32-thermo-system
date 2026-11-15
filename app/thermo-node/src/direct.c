@@ -102,6 +102,7 @@ int direct_init(void)
     cloud_set_attempt_limit(DIRECT_ATTEMPT_LIMIT);
 
     is_backlog_ready = (backlog_init() == EXIT_SUCCESS);
+    node_time_set_floor(backlog_newest_unix());
     if (!is_backlog_ready) {
         LOG_WRN("No SD card, the values are not saved while no connection is available");
     }
@@ -347,6 +348,7 @@ int direct_sd_check(unsigned int *pending)
             return err;
         }
         is_backlog_ready = true;
+        node_time_set_floor(backlog_newest_unix());
     }
     *pending = backlog_pending();
 

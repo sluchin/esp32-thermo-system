@@ -91,6 +91,8 @@ static unsigned int count;
 static unsigned int head;
 /** 未送信の記録の数 */
 static unsigned int pending;
+/** 走査で見つけた, 最も新しい記録の時刻 [s] (記録がなければ -1) */
+static int64_t newest_unix_s = -1;
 /** 最も古い未送信の記録の論理の位置 (これより前は全て送信済み. pending が 0 のときは使わない)
  */
 static unsigned int first_pos;
@@ -163,6 +165,7 @@ int backlog_init(void)
     head = 0U;
     pending = 0U;
     first_pos = 0U;
+    newest_unix_s = -1;
 
     err = backlog_mount();
     if (err != EXIT_SUCCESS) {
@@ -179,6 +182,18 @@ int backlog_init(void)
             (long long)(k_uptime_get() - mounted_ms), (long long)k_uptime_get());
 
     return EXIT_SUCCESS;
+}
+
+/**
+ * @brief 走査で見つけた, 最も新しい記録の時刻を返す
+ *
+ * RTC の時刻が信用できるかを調べる基準に使う (RTC は, 最後の記録より前には戻らない).
+ *
+ * @return 最も新しい記録の UNIX 時刻 [s]. 記録がなければ (SD カードがなければ) -1
+ */
+int64_t backlog_newest_unix(void)
+{
+    return newest_unix_s;
 }
 
 /**
@@ -627,6 +642,7 @@ static void scan(unsigned int slots)
         }
     }
     (void)fs_close(&file);
+    newest_unix_s = newest;
 
     if (count >= BACKLOG_MAX_RECORDS) {
         head = ((newest >= 0) ? ((newest_phys + 1U) % BACKLOG_MAX_RECORDS) : 0U);

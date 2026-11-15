@@ -21,13 +21,14 @@
 
 /** 日時 (ローカルタイム) */
 struct node_datetime {
-    bool is_valid;  /**< 時刻が設定済みで, 正しく読めたか (false のときは下の値を使わない) */
-    uint16_t year;  /**< 年 (2000 から 2100) */
-    uint8_t month;  /**< 月 (1 から 12) */
-    uint8_t day;    /**< 日 (1 から 31) */
-    uint8_t hour;   /**< 時 (0 から 23) */
-    uint8_t minute; /**< 分 (0 から 59) */
-    uint8_t second; /**< 秒 (0 から 59) */
+    bool is_valid;    /**< 時刻を読めたか (false のときは下の値を使わない) */
+    bool is_verified; /**< 時刻が信用できるか (false は VL が立っている. 表示だけに使う) */
+    uint16_t year;    /**< 年 (2000 から 2100) */
+    uint8_t month;    /**< 月 (1 から 12) */
+    uint8_t day;      /**< 日 (1 から 31) */
+    uint8_t hour;     /**< 時 (0 から 23) */
+    uint8_t minute;   /**< 分 (0 から 59) */
+    uint8_t second;   /**< 秒 (0 から 59) */
 };
 
 int node_time_init(void);
@@ -37,5 +38,7 @@ int node_time_get(struct node_datetime *local);
 int node_time_set(int64_t unix_s);
 
 int node_time_unix(int64_t *unix_s);
+
+void node_time_set_floor(int64_t unix_s);
 
 #endif /* THERMO_NODE_NODE_TIME_H */

@@ -34,6 +34,7 @@
 #include <string.h>  /* memset */
 
 #include "thermo_log.h"
+#include "thermo_rtc.h"
 
 LOG_MODULE_REGISTER(rtc_pcf8563_thermo_node, THERMO_LOG_LEVEL);
 
@@ -172,7 +173,9 @@ static int pcf8563_set_time(const struct device *dev, const struct rtc_time *tim
  * @param[in]  dev     RTC のデバイス
  * @param[out] timeptr 時刻の格納先 (tm_yday と tm_isdst は -1, tm_nsec は 0. 曜日が不正なら -1)
  * @retval EXIT_SUCCESS 成功
- * @retval -ENODATA     時刻が未設定 (電圧低下のビットが 1) または値が範囲外
+ * @retval THERMO_RTC_UNVERIFIED 時刻は読めたが, 電圧低下のビットが 1 で, 信用できない
+ *                               (時刻は timeptr に入る)
+ * @retval -ENODATA     値が範囲外 (電池が切れて, レジスタが壊れているなど)
  * @retval negative     I2C の通信の失敗 (負の errno)
  */
 static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
@@ -180,6 +183,7 @@ static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
     const struct pcf8563_config *config = NULL; /* ドライバの設定 */
     uint8_t raw[PCF8563_TIME_BYTES] = {0U};     /* 時刻のレジスタの値 (BCD) */
     int weekday = 0;                            /* 曜日 (日曜日が 0) */
+    bool is_vl = false;                         /* 電圧低下のビットが 1 か */
     int err = EXIT_SUCCESS;                     /* エラーコード */
 
     config = (const struct pcf8563_config *)dev->config;
@@ -190,11 +194,7 @@ static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
         return err;
     }
 
-    /* 電圧低下のビットが 1 のときは時刻が設定されていない (または電池が切れた) */
-    if ((raw[IDX_SECOND] & PCF8563_VL_BIT) != 0U) {
-        warn_invalid(config, raw, "VL bit is set");
-        return -ENODATA;
-    }
+    is_vl = ((raw[IDX_SECOND] & PCF8563_VL_BIT) != 0U);
 
     timeptr->tm_sec = bcd2bin(raw[IDX_SECOND] & PCF8563_MASK_SECOND);
     timeptr->tm_min = bcd2bin(raw[IDX_MINUTE] & PCF8563_MASK_MINUTE);
@@ -212,13 +212,19 @@ static int pcf8563_get_time(const struct device *dev, struct rtc_time *timeptr)
         warn_invalid(config, raw, "out of range");
         return -ENODATA;
     }
-    is_warned_invalid = false;
 
     weekday = (int)(raw[IDX_WEEKDAY] & PCF8563_MASK_WEEKDAY);
     timeptr->tm_wday = (is_in_range(weekday, 0, MAX_WEEKDAY) ? weekday : -1);
     timeptr->tm_yday = -1;
     timeptr->tm_isdst = -1;
     timeptr->tm_nsec = 0;
+
+    /* VL が 1 でも時計は動いていることがある. 時刻を返して, 信用できないことを伝える */
+    if (is_vl) {
+        warn_invalid(config, raw, "VL bit is set");
+        return THERMO_RTC_UNVERIFIED;
+    }
+    is_warned_invalid = false;
 
     return EXIT_SUCCESS;
 }
@@ -247,7 +253,7 @@ static int pcf8563_init(const struct device *dev)
 }
 
 /**
- * @brief 時刻が無効なことと, そのときのレジスタの値を, ログに出す (最初の 1 回だけ)
+ * @brief 時刻が信用できないことと, そのときのレジスタの値を, ログに出す (最初の 1 回だけ)
  *
  * 電源を切ったあとに時刻が消えるとき, 電池が効いていないのか (時刻が 2000-01-01
  * から数え直しになる), 発振が止まったのかを見分けるための診断. 制御レジスタ (0x00 と 0x01)
@@ -273,7 +279,7 @@ static void warn_invalid(const struct pcf8563_config *config, const uint8_t *raw
         /* 制御レジスタを読めなくても, 時刻のレジスタの値は出す */
         (void)memset(ctrl, 0, sizeof(ctrl));
     }
-    LOG_WRN("The time of the RTC is not valid (%s). Registers: control1 0x%02x control2 0x%02x, "
+    LOG_WRN("The time of the RTC is not reliable (%s). Registers: control1 0x%02x control2 0x%02x, "
             "time (sec min hour day wday month year) %02x %02x %02x %02x %02x %02x %02x",
             reason, ctrl[0], ctrl[1], raw[IDX_SECOND], raw[IDX_MINUTE], raw[IDX_HOUR], raw[IDX_DAY],
             raw[IDX_WEEKDAY], raw[IDX_MONTH], raw[IDX_YEAR]);

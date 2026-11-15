@@ -66,6 +66,8 @@ int backlog_commit(unsigned int count);
 
 int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t visit, void *ctx);
 
+int64_t backlog_newest_unix(void);
+
 #else
 
 /*
@@ -161,6 +163,16 @@ static inline int backlog_foreach_since(int64_t since_unix_s, backlog_visit_t vi
     ARG_UNUSED(ctx);
 
     return -ENODEV;
+}
+
+/**
+ * 何もしない (SD カードを使わない)
+ *
+ * @return -1 (記録なし)
+ */
+static inline int64_t backlog_newest_unix(void)
+{
+    return -1;
 }
 
 #endif /* CONFIG_THERMO_BACKLOG */

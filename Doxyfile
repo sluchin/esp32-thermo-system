@@ -28,6 +28,7 @@ INPUT                  = README.md \
                          docs/misra.md \
                          TODO.md \
                          docs/sd_log.md \
+                         docs/rtc_time.md \
                          docs/test_integration.md \
                          docs/man \
                          .claude/CLAUDE.md \

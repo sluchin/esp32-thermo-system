@@ -23,7 +23,8 @@ RTC は **UTC** を保持します。ローカルタイムに直すのは、表�
 
 | メンバー | 内容 |
 | :--- | :--- |
-| `valid` | 時刻が設定済みで、正しく読めたか。false のときは、下の値を使わない |
+| `valid` | 時刻を読めたか。false のときは、下の値を使わない |
+| `is_verified` | 時刻が信用できるか。false は、電圧低下 (VL) のビットが立っていて、最後の記録より前に戻っている (または記録がない)。OLED には出すが、保存には使わず、WiFi で取り直す |
 | `year` | 年 (2000 から 2100) |
 | `month`、`day` | 月 (1 から 12)、日 (1 から 31) |
 | `hour`、`minute`、`second` | 時、分、秒 |
@@ -40,7 +41,7 @@ read_utc()
 成功 -> "RTC initialized"
 ```
 
-時刻が未設定でも成功とするのは、RTC そのものはつながっているからです。時刻がないことは、`node_time_get()` の `valid` か、`node_time_unix()` の `-ENODATA` で分かります。
+時刻が未設定でも成功とするのは、RTC そのものはつながっているからです。時刻がないことは、`node_time_get()` の `valid` か、`node_time_unix()` の `-ENODATA` で分かります。VL が立った時刻 (2026 年以降) は、SD カードの最後の記録の時刻以上なら、信用します (`node_time_set_floor()` で、起動のときに知らせます)。そうでなければ、`node_time_get()` が `valid` と `is_verified = false` で返しますが、`node_time_unix()` は `-ENODATA` を返します (誤った時刻を、記録に残さないため。[rtc_time.md](../../../docs/rtc_time.md))。
 
 ## node_time_get
 
@@ -90,7 +91,7 @@ rtc_set_time()
 
 ## read_utc
 
-`rtc_get_time()` で `struct rtc_time` を読み、`days_from_civil() * 86400 + 時 * 3600 + 分 * 60 + 秒` を求めます。`-ENODATA` は時刻が未設定であることを表すので、ログを出さずに返します。ほかの失敗では、`LOG_ERR` を出します。
+`rtc_get_time()` で `struct rtc_time` を読み、`days_from_civil() * 86400 + 時 * 3600 + 分 * 60 + 秒` を求めます。ドライバが `THERMO_RTC_UNVERIFIED` を返したときは、時刻を求めたうえで、信用できないものとして扱います (2026-01-01 より前なら `-ENODATA`)。`-ENODATA` は時刻が未設定であることを表すので、ログを出さずに返します。ほかの失敗では、`LOG_ERR` を出します。
 
 ## 注意点
 

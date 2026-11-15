@@ -46,6 +46,8 @@ FAKE_VALUE_FUNC(unsigned int, backlog_pending)
 FAKE_VALUE_FUNC(int, backlog_read, struct backlog_record *, unsigned int)
 FAKE_VALUE_FUNC(int, backlog_commit, unsigned int)
 FAKE_VALUE_FUNC(int, node_time_unix, int64_t *)
+FAKE_VOID_FUNC(node_time_set_floor, int64_t)
+FAKE_VALUE_FUNC(int64_t, backlog_newest_unix)
 FAKE_VALUE_FUNC(bool, ble_is_connected)
 FAKE_VALUE_FUNC(int, ble_get_address, bt_addr_le_t *)
 FAKE_VALUE_FUNC(bool, cfg_is_complete)
@@ -236,6 +238,8 @@ static void before(void *fixture)
     RESET_FAKE(backlog_read);
     RESET_FAKE(backlog_commit);
     RESET_FAKE(node_time_unix);
+    RESET_FAKE(node_time_set_floor);
+    RESET_FAKE(backlog_newest_unix);
     RESET_FAKE(cloud_publish_temperature_at);
     RESET_FAKE(cloud_is_connected);
     RESET_FAKE(cloud_pending);
@@ -784,9 +788,12 @@ ZTEST(direct, test_sd_check_mounts_again)
 
     /* カードを挿し直したら使える */
     backlog_init_fake.return_val = 0;
+    backlog_newest_unix_fake.return_val = 1700000000LL;
     put_records(2U);
     zassert_equal(direct_sd_check(&pending), EXIT_SUCCESS);
     zassert_equal(pending, 2U);
+    /* 期待: 最後の記録の時刻を, RTC の判定の基準として知らせる */
+    zassert_equal(node_time_set_floor_fake.arg0_val, 1700000000LL);
 }
 
 /** SD カードがすでに使えているときはマウントし直さない */

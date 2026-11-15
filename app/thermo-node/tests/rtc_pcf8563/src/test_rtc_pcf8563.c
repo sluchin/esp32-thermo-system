@@ -12,7 +12,8 @@
  * 次を確認する.
  *  - レジスタ (BCD) を Zephyr の rtc_time (月は 0 から 11, 年は 1900 年からの年数) に直すこと
  *    (12 月と 2099 年を含む)
- *  - 時刻が未設定 (電圧低下のビット) や範囲外の値は -ENODATA にすること. 世紀のビットは無視
+ *  - 電圧低下のビットが 1 なら, 時刻を読んで THERMO_RTC_UNVERIFIED を返すこと
+ *  - 範囲外の値は (電圧低下のビットが 1 でも) -ENODATA にすること. 世紀のビットは無視
  *  - rtc_time を設定すると, 正しい BCD がレジスタに書かれて, 電圧低下のビットが消えること
  *  - 範囲外の時刻の設定は何も書かずに -EINVAL にすること. I2C の通信の失敗が伝わること
  */
@@ -29,6 +30,8 @@
 #include <stdint.h>  /* uint8_t */
 #include <stdlib.h>  /* EXIT_SUCCESS */
 #include <string.h>  /* memset */
+
+#include "thermo_rtc.h"
 
 /** 偽の RTC の I2C アドレス (PCF8563) */
 #define RTC_ADDR     0x51U
@@ -241,17 +244,34 @@ ZTEST(rtc_pcf8563, test_get_weekday_unknown)
     zassert_equal(tm.tm_wday, -1);
 }
 
-/** 電圧低下のビットが 1 なら (時刻が未設定), -ENODATA を返す */
-ZTEST(rtc_pcf8563, test_get_time_unset)
+/** 電圧低下のビットが 1 なら, 時刻 (ビットを除いた値) を読んで, THERMO_RTC_UNVERIFIED を返す */
+ZTEST(rtc_pcf8563, test_get_time_unverified)
 {
     struct rtc_time tm = {0}; /* 時刻 */
 
-    regs[REG_SECONDS] = VL_BIT;
+    set_regs(VL_BIT | 0x07U, 0x06U, 0x05U, 0x08U, 0x04U, 0x10U, 0x26U);
+
+    zassert_equal(rtc_get_time(rtc_dev, &tm), THERMO_RTC_UNVERIFIED);
+    zassert_equal(tm.tm_sec, 7);
+    zassert_equal(tm.tm_min, 6);
+    zassert_equal(tm.tm_hour, 5);
+    zassert_equal(tm.tm_mday, 8);
+    zassert_equal(tm.tm_mon, 9);
+    zassert_equal(tm.tm_year, 126);
+    zassert_equal(tm.tm_wday, 4);
+}
+
+/** 電圧低下のビットが 1 で, 値も範囲外なら, -ENODATA を返す */
+ZTEST(rtc_pcf8563, test_get_unverified_out_of_range)
+{
+    struct rtc_time tm = {0}; /* 時刻 */
+
+    set_regs(VL_BIT, 0x60U, 0x05U, 0x08U, 0x04U, 0x10U, 0x26U); /* 分 60 */
 
     zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
 }
 
-/** 時刻が無効なときは, 診断のために制御レジスタを 1 回だけ読む */
+/** 時刻が信用できないときは, 診断のために制御レジスタを 1 回だけ読む */
 ZTEST(rtc_pcf8563, test_invalid_time_reads_the_control_registers_once)
 {
     struct rtc_time tm = {0}; /* 時刻 */
@@ -262,11 +282,11 @@ ZTEST(rtc_pcf8563, test_invalid_time_reads_the_control_registers_once)
     /* 期待: 最初の 1 回は, 時刻 (1 回目の転送) と制御レジスタ (2 回目) を読む */
     transfers = 0U;
     regs[REG_SECONDS] = VL_BIT;
-    zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
+    zassert_equal(rtc_get_time(rtc_dev, &tm), THERMO_RTC_UNVERIFIED);
     zassert_equal(transfers, 2U);
 
     /* 期待: 続けて読んでも, 時刻だけを読む */
-    zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
+    zassert_equal(rtc_get_time(rtc_dev, &tm), THERMO_RTC_UNVERIFIED);
     zassert_equal(transfers, 3U);
 
     /* 期待: 有効に戻ったあとに, また無効になれば, もう一度読む */
@@ -278,7 +298,7 @@ ZTEST(rtc_pcf8563, test_invalid_time_reads_the_control_registers_once)
     zassert_equal(transfers, 2U);
 }
 
-/** 診断の制御レジスタを読めなくても, -ENODATA を返す (通信の失敗にはしない) */
+/** 診断の制御レジスタを読めなくても, THERMO_RTC_UNVERIFIED を返す (通信の失敗にはしない) */
 ZTEST(rtc_pcf8563, test_invalid_time_control_read_failure)
 {
     struct rtc_time tm = {0}; /* 時刻 */
@@ -288,7 +308,7 @@ ZTEST(rtc_pcf8563, test_invalid_time_control_read_failure)
     regs[REG_SECONDS] = VL_BIT;
     fail_at = 2U;
 
-    zassert_equal(rtc_get_time(rtc_dev, &tm), -ENODATA);
+    zassert_equal(rtc_get_time(rtc_dev, &tm), THERMO_RTC_UNVERIFIED);
     zassert_equal(transfers, 2U);
 }
 

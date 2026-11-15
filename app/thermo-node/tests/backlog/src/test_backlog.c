@@ -413,6 +413,20 @@ ZTEST(backlog, test_records_broken_after_init)
     zassert_equal(backlog_read(&got, 0U), -ENOENT);
 }
 
+/** 走査で見つけた最も新しい記録の時刻を返す (記録がなければ -1. 輪になったあとも最も新しい) */
+ZTEST(backlog, test_newest_unix)
+{
+    zassert_equal(backlog_newest_unix(), -1);
+
+    append_n(0U, 3U, false);
+    zassert_equal(backlog_init(), EXIT_SUCCESS);
+    zassert_equal(backlog_newest_unix(), BASE_UNIX + (2 * STEP_S));
+
+    append_n(3U, 6U, false); /* 輪になる */
+    zassert_equal(backlog_init(), EXIT_SUCCESS);
+    zassert_equal(backlog_newest_unix(), BASE_UNIX + (8 * STEP_S));
+}
+
 /** 指定の時刻以降の記録を古い順に集める (送信済みも含む). 輪になったあとも同じ */
 ZTEST(backlog, test_foreach_since)
 {

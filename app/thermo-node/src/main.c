@@ -73,7 +73,7 @@ static int measure(int16_t *temp_x10, uint16_t *humidity_x10, uint16_t *pressure
 static int64_t next_grid_ms(int64_t start_ms, int64_t now_ms, int64_t interval_ms);
 
 #ifdef CONFIG_THERMO_WIFI_TIME
-static bool check_time(bool is_time_valid, bool is_wifi_ready, unsigned int *tries);
+static bool check_time(bool has_time, bool is_wifi_ready, unsigned int *tries);
 #endif
 
 #ifdef CONFIG_THERMO_BUTTON_SOUND
@@ -251,6 +251,12 @@ int main(void)
     if (ret != EXIT_SUCCESS) {
         LOG_ERR("Direct publish is not available (err %d)", ret);
     }
+#ifdef CONFIG_THERMO_RTC
+    /* 最後の記録の時刻が分かったので, VL が立った RTC の時刻を, 信用してよいか判定し直す */
+    if (devs.is_rtc_ready) {
+        (void)node_time_get(&datetime);
+    }
+#endif
 #endif
     LOG_INF("Initialization done (uptime %lld ms)", (long long)k_uptime_get());
     /* SD カードをマウントできていれば, ここまでの起動のログを書く */
@@ -348,7 +354,7 @@ int main(void)
         if ((!is_time_done) && (now_ms >= next_time_check_ms) && devs.is_rtc_ready &&
             (!DIRECT_BUSY())) {
             next_time_check_ms = next_grid_ms(start_ms, now_ms, TIME_CHECK_INTERVAL_MS);
-            is_time_done = check_time(datetime.is_valid, devs.is_wifi_ready, &wifi_tries);
+            is_time_done = check_time(datetime.is_verified, devs.is_wifi_ready, &wifi_tries);
         }
 #endif
 
@@ -551,18 +557,18 @@ static void boot_sequence(const struct optional_devices *devs)
  * 回になったら, 確認を終える (その後に BLE で時刻が届けば, RTC に設定される). WiFi を使えないとき
  * (初期化の失敗) は試みに数えず次の確認を待つ.
  *
- * @param[in]     is_time_valid RTC に時刻があるか (直前に読んだ結果)
+ * @param[in]     has_time RTC に信用できる時刻があるか (直前に読んだ結果)
  * @param[in]     is_wifi_ready WiFi (時刻の取得) を使えるか
  * @param[in,out] tries      WiFi で時刻を取ろうとした回数
  * @retval true  確認を終えた (RTC に時刻がある, または試みを尽くした)
  * @retval false 次の確認でも続ける
  */
-static bool check_time(bool is_time_valid, bool is_wifi_ready, unsigned int *tries)
+static bool check_time(bool has_time, bool is_wifi_ready, unsigned int *tries)
 {
     int64_t unix_s = 0;     /* WiFi で取った UTC の UNIX 時刻 [s] */
     int ret = EXIT_SUCCESS; /* 戻り値 */
 
-    if (is_time_valid) {
+    if (has_time) {
         return true;
     }
 

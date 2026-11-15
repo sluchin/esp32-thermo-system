@@ -132,6 +132,8 @@ FAKE_VALUE_FUNC(bool, direct_is_active)
 
 /** RTC に時刻があるか (fake_time_get_switch() が返す) */
 static bool is_rtc_valid;
+/** 偽の RTC の時刻が, 信用できないか (電圧低下のビット. is_rtc_valid が true のときだけ使う) */
+static bool is_rtc_unverified;
 
 /** 押されたことにする button_is_pressed() の呼び出しの回数 (0 は使わない) */
 static unsigned int press_at[PRESS_COUNT];
@@ -221,6 +223,7 @@ static unsigned int shown_count(void)
 static int fake_time_get(struct node_datetime *local)
 {
     local->is_valid = true;
+    local->is_verified = true;
     local->year = FAKE_YEAR;
     local->month = FAKE_MONTH;
     local->day = FAKE_DAY;
@@ -240,6 +243,7 @@ static int fake_time_get(struct node_datetime *local)
 static int fake_time_get_switch(struct node_datetime *local)
 {
     local->is_valid = is_rtc_valid;
+    local->is_verified = is_rtc_valid && (!is_rtc_unverified);
     local->year = FAKE_YEAR;
     local->month = FAKE_MONTH;
     local->day = FAKE_DAY;
@@ -331,6 +335,7 @@ static void before(void *fixture)
     node_time_get_fake.custom_fake = fake_time_get;
     wifi_time_fetch_fake.custom_fake = fake_fetch;
     is_rtc_valid = true;
+    is_rtc_unverified = false;
     (void)memset(press_at, 0, sizeof(press_at));
     button_is_pressed_fake.custom_fake = fake_is_pressed;
     early_shows = 0U;
@@ -432,7 +437,7 @@ ZTEST(main_node, test_main_loop)
     zassert_equal(ble_notify_temperature_fake.arg2_history[1], THERMO_PRESSURE_NONE);
     /* OLED は 1 秒ごとに更新する (100 ms + 5 s の間に 0 s から 5 s の 6 回) */
     zassert_equal(shown_count(), 6U);
-    zassert_equal(node_time_get_fake.call_count, 7U); /* 起動画面のあとの 1 回と, ループの 6 回 */
+    zassert_equal(node_time_get_fake.call_count, 8U); /* 起動の 2 回と, ループの 6 回 */
     zassert_equal(shown[5].temp_x10, FAKE_TEMP_2_X10);
     zassert_equal(shown[5].humidity_x10, THERMO_HUMIDITY_NONE);
     /* 2 回目は湿度がないので, 温度だけを履歴に加える */
@@ -644,7 +649,7 @@ ZTEST(main_node, test_time_unset)
     start_main();
 
     k_msleep(STARTUP_WAIT_MS);
-    zassert_equal(node_time_get_fake.call_count, 2U); /* 起動画面のあとの 1 回と, ループの 1 回 */
+    zassert_equal(node_time_get_fake.call_count, 3U); /* 起動の 2 回と, ループの 1 回 */
     zassert_equal(shown_count(), 1U);
     zassert_not_null(shown[0].time);
     zassert_false(shown_time[0].is_valid);
@@ -985,6 +990,26 @@ ZTEST(main_node, test_wifi_time_at_start)
     /* 期待: 取れたら確認を終える (そのあとは RTC が空のままでも取らない) */
     k_msleep(10 * CHECK_MS);
     zassert_equal(wifi_time_fetch_fake.call_count, 1U);
+
+    k_thread_abort(&main_thread);
+}
+
+/** RTC の時刻が信用できなくても (電圧低下のビット), OLED には出して, WiFi で時刻を取り直す */
+ZTEST(main_node, test_wifi_time_when_rtc_time_unverified)
+{
+    sensor_read_fake.custom_fake = fake_read;
+    node_time_get_fake.custom_fake = fake_time_get_switch;
+    is_rtc_valid = true;
+    is_rtc_unverified = true;
+
+    start_main();
+
+    k_msleep(BOOT_MS + 1000);
+    /* 期待: 時刻は表示する */
+    zassert_true(shown_time[0].is_valid);
+    /* 期待: それでも WiFi で時刻を取って, RTC に設定する */
+    zassert_equal(wifi_time_fetch_fake.call_count, 1U);
+    zassert_equal(node_time_set_fake.call_count, 1U);
 
     k_thread_abort(&main_thread);
 }

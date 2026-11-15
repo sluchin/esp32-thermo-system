@@ -17,52 +17,65 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/rtc.h>
-#include <errno.h>  /* ENODEV ENODATA ERANGE */
-#include <stdint.h> /* int64_t uint8_t */
-#include <stdlib.h> /* EXIT_SUCCESS */
+#include <errno.h>   /* ENODEV ENODATA ERANGE */
+#include <stdbool.h> /* bool */
+#include <stdint.h>  /* int64_t uint8_t */
+#include <stdlib.h>  /* EXIT_SUCCESS */
 
 #include "node_time.h"
 #include "thermo_log.h"
+#include "thermo_rtc.h"
 
 LOG_MODULE_REGISTER(node_time_thermo_node, THERMO_LOG_LEVEL);
 
 /** rtc_time の tm_year の基準 (tm_year は 1900 年からの年数) */
-#define TM_YEAR_BASE       1900
+#define TM_YEAR_BASE            1900
 /** 1 分の秒数 */
-#define SECONDS_PER_MINUTE 60LL
+#define SECONDS_PER_MINUTE      60LL
 /** 1 時間の秒数 */
-#define SECONDS_PER_HOUR   3600LL
+#define SECONDS_PER_HOUR        3600LL
 /** 1 日の秒数 */
-#define SECONDS_PER_DAY    86400LL
+#define SECONDS_PER_DAY         86400LL
 /** 1970-01-01 (UNIX 時刻の 0) の曜日 (木曜日 = 4. 日曜日が 0) */
-#define EPOCH_WEEKDAY      4LL
+#define EPOCH_WEEKDAY           4LL
 /** 1 週間の日数 */
-#define DAYS_PER_WEEK      7LL
+#define DAYS_PER_WEEK           7LL
 /** 2000-01-01 00:00:00 UTC の UNIX 時刻 [s] (設定できる最小の時刻) */
-#define UNIX_TIME_MIN      946684800LL
+#define UNIX_TIME_MIN           946684800LL
 /** 2099-12-31 23:59:59 UTC の UNIX 時刻 [s] (設定できる最大の時刻) */
-#define UNIX_TIME_MAX      4102444799LL
+#define UNIX_TIME_MAX           4102444799LL
+/** 2026-01-01 UTC の UNIX 時刻 [s] (VL が立った時刻を表示してよい最小の時刻) */
+#define UNIX_TIME_PLAUSIBLE_MIN 1767225600LL
+/** RTC の時刻と設定する時刻の差を, 警告にする大きさ [s] (5 分) */
+#define DIFFERENCE_WARN_S       300LL
 /** 0000-03-01 から 1970-01-01 までの日数 (日付の計算の基準を 1970-01-01 に直すための値) */
-#define DAYS_TO_EPOCH      719468LL
+#define DAYS_TO_EPOCH           719468LL
 /** 400 年 (グレゴリオ暦の周期) の日数 */
-#define DAYS_PER_ERA       146097LL
+#define DAYS_PER_ERA            146097LL
 /** 1 年 (3 月始まり) の日数 */
-#define DAYS_PER_YEAR      365LL
+#define DAYS_PER_YEAR           365LL
 /** 4 年の日数のうるう日を除いた, 4 年ごとの割り算の値 */
-#define YEARS_PER_LEAP     4LL
+#define YEARS_PER_LEAP          4LL
 /** 100 年ごとのうるう日を除く割り算の値 */
-#define YEARS_PER_CENTURY  100LL
+#define YEARS_PER_CENTURY       100LL
 /** グレゴリオ暦の周期 [年] */
-#define YEARS_PER_ERA      400LL
+#define YEARS_PER_ERA           400LL
 /** 3 月始まりの 5 か月 (3 月から 7 月) の日数 (月と日数の換算の係数) */
-#define DAYS_PER_5_MONTHS  153LL
+#define DAYS_PER_5_MONTHS       153LL
+
+/** 最後の記録の時刻 [s] (VL が立った RTC の時刻が, これ以上なら信用する. -1 は記録なし) */
+static int64_t floor_s = -1;
+/** VL が立った時刻を, 最後の記録との比較で信用したことを, ログに出したか */
+static bool is_logged_accepted;
 
 /** Devicetree (alias thermo-rtc) から取得した RTC のデバイス */
 static const struct device *const rtc_dev = DEVICE_DT_GET(DT_ALIAS(thermo_rtc));
 
-static int read_utc(int64_t *unix_s);
+static int read_utc(int64_t *unix_s, bool *is_verified);
 
-static void log_saved_time(int64_t unix_s);
+static void log_saved_time(int64_t unix_s, bool is_verified);
+
+static void log_difference(int64_t unix_s);
 
 static int64_t days_from_civil(int64_t year, int64_t month, int64_t day);
 
@@ -80,20 +93,21 @@ static void civil_from_days(int64_t days, int64_t *year, int64_t *month, int64_t
  */
 int node_time_init(void)
 {
-    int64_t unix_s = 0;     /* RTC の時刻 (UTC の UNIX 時刻 [s]) */
-    int err = EXIT_SUCCESS; /* エラーコード */
+    int64_t unix_s = 0;      /* RTC の時刻 (UTC の UNIX 時刻 [s]) */
+    bool is_verified = true; /* 時刻が信用できるか */
+    int err = EXIT_SUCCESS;  /* エラーコード */
 
     if (!device_is_ready(rtc_dev)) {
         LOG_ERR("RTC is not ready");
         return -ENODEV;
     }
 
-    err = read_utc(&unix_s);
+    err = read_utc(&unix_s, &is_verified);
     if (err == -ENODATA) {
         LOG_WRN("The time of the RTC is not set");
         err = EXIT_SUCCESS;
     } else if (err == EXIT_SUCCESS) {
-        log_saved_time(unix_s);
+        log_saved_time(unix_s, is_verified);
     }
     if (err != EXIT_SUCCESS) {
         LOG_ERR("Reading the time of the RTC failed (err %d)", err);
@@ -108,7 +122,9 @@ int node_time_init(void)
 /**
  * @brief RTC の時刻をローカルタイムで読む
  *
- * RTC の UTC に CONFIG_THERMO_UTC_OFFSET_MIN を足して, 年月日と時分秒に直す.
+ * RTC の UTC に CONFIG_THERMO_UTC_OFFSET_MIN を足して, 年月日と時分秒に直す. 電圧低下のビットが
+ * 立っていても, 時刻が妥当 (2026 年以降) なら読めて, is_verified が false になる (表示に使う.
+ * 記録には使わない).
  *
  * @param[out] local 日時の格納先 (NULL 不可. 失敗したときは is_valid が false)
  * @retval EXIT_SUCCESS 成功
@@ -117,17 +133,19 @@ int node_time_init(void)
  */
 int node_time_get(struct node_datetime *local)
 {
-    int64_t unix_s = 0;     /* RTC の時刻 (UTC の UNIX 時刻 [s]) */
-    int64_t local_s = 0;    /* ローカルタイムの UNIX 時刻 [s] */
-    int64_t secs = 0;       /* その日の 0 時からの秒数 [s] */
-    int64_t year = 0;       /* 年 */
-    int64_t month = 0;      /* 月 */
-    int64_t day = 0;        /* 日 */
-    int err = EXIT_SUCCESS; /* エラーコード */
+    int64_t unix_s = 0;      /* RTC の時刻 (UTC の UNIX 時刻 [s]) */
+    int64_t local_s = 0;     /* ローカルタイムの UNIX 時刻 [s] */
+    int64_t secs = 0;        /* その日の 0 時からの秒数 [s] */
+    int64_t year = 0;        /* 年 */
+    int64_t month = 0;       /* 月 */
+    int64_t day = 0;         /* 日 */
+    bool is_verified = true; /* 時刻が信用できるか */
+    int err = EXIT_SUCCESS;  /* エラーコード */
 
     local->is_valid = false;
+    local->is_verified = false;
 
-    err = read_utc(&unix_s);
+    err = read_utc(&unix_s, &is_verified);
     if (err != EXIT_SUCCESS) {
         LOG_ERR("Reading the local time failed (err %d)", err);
         return err;
@@ -144,6 +162,7 @@ int node_time_get(struct node_datetime *local)
     local->minute = (uint8_t)((secs % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
     local->second = (uint8_t)(secs % SECONDS_PER_MINUTE);
     local->is_valid = true;
+    local->is_verified = is_verified;
 
     return EXIT_SUCCESS;
 }
@@ -151,14 +170,38 @@ int node_time_get(struct node_datetime *local)
 /**
  * @brief RTC の時刻を UTC の UNIX 時刻で読む (SD カードに溜める測定値の時刻に使う)
  *
+ * 電圧低下のビットが立った時刻は, 誤っているおそれがあるので, 返さない.
+ *
  * @param[out] unix_s UTC の UNIX 時刻 [s]
  * @retval EXIT_SUCCESS 成功
- * @retval -ENODATA     RTC に時刻が設定されていない
+ * @retval -ENODATA     RTC に時刻が設定されていない, または信用できない
  * @retval negative     RTC のドライバの失敗 (負の errno)
  */
 int node_time_unix(int64_t *unix_s)
 {
-    return read_utc(unix_s);
+    bool is_verified = true; /* 時刻が信用できるか */
+    int err = EXIT_SUCCESS;  /* エラーコード */
+
+    err = read_utc(unix_s, &is_verified);
+    if ((err == EXIT_SUCCESS) && (!is_verified)) {
+        return -ENODATA;
+    }
+
+    return err;
+}
+
+/**
+ * @brief 最後の記録の時刻を知らせる (VL が立った RTC の時刻を, 信用してよいかの基準)
+ *
+ * RTC の電圧低下 (VL) のビットが立っていても, 時刻がこの値以上なら, 時計は動き続けていたと
+ * 見て信用する (電池が切れた RTC は, 2000 年付近から数え直すので, 記録より前になる).
+ *
+ * @param[in] unix_s 最後の記録の UTC の UNIX 時刻 [s] (記録がなければ負の値)
+ */
+void node_time_set_floor(int64_t unix_s)
+{
+    floor_s = unix_s;
+    is_logged_accepted = false;
 }
 
 /**
@@ -200,6 +243,8 @@ int node_time_set(int64_t unix_s)
     tm.tm_yday = -1;
     tm.tm_isdst = -1;
 
+    log_difference(unix_s);
+
     err = rtc_set_time(rtc_dev, &tm);
     if (err != 0) {
         LOG_ERR("Could not set the time of the RTC (%d)", err);
@@ -215,9 +260,10 @@ int node_time_set(int64_t unix_s)
  * RTC に保存されていた時刻 (UTC) をログに出す (電源を入れ直したあとも,
  * 電池で時刻が残っているかを見る)
  *
- * @param[in] unix_s RTC から読んだ UTC の UNIX 時刻 [s]
+ * @param[in] unix_s      RTC から読んだ UTC の UNIX 時刻 [s]
+ * @param[in] is_verified 時刻が信用できるか (電圧低下のビットが 0 か)
  */
-static void log_saved_time(int64_t unix_s)
+static void log_saved_time(int64_t unix_s, bool is_verified)
 {
     int64_t secs = unix_s % SECONDS_PER_DAY; /* その日の 0 時からの秒数 [s] */
     int64_t year = 0;                        /* 年 */
@@ -225,26 +271,57 @@ static void log_saved_time(int64_t unix_s)
     int64_t day = 0;                         /* 日 */
 
     civil_from_days(unix_s / SECONDS_PER_DAY, &year, &month, &day);
-    LOG_INF("The RTC has the saved time (UTC %04lld-%02lld-%02lld %02lld:%02lld:%02lld)",
+    LOG_INF("The RTC has the saved time (UTC %04lld-%02lld-%02lld %02lld:%02lld:%02lld)%s",
             (long long)year, (long long)month, (long long)day, (long long)(secs / SECONDS_PER_HOUR),
             (long long)((secs % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE),
-            (long long)(secs % SECONDS_PER_MINUTE));
+            (long long)(secs % SECONDS_PER_MINUTE),
+            (is_verified ? "" : ", not verified (VL bit), only shown until the time is set"));
+}
+
+/**
+ * RTC に設定する時刻と, RTC の今の時刻の差をログに出す (RTC がどれだけずれていたかを見る).
+ * 差が DIFFERENCE_WARN_S を超えたときは警告にする. RTC の時刻を読めないときは何も出さない.
+ *
+ * @param[in] unix_s これから RTC に設定する UTC の UNIX 時刻 [s]
+ */
+static void log_difference(int64_t unix_s)
+{
+    int64_t rtc_s = 0;       /* RTC の今の時刻 (UTC の UNIX 時刻 [s]) */
+    int64_t diff_s = 0;      /* 設定する時刻から RTC の時刻を引いた差 [s] */
+    bool is_verified = true; /* 時刻が信用できるか (使わない) */
+
+    if (read_utc(&rtc_s, &is_verified) != EXIT_SUCCESS) {
+        return;
+    }
+    diff_s = unix_s - rtc_s;
+    if ((diff_s < -DIFFERENCE_WARN_S) || (DIFFERENCE_WARN_S < diff_s)) {
+        LOG_WRN("The time of the RTC was off by %lld s", (long long)diff_s);
+    } else {
+        LOG_INF("The time of the RTC was off by %lld s", (long long)diff_s);
+    }
 }
 
 /**
  * RTC の時刻を読んで, UTC の UNIX 時刻に直す
  *
- * @param[out] unix_s UTC の UNIX 時刻 [s] の格納先 (NULL 不可)
+ * 電圧低下のビットが立っていても, 2026 年以降の時刻なら読めて, is_verified が false になる.
+ *
+ * @param[out] unix_s      UTC の UNIX 時刻 [s] の格納先 (NULL 不可)
+ * @param[out] is_verified 時刻が信用できるか (NULL 不可)
  * @retval EXIT_SUCCESS 成功
- * @retval -ENODATA     時刻が未設定 (ドライバが返す)
+ * @retval -ENODATA     時刻が未設定 (ドライバが返す), または信用できず, 妥当でもない
  * @retval negative     RTC のドライバの失敗 (負の errno)
  */
-static int read_utc(int64_t *unix_s)
+static int read_utc(int64_t *unix_s, bool *is_verified)
 {
     struct rtc_time tm = {0}; /* RTC の時刻 */
     int err = EXIT_SUCCESS;   /* エラーコード */
 
     err = rtc_get_time(rtc_dev, &tm);
+    *is_verified = (err != THERMO_RTC_UNVERIFIED);
+    if (err == THERMO_RTC_UNVERIFIED) {
+        err = EXIT_SUCCESS;
+    }
     if (err != 0) {
         if (err != -ENODATA) {
             LOG_ERR("Could not read the time of the RTC (%d)", err);
@@ -257,6 +334,23 @@ static int read_utc(int64_t *unix_s)
                SECONDS_PER_DAY) +
               ((int64_t)tm.tm_hour * SECONDS_PER_HOUR) + ((int64_t)tm.tm_min * SECONDS_PER_MINUTE) +
               tm.tm_sec;
+
+    if (!*is_verified) {
+        /* 電池が切れて, たまたま範囲に入った値を, 時刻として見せない */
+        if (*unix_s < UNIX_TIME_PLAUSIBLE_MIN) {
+            return -ENODATA;
+        }
+        /* 最後の記録より前に戻っていなければ, 時計は動き続けていたと見て, 信用する */
+        if ((0 <= floor_s) && (floor_s <= *unix_s)) {
+            *is_verified = true;
+            if (!is_logged_accepted) {
+                is_logged_accepted = true;
+                LOG_INF("The RTC has VL set, but its time is not before the last record (%lld s), "
+                        "so it is used",
+                        (long long)floor_s);
+            }
+        }
+    }
 
     return EXIT_SUCCESS;
 }
